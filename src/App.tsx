@@ -12,6 +12,7 @@ import Bots from "@/pages/Bots";
 import Earn from "@/pages/Earn";
 import Markets from "@/pages/Markets";
 import NotFound from "@/pages/NotFound";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 // Profile pages
 import UserProfile from "@/pages/profile/UserProfile";
@@ -40,29 +41,31 @@ const TerminalLayout = ({ children }: { children: React.ReactNode }) => (
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<AppLayout><Dashboard /></AppLayout>} />
-          <Route path="/terminal" element={<TerminalLayout><Terminal /></TerminalLayout>} />
-          <Route path="/bots" element={<AppLayout><Bots /></AppLayout>} />
-          <Route path="/earn" element={<AppLayout><Earn /></AppLayout>} />
-          <Route path="/markets" element={<AppLayout><Markets /></AppLayout>} />
-          
-          {/* Profile routes */}
-          <Route path="/profile" element={<AppLayout><UserProfile /></AppLayout>} />
-          <Route path="/preferences" element={<AppLayout><Preferences /></AppLayout>} />
-          <Route path="/plan" element={<AppLayout><PlanSubscription /></AppLayout>} />
-          <Route path="/password" element={<AppLayout><ChangePassword /></AppLayout>} />
-          <Route path="/security" element={<AppLayout><Security /></AppLayout>} />
-          <Route path="/accounts" element={<AppLayout><MyAccounts /></AppLayout>} />
-          
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+      <TooltipProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<AppLayout><Dashboard /></AppLayout>} />
+            <Route path="/terminal" element={<TerminalLayout><Terminal /></TerminalLayout>} />
+            <Route path="/bots" element={<AppLayout><Bots /></AppLayout>} />
+            <Route path="/earn" element={<AppLayout><Earn /></AppLayout>} />
+            <Route path="/markets" element={<AppLayout><Markets /></AppLayout>} />
+            
+            {/* Profile routes */}
+            <Route path="/profile" element={<AppLayout><UserProfile /></AppLayout>} />
+            <Route path="/preferences" element={<AppLayout><Preferences /></AppLayout>} />
+            <Route path="/plan" element={<AppLayout><PlanSubscription /></AppLayout>} />
+            <Route path="/password" element={<AppLayout><ChangePassword /></AppLayout>} />
+            <Route path="/security" element={<AppLayout><Security /></AppLayout>} />
+            <Route path="/accounts" element={<AppLayout><MyAccounts /></AppLayout>} />
+            
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+        <Toaster />
+        <Sonner />
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 
