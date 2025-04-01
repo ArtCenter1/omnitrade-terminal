@@ -6,10 +6,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AssetRow } from "@/components/AssetRow";
 import { PerformanceChart } from "@/components/PerformanceChart";
 import { AllocationChart } from "@/components/AllocationChart";
-import { ExchangeAccountSelector } from "@/components/dashboard/ExchangeAccountSelector";
-import { PortfolioIndicators } from "@/components/dashboard/PortfolioIndicators";
-import { 
-  mockAssets, 
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader"; // Import the new header
+import {
+  mockAssets,
   formatCurrency, 
   generatePriceChartData, 
   generateAllocationData
@@ -19,17 +18,15 @@ export default function Dashboard() {
   const performanceChartData = generatePriceChartData(false);
   const allocationData = generateAllocationData();
   
-  return (
+return (
     <div className="container mx-auto p-6">
+      {/* Add the new header component here */}
+      <DashboardHeader />
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="md:col-span-2">
           <div className="bg-gray-900 rounded-lg p-6">
-            {/* New wrapper div for the top row */}
-            <div className="flex justify-between items-center mb-6">
-              <ExchangeAccountSelector /> {/* Selector takes the first spot */}
-              <PortfolioIndicators /> {/* Indicators component takes the remaining space */}
-            </div>
-            {/* End of new wrapper div */}
+            {/* Remove the old header elements */}
             <div>
               <h4 className="flex items-center text-sm text-gray-300 mb-2">
                 Performance
@@ -74,24 +71,9 @@ export default function Dashboard() {
               <AllocationChart data={allocationData} className="h-56 w-full" />
             </div>
             
+            {/* Remove the Earn button and Upgrade promo */}
             <div className="mt-4">
-              <Button className="bg-primary hover:bg-primary/90 text-black w-full mb-2">
-                Earn 20% APY
-              </Button>
-              <div className="bg-purple-900 bg-opacity-30 border border-primary rounded-lg p-3 flex items-center">
-                <div className="mr-2 flex-shrink-0">
-                  <div className="w-8 h-8 bg-primary bg-opacity-20 flex items-center justify-center rounded-full">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-                      <circle cx="12" cy="12" r="10"/>
-                      <path d="M8 12h8"/>
-                      <path d="M12 8v8"/>
-                    </svg>
-                  </div>
-                </div>
-                <div className="text-xs text-white">
-                  <p>Upgrade to access all premium features and maximize your trading potential!</p>
-                </div>
-              </div>
+              {/* Content removed */}
             </div>
           </div>
         </div>
