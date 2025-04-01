@@ -1,8 +1,16 @@
 
-import { Bell, ChevronDown, CircleDollarSign, Info, Menu, Settings } from "lucide-react";
+import { Bell, ChevronDown, CircleDollarSign, CreditCard, HelpCircle, Info, LogOut, Menu, Settings, Shield, User, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuGroup, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 
 export function Navbar() {
   const navigate = useNavigate();
@@ -78,12 +86,68 @@ export function Navbar() {
         </Button>
         
         <div className="flex items-center space-x-1 ml-2">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src="" />
-            <AvatarFallback className="bg-primary/20 text-primary">V</AvatarFallback>
-          </Avatar>
-          <span className="text-sm text-gray-300 hidden md:inline-block">Vincent</span>
-          <ChevronDown size={16} className="text-gray-400" />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="flex items-center space-x-1 px-2">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src="" />
+                  <AvatarFallback className="bg-primary/20 text-primary">V</AvatarFallback>
+                </Avatar>
+                <span className="text-sm text-gray-300 hidden md:inline-block">Vincent</span>
+                <ChevronDown size={16} className="text-gray-400" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56 bg-gray-900 border border-gray-800 text-white" align="end">
+              <div className="flex flex-col space-y-1 p-2">
+                <p className="text-lg font-semibold">Vincent</p>
+                <p className="text-sm text-gray-400">artcenter1@gmail.com</p>
+              </div>
+              <DropdownMenuSeparator className="bg-gray-800" />
+              <DropdownMenuGroup>
+                <DropdownMenuItem onClick={() => navigate("/profile")} className="cursor-pointer hover:bg-gray-800">
+                  <User className="mr-2 h-4 w-4" />
+                  <span>User Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/preferences")} className="cursor-pointer hover:bg-gray-800">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Preferences</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/plan")} className="cursor-pointer hover:bg-gray-800">
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  <span>Plan & Subscription</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/password")} className="cursor-pointer hover:bg-gray-800">
+                  <Shield className="mr-2 h-4 w-4" />
+                  <span>Change Password</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/security")} className="cursor-pointer hover:bg-gray-800">
+                  <Shield className="mr-2 h-4 w-4" />
+                  <span>Security (2FA)</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/accounts")} className="cursor-pointer hover:bg-gray-800">
+                  <Wallet className="mr-2 h-4 w-4" />
+                  <span>My Accounts</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/deposit")} className="cursor-pointer hover:bg-gray-800">
+                  <CircleDollarSign className="mr-2 h-4 w-4" />
+                  <span>Deposit/Withdraw</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/earn")} className="cursor-pointer hover:bg-gray-800">
+                  <CircleDollarSign className="mr-2 h-4 w-4" />
+                  <span>Earn</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/support")} className="cursor-pointer hover:bg-gray-800">
+                  <HelpCircle className="mr-2 h-4 w-4" />
+                  <span>Support Center</span>
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator className="bg-gray-800" />
+              <DropdownMenuItem className="cursor-pointer hover:bg-gray-800">
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log Out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </div>

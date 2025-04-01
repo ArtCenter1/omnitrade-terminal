@@ -13,6 +13,14 @@ import Earn from "@/pages/Earn";
 import Markets from "@/pages/Markets";
 import NotFound from "@/pages/NotFound";
 
+// Profile pages
+import UserProfile from "@/pages/profile/UserProfile";
+import Preferences from "@/pages/profile/Preferences";
+import PlanSubscription from "@/pages/profile/PlanSubscription";
+import ChangePassword from "@/pages/profile/ChangePassword";
+import Security from "@/pages/profile/Security";
+import MyAccounts from "@/pages/profile/MyAccounts";
+
 const queryClient = new QueryClient();
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => (
@@ -42,6 +50,15 @@ const App = () => (
           <Route path="/bots" element={<AppLayout><Bots /></AppLayout>} />
           <Route path="/earn" element={<AppLayout><Earn /></AppLayout>} />
           <Route path="/markets" element={<AppLayout><Markets /></AppLayout>} />
+          
+          {/* Profile routes */}
+          <Route path="/profile" element={<AppLayout><UserProfile /></AppLayout>} />
+          <Route path="/preferences" element={<AppLayout><Preferences /></AppLayout>} />
+          <Route path="/plan" element={<AppLayout><PlanSubscription /></AppLayout>} />
+          <Route path="/password" element={<AppLayout><ChangePassword /></AppLayout>} />
+          <Route path="/security" element={<AppLayout><Security /></AppLayout>} />
+          <Route path="/accounts" element={<AppLayout><MyAccounts /></AppLayout>} />
+          
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
