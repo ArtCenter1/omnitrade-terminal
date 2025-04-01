@@ -1,7 +1,7 @@
 
 # Project Management
 
-This folder contains all high-level project management information for the CryptoBot Trading Platform.
+This folder contains all high-level project management information for the OpenTrade Trading Platform.
 
 ## Contents
 
