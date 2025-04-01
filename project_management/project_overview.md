@@ -1,5 +1,5 @@
 
-# CryptoBot Trading Platform - Project Overview
+# OpenTrade Trading Platform - Project Overview
 
 ## Vision
 A fully functional, commercial-ready full-stack bot trading website with customizable LLM models integration. The platform will include blockchain integration for token distribution, rewarding user referrals and code contributions.
