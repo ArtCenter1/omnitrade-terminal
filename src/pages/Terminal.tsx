@@ -1,11 +1,12 @@
 
-import { ArrowDown, BarChart3, ChevronDown, Clock, History, LayoutGrid, Menu, Search, Settings, Maximize, Save, Candlestick } from "lucide-react";
+import { ArrowDown, BarChart3, ChevronDown, Clock, History, LayoutGrid, Menu, Search, Settings, Maximize, Save, BarChart } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AssetRow } from "@/components/AssetRow";
 import { PerformanceChart } from "@/components/PerformanceChart";
 import { mockAssets, generatePriceChartData } from "@/lib/utils";
+import { Info } from "lucide-react";
 
 export default function Terminal() {
   const chartData = generatePriceChartData(false);
@@ -159,7 +160,7 @@ export default function Terminal() {
                 <BarChart3 size={16} />
               </Button>
               <Button variant="ghost" size="sm" className="p-1 h-7 text-gray-400">
-                <Candlestick size={16} />
+                <BarChart size={16} />
               </Button>
               
               <Button variant="ghost" size="sm" className="h-7 text-gray-400 text-xs">
