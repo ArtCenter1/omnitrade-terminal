@@ -7,7 +7,12 @@ type PerformanceChartProps = {
   className?: string;
 }
 
-export function PerformanceChart({ data, isPositive, className = "performance-chart-container" }: PerformanceChartProps) {
+export function PerformanceChart({ data = [], isPositive, className = "performance-chart-container" }: PerformanceChartProps) {
+  // Ensure we have valid data before rendering the chart
+  if (!data || data.length === 0) {
+    return <div className={className}>No data available</div>;
+  }
+
   return (
     <div className={className}>
       <ResponsiveContainer width="100%" height="100%">

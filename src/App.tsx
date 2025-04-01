@@ -22,6 +22,7 @@ import ChangePassword from "@/pages/profile/ChangePassword";
 import Security from "@/pages/profile/Security";
 import MyAccounts from "@/pages/profile/MyAccounts";
 
+// Create a new QueryClient instance
 const queryClient = new QueryClient();
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => (
@@ -40,33 +41,35 @@ const TerminalLayout = ({ children }: { children: React.ReactNode }) => (
 );
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-      <TooltipProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<AppLayout><Dashboard /></AppLayout>} />
-            <Route path="/terminal" element={<TerminalLayout><Terminal /></TerminalLayout>} />
-            <Route path="/bots" element={<AppLayout><Bots /></AppLayout>} />
-            <Route path="/earn" element={<AppLayout><Earn /></AppLayout>} />
-            <Route path="/markets" element={<AppLayout><Markets /></AppLayout>} />
-            
-            {/* Profile routes */}
-            <Route path="/profile" element={<AppLayout><UserProfile /></AppLayout>} />
-            <Route path="/preferences" element={<AppLayout><Preferences /></AppLayout>} />
-            <Route path="/plan" element={<AppLayout><PlanSubscription /></AppLayout>} />
-            <Route path="/password" element={<AppLayout><ChangePassword /></AppLayout>} />
-            <Route path="/security" element={<AppLayout><Security /></AppLayout>} />
-            <Route path="/accounts" element={<AppLayout><MyAccounts /></AppLayout>} />
-            
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-        <Toaster />
-        <Sonner />
-      </TooltipProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
+  <StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+        <TooltipProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<AppLayout><Dashboard /></AppLayout>} />
+              <Route path="/terminal" element={<TerminalLayout><Terminal /></TerminalLayout>} />
+              <Route path="/bots" element={<AppLayout><Bots /></AppLayout>} />
+              <Route path="/earn" element={<AppLayout><Earn /></AppLayout>} />
+              <Route path="/markets" element={<AppLayout><Markets /></AppLayout>} />
+              
+              {/* Profile routes */}
+              <Route path="/profile" element={<AppLayout><UserProfile /></AppLayout>} />
+              <Route path="/preferences" element={<AppLayout><Preferences /></AppLayout>} />
+              <Route path="/plan" element={<AppLayout><PlanSubscription /></AppLayout>} />
+              <Route path="/password" element={<AppLayout><ChangePassword /></AppLayout>} />
+              <Route path="/security" element={<AppLayout><Security /></AppLayout>} />
+              <Route path="/accounts" element={<AppLayout><MyAccounts /></AppLayout>} />
+              
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+          <Toaster />
+          <Sonner />
+        </TooltipProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  </StrictMode>
 );
 
 export default App;

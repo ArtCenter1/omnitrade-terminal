@@ -7,7 +7,12 @@ type AssetChartProps = {
   className?: string;
 }
 
-export function AssetChart({ data, isPositive, className = "chart-container" }: AssetChartProps) {
+export function AssetChart({ data = [], isPositive, className = "chart-container" }: AssetChartProps) {
+  // Ensure we have valid data before rendering the chart
+  if (!data || data.length === 0) {
+    return <div className={className}>No data</div>;
+  }
+
   return (
     <div className={className}>
       <ResponsiveContainer width="100%" height="100%">
