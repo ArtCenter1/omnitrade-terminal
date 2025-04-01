@@ -6,6 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AssetRow } from "@/components/AssetRow";
 import { PerformanceChart } from "@/components/PerformanceChart";
 import { AllocationChart } from "@/components/AllocationChart";
+import { ExchangeAccountSelector } from "@/components/dashboard/ExchangeAccountSelector";
+import { PortfolioIndicators } from "@/components/dashboard/PortfolioIndicators";
 import { 
   mockAssets, 
   formatCurrency, 
@@ -23,26 +25,10 @@ export default function Dashboard() {
         <div className="md:col-span-2">
           <div className="bg-gray-900 rounded-lg p-6">
             <div className="flex justify-between items-start mb-4">
-              <div>
-                <div className="flex items-center mb-1">
-                  <h2 className="text-sm text-gray-400 uppercase mr-2">PORTFOLIO VALUE</h2>
-                  <div className="w-5 h-5 rounded-full overflow-hidden">
-                    <img src="/placeholder.svg" alt="Portfolio" className="w-full h-full object-cover" />
-                  </div>
-                </div>
-                <div className="flex items-baseline">
-                  <h3 className="text-2xl font-bold text-white mr-2">$47,854.48</h3>
-                  <div className="flex items-center text-crypto-red">
-                    <ArrowDownRight size={16} />
-                    <span className="text-sm">$2,139.11</span>
-                  </div>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-sm text-gray-400 uppercase mb-1">24h Change</div>
-                <div className="text-lg font-medium text-crypto-red">-4.28%</div>
-              </div>
+              <ExchangeAccountSelector />
             </div>
+            
+            <PortfolioIndicators />
             
             <div>
               <h4 className="flex items-center text-sm text-gray-300 mb-2">
