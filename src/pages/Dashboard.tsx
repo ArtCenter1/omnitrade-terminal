@@ -24,12 +24,12 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="md:col-span-2">
           <div className="bg-gray-900 rounded-lg p-6">
-            <div className="flex justify-between items-start mb-4">
-              <ExchangeAccountSelector />
+            {/* New wrapper div for the top row */}
+            <div className="flex justify-between items-center mb-6">
+              <ExchangeAccountSelector /> {/* Selector takes the first spot */}
+              <PortfolioIndicators /> {/* Indicators component takes the remaining space */}
             </div>
-            
-            <PortfolioIndicators />
-            
+            {/* End of new wrapper div */}
             <div>
               <h4 className="flex items-center text-sm text-gray-300 mb-2">
                 Performance
