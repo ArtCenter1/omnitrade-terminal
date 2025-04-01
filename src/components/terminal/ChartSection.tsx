@@ -14,6 +14,7 @@ interface TradingViewWidgetOptions {
   enable_publishing?: boolean;
   allow_symbol_change?: boolean;
   container_id: string;
+  hide_side_toolbar?: boolean; // Added for drawing tools
   // Add other potential options here if needed
 }
 
@@ -52,7 +53,8 @@ export function ChartSection() {
             locale: "en",
             enable_publishing: false,
             allow_symbol_change: true, // Keep symbol change enabled
-            container_id: currentContainer.id // Use the container's actual ID
+            container_id: currentContainer.id, // Use the container's actual ID
+            hide_side_toolbar: false // Ensure drawing toolbar is visible
         });
       }
     };

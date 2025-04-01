@@ -9,7 +9,6 @@ import { OrderBook } from "@/components/terminal/OrderBook";
 import { AssetsTable } from "@/components/terminal/AssetsTable";
 
 export default function Terminal() {
-  const chartData = generatePriceChartData(false);
 
   return (
     <div className="bg-black min-h-screen">
@@ -17,10 +16,9 @@ export default function Terminal() {
         <TradingSidebar />
         
         <div className="col-span-9">
-          <ChartHeader />
           
           <div className="grid grid-cols-12 gap-0">
-            <ChartSection chartData={chartData} />
+            <ChartSection />
             <OrderBook />
           </div>
           
