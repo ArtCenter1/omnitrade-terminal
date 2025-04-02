@@ -19,7 +19,10 @@
 - Build Bots management page
 - Build Markets page
 - Build Earn/Rewards page
+- Build Community page UI (Leaderboards, Filters)
+- Implement Landing Page Leaderboard Preview section
 - Implement navigation and routing
+- Implement Landing Page AI Introduction section
 
 ## Phase 3: Backend Infrastructure
 - Set up database schema
@@ -28,6 +31,8 @@
 - Develop bot execution engine
 - Implement user management services
 - Set up data persistence and caching
+- Implement backend performance tracking for shared bots (backtest & live)
+- Create API endpoints for leaderboards (full & preview) and bot sharing
 - Implement logging and monitoring
 
 ## Phase 4: Trading Bot Development
@@ -39,14 +44,17 @@
 - Build alert system
 - Create bot marketplace
 
-## Phase 5: LLM Integration
+## Phase 5: AI / LLM Integration
 - Research and select LLM providers
-- Implement LLM API integration
-- Develop prompting strategies
-- Create LLM-based trading strategies
-- Build natural language interface for bot configuration
-- Implement sentiment analysis
-- Test and optimize LLM performance
+- Implement Backend API for Custom AI Signals (BYOAI)
+- Develop BYOAI signal validation and execution logic
+- Build Frontend UI for BYOAI configuration and API key management
+- Implement LLM API integration (for potential Platform AI Bots / features)
+- Develop prompting strategies (for LLM features)
+- Research/Develop Platform AI trading strategies (including LLM-based)
+- Build natural language interface for bot configuration (LLM feature)
+- Implement sentiment analysis (LLM feature)
+- Test and optimize AI/LLM performance
 
 ## Phase 6: Blockchain Integration
 - Design tokenomics
