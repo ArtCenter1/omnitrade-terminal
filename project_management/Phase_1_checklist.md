@@ -47,9 +47,9 @@ Set up the project structure, define requirements, and create the foundation for
 
 ### Data Modeling
 - [x] Define user data model
-- [ ] Define trading bot data model
-- [ ] Define market data model
-- [ ] Define rewards and token data model
+- [x] Define trading bot data model
+- [x] Define market data model
+- [x] Define rewards and token data model
 - [ ] Plan data relationships
 
 ### Documentation
