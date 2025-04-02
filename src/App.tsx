@@ -1,4 +1,3 @@
-
 import { StrictMode } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -31,6 +30,11 @@ import ChangePassword from "@/pages/profile/ChangePassword";
 import Security from "@/pages/profile/Security";
 import MyAccounts from "@/pages/profile/MyAccounts";
 
+// Auth pages
+import LoginPage from "@/pages/auth/LoginPage";
+import RegisterPage from "@/pages/auth/RegisterPage";
+import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
+
 // Create a new QueryClient instance
 const queryClient = new QueryClient();
 
@@ -56,14 +60,14 @@ const App = () => (
         <TooltipProvider>
           <BrowserRouter>
             <Routes>
+              {/* App Routes with Layout */}
               <Route path="/" element={<AppLayout><Dashboard /></AppLayout>} />
-              <Route path="/home" element={<Index />} /> {/* Use Index directly, it will have its own Navbar/Footer */}
               <Route path="/terminal" element={<TerminalLayout><Terminal /></TerminalLayout>} />
               <Route path="/bots" element={<AppLayout><Bots /></AppLayout>} />
               <Route path="/earn" element={<AppLayout><Earn /></AppLayout>} />
               <Route path="/markets" element={<AppLayout><Markets /></AppLayout>} />
-              
-              {/* Profile routes */}
+
+              {/* Profile routes with Layout */}
               <Route path="/profile" element={<AppLayout><UserProfile /></AppLayout>} />
               <Route path="/preferences" element={<AppLayout><Preferences /></AppLayout>} />
               <Route path="/plan" element={<AppLayout><PlanSubscription /></AppLayout>} />
@@ -72,12 +76,19 @@ const App = () => (
               <Route path="/accounts" element={<AppLayout><MyAccounts /></AppLayout>} />
 
               {/* Landing Page Routes (without AppLayout) */}
+              <Route path="/home" element={<Index />} /> {/* Use Index directly, it will have its own Navbar/Footer */}
               <Route path="/cody-ai" element={<CodyAIPage />} />
               <Route path="/trading-bots" element={<TradingBotsLandingPage />} />
               <Route path="/blog" element={<BlogPage />} />
               <Route path="/omni-token" element={<OmniTokenPage />} /> {/* Renamed route and component */}
               <Route path="/pricing" element={<PricingPage />} />
 
+              {/* Auth Routes (without AppLayout) */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+
+              {/* Not Found Route */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

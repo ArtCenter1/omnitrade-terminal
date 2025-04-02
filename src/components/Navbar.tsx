@@ -1,23 +1,73 @@
-
-import { Bell, ChevronDown, CircleDollarSign, CreditCard, HelpCircle, Info, LogOut, Menu, Settings, Shield, User, Wallet } from "lucide-react";
+import { useState } from "react"; // Added for mobile menu state
+import { Bell, ChevronDown, CircleDollarSign, CreditCard, HelpCircle, Info, LogOut, Menu, Settings, Shield, User, Wallet, X } from "lucide-react"; // Added X icon
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link, useNavigate } from "react-router-dom";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuGroup, 
-  DropdownMenuItem, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetClose // Added SheetClose
+} from "@/components/ui/sheet"; // Added Sheet components
 
 export function Navbar() {
   const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // State for mobile menu
 
   return (
     <div className="flex items-center justify-between p-2 border-b border-gray-800 bg-black">
-      <div className="flex items-center space-x-8">
+      {/* Left side: Logo, Mobile Menu Trigger, Desktop Nav */}
+      <div className="flex items-center space-x-4 md:space-x-8">
+        {/* Mobile Menu Trigger (visible on small screens) */}
+        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="md:hidden text-white">
+              <Menu className="h-6 w-6" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-[300px] sm:w-[400px] bg-gray-950 border-r border-gray-800 text-white p-0">
+            <SheetHeader className="p-4 border-b border-gray-800">
+              <SheetTitle className="text-white flex justify-between items-center">
+                <span>Navigation</span>
+                <SheetClose asChild>
+                   <Button variant="ghost" size="icon">
+                      <X className="h-5 w-5" />
+                   </Button>
+                </SheetClose>
+              </SheetTitle>
+            </SheetHeader>
+            <div className="flex flex-col space-y-2 p-4">
+              {/* Mobile Navigation Links */}
+              <SheetClose asChild>
+                <Button variant="ghost" className="justify-start text-white" onClick={() => navigate("/")}>Dashboard</Button>
+              </SheetClose>
+              <SheetClose asChild>
+                <Button variant="ghost" className="justify-start text-gray-400 hover:text-white" onClick={() => navigate("/terminal")}>Terminal</Button>
+              </SheetClose>
+              <SheetClose asChild>
+                <Button variant="ghost" className="justify-start text-gray-400 hover:text-white" onClick={() => navigate("/bots")}>Bots</Button>
+              </SheetClose>
+              <SheetClose asChild>
+                <Button variant="ghost" className="justify-start text-gray-400 hover:text-white" onClick={() => navigate("/earn")}>Earn</Button>
+              </SheetClose>
+              <SheetClose asChild>
+                <Button variant="ghost" className="justify-start text-gray-400 hover:text-white" onClick={() => navigate("/markets")}>Markets</Button>
+              </SheetClose>
+            </div>
+          </SheetContent>
+        </Sheet>
+
+        {/* Logo */}
         <Link to="/home" className="flex items-center cursor-pointer">
           <div className="bg-[#1A1A1A] p-2 flex items-center justify-center rounded">
             <img
@@ -27,46 +77,48 @@ export function Navbar() {
             />
           </div>
         </Link>
-        
+
+        {/* Desktop Navigation (hidden on small screens) */}
         <nav className="hidden md:flex space-x-6">
-          <Button 
-            variant="ghost" 
-            className="font-medium text-white hover:text-white hover:bg-gray-800" 
+          <Button
+            variant="ghost"
+            className="font-medium text-white hover:text-white hover:bg-gray-800"
             onClick={() => navigate("/")}
           >
             Dashboard
           </Button>
-          <Button 
-            variant="ghost" 
-            className="font-medium text-gray-400 hover:text-white hover:bg-gray-800" 
+          <Button
+            variant="ghost"
+            className="font-medium text-gray-400 hover:text-white hover:bg-gray-800"
             onClick={() => navigate("/terminal")}
           >
             Terminal
           </Button>
-          <Button 
-            variant="ghost" 
-            className="font-medium text-gray-400 hover:text-white hover:bg-gray-800" 
+          <Button
+            variant="ghost"
+            className="font-medium text-gray-400 hover:text-white hover:bg-gray-800"
             onClick={() => navigate("/bots")}
           >
             Bots
           </Button>
-          <Button 
-            variant="ghost" 
-            className="font-medium text-gray-400 hover:text-white hover:bg-gray-800" 
+          <Button
+            variant="ghost"
+            className="font-medium text-gray-400 hover:text-white hover:bg-gray-800"
             onClick={() => navigate("/earn")}
           >
             Earn
           </Button>
-          <Button 
-            variant="ghost" 
-            className="font-medium text-gray-400 hover:text-white hover:bg-gray-800" 
+          <Button
+            variant="ghost"
+            className="font-medium text-gray-400 hover:text-white hover:bg-gray-800"
             onClick={() => navigate("/markets")}
           >
             Markets
           </Button>
         </nav>
       </div>
-      
+
+      {/* Right side: Upgrade, Icons, User Menu */}
       <div className="flex items-center space-x-2">
         <div className="hidden lg:flex items-center mr-2">
           <span className="text-yellow-500 mr-1">
@@ -76,15 +128,15 @@ export function Navbar() {
             UPGRADE
           </div>
         </div>
-        
+
         <Button variant="ghost" className="text-gray-400 rounded-full p-2">
           <Bell size={18} />
         </Button>
-        
+
         <Button variant="ghost" className="text-gray-400 rounded-full p-2">
           <Settings size={18} />
         </Button>
-        
+
         <div className="flex items-center space-x-1 ml-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

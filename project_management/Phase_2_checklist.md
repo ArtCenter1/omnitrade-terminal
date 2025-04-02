@@ -5,9 +5,9 @@ Implement the core user interface components, pages, and navigation for the Open
 
 ## Tasks
 
-*   [ ] Implement UI components library (Leverage shadcn/ui, build custom components as needed)
-*   [ ] Develop responsive layout (Ensure usability across different screen sizes)
-*   [ ] Create authentication UI (Login, Registration, Password Reset forms/pages)
+*   [x] Leverage shadcn/ui component library (Setup complete, custom components built as needed)
+*   [x] Develop responsive layout (Core layout uses Tailwind responsive classes; Navbar includes mobile drawer)
+*   [x] Create authentication UI (Login, Registration, Password Reset forms/pages created and routed)
 *   [ ] Build Dashboard page UI
 *   [ ] Build Terminal page UI
 *   [ ] Build Bots management page UI (Initial structure, details may follow in later phases)
