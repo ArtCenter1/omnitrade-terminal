@@ -15,7 +15,7 @@ For detailed information about the project, see `project_management/project_over
   - `project_overview.md` - Detailed project description and vision
   - `project_roadmap.md` - Project phases and milestones
   - `current_phase.md` - Current phase status and next steps
-  - Phase-specific checklists (e.g., `Phase_1_checklist.md`)
+  - Phase-specific checklists (e.g., `Phase_1_checklist.md`, `Phase_2_checklist.md`)
 
 - `reference_files/` - Contains detailed documentation for each feature
   - `index.md` - Index of all reference files with descriptions
@@ -23,6 +23,11 @@ For detailed information about the project, see `project_management/project_over
 
 - `src/` - Source code
   - `components/` - React components
+    - `ui/` - UI primitives based on shadcn/ui
+    - `dashboard/` - Dashboard-specific components
+    - `terminal/` - Terminal-specific components
+    - `profile/` - Profile-specific components
+    - `community/` - Community/Leaderboard components
   - `pages/` - Page components
   - `lib/` - Utility functions and helpers
   - `hooks/` - Custom React hooks
@@ -56,7 +61,7 @@ To maintain continuity between development sessions:
 
 ## Current Status
 
-The project is currently in Phase 1: Project Setup and Planning.
+The project is currently in Phase 2: Frontend Core Development.
 
 For detailed information about current progress and next steps, see `project_management/current_phase.md`.
 
