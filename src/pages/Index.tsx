@@ -1,6 +1,7 @@
 import React from 'react';
 import { LandingNavbar } from "@/components/LandingNavbar"; // Import LandingNavbar
 import { Footer } from "@/components/Footer"; // Import Footer
+import { LeaderboardPreview } from "@/components/landing/LeaderboardPreview"; // Import LeaderboardPreview
 // Assuming Button and Card components might exist or will be created later
 // import { Button } from '@/components/ui/button';
 // import { Card } from '@/components/ui/card';
@@ -67,6 +68,13 @@ const Index = () => {
           <button className="border border-white hover:bg-white hover:text-black text-white font-bold py-2 px-6 rounded">
             Get Started &amp;rarr;
           </button>
+        </div>
+      </section>
+
+      {/* Leaderboard Preview Section */}
+      <section className="py-16 px-4 bg-black text-white">
+        <div className="container mx-auto max-w-4xl"> {/* Constrain width */}
+          <LeaderboardPreview />
         </div>
       </section>
 

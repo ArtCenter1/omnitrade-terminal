@@ -1,18 +1,17 @@
-
 import { Facebook, Twitter, Youtube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
 export function Footer() {
   const navigate = useNavigate();
-  
+
   return (
     <div className="border-t border-gray-800 mt-8 px-6 py-8">
       <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
         <div>
           <h3 className="text-sm font-medium text-green-500 mb-4">Platform</h3>
           <div className="flex flex-col space-y-2">
-            <Button variant="link" className="text-gray-400 text-sm justify-start p-0 h-auto hover:text-white" 
+            <Button variant="link" className="text-gray-400 text-sm justify-start p-0 h-auto hover:text-white"
               onClick={() => navigate("/")}>Dashboard</Button>
             <Button variant="link" className="text-gray-400 text-sm justify-start p-0 h-auto hover:text-white"
               onClick={() => navigate("/terminal")}>Terminal</Button>
@@ -21,10 +20,14 @@ export function Footer() {
             <Button variant="link" className="text-gray-400 text-sm justify-start p-0 h-auto hover:text-white"
               onClick={() => navigate("/markets")}>Markets</Button>
             <Button variant="link" className="text-gray-400 text-sm justify-start p-0 h-auto hover:text-white"
+              onClick={() => navigate("/earn")}>Earn</Button> {/* Added Earn link */}
+            <Button variant="link" className="text-gray-400 text-sm justify-start p-0 h-auto hover:text-white"
+              onClick={() => navigate("/community")}>Community</Button> {/* Added Community link */}
+            <Button variant="link" className="text-gray-400 text-sm justify-start p-0 h-auto hover:text-white"
               onClick={() => navigate("/pricing")}>Pricing & Fees</Button>
           </div>
         </div>
-        
+
         <div>
           <h3 className="text-sm font-medium text-green-500 mb-4">Resources</h3>
           <div className="flex flex-col space-y-2">
@@ -35,7 +38,7 @@ export function Footer() {
             <Button variant="link" className="text-gray-400 text-sm justify-start p-0 h-auto hover:text-white">Referral Program</Button>
           </div>
         </div>
-        
+
         <div>
           <h3 className="text-sm font-medium text-green-500 mb-4">Company</h3>
           <div className="flex flex-col space-y-2">
@@ -46,7 +49,7 @@ export function Footer() {
             <Button variant="link" className="text-gray-400 text-sm justify-start p-0 h-auto hover:text-white">Privacy Policy</Button>
           </div>
         </div>
-        
+
         <div>
           <h3 className="text-sm font-medium text-green-500 mb-4">Socials</h3>
           <div className="flex space-x-4 mb-4">
@@ -61,7 +64,7 @@ export function Footer() {
             </Button>
           </div>
         </div>
-        
+
         <div>
           <h3 className="text-sm font-medium text-green-500 mb-4">Sharing is Caring</h3>
           <div className="flex flex-col space-y-3">
@@ -78,7 +81,7 @@ export function Footer() {
                 </svg>
               </div>
             </Button>
-            
+
             <div>
               <h4 className="text-gray-300 text-sm mb-2">Available on Mobile</h4>
               <div className="text-xs text-gray-400 mb-2">(New Version Launches Soon)</div>
@@ -106,20 +109,20 @@ export function Footer() {
           </div>
         </div>
       </div>
-      
+
       <div className="mt-12 text-gray-500 text-xs leading-relaxed">
         <p className="mb-4">
-          Disclaimer: Information contained herein should not be construed as an investment advice, or investment recommendation, or an order of, or solicitation for, any transactions in financial instruments; 
-          it makes no warranty or representation, whether express or implied, as to the accuracy or completeness of the data found herein, or as to the fitness thereof for a particular purpose. Use of images 
-          and symbols is made for illustrative purposes only and does not constitute a recommendation to buy, sell or hold a particular financial instrument. Use of brand logos does not necessarily imply a 
+          Disclaimer: Information contained herein should not be construed as an investment advice, or investment recommendation, or an order of, or solicitation for, any transactions in financial instruments;
+          it makes no warranty or representation, whether express or implied, as to the accuracy or completeness of the data found herein, or as to the fitness thereof for a particular purpose. Use of images
+          and symbols is made for illustrative purposes only and does not constitute a recommendation to buy, sell or hold a particular financial instrument. Use of brand logos does not necessarily imply a
           contractual relationship between us and the entities owning the logos, nor does it represent an endorsement of any such entity by OmniTrade, or vice versa. Market information is made available to
           you only as a service, and we do not endorse or approve it.
         </p>
         <p>
-          Backtested or simulated performance results have inherent limitations and should not be interpreted as a recommendation to buy or sell any assets nor a guarantee of future returns. Actual results 
+          Backtested or simulated performance results have inherent limitations and should not be interpreted as a recommendation to buy or sell any assets nor a guarantee of future returns. Actual results
           will vary from the analysis and OmniTrade makes no representation or warranty regarding future performance.
         </p>
-        
+
         <div className="text-center mt-8">
           Copyright © OmniTrade Global, Ltd (BVI) {/* Assuming company name change too */}
         </div>

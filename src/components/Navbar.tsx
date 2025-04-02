@@ -63,6 +63,9 @@ export function Navbar() {
               <SheetClose asChild>
                 <Button variant="ghost" className="justify-start text-gray-400 hover:text-white" onClick={() => navigate("/markets")}>Markets</Button>
               </SheetClose>
+              <SheetClose asChild>
+                <Button variant="ghost" className="justify-start text-gray-400 hover:text-white" onClick={() => navigate("/community")}>Community</Button>
+              </SheetClose>
             </div>
           </SheetContent>
         </Sheet>
@@ -114,6 +117,13 @@ export function Navbar() {
             onClick={() => navigate("/markets")}
           >
             Markets
+          </Button>
+          <Button
+            variant="ghost"
+            className="font-medium text-gray-400 hover:text-white hover:bg-gray-800"
+            onClick={() => navigate("/community")}
+          >
+            Community
           </Button>
         </nav>
       </div>
