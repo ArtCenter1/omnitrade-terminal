@@ -1,11 +1,15 @@
 import React from 'react';
+import { LandingNavbar } from "@/components/LandingNavbar"; // Import LandingNavbar
+import { Footer } from "@/components/Footer"; // Import Footer
 // Assuming Button and Card components might exist or will be created later
 // import { Button } from '@/components/ui/button';
 // import { Card } from '@/components/ui/card';
 
 const Index = () => {
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-black text-white"> {/* Added bg-black and text-white for consistency */}
+      <LandingNavbar /> {/* Add LandingNavbar */}
+      <main className="flex-grow"> {/* Wrap content in main */}
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-purple-900 to-black text-white py-20 px-4">
         <div className="container mx-auto grid md:grid-cols-2 gap-8 items-center">
@@ -197,7 +201,8 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Footer will likely be added in App.tsx */}
+      </main> {/* Close main wrapper */}
+      <Footer /> {/* Add Footer */}
     </div>
   );
 };

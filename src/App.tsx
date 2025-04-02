@@ -16,6 +16,13 @@ import Markets from "@/pages/Markets";
 import NotFound from "@/pages/NotFound";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
+// Landing pages
+import { CodyAIPage } from "@/pages/CodyAI";
+import { TradingBotsLandingPage } from "@/pages/TradingBotsLanding";
+import { BlogPage } from "@/pages/Blog";
+import { QuadTokenPage } from "@/pages/QuadToken";
+import { PricingPage } from "@/pages/Pricing";
+
 // Profile pages
 import UserProfile from "@/pages/profile/UserProfile";
 import Preferences from "@/pages/profile/Preferences";
@@ -50,7 +57,7 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<AppLayout><Dashboard /></AppLayout>} />
-              <Route path="/home" element={<AppLayout><Index /></AppLayout>} />
+              <Route path="/home" element={<Index />} /> {/* Use Index directly, it will have its own Navbar/Footer */}
               <Route path="/terminal" element={<TerminalLayout><Terminal /></TerminalLayout>} />
               <Route path="/bots" element={<AppLayout><Bots /></AppLayout>} />
               <Route path="/earn" element={<AppLayout><Earn /></AppLayout>} />
@@ -63,7 +70,14 @@ const App = () => (
               <Route path="/password" element={<AppLayout><ChangePassword /></AppLayout>} />
               <Route path="/security" element={<AppLayout><Security /></AppLayout>} />
               <Route path="/accounts" element={<AppLayout><MyAccounts /></AppLayout>} />
-              
+
+              {/* Landing Page Routes (without AppLayout) */}
+              <Route path="/cody-ai" element={<CodyAIPage />} />
+              <Route path="/trading-bots" element={<TradingBotsLandingPage />} />
+              <Route path="/blog" element={<BlogPage />} />
+              <Route path="/quad-token" element={<QuadTokenPage />} />
+              <Route path="/pricing" element={<PricingPage />} />
+
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
