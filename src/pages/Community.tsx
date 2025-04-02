@@ -1,4 +1,4 @@
-areimport { LeaderboardFilters } from "@/components/community/LeaderboardFilters";
+import { LeaderboardFilters } from "@/components/community/LeaderboardFilters";
 import { LeaderboardTable } from "@/components/community/LeaderboardTable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CommunityArena } from "@/components/community/CommunityArena";
