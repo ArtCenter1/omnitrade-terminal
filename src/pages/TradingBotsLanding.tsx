@@ -12,7 +12,7 @@ export function TradingBotsLandingPage() {
         <section className="container mx-auto px-4 py-20 md:py-32 text-center">
           <div className="max-w-4xl mx-auto">
              <h1 className="text-4xl md:text-6xl font-bold mb-4 leading-tight bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-500">
-              Automate Your Trades with QUAD Bots
+              Automate Your Trades with OmniTrade Bots
             </h1>
             <h2 className="text-2xl md:text-3xl text-gray-300 mb-6">
               Deploy Powerful Trading Bots in Minutes
@@ -36,7 +36,7 @@ export function TradingBotsLandingPage() {
         {/* Features/Benefits Section */}
         <section className="py-16 bg-gray-900/50">
           <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl md:text-4xl font-bold mb-12">Why Use QUAD Trading Bots?</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-12">Why Use OmniTrade Trading Bots?</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {/* Feature 1 */}
               <div className="bg-gray-800/60 p-6 rounded-lg shadow-lg border border-gray-700">

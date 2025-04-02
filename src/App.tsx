@@ -20,7 +20,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { CodyAIPage } from "@/pages/CodyAI";
 import { TradingBotsLandingPage } from "@/pages/TradingBotsLanding";
 import { BlogPage } from "@/pages/Blog";
-import { QuadTokenPage } from "@/pages/QuadToken";
+import { OmniTokenPage } from "@/pages/OmniToken"; // Renamed import
 import { PricingPage } from "@/pages/Pricing";
 
 // Profile pages
@@ -75,7 +75,7 @@ const App = () => (
               <Route path="/cody-ai" element={<CodyAIPage />} />
               <Route path="/trading-bots" element={<TradingBotsLandingPage />} />
               <Route path="/blog" element={<BlogPage />} />
-              <Route path="/quad-token" element={<QuadTokenPage />} />
+              <Route path="/omni-token" element={<OmniTokenPage />} /> {/* Renamed route and component */}
               <Route path="/pricing" element={<PricingPage />} />
 
               <Route path="*" element={<NotFound />} />

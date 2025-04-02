@@ -25,11 +25,11 @@ export function LandingNavbar() {
             {/* Using placeholder, replace with actual logo if available */}
             <img
               src="/placeholder.svg" 
-              alt="Quad Terminal Logo"
+              alt="OmniTrade Logo"
               className="h-6 w-6" // Adjusted size slightly
             />
           </div>
-           <span className="font-bold text-xl ml-2">QUAD TERMINAL</span> {/* Added Text Logo */}
+           <span className="font-bold text-xl ml-2">OMNITRADE</span> {/* Updated Text Logo */}
         </Link>
 
         {/* Navigation Links */}
@@ -60,13 +60,13 @@ export function LandingNavbar() {
             Community
           </Button>
 
-          {/* QUAD Token */}
+          {/* Omni Token */}
           <Button
             variant="link"
             className="font-medium text-gray-300 hover:text-white p-0 h-auto"
-            onClick={() => navigate("/quad-token")}
+            onClick={() => navigate("/omni-token")} // Updated route
           >
-            QUAD Token
+            Omni Token
           </Button>
           {/* Pricing */}
           <Button

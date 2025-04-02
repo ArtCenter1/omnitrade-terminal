@@ -30,8 +30,8 @@ const MOCK_ACCOUNTS: Account[] = [
   },
   {
     id: "2",
-    name: "Quad Terminal",
-    exchange: "Quad",
+    name: "OmniTrade",
+    exchange: "Omni", // Assuming exchange identifier changes too
     value: "$8,784.14",
     change: "+1.94%",
     logo: "/placeholder.svg"

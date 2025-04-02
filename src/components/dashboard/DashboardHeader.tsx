@@ -24,7 +24,7 @@ export function DashboardHeader() {
          <Button className="bg-purple-600 hover:bg-purple-700 text-white w-full md:w-auto px-4 py-3 rounded-lg flex items-center justify-between text-left h-auto">
            <div className="flex flex-col items-start mr-4">
              {/* Using spans for the two lines of text */}
-             <span className="text-xs font-medium leading-tight">Deposit QUAD &</span>
+             <span className="text-xs font-medium leading-tight">Deposit OMNI &</span>
              <span className="text-xs font-medium leading-tight">Earn 20% APY</span>
            </div>
            <ArrowRight size={18} className="flex-shrink-0" />

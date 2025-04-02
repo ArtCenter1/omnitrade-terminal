@@ -112,16 +112,16 @@ export function Footer() {
           Disclaimer: Information contained herein should not be construed as an investment advice, or investment recommendation, or an order of, or solicitation for, any transactions in financial instruments; 
           it makes no warranty or representation, whether express or implied, as to the accuracy or completeness of the data found herein, or as to the fitness thereof for a particular purpose. Use of images 
           and symbols is made for illustrative purposes only and does not constitute a recommendation to buy, sell or hold a particular financial instrument. Use of brand logos does not necessarily imply a 
-          contractual relationship between us and the entities owning the logos, nor does it represent an endorsement of any such entity by Quad Terminal, or vice versa. Market information is made available to 
+          contractual relationship between us and the entities owning the logos, nor does it represent an endorsement of any such entity by OmniTrade, or vice versa. Market information is made available to
           you only as a service, and we do not endorse or approve it.
         </p>
         <p>
           Backtested or simulated performance results have inherent limitations and should not be interpreted as a recommendation to buy or sell any assets nor a guarantee of future returns. Actual results 
-          will vary from the analysis and Quad Terminal makes no representation or warranty regarding future performance.
+          will vary from the analysis and OmniTrade makes no representation or warranty regarding future performance.
         </p>
         
         <div className="text-center mt-8">
-          Copyright © Quadency Global, Ltd (BVI)
+          Copyright © OmniTrade Global, Ltd (BVI) {/* Assuming company name change too */}
         </div>
       </div>
     </div>

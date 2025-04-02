@@ -21,12 +21,12 @@ export default function PlanSubscription() {
                 </div>
               </div>
               <div>
-                <Select defaultValue="quad">
+                <Select defaultValue="omni"> {/* Updated default value */}
                   <SelectTrigger className="w-64 bg-gray-700 border-gray-600 text-white">
                     <SelectValue placeholder="Select plan" />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                    <SelectItem value="quad">$50/month - Pay with QUAD (50% off)</SelectItem>
+                    <SelectItem value="omni">$50/month - Pay with OMNI (50% off)</SelectItem> {/* Updated value and text */}
                     <SelectItem value="usd">$100/month - Pay with USD</SelectItem>
                   </SelectContent>
                 </Select>

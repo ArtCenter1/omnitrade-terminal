@@ -25,7 +25,7 @@ const Index = () => {
           </div>
           <div>
             {/* Placeholder for the terminal image */}
-            <img src="/placeholder.svg" alt="Quad Terminal Interface" className="rounded-lg shadow-xl" />
+            <img src="/placeholder.svg" alt="OmniTrade Interface" className="rounded-lg shadow-xl" />
           </div>
         </div>
       </section>
@@ -35,7 +35,7 @@ const Index = () => {
         <div className="container mx-auto text-center">
           <h2 className="text-4xl font-bold mb-4">Power your crypto, your way.</h2>
           <p className="text-lg mb-12 max-w-3xl mx-auto">
-            Quad Terminal is an all-in one crypto platform with a range of pro trading tools designed for traders of every skill level.
+            OmniTrade is an all-in one crypto platform with a range of pro trading tools designed for traders of every skill level.
           </p>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
             {/* Feature Card 1 */}
@@ -48,7 +48,7 @@ const Index = () => {
             <div className="bg-gray-800 p-6 rounded-lg text-left">
               {/* Icon Placeholder */}
               <h3 className="text-xl font-semibold mb-2">Multi-exchange smart trading</h3>
-              <p>Quad Terminal lets you trade on top-tier exchanges from one interface with charting by TradingView.</p>
+              <p>OmniTrade lets you trade on top-tier exchanges from one interface with charting by TradingView.</p>
             </div>
             {/* Feature Card 3 */}
             <div className="bg-gray-800 p-6 rounded-lg text-left">
@@ -59,8 +59,8 @@ const Index = () => {
             {/* Feature Card 4 */}
             <div className="bg-gradient-to-br from-teal-500 to-cyan-600 p-6 rounded-lg text-left">
               {/* Icon Placeholder */}
-              <h3 className="text-xl font-semibold mb-2">Discounts for QUAD holders</h3>
-              <p>Upgrade your subscription and get 50% discount on paid plans when paying with QUAD!</p>
+              <h3 className="text-xl font-semibold mb-2">Discounts for OMNI holders</h3>
+              <p>Upgrade your subscription and get 50% discount on paid plans when paying with OMNI!</p>
             </div>
           </div>
           {/* <Button variant="outline">Get Started</Button> */}
@@ -120,10 +120,10 @@ const Index = () => {
           <p className="text-sm uppercase tracking-widest mb-2 text-gray-400">Premium features for a fair price</p>
           <h2 className="text-4xl font-bold mb-12">Get more from your portfolio</h2>
           <div className="grid md:grid-cols-3 gap-8 mb-12 text-left">
-            {/* QUAD Token Card */}
+            {/* Omni Token Card */}
             <div className="bg-gray-800 p-6 rounded-lg">
-              <h3 className="text-2xl font-semibold mb-3">The QUAD Token</h3>
-              <p className="mb-6">The next-generation of high-utility platform tokens is here. QUAD gives traders premium access to trading bots and the best in discounted fees.</p>
+              <h3 className="text-2xl font-semibold mb-3">The Omni Token</h3>
+              <p className="mb-6">The next-generation of high-utility platform tokens is here. OMNI gives traders premium access to trading bots and the best in discounted fees.</p>
               {/* <Button variant="outline">Get Started</Button> */}
               <button className="border border-white hover:bg-white hover:text-black text-white font-bold py-2 px-4 rounded text-sm">
                 Get Started &amp;rarr;
@@ -141,7 +141,7 @@ const Index = () => {
             {/* Coming Soon Card */}
             <div className="bg-gray-100 text-black p-6 rounded-lg">
               <h3 className="text-2xl font-semibold mb-3">Coming Soon!</h3>
-              <p>Our Quad Terminal Mobile Apps are being revamped. Stay tuned for updates!</p>
+              <p>Our OmniTrade Mobile Apps are being revamped. Stay tuned for updates!</p>
             </div>
           </div>
         </div>
@@ -170,7 +170,7 @@ const Index = () => {
           <div className="bg-white p-8 rounded-lg">
             <h3 className="text-2xl font-semibold mb-4">Support Center</h3>
             <p className="mb-6">
-              Quad unlocks low-fee trading for bot trading, smart order trades and manual trades on connected accounts in the multi-exchange terminal.
+              OmniTrade unlocks low-fee trading for bot trading, smart order trades and manual trades on connected accounts in the multi-exchange terminal.
             </p>
             <a href="#" className="text-purple-600 hover:underline font-semibold">
               See Documentation &amp;rarr;

@@ -83,7 +83,7 @@ export default function UserProfile() {
         
         <div className="bg-gray-800 rounded-lg p-4 border-l-4 border-red-500">
           <p className="text-sm text-gray-300 mb-4">
-            Permanently delete your Quad Terminal user account and remove any associated exchange and wallet
+            Permanently delete your OmniTrade user account and remove any associated exchange and wallet
             accounts and their data. This action cannot be undone.
           </p>
           

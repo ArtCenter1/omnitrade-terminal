@@ -18,7 +18,7 @@ const blogPosts = [
   {
     id: 2,
     title: "Top 5 Grid Trading Bot Strategies",
-    excerpt: "Explore popular grid trading strategies you can deploy instantly on QUAD Terminal...",
+    excerpt: "Explore popular grid trading strategies you can deploy instantly on OmniTrade...",
     imageUrl: "/placeholder.svg", // Replace with actual image path
     category: "Trading Bots",
     date: "March 25, 2025",
@@ -26,10 +26,10 @@ const blogPosts = [
   },
   {
     id: 3,
-    title: "Introducing the QUAD Token: Utility & Governance",
-    excerpt: "A deep dive into the QUAD tokenomics, staking rewards, and its role in the ecosystem...",
+    title: "Introducing the Omni Token: Utility & Governance",
+    excerpt: "A deep dive into the OMNI tokenomics, staking rewards, and its role in the ecosystem...",
     imageUrl: "/placeholder.svg", // Replace with actual image path
-    category: "QUAD Token",
+    category: "Omni Token",
     date: "March 20, 2025",
     readTime: "6 min read",
   },
@@ -52,9 +52,9 @@ export function BlogPage() {
       <main className="flex-grow container mx-auto px-4 py-12 md:py-16">
         {/* Header Section */}
         <section className="text-center mb-12 md:mb-16">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">QUAD Terminal Blog</h1>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">OmniTrade Blog</h1>
           <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-            Insights, tutorials, and updates on AI trading, automated bots, market analysis, and the QUAD ecosystem.
+            Insights, tutorials, and updates on AI trading, automated bots, market analysis, and the OmniTrade ecosystem.
           </p>
           {/* Optional Search Bar */}
           <div className="mt-8 max-w-md mx-auto relative">

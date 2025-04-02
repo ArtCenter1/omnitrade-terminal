@@ -8,7 +8,7 @@ export default function Earn() {
   return (
     <div className="container mx-auto p-6">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white mb-4">QUAD Rewards</h1>
+        <h1 className="text-2xl font-bold text-white mb-4">Omni Rewards</h1>
         
         <Tabs defaultValue="holders">
           <TabsList className="bg-transparent border-b border-gray-800 w-full justify-start mb-8">
@@ -16,13 +16,13 @@ export default function Earn() {
               value="holders" 
               className="data-[state=active]:border-primary border-b-2 border-transparent rounded-none data-[state=active]:shadow-none data-[state=active]:bg-transparent"
             >
-              QUAD Holders Program
+              OMNI Holders Program
             </TabsTrigger>
             <TabsTrigger 
               value="liquidity" 
               className="data-[state=active]:border-primary border-b-2 border-transparent rounded-none data-[state=active]:shadow-none data-[state=active]:bg-transparent"
             >
-              QUAD Liquidity Rewards
+              OMNI Liquidity Rewards
             </TabsTrigger>
             <TabsTrigger 
               value="referral" 
@@ -37,7 +37,7 @@ export default function Earn() {
               <div className="flex items-center mb-4">
                 <h2 className="text-white font-medium">Benefits</h2>
                 <div className="flex items-center ml-2 text-sm text-gray-400">
-                  <span>Hold QUAD in your account to earn rewards and get live upgrades!</span>
+                  <span>Hold OMNI in your account to earn rewards and get live upgrades!</span>
                 </div>
               </div>
               
@@ -45,17 +45,17 @@ export default function Earn() {
                 <RewardCard 
                   icon={<CircleDollarSign size={24} />}
                   title="Earn 3% APY"
-                  description="on all the QUAD held in your account, paid daily."
+                  description="on all the OMNI held in your account, paid daily."
                 />
                 <RewardCard 
                   icon={<CircleCheck size={24} />}
-                  title="Upgrade with QUAD"
-                  description="Hold QUAD in your account to get up to a 50% discount on your subscription costs."
+                  title="Upgrade with OMNI"
+                  description="Hold OMNI in your account to get up to a 50% discount on your subscription costs."
                 />
                 <RewardCard 
                   icon={<Info size={24} />}
                   title="Unlock Exclusive Perks"
-                  description="Beta bots, backtests, VIP support and early access to Quad Terminal's new features."
+                  description="Beta bots, backtests, VIP support and early access to OmniTrade's new features."
                 />
               </div>
               
@@ -70,7 +70,7 @@ export default function Earn() {
             <div className="bg-gray-900 rounded-lg p-6 mb-8">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-white font-medium">My Rewards Tier</h2>
-                <div className="text-white font-medium">QUAD Staking</div>
+                <div className="text-white font-medium">OMNI Staking</div>
               </div>
               
               <div className="overflow-x-auto">
@@ -78,11 +78,11 @@ export default function Earn() {
                   <thead>
                     <tr className="border-b border-gray-800">
                       <th className="py-3 px-4 text-left text-sm font-medium text-gray-400">Tier</th>
-                      <th className="py-3 px-4 text-left text-sm font-medium text-gray-400">QUAD Volume</th>
+                      <th className="py-3 px-4 text-left text-sm font-medium text-gray-400">OMNI Volume</th>
                       <th className="py-3 px-4 text-left text-sm font-medium text-gray-400">Discount Level</th>
                       <th className="py-3 px-4 text-left text-sm font-medium text-gray-400">Daily Distribution</th>
                       <th className="py-3 px-4 text-left text-sm font-medium text-gray-400">Support Level</th>
-                      <th className="py-3 px-4 text-left text-sm font-medium text-gray-400">QUAD Reward</th>
+                      <th className="py-3 px-4 text-left text-sm font-medium text-gray-400">OMNI Reward</th>
                       <th className="py-3 px-4 text-left text-sm font-medium text-gray-400">APY Rate</th>
                       <th className="py-3 px-4 text-left text-sm font-medium text-gray-400">Amount Earned</th>
                     </tr>
@@ -94,9 +94,9 @@ export default function Earn() {
                       <td className="py-3 px-4 text-sm text-white">0%</td>
                       <td className="py-3 px-4 text-sm text-white">-/day</td>
                       <td className="py-3 px-4 text-sm text-white">Standard</td>
-                      <td className="py-3 px-4 text-sm text-white">0 QUAD</td>
+                      <td className="py-3 px-4 text-sm text-white">0 OMNI</td>
                       <td className="py-3 px-4 text-sm text-crypto-green">3%</td>
-                      <td className="py-3 px-4 text-sm text-crypto-green">0 QUAD<br />$0.00 USD</td>
+                      <td className="py-3 px-4 text-sm text-crypto-green">0 OMNI<br />$0.00 USD</td>
                     </tr>
                   </tbody>
                 </table>
@@ -113,7 +113,7 @@ export default function Earn() {
           
           <TabsContent value="liquidity" className="mt-0">
             <div className="bg-gray-900 rounded-lg p-6 mb-8">
-              <h2 className="text-white font-medium mb-4">QUAD Liquidity Mining Program</h2>
+              <h2 className="text-white font-medium mb-4">OMNI Liquidity Mining Program</h2>
               
               <div className="mb-6">
                 <h3 className="text-gray-300 mb-4">Provide Liquidity to Earn Rewards</h3>
@@ -124,7 +124,7 @@ export default function Earn() {
                       <div className="w-10 h-10 bg-green-500 bg-opacity-10 text-green-500 rounded-full flex items-center justify-center mr-3">
                         <CircleDollarSign size={20} />
                       </div>
-                      <h3 className="text-white font-medium">Earn Your Share of 100K QUAD</h3>
+                      <h3 className="text-white font-medium">Earn Your Share of 100K OMNI</h3>
                     </div>
                     <p className="text-gray-400 text-sm">given away every week.</p>
                   </div>
@@ -178,7 +178,7 @@ export default function Earn() {
                     </div>
                     <div className="p-3">
                       <div className="text-xs text-gray-400 mb-1">Step 3</div>
-                      <div className="text-sm text-white">Select QUAD & USDT as Pair/Pool</div>
+                      <div className="text-sm text-white">Select OMNI & USDT as Pair/Pool</div>
                     </div>
                   </div>
                   
@@ -212,7 +212,7 @@ export default function Earn() {
               <div className="flex items-center mb-4">
                 <h2 className="text-white font-medium">Benefits</h2>
                 <div className="flex items-center ml-2 text-sm text-gray-400">
-                  <span>Share about Quad Terminal and earn up to</span>
+                  <span>Share about OmniTrade and earn up to</span>
                   <span className="text-green-500 mx-1">$100 per friend</span>
                   <span>who signs up.</span>
                 </div>
@@ -276,7 +276,7 @@ export default function Earn() {
                     <div className="text-sm text-gray-400 mb-2">My Referral Link</div>
                     <div className="flex items-center mb-4">
                       <div className="bg-gray-800 p-2 rounded text-white text-sm flex-grow mr-2 truncate">
-                        https://quadterminal.com/?r=Ga64wyTcH2ZwPoAwmNgEzu
+                        https://omnitrade.com/?r=Ga64wyTcH2ZwPoAwmNgEzu {/* Assuming domain change */}
                       </div>
                       <Button variant="outline" className="border-gray-700 hover:bg-gray-800 px-2 py-1 h-auto">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
