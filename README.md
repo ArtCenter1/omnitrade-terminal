@@ -1,73 +1,86 @@
-# Welcome to your Lovable project
+# OpenTrade Platform
 
-## Project info
+OpenTrade is a comprehensive platform designed for automated cryptocurrency trading. It allows users to configure and manage trading bots, monitor market data, visualize portfolio performance, and participate in token reward programs.
 
-**URL**: https://lovable.dev/projects/9e2d1c5d-4ca2-42cb-93a3-cbbb660ebba3
+## Key Features
 
-## How can I edit this code?
+*   **Trading Bot Management:** Configure, deploy, and monitor various trading strategies (Grid, DCA, etc.).
+*   **User Dashboard:** Centralized view of portfolio allocation, bot performance, and overall account status.
+*   **Market Data Integration:** Real-time and historical market data visualization (charts, order books).
+*   **Exchange Connectivity:** Securely connect to multiple cryptocurrency exchanges via API.
+*   **OMNI Token Rewards:** Participate in staking and other programs to earn native platform tokens.
+*   **Modern UI/UX:** Built with React, TypeScript, and shadcn/ui for a clean and responsive user experience.
 
-There are several ways of editing your application.
+## Technology Stack
 
-**Use Lovable**
+*   **Frontend:** React, TypeScript
+*   **Build Tool:** Vite
+*   **Styling:** Tailwind CSS
+*   **UI Components:** shadcn/ui
+*   **Package Manager:** Bun
+*   **Linting/Formatting:** ESLint, Prettier
+*   **Testing:** Vitest (Configured via `vite.config.ts`)
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/9e2d1c5d-4ca2-42cb-93a3-cbbb660ebba3) and start prompting.
+## Project Structure
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+├── public/             # Static assets (favicon, etc.)
+├── src/                # Main source code
+│   ├── components/     # Reusable UI components (shadcn/ui, custom)
+│   ├── hooks/          # Custom React hooks
+│   ├── lib/            # Utility functions, API clients
+│   ├── pages/          # Page-level components/routes
+│   ├── App.tsx         # Main application component
+│   ├── main.tsx        # Application entry point
+│   └── index.css       # Global styles
+├── project_management/ # Planning, design docs, requirements
+├── .github/workflows/  # CI/CD configuration
+├── package.json        # Project dependencies and scripts
+├── tsconfig.json       # TypeScript configuration
+├── vite.config.ts      # Vite configuration
+└── README.md           # This file
 ```
 
-**Edit a file directly in GitHub**
+## Prerequisites
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+*   [Node.js](https://nodejs.org/) (LTS version recommended)
+*   [Bun](https://bun.sh/) (Used as the primary package manager and runtime)
 
-**Use GitHub Codespaces**
+## Getting Started
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+1.  **Clone the repository:**
+    ```bash
+    git clone <YOUR_REPOSITORY_URL>
+    cd open-trade
+    ```
 
-## What technologies are used for this project?
+2.  **Install dependencies:**
+    ```bash
+    bun install
+    ```
 
-This project is built with .
+3.  **Run the development server:**
+    This will start the Vite development server, typically on `http://localhost:5173`.
+    ```bash
+    bun run dev
+    ```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Available Scripts
 
-## How can I deploy this project?
+*   `bun run dev`: Starts the development server with hot reloading.
+*   `bun run build`: Builds the application for production in the `dist/` folder.
+*   `bun run lint`: Runs ESLint to check for code style issues.
+*   `bun run preview`: Serves the production build locally for preview.
+*   `bun test`: Runs the test suite using Vitest. (Note: Ensure tests are configured and written)
 
-Simply open [Lovable](https://lovable.dev/projects/9e2d1c5d-4ca2-42cb-93a3-cbbb660ebba3) and click on Share -> Publish.
+## Project Management
 
-## Can I connect a custom domain to my Lovable project?
+Detailed planning, requirements, design documents, and architecture decisions are located in the `/project_management` directory.
 
-Yes it is!
+## Contributing
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+(Contribution guidelines TBD)
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## License
+
+(License TBD)
