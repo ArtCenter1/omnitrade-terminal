@@ -34,13 +34,13 @@ export function LandingNavbar() {
 
         {/* Navigation Links */}
         <nav className="hidden md:flex space-x-6 items-center">
-          {/* Cody AI */}
+          {/* AI-Driven (formerly Cody AI) */}
           <Button
             variant="link"
             className="font-medium text-gray-300 hover:text-white p-0 h-auto"
-            onClick={() => navigate("/cody-ai")}
+            onClick={() => navigate("/cody-ai")} // Keep route path for now, can change later if needed
           >
-            Cody AI
+            AI-Driven
           </Button>
           {/* Trading Bots */}
           <Button
