@@ -1,3 +1,4 @@
+
 # Phase 2 Checklist: Frontend Core Development
 
 ## Phase Objective
