@@ -2,7 +2,7 @@
 import { Bell, ChevronDown, CircleDollarSign, CreditCard, HelpCircle, Info, LogOut, Menu, Settings, Shield, User, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -18,15 +18,15 @@ export function Navbar() {
   return (
     <div className="flex items-center justify-between p-2 border-b border-gray-800 bg-black">
       <div className="flex items-center space-x-8">
-        <div className="flex items-center">
+        <Link to="/home" className="flex items-center cursor-pointer">
           <div className="bg-[#1A1A1A] p-2 flex items-center justify-center rounded">
-            <img 
-              src="/placeholder.svg" 
-              alt="Logo" 
-              className="h-5 w-5" 
+            <img
+              src="/placeholder.svg"
+              alt="Logo"
+              className="h-5 w-5"
             />
           </div>
-        </div>
+        </Link>
         
         <nav className="hidden md:flex space-x-6">
           <Button 

@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import Dashboard from "@/pages/Dashboard";
+import Index from "@/pages/Index";
 import Terminal from "@/pages/Terminal";
 import Bots from "@/pages/Bots";
 import Earn from "@/pages/Earn";
@@ -49,6 +50,7 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<AppLayout><Dashboard /></AppLayout>} />
+              <Route path="/home" element={<AppLayout><Index /></AppLayout>} />
               <Route path="/terminal" element={<TerminalLayout><Terminal /></TerminalLayout>} />
               <Route path="/bots" element={<AppLayout><Bots /></AppLayout>} />
               <Route path="/earn" element={<AppLayout><Earn /></AppLayout>} />
