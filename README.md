@@ -1,6 +1,6 @@
-# OpenTrade Platform
+# OmniTrade Platform
 
-OpenTrade is a comprehensive platform designed for automated cryptocurrency trading. It allows users to configure and manage trading bots, monitor market data, visualize portfolio performance, and participate in token reward programs.
+OmniTrade is a comprehensive platform designed for automated cryptocurrency trading. It allows users to configure and manage trading bots, monitor market data, visualize portfolio performance, and participate in token reward programs.
 
 ## Key Features
 
