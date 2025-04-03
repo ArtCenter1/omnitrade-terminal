@@ -1,85 +1,42 @@
 
-# CryptoBot Trading Platform - Start Here
+# OmniTrade Platform - Project Overview
 
-Welcome to the CryptoBot Trading Platform project! This document serves as the entry point for anyone contributing to the project, providing essential information about project structure, development practices, and current status.
+Welcome to the OmniTrade Platform development project!
 
-## Project Overview
+## Current Status: Phase 3 - Backend Infrastructure
 
-This is a full-stack bot trading website with customizable LLM models integration. The platform includes blockchain integration for token distribution, rewarding user referrals and code contributions.
+We have completed Phase 1 (Project Setup and Planning) and Phase 2 (Frontend Core Development), and are now in Phase 3 focusing on backend infrastructure.
 
-For detailed information about the project, see `project_management/project_overview.md`.
+## Key Features
 
-## Project Structure
+- Trading Bot Management: Configure, deploy, and monitor trading strategies
+- User Dashboard: Portfolio tracking and performance monitoring
+- Market Data Integration: Real-time and historical market data
+- Exchange Connectivity: Connect to multiple exchanges via API
+- OMNI Token Rewards: Staking and reward programs
 
-- `project_management/` - Contains high-level project management files
-  - `project_overview.md` - Detailed project description and vision
-  - `project_roadmap.md` - Project phases and milestones
-  - `current_phase.md` - Current phase status and next steps
-  - Phase-specific checklists (e.g., `Phase_1_checklist.md`, `Phase_2_checklist.md`)
+## Current Work Items
 
-- `reference_files/` - Contains detailed documentation for each feature
-  - `index.md` - Index of all reference files with descriptions
-  - Feature-specific files (e.g., `trading_bots.md`, `llm_integration.md`)
+We are currently setting up the backend infrastructure, including:
+- Database setup and configuration
+- Authentication and authorization systems
+- API endpoints for market data
+- User management services
+- API key management for exchanges
 
-- `src/` - Source code
-  - `components/` - React components
-    - `ui/` - UI primitives based on shadcn/ui
-    - `dashboard/` - Dashboard-specific components
-    - `terminal/` - Terminal-specific components
-    - `profile/` - Profile-specific components
-    - `community/` - Community/Leaderboard components
-  - `pages/` - Page components
-  - `lib/` - Utility functions and helpers
-  - `hooks/` - Custom React hooks
+## Important Files
 
-## Development Guidelines
-
-### Continuity Between Sessions
-
-To maintain continuity between development sessions:
-
-1. **Check the Current Phase** - Always refer to `project_management/current_phase.md` to understand the current focus and next steps.
-
-2. **Update Reference Files** - When working on a feature, update its reference file with progress, challenges, and next steps.
-
-3. **Follow the Roadmap** - Refer to `project_management/project_roadmap.md` to ensure development aligns with the overall plan.
-
-### Code Standards
-
-- Use TypeScript for all JavaScript code
-- Follow the established component structure
-- Use Tailwind CSS for styling
-- Use shadcn/ui components where applicable
-- Implement responsive design for all UI components
-- Write descriptive comments and maintain documentation
-
-### Dependencies Management
-
-- All dependencies should be documented and justified
-- Major dependencies should be noted in reference files
-- Version constraints should be specified and explained
-
-## Current Status
-
-The project is currently in Phase 2: Frontend Core Development.
-
-For detailed information about current progress and next steps, see `project_management/current_phase.md`.
+- Project management documentation is in `/project_management/`
+- Feature reference files are in `/reference_files/`
+- The database schema is defined in `/prisma/schema.prisma`
+- Frontend components are in `/src/components/`
+- Page components are in `/src/pages/`
 
 ## Getting Started
 
-1. Read the project overview to understand the vision
-2. Check the current phase document to see what's being worked on
-3. Review the relevant reference files for features you'll be working on
-4. Follow the development guidelines to maintain project consistency
+1. Review the project roadmap in `/project_management/project_roadmap.md`
+2. Check current phase status in `/project_management/current_phase.md`
+3. Set up your development environment with the dependencies in `package.json`
+4. Start the development server with `bun run dev`
 
-## Need Help?
-
-If you have questions or need clarification:
-
-1. Check the relevant reference file for the feature you're working on
-2. Review the project roadmap to understand the bigger picture
-3. Consult the current phase document for context about current priorities
-
-## Important Note
-
-This document and the project management structure are maintained by the project manager. Only the project manager should update this file and the current phase document to ensure consistent direction.
+To contribute, please follow the coding standards in `/project_management/coding_standards.md`
