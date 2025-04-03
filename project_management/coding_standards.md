@@ -8,7 +8,7 @@ This document outlines the coding standards and best practices to be followed fo
 *   **Consistency:** Follow the established patterns and conventions used throughout the project.
 *   **Simplicity (KISS - Keep It Simple, Stupid):** Prefer simple solutions over complex ones whenever possible.
 *   **DRY (Don't Repeat Yourself):** Avoid duplicating code. Use functions, components, and utilities to encapsulate reusable logic.
-*   **Modularity:** Break down complex features into smaller, manageable components and modules.
+*   **Modularity:** Break down complex features into smaller, manageable components and modules.Keep files under 500 lines. Split into modules when needed.
 
 ## Language Specific
 
