@@ -1,3 +1,4 @@
+
 import { LandingNavbar } from "@/components/LandingNavbar";
 import { Footer } from "@/components/Footer"; // Assuming a shared Footer exists
 import { Button } from "@/components/ui/button";
@@ -72,3 +73,6 @@ export function TradingBotsLandingPage() {
     </div>
   );
 }
+
+// Add default export for the component
+export default TradingBotsLandingPage;

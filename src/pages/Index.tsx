@@ -2,8 +2,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import LandingNavbar from '@/components/LandingNavbar';
-import Footer from '@/components/Footer';
+import { LandingNavbar } from '@/components/LandingNavbar';
+import { Footer } from '@/components/Footer';
 import { LeaderboardPreview } from '@/components/landing/LeaderboardPreview';
 import { useAuth } from '@/contexts/AuthContext';
 
