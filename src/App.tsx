@@ -10,7 +10,7 @@ import { TradingBotsLandingPage } from './pages/TradingBotsLanding';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import NotFound from './pages/NotFound';
 import Index from './pages/Index';
-import UserProfile from './pages/profile/UserProfile';
+import UserProfilePage from './pages/UserProfilePage'; // Corrected import path and name
 import MyAccounts from './pages/profile/MyAccounts';
 import Preferences from './pages/profile/Preferences';
 import Security from './pages/profile/Security';
@@ -47,7 +47,7 @@ function App() {
           
           {/* Profile routes */}
           {/* Profile routes also use the ProtectedLayout */}
-          <Route path="/profile" element={<ProtectedRoute><ProtectedLayout><UserProfile /></ProtectedLayout></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><ProtectedLayout><UserProfilePage /></ProtectedLayout></ProtectedRoute>} />
           <Route path="/profile/accounts" element={<ProtectedRoute><ProtectedLayout><MyAccounts /></ProtectedLayout></ProtectedRoute>} />
           <Route path="/profile/preferences" element={<ProtectedRoute><ProtectedLayout><Preferences /></ProtectedLayout></ProtectedRoute>} />
           <Route path="/profile/security" element={<ProtectedRoute><ProtectedLayout><Security /></ProtectedLayout></ProtectedRoute>} />

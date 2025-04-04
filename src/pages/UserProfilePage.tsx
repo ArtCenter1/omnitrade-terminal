@@ -9,6 +9,13 @@ const UserProfilePage: React.FC = () => {
     { activity: 'Changed password', dateTime: '2025-04-01 09:30 AM', ip: '172.16.0.10', location: 'San Francisco, USA' },
   ];
 
+  // Static data for the accounts based on the description
+  const accounts = [
+    { id: 1, label: 'Binance Artcenter1', type: 'Spot', exchange: 'Binance', apiKeyMasked: '****...****' },
+    { id: 2, label: 'crypto9ight Binance', type: 'Futures', exchange: 'Binance', apiKeyMasked: '****...****' },
+    { id: 3, label: 'KuCoin crypto9ight', type: 'Spot', exchange: 'KuCoin', apiKeyMasked: '****...****' },
+  ];
+
   const sidebarItems = [
     'User Profile',
     'Preferences',
@@ -371,97 +378,139 @@ const UserProfilePage: React.FC = () => {
         {/* Example placeholders: */}
         {activeSection === 'Change Password' && (
           <section className="mb-10 bg-gray-800 p-6 rounded-lg border border-gray-700">
-             <h2 className="text-xl font-semibold mb-6 text-gray-300 border-b border-gray-600 pb-3">Change Password</h2>
-             {/* Start of new content */}
-             <div className="space-y-6">
-               <div>
-                 <label htmlFor="current-password" className="block text-sm font-medium text-gray-400 mb-1">Current Password</label>
-                 <input
-                   type="password"
-                   id="current-password"
-                   name="current-password"
-                   autoComplete="current-password"
-                   required
-                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                 />
-               </div>
-               <div>
-                 <label htmlFor="new-password" className="block text-sm font-medium text-gray-400 mb-1">New Password</label>
-                 <input
-                   type="password"
-                   id="new-password"
-                   name="new-password"
-                   autoComplete="new-password"
-                   required
-                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                 />
-               </div>
-               <div>
-                 <label htmlFor="confirm-new-password" className="block text-sm font-medium text-gray-400 mb-1">Confirm New Password</label>
-                 <input
-                   type="password"
-                   id="confirm-new-password"
-                   name="confirm-new-password"
-                   autoComplete="new-password"
-                   required
-                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                 />
-               </div>
-             </div>
-             <div className="mt-8 pt-5 border-t border-gray-600 flex justify-end">
+            {/* Section Title (matches sidebar) */}
+            <h2 className="text-xl font-semibold mb-6 text-gray-300 border-b border-gray-600 pb-3">Change Password</h2>
+
+            {/* Form Content */}
+            <div className="max-w-md"> {/* Optional: Constrain width for better form layout */}
+              <h3 className="text-lg font-medium text-gray-400 mb-4">Update Your Password</h3> {/* Form sub-header */}
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="current-password" className="block text-sm font-medium text-gray-400 mb-1">Current Password</label>
+                  <input
+                    type="password"
+                    id="current-password"
+                    name="current-password"
+                    autoComplete="current-password"
+                    required
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter your current password"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="new-password" className="block text-sm font-medium text-gray-400 mb-1">New Password</label>
+                  <input
+                    type="password"
+                    id="new-password"
+                    name="new-password"
+                    autoComplete="new-password"
+                    required
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter your new password"
+                  />
+                   {/* Optional: Add password strength indicator later */}
+                </div>
+                <div>
+                  <label htmlFor="confirm-new-password" className="block text-sm font-medium text-gray-400 mb-1">Confirm New Password</label>
+                  <input
+                    type="password"
+                    id="confirm-new-password"
+                    name="confirm-new-password"
+                    autoComplete="new-password"
+                    required
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Confirm your new password"
+                  />
+                </div>
+              </div>
+
+              {/* Save Button */}
+              <div className="mt-6 pt-5 border-t border-gray-600 flex justify-start"> {/* Changed justify-end to justify-start based on common form layouts */}
                 <button
-                  type="button" // Change to submit later when implementing logic
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800"
+                  type="button" // Change to submit later
+                  className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800 font-medium"
                 >
-                  UPDATE PASSWORD
+                  SAVE CHANGES {/* Changed from UPDATE PASSWORD to match image description */}
                 </button>
-             </div>
-             {/* End of new content */}
+              </div>
+            </div>
           </section>
         )}
         {activeSection === 'Security (2FA)' && (
-           <section className="mb-10 bg-gray-800 p-6 rounded-lg border border-gray-700">
-             <h2 className="text-xl font-semibold mb-6 text-gray-300 border-b border-gray-600 pb-3">Security (2FA)</h2>
-             <p className="text-gray-400 mb-6">
-               Enhance your account security by enabling Two-Factor Authentication (2FA). This adds an extra layer of protection by requiring a code from your authenticator app or SMS when logging in.
-             </p>
-             <div className="flex items-center justify-between bg-gray-750 p-4 rounded-md border border-gray-600">
-               <div>
-                 <span className="text-sm font-medium text-gray-400">Current Status:</span>
-                 <span className="ml-2 text-sm font-semibold text-red-500">Disabled</span>
-               </div>
-               <button className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800">
-                 ENABLE 2FA
-               </button>
-             </div>
-           </section>
+          <section className="mb-10 bg-gray-800 p-6 rounded-lg border border-gray-700">
+            {/* Section Title (matches sidebar, but image shows "Account Security") */}
+            <h2 className="text-xl font-semibold mb-6 text-gray-300 border-b border-gray-600 pb-3">Account Security</h2>
+
+            {/* 2 Factor Authentication Subsection */}
+            <div className="bg-gray-750 p-5 rounded-md border border-gray-600">
+              <h3 className="text-lg font-medium text-gray-300 mb-3">2 Factor Authentication</h3>
+              <p className="text-sm text-gray-400 mb-4">
+                Enhance your account security by enabling Two-Factor Authentication (2FA). This adds an extra layer of protection by requiring a code from your authenticator app or SMS when logging in.
+              </p>
+              <div className="flex justify-start"> {/* Align button to the left */}
+                <button className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800">
+                  ENABLE
+                </button>
+              </div>
+            </div>
+          </section>
         )}
-         {activeSection === 'My Accounts' && (
-           <section className="mb-10 bg-gray-800 p-6 rounded-lg border border-gray-700">
-             <h2 className="text-xl font-semibold mb-4 text-gray-300 border-b border-gray-600 pb-3">Linked Exchange Accounts</h2>
-             <p className="text-sm text-gray-400 mb-6">Manage your connected exchange API keys here. You can add new keys or remove existing ones.</p>
+        {activeSection === 'My Accounts' && (
+          <section className="mb-10 bg-gray-800 p-6 rounded-lg border border-gray-700">
+            {/* Section Title is handled by the main H1 */}
+            {/* External Accounts Subsection */}
+            <div className="mb-6 pb-4 border-b border-gray-600">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-300">External Accounts</h2>
+                <div className="flex space-x-3">
+                  <button className="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-gray-800">
+                    SYNC ALL ACCOUNTS
+                  </button>
+                  <button className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800">
+                    ADD ACCOUNT
+                  </button>
+                </div>
+              </div>
+              <p className="text-sm text-gray-400">
+                Manage your connected exchange API keys. Add new keys or remove existing ones.
+              </p>
+            </div>
 
-             {/* List Area */}
-             <div className="mb-6 min-h-[80px] flex items-center justify-center bg-gray-750 p-4 rounded-md border border-gray-600">
-               <p className="text-gray-500 italic">No accounts linked yet.</p>
-               {/* Example of how a linked account might look (commented out for now):
-               <div className="flex items-center justify-between py-3 border-b border-gray-700 last:border-b-0">
-                 <div>
-                   <span className="font-medium text-gray-300">Binance</span>
-                   <span className="ml-2 text-sm text-gray-500">(API Key ending in ...aBcD)</span>
-                 </div>
-                 <button className="text-red-500 hover:text-red-400 text-sm font-medium">Remove</button>
-               </div>
-               */}
-             </div>
-
-             {/* Action Button */}
-             <div className="flex justify-end">
-               <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800">
-                 LINK NEW ACCOUNT
-               </button>
-             </div>
-           </section>
+            {/* Accounts Table/List */}
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-700">
+                <thead className="bg-gray-750">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Label</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Type</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Exchange</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">API Key</th>
+                    <th scope="col" className="relative px-6 py-3">
+                      <span className="sr-only">Actions</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-gray-800 divide-y divide-gray-700">
+                  {accounts.map((account) => (
+                    <tr key={account.id} className="hover:bg-gray-750">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-300">{account.label}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{account.type}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{account.exchange}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 font-mono">{account.apiKeyMasked}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        {/* Placeholder for Delete button/icon */}
+                        <button className="text-red-500 hover:text-red-400">
+                          {/* Using text for now, replace with icon later if needed */}
+                          DELETE
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {/* Add message if accounts array is empty later */}
+          </section>
         )}
 
 
