@@ -3,13 +3,14 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 type AuthContextType = {
   session: Session | null;
   user: User | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any | null }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: any | null }>;
+  signUp: (email: string, password: string, fullName: string) => Promise<{ error: any | null, success: boolean }>;
   signOut: () => Promise<void>;
 };
 
@@ -25,6 +26,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
+        console.log('Auth state changed:', event, currentSession?.user?.email);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         setIsLoading(false);
@@ -32,11 +34,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (event === 'SIGNED_IN') {
           // Use setTimeout to avoid calling Supabase inside the callback
           setTimeout(() => {
+            toast.success(`Welcome back, ${currentSession?.user?.email}`);
             navigate('/dashboard');
           }, 0);
         } else if (event === 'SIGNED_OUT') {
           // Use setTimeout to avoid calling Supabase inside the callback
           setTimeout(() => {
+            toast.info('You have been signed out');
             navigate('/auth');
           }, 0);
         }
@@ -45,6 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      console.log('Initial session check:', currentSession?.user?.email);
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       setIsLoading(false);
@@ -57,32 +62,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      return { error };
+      console.log('Signing in with:', email);
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      
+      if (error) {
+        console.error('Sign in error:', error.message);
+        return { error };
+      }
+      
+      console.log('Sign in successful:', data.user?.email);
+      return { error: null };
     } catch (error) {
-      console.error('Error signing in:', error);
+      console.error('Exception during sign in:', error);
       return { error };
     }
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
     try {
-      const { error } = await supabase.auth.signUp({
+      console.log('Signing up with:', email, 'full name:', fullName);
+      
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: { full_name: fullName },
         },
       });
-      return { error };
+      
+      if (error) {
+        console.error('Sign up error:', error.message);
+        return { error, success: false };
+      }
+      
+      console.log('Sign up successful:', data);
+      
+      // Email confirmation is usually enabled in Supabase by default
+      if (data.user && !data.user.confirmed_at) {
+        return { 
+          error: null, 
+          success: true,
+          // Email confirmation message is handled by the component
+        };
+      }
+      
+      // If email confirmation is disabled, the user is signed in immediately
+      return { error: null, success: true };
     } catch (error) {
-      console.error('Error signing up:', error);
-      return { error };
+      console.error('Exception during sign up:', error);
+      return { error, success: false };
     }
   };
 
   const signOut = async () => {
     try {
+      console.log('Signing out');
       await supabase.auth.signOut();
     } catch (error) {
       console.error('Error signing out:', error);
