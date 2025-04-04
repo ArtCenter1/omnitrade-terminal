@@ -2,6 +2,7 @@
 import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +12,7 @@ import {
 
 export function LandingNavbar() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   return (
     <div className="flex items-center justify-between p-4 bg-black text-white border-b border-gray-800 sticky top-0 z-50">
@@ -76,14 +78,14 @@ export function LandingNavbar() {
         </nav>
       </div>
 
-      {/* Dashboard Button - Fixed route to point to "/dashboard" */}
+      {/* Dashboard Button */}
       <div className="flex items-center">
         <Button
           variant="outline"
           className="font-medium text-white border-purple-500 hover:bg-purple-500 hover:text-black"
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate(user ? "/dashboard" : "/auth")}
         >
-          Dashboard <span aria-hidden="true" className="ml-1">→</span>
+          {user ? "Dashboard" : "Sign In"} <span aria-hidden="true" className="ml-1">→</span>
         </Button>
       </div>
     </div>

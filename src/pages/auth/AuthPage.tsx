@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -28,10 +28,17 @@ const AuthPage = () => {
   const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
 
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as any)?.from?.pathname || '/dashboard';
+
+  // Redirect if user is already logged in
+  useEffect(() => {
+    if (user) {
+      navigate(from, { replace: true });
+    }
+  }, [user, navigate, from]);
 
   // Determine the initial tab based on the URL
   const getInitialTab = () => {
@@ -51,7 +58,7 @@ const AuthPage = () => {
         toast.error(error.message || 'Failed to sign in');
       } else {
         toast.success('Signed in successfully');
-        navigate(from, { replace: true });
+        // Will be redirected by the useEffect above
       }
     } catch (error: any) {
       toast.error(error.message || 'An error occurred during sign in');
