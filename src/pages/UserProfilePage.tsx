@@ -372,19 +372,95 @@ const UserProfilePage: React.FC = () => {
         {activeSection === 'Change Password' && (
           <section className="mb-10 bg-gray-800 p-6 rounded-lg border border-gray-700">
              <h2 className="text-xl font-semibold mb-6 text-gray-300 border-b border-gray-600 pb-3">Change Password</h2>
-             <p className="text-gray-400">Change password form will go here...</p>
+             {/* Start of new content */}
+             <div className="space-y-6">
+               <div>
+                 <label htmlFor="current-password" className="block text-sm font-medium text-gray-400 mb-1">Current Password</label>
+                 <input
+                   type="password"
+                   id="current-password"
+                   name="current-password"
+                   autoComplete="current-password"
+                   required
+                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 />
+               </div>
+               <div>
+                 <label htmlFor="new-password" className="block text-sm font-medium text-gray-400 mb-1">New Password</label>
+                 <input
+                   type="password"
+                   id="new-password"
+                   name="new-password"
+                   autoComplete="new-password"
+                   required
+                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 />
+               </div>
+               <div>
+                 <label htmlFor="confirm-new-password" className="block text-sm font-medium text-gray-400 mb-1">Confirm New Password</label>
+                 <input
+                   type="password"
+                   id="confirm-new-password"
+                   name="confirm-new-password"
+                   autoComplete="new-password"
+                   required
+                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 />
+               </div>
+             </div>
+             <div className="mt-8 pt-5 border-t border-gray-600 flex justify-end">
+                <button
+                  type="button" // Change to submit later when implementing logic
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800"
+                >
+                  UPDATE PASSWORD
+                </button>
+             </div>
+             {/* End of new content */}
           </section>
         )}
         {activeSection === 'Security (2FA)' && (
            <section className="mb-10 bg-gray-800 p-6 rounded-lg border border-gray-700">
              <h2 className="text-xl font-semibold mb-6 text-gray-300 border-b border-gray-600 pb-3">Security (2FA)</h2>
-             <p className="text-gray-400">2FA settings will go here...</p>
+             <p className="text-gray-400 mb-6">
+               Enhance your account security by enabling Two-Factor Authentication (2FA). This adds an extra layer of protection by requiring a code from your authenticator app or SMS when logging in.
+             </p>
+             <div className="flex items-center justify-between bg-gray-750 p-4 rounded-md border border-gray-600">
+               <div>
+                 <span className="text-sm font-medium text-gray-400">Current Status:</span>
+                 <span className="ml-2 text-sm font-semibold text-red-500">Disabled</span>
+               </div>
+               <button className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800">
+                 ENABLE 2FA
+               </button>
+             </div>
            </section>
         )}
          {activeSection === 'My Accounts' && (
            <section className="mb-10 bg-gray-800 p-6 rounded-lg border border-gray-700">
-             <h2 className="text-xl font-semibold mb-6 text-gray-300 border-b border-gray-600 pb-3">My Accounts</h2>
-             <p className="text-gray-400">Account management details will go here...</p>
+             <h2 className="text-xl font-semibold mb-4 text-gray-300 border-b border-gray-600 pb-3">Linked Exchange Accounts</h2>
+             <p className="text-sm text-gray-400 mb-6">Manage your connected exchange API keys here. You can add new keys or remove existing ones.</p>
+
+             {/* List Area */}
+             <div className="mb-6 min-h-[80px] flex items-center justify-center bg-gray-750 p-4 rounded-md border border-gray-600">
+               <p className="text-gray-500 italic">No accounts linked yet.</p>
+               {/* Example of how a linked account might look (commented out for now):
+               <div className="flex items-center justify-between py-3 border-b border-gray-700 last:border-b-0">
+                 <div>
+                   <span className="font-medium text-gray-300">Binance</span>
+                   <span className="ml-2 text-sm text-gray-500">(API Key ending in ...aBcD)</span>
+                 </div>
+                 <button className="text-red-500 hover:text-red-400 text-sm font-medium">Remove</button>
+               </div>
+               */}
+             </div>
+
+             {/* Action Button */}
+             <div className="flex justify-end">
+               <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800">
+                 LINK NEW ACCOUNT
+               </button>
+             </div>
            </section>
         )}
 
