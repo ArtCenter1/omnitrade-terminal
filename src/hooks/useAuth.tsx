@@ -5,4 +5,4 @@ export const useAuth = () => {
   return useAuthContext();
 };
 
-export default useAuth;
+// Default export removed to resolve HMR warning
