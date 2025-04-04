@@ -1,28 +1,25 @@
+
 import React from 'react';
-// import { Navigate } from 'react-router-dom';
-// import { useAuth } from '@/hooks/useAuth'; // Placeholder for actual auth hook
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
-/**
- * A component to wrap routes that require authentication.
- * Currently a placeholder - will check auth status in later phases.
- * If not authenticated, it should redirect to the login page.
- */
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  // Placeholder for authentication check
-  // const { isAuthenticated } = useAuth(); // Example usage of an auth hook
-  const isAuthenticated = true; // Assume user is authenticated for now
+  const { user, isLoading } = useAuth();
+  const location = useLocation();
 
-  // if (!isAuthenticated) {
-  //   // Redirect them to the /login page, but save the current location they were
-  //   // trying to go to when they were redirected. This allows us to send them
-  //   // along to that page after they login, which is a nicer user experience
-  //   // than dropping them off on the home page.
-  //   return <Navigate to="/login" replace />;
-  // }
+  if (isLoading) {
+    // Display a loading indicator while checking authentication
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
 
-  return <>{children}</>; // Render the children if authenticated (or for placeholder)
+  if (!user) {
+    // Redirect to /auth if not authenticated, saving the current location
+    return <Navigate to="/auth" state={{ from: location }} replace />;
+  }
+
+  return <>{children}</>; // Render the children if authenticated
 }

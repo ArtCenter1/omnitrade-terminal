@@ -1,215 +1,166 @@
-import { useState } from "react"; // Added for mobile menu state
-import { Bell, ChevronDown, CircleDollarSign, CreditCard, HelpCircle, Info, LogOut, Menu, Settings, Shield, User, Wallet, X } from "lucide-react"; // Added X icon
+
+import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+  navigationMenuTriggerStyle,
+} from "@/components/ui/navigation-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Link, useNavigate } from "react-router-dom";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-  SheetClose // Added SheetClose
-} from "@/components/ui/sheet"; // Added Sheet components
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { LogOut, User, Settings, Bell, ChevronDown } from "lucide-react";
+import { useAuth } from '@/contexts/AuthContext';
 
-export function Navbar() {
+export default function Navbar() {
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // State for mobile menu
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
+
+  const getInitials = () => {
+    if (!user) return '?';
+    
+    const name = user.user_metadata?.full_name || user.email || '';
+    if (!name) return '?';
+    
+    const parts = name.split(' ');
+    if (parts.length === 1) return name.charAt(0).toUpperCase();
+    
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  };
 
   return (
-    <div className="flex items-center justify-between p-2 border-b border-gray-800 bg-black">
-      {/* Left side: Logo, Mobile Menu Trigger, Desktop Nav */}
-      <div className="flex items-center space-x-4 md:space-x-8">
-        {/* Mobile Menu Trigger (visible on small screens) */}
-        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="md:hidden text-white">
-              <Menu className="h-6 w-6" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="w-[300px] sm:w-[400px] bg-gray-950 border-r border-gray-800 text-white p-0">
-            <SheetHeader className="p-4 border-b border-gray-800">
-              <SheetTitle className="text-white flex justify-between items-center">
-                <span>Navigation</span>
-                <SheetClose asChild>
-                   <Button variant="ghost" size="icon">
-                      <X className="h-5 w-5" />
-                   </Button>
-                </SheetClose>
-              </SheetTitle>
-            </SheetHeader>
-            <div className="flex flex-col space-y-2 p-4">
-              {/* Mobile Navigation Links */}
-              <SheetClose asChild>
-                <Button variant="ghost" className="justify-start text-white" onClick={() => navigate("/")}>Dashboard</Button>
-              </SheetClose>
-              <SheetClose asChild>
-                <Button variant="ghost" className="justify-start text-gray-400 hover:text-white" onClick={() => navigate("/terminal")}>Terminal</Button>
-              </SheetClose>
-              <SheetClose asChild>
-                <Button variant="ghost" className="justify-start text-gray-400 hover:text-white" onClick={() => navigate("/bots")}>Bots</Button>
-              </SheetClose>
-              <SheetClose asChild>
-                <Button variant="ghost" className="justify-start text-gray-400 hover:text-white" onClick={() => navigate("/earn")}>Earn</Button>
-              </SheetClose>
-              <SheetClose asChild>
-                <Button variant="ghost" className="justify-start text-gray-400 hover:text-white" onClick={() => navigate("/markets")}>Markets</Button>
-              </SheetClose>
-              <SheetClose asChild>
-                <Button variant="ghost" className="justify-start text-gray-400 hover:text-white" onClick={() => navigate("/community")}>Community</Button>
-              </SheetClose>
-            </div>
-          </SheetContent>
-        </Sheet>
-
-        {/* Logo */}
-        <Link to="/home" className="flex items-center cursor-pointer">
-          <div className="bg-[#1A1A1A] p-2 flex items-center justify-center rounded">
-            <img
-              src="/placeholder.svg"
-              alt="Logo"
-              className="h-5 w-5"
-            />
+    <div className="border-b border-gray-800 bg-gray-950">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between h-16">
+          <div className="flex items-center">
+            <Link to="/" className="text-xl font-bold text-white">
+              OpenTrade
+            </Link>
+            
+            <NavigationMenu className="ml-10 hidden md:flex">
+              <NavigationMenuList>
+                <NavigationMenuItem>
+                  <Link to="/dashboard">
+                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                      Dashboard
+                    </NavigationMenuLink>
+                  </Link>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <Link to="/terminal">
+                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                      Terminal
+                    </NavigationMenuLink>
+                  </Link>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <Link to="/bots">
+                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                      Bots
+                    </NavigationMenuLink>
+                  </Link>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger>More</NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <div className="grid gap-3 p-4 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
+                      <ul className="grid gap-3">
+                        <li>
+                          <Link to="/markets" className="block p-3 space-y-1 rounded-md hover:bg-gray-800">
+                            <div className="font-medium">Markets</div>
+                            <p className="text-sm text-gray-400">View market data and analysis</p>
+                          </Link>
+                        </li>
+                        <li>
+                          <Link to="/earn" className="block p-3 space-y-1 rounded-md hover:bg-gray-800">
+                            <div className="font-medium">Earn</div>
+                            <p className="text-sm text-gray-400">Staking and rewards opportunities</p>
+                          </Link>
+                        </li>
+                        <li>
+                          <Link to="/community" className="block p-3 space-y-1 rounded-md hover:bg-gray-800">
+                            <div className="font-medium">Community</div>
+                            <p className="text-sm text-gray-400">Join the trading community</p>
+                          </Link>
+                        </li>
+                      </ul>
+                    </div>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
           </div>
-        </Link>
-
-        {/* Desktop Navigation (hidden on small screens) */}
-        <nav className="hidden md:flex space-x-6">
-          <Button
-            variant="ghost"
-            className="font-medium text-white hover:text-white hover:bg-gray-800"
-            onClick={() => navigate("/")}
-          >
-            Dashboard
-          </Button>
-          <Button
-            variant="ghost"
-            className="font-medium text-gray-400 hover:text-white hover:bg-gray-800"
-            onClick={() => navigate("/terminal")}
-          >
-            Terminal
-          </Button>
-          <Button
-            variant="ghost"
-            className="font-medium text-gray-400 hover:text-white hover:bg-gray-800"
-            onClick={() => navigate("/bots")}
-          >
-            Bots
-          </Button>
-          <Button
-            variant="ghost"
-            className="font-medium text-gray-400 hover:text-white hover:bg-gray-800"
-            onClick={() => navigate("/earn")}
-          >
-            Earn
-          </Button>
-          <Button
-            variant="ghost"
-            className="font-medium text-gray-400 hover:text-white hover:bg-gray-800"
-            onClick={() => navigate("/markets")}
-          >
-            Markets
-          </Button>
-          <Button
-            variant="ghost"
-            className="font-medium text-gray-400 hover:text-white hover:bg-gray-800"
-            onClick={() => navigate("/community")}
-          >
-            Community
-          </Button>
-        </nav>
-      </div>
-
-      {/* Right side: Upgrade, Icons, User Menu */}
-      <div className="flex items-center space-x-2">
-        <div className="hidden lg:flex items-center mr-2">
-          <span className="text-yellow-500 mr-1">
-            <Info size={16} />
-          </span>
-          <div className="bg-yellow-500 bg-opacity-20 text-yellow-500 text-xs px-2 py-1 rounded">
-            UPGRADE
+          
+          <div className="flex items-center space-x-4">
+            {user ? (
+              <>
+                <Button variant="outline" size="icon" className="border-gray-800 text-gray-400">
+                  <Bell size={18} />
+                </Button>
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <div className="flex items-center space-x-2 cursor-pointer">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={user.user_metadata?.avatar_url || ""} />
+                        <AvatarFallback className="bg-primary text-primary-foreground">{getInitials()}</AvatarFallback>
+                      </Avatar>
+                      <ChevronDown size={16} className="text-gray-400" />
+                    </div>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56 bg-gray-900 border-gray-800">
+                    <div className="flex items-center justify-start gap-2 p-2">
+                      <div className="flex flex-col space-y-1 leading-none">
+                        <p className="font-medium text-sm text-white">{user.user_metadata?.full_name || 'User'}</p>
+                        <p className="w-[200px] truncate text-xs text-gray-400">{user.email}</p>
+                      </div>
+                    </div>
+                    <DropdownMenuSeparator className="bg-gray-800" />
+                    <DropdownMenuItem 
+                      onClick={() => navigate('/profile')}
+                      className="cursor-pointer hover:bg-gray-800"
+                    >
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Profile</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => navigate('/profile/preferences')}
+                      className="cursor-pointer hover:bg-gray-800"
+                    >
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Settings</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="bg-gray-800" />
+                    <DropdownMenuItem 
+                      onClick={handleSignOut}
+                      className="cursor-pointer hover:bg-gray-800"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Log out</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" onClick={() => navigate('/auth')} className="text-white">
+                  Sign In
+                </Button>
+                <Button onClick={() => navigate('/auth')} className="bg-primary">
+                  Sign Up
+                </Button>
+              </>
+            )}
           </div>
-        </div>
-
-        <Button variant="ghost" className="text-gray-400 rounded-full p-2">
-          <Bell size={18} />
-        </Button>
-
-        <Button variant="ghost" className="text-gray-400 rounded-full p-2">
-          <Settings size={18} />
-        </Button>
-
-        <div className="flex items-center space-x-1 ml-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center space-x-1 px-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src="" />
-                  <AvatarFallback className="bg-primary/20 text-primary">V</AvatarFallback>
-                </Avatar>
-                <span className="text-sm text-gray-300 hidden md:inline-block">Vincent</span>
-                <ChevronDown size={16} className="text-gray-400" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56 bg-gray-900 border border-gray-800 text-white" align="end">
-              <div className="flex flex-col space-y-1 p-2">
-                <p className="text-lg font-semibold">Vincent</p>
-                <p className="text-sm text-gray-400">artcenter1@gmail.com</p>
-              </div>
-              <DropdownMenuSeparator className="bg-gray-800" />
-              <DropdownMenuGroup>
-                <DropdownMenuItem onClick={() => navigate("/profile")} className="cursor-pointer hover:bg-gray-800">
-                  <User className="mr-2 h-4 w-4" />
-                  <span>User Profile</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/preferences")} className="cursor-pointer hover:bg-gray-800">
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Preferences</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/plan")} className="cursor-pointer hover:bg-gray-800">
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  <span>Plan & Subscription</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/password")} className="cursor-pointer hover:bg-gray-800">
-                  <Shield className="mr-2 h-4 w-4" />
-                  <span>Change Password</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/security")} className="cursor-pointer hover:bg-gray-800">
-                  <Shield className="mr-2 h-4 w-4" />
-                  <span>Security (2FA)</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/accounts")} className="cursor-pointer hover:bg-gray-800">
-                  <Wallet className="mr-2 h-4 w-4" />
-                  <span>My Accounts</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/deposit")} className="cursor-pointer hover:bg-gray-800">
-                  <CircleDollarSign className="mr-2 h-4 w-4" />
-                  <span>Deposit/Withdraw</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/earn")} className="cursor-pointer hover:bg-gray-800">
-                  <CircleDollarSign className="mr-2 h-4 w-4" />
-                  <span>Earn</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/support")} className="cursor-pointer hover:bg-gray-800">
-                  <HelpCircle className="mr-2 h-4 w-4" />
-                  <span>Support Center</span>
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-              <DropdownMenuSeparator className="bg-gray-800" />
-              <DropdownMenuItem className="cursor-pointer hover:bg-gray-800">
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Log Out</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
     </div>
