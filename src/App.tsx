@@ -21,6 +21,7 @@ import { OmniTokenPage } from './pages/OmniToken';
 import { CodyAIPage } from './pages/CodyAI';
 import AuthPage from './pages/auth/AuthPage';
 import { AuthProvider } from './contexts/AuthContext';
+import { ProtectedLayout } from './components/layout/ProtectedLayout'; // Import the layout
 
 function App() {
   return (
@@ -37,19 +38,20 @@ function App() {
           <Route path="/cody-ai" element={<CodyAIPage />} />
 
           {/* Protected routes */}
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/terminal" element={<ProtectedRoute><Terminal /></ProtectedRoute>} />
-          <Route path="/bots" element={<ProtectedRoute><Bots /></ProtectedRoute>} />
-          <Route path="/markets" element={<ProtectedRoute><Markets /></ProtectedRoute>} />
-          <Route path="/earn" element={<ProtectedRoute><Earn /></ProtectedRoute>} />
-          <Route path="/community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute><ProtectedLayout><Dashboard /></ProtectedLayout></ProtectedRoute>} />
+          <Route path="/terminal" element={<ProtectedRoute><ProtectedLayout><Terminal /></ProtectedLayout></ProtectedRoute>} />
+          <Route path="/bots" element={<ProtectedRoute><ProtectedLayout><Bots /></ProtectedLayout></ProtectedRoute>} />
+          <Route path="/markets" element={<ProtectedRoute><ProtectedLayout><Markets /></ProtectedLayout></ProtectedRoute>} />
+          <Route path="/earn" element={<ProtectedRoute><ProtectedLayout><Earn /></ProtectedLayout></ProtectedRoute>} />
+          <Route path="/community" element={<ProtectedRoute><ProtectedLayout><Community /></ProtectedLayout></ProtectedRoute>} />
           
           {/* Profile routes */}
-          <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
-          <Route path="/profile/accounts" element={<ProtectedRoute><MyAccounts /></ProtectedRoute>} />
-          <Route path="/profile/preferences" element={<ProtectedRoute><Preferences /></ProtectedRoute>} />
-          <Route path="/profile/security" element={<ProtectedRoute><Security /></ProtectedRoute>} />
-          <Route path="/profile/subscription" element={<ProtectedRoute><PlanSubscription /></ProtectedRoute>} />
+          {/* Profile routes also use the ProtectedLayout */}
+          <Route path="/profile" element={<ProtectedRoute><ProtectedLayout><UserProfile /></ProtectedLayout></ProtectedRoute>} />
+          <Route path="/profile/accounts" element={<ProtectedRoute><ProtectedLayout><MyAccounts /></ProtectedLayout></ProtectedRoute>} />
+          <Route path="/profile/preferences" element={<ProtectedRoute><ProtectedLayout><Preferences /></ProtectedLayout></ProtectedRoute>} />
+          <Route path="/profile/security" element={<ProtectedRoute><ProtectedLayout><Security /></ProtectedLayout></ProtectedRoute>} />
+          <Route path="/profile/subscription" element={<ProtectedRoute><ProtectedLayout><PlanSubscription /></ProtectedLayout></ProtectedRoute>} />
           
           {/* 404 and fallback */}
           <Route path="/404" element={<NotFound />} />
