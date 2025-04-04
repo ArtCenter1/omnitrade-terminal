@@ -1,6 +1,5 @@
-
-import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
 
 const AuthPage = () => {
   // State for the login form
@@ -22,16 +22,24 @@ const AuthPage = () => {
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [registerLoading, setRegisterLoading] = useState(false);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
 
   // State for forgot password
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
 
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as any)?.from?.pathname || '/dashboard';
+
+  // Redirect if user is already logged in
+  useEffect(() => {
+    if (user) {
+      navigate(from, { replace: true });
+    }
+  }, [user, navigate, from]);
 
   // Determine the initial tab based on the URL
   const getInitialTab = () => {
@@ -51,7 +59,7 @@ const AuthPage = () => {
         toast.error(error.message || 'Failed to sign in');
       } else {
         toast.success('Signed in successfully');
-        navigate(from, { replace: true });
+        // Will be redirected by the useEffect above
       }
     } catch (error: any) {
       toast.error(error.message || 'An error occurred during sign in');
@@ -71,12 +79,20 @@ const AuthPage = () => {
     setRegisterLoading(true);
 
     try {
-      const { error } = await signUp(registerEmail, registerPassword, fullName);
+      const { error, success } = await signUp(registerEmail, registerPassword, fullName);
       
       if (error) {
         toast.error(error.message || 'Failed to sign up');
-      } else {
+      } else if (success) {
+        setRegistrationSuccess(true);
         toast.success('Registration successful! Please check your email to confirm your account.');
+        
+        // Reset form
+        setRegisterEmail('');
+        setRegisterPassword('');
+        setRegisterConfirmPassword('');
+        setFullName('');
+        
         // Switch to login tab
         document.getElementById('login-tab')?.click();
       }
@@ -91,13 +107,22 @@ const AuthPage = () => {
     e.preventDefault();
     setForgotPasswordLoading(true);
 
-    // Here you would typically call the password reset function
-    // For now we'll just simulate it
-    setTimeout(() => {
-      toast.success(`If an account exists for ${forgotEmail}, we've sent a password reset link.`);
-      setForgotPasswordOpen(false);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+
+      if (error) {
+        toast.error(error.message || 'Failed to send reset link');
+      } else {
+        toast.success(`If an account exists for ${forgotEmail}, we've sent a password reset link.`);
+        setForgotPasswordOpen(false);
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'An error occurred while sending reset link');
+    } finally {
       setForgotPasswordLoading(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -105,7 +130,7 @@ const AuthPage = () => {
       <div className="w-full max-w-md">
         <Card className="border-gray-800 bg-gray-900 text-white shadow-lg">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">OpenTrade</CardTitle>
+            <CardTitle className="text-2xl font-bold text-center">OmniTrade</CardTitle>
             <CardDescription className="text-center text-gray-400">
               Enter your details to access your account
             </CardDescription>
