@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const AuthPage = () => {
   // State for the login form
@@ -22,10 +23,22 @@ const AuthPage = () => {
   const [fullName, setFullName] = useState('');
   const [registerLoading, setRegisterLoading] = useState(false);
 
+  // State for forgot password
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as any)?.from?.pathname || '/dashboard';
+
+  // Determine the initial tab based on the URL
+  const getInitialTab = () => {
+    const path = location.pathname;
+    if (path.includes('/register')) return 'register';
+    return 'login';
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,6 +87,19 @@ const AuthPage = () => {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotPasswordLoading(true);
+
+    // Here you would typically call the password reset function
+    // For now we'll just simulate it
+    setTimeout(() => {
+      toast.success(`If an account exists for ${forgotEmail}, we've sent a password reset link.`);
+      setForgotPasswordOpen(false);
+      setForgotPasswordLoading(false);
+    }, 1500);
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-950 p-4">
       <div className="w-full max-w-md">
@@ -85,7 +111,7 @@ const AuthPage = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="login" className="w-full">
+            <Tabs defaultValue={getInitialTab()} className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger id="login-tab" value="login">Login</TabsTrigger>
                 <TabsTrigger value="register">Register</TabsTrigger>
@@ -110,8 +136,8 @@ const AuthPage = () => {
                       <Label htmlFor="password">Password</Label>
                       <Button 
                         variant="link" 
-                        className="px-0 text-xs text-gray-400"
-                        onClick={() => navigate('/auth/forgot-password')}
+                        className="px-0 text-xs text-green-500 hover:text-green-400"
+                        onClick={() => setForgotPasswordOpen(true)}
                         type="button"
                       >
                         Forgot password?
@@ -128,7 +154,7 @@ const AuthPage = () => {
                   </div>
                   <Button 
                     type="submit" 
-                    className="w-full" 
+                    className="w-full bg-green-600 hover:bg-green-700 text-white" 
                     disabled={loginLoading}
                   >
                     {loginLoading ? 'Signing in...' : 'Sign In'}
@@ -185,7 +211,7 @@ const AuthPage = () => {
                   </div>
                   <Button 
                     type="submit" 
-                    className="w-full" 
+                    className="w-full bg-green-600 hover:bg-green-700 text-white" 
                     disabled={registerLoading}
                   >
                     {registerLoading ? 'Creating account...' : 'Create Account'}
@@ -201,6 +227,49 @@ const AuthPage = () => {
           </CardFooter>
         </Card>
       </div>
+
+      {/* Forgot Password Dialog */}
+      <Dialog open={forgotPasswordOpen} onOpenChange={setForgotPasswordOpen}>
+        <DialogContent className="bg-gray-900 border-gray-800 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Reset your password</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Enter your email address and we'll send you a link to reset your password.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleForgotPassword} className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label htmlFor="forgotEmail">Email</Label>
+              <Input
+                id="forgotEmail"
+                type="email"
+                placeholder="name@example.com"
+                required
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                className="bg-gray-800 border-gray-700 text-white"
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setForgotPasswordOpen(false)}
+                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                className="bg-green-600 hover:bg-green-700 text-white"
+                disabled={forgotPasswordLoading}
+              >
+                {forgotPasswordLoading ? 'Sending...' : 'Send Link'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

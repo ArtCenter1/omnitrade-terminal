@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import Dashboard from './pages/Dashboard';
@@ -7,7 +6,7 @@ import Bots from './pages/Bots';
 import Markets from './pages/Markets';
 import Earn from './pages/Earn';
 import Community from './pages/Community';
-import TradingBotsLanding from './pages/TradingBotsLanding';
+import { TradingBotsLandingPage } from './pages/TradingBotsLanding';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import NotFound from './pages/NotFound';
 import Index from './pages/Index';
@@ -16,14 +15,11 @@ import MyAccounts from './pages/profile/MyAccounts';
 import Preferences from './pages/profile/Preferences';
 import Security from './pages/profile/Security';
 import PlanSubscription from './pages/profile/PlanSubscription';
-import Blog from './pages/Blog';
-import Pricing from './pages/Pricing';
-import OmniToken from './pages/OmniToken';
-import CodyAI from './pages/CodyAI';
+import { BlogPage } from './pages/Blog';
+import { PricingPage } from './pages/Pricing';
+import { OmniTokenPage } from './pages/OmniToken';
+import { CodyAIPage } from './pages/CodyAI';
 import AuthPage from './pages/auth/AuthPage';
-import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
-import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import { AuthProvider } from './contexts/AuthContext';
 
 function App() {
@@ -33,15 +29,12 @@ function App() {
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<AuthPage />} />
-          <Route path="/auth/login" element={<LoginPage />} />
-          <Route path="/auth/register" element={<RegisterPage />} />
-          <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/blog" element={<Blog />} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="/omni-token" element={<OmniToken />} />
-          <Route path="/trading-bots" element={<TradingBotsLanding />} />
-          <Route path="/cody-ai" element={<CodyAI />} />
+          <Route path="/auth/*" element={<AuthPage />} />
+          <Route path="/blog" element={<BlogPage />} />
+          <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/omni-token" element={<OmniTokenPage />} />
+          <Route path="/trading-bots" element={<TradingBotsLandingPage />} />
+          <Route path="/cody-ai" element={<CodyAIPage />} />
 
           {/* Protected routes */}
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
