@@ -6,23 +6,29 @@ A revolutionary, enterprise-grade AI-powered Crypto trading platform featuring c
 
 ## Key Features
 
-1. **Trading Bot Functionality**
+1. **LLM Model Integration**
+   - Bring your AI to work or select from our house models for tour
+   - Customizable language models for trading insights
+   - Market sentiment analysis from social media and news sources
+   - Trading strategy recommendations
+   - Personalized risk assessment reports
+   - Real-time market narrative summaries
+
+2. **Trading Bot Functionality**
    - Automated trading strategies
    - Real-time market data integration
    - Customizable trading parameters
    - Performance tracking and analytics
-
-2. **LLM Model Integration**
-   - Customizable language models for trading insights
-   - Natural language interface for bot configuration
-   - Market sentiment analysis
-   - Trading strategy recommendations
+   - Backtesting and optimization tools
+   - Arena for bot performance ranking and duelling
 
 3. **Blockchain Integration**
    - Platform token implementation
    - Reward system for referrals
    - Reward system for code contributions
    - Smart contract implementation for transparent reward distribution
+   - DAO governance for community-driven platform decisions
+   - Token staking for voting rights and premium feature access
 
 4. **User Interface**
    - Dashboard with key metrics and portfolio overview
@@ -30,6 +36,8 @@ A revolutionary, enterprise-grade AI-powered Crypto trading platform featuring c
    - Bot configuration and management interfaces
    - Market data visualization
    - Earn/Rewards section
+   - Community page with leaderboards and filters
+   
 
 5. **Backend Infrastructure**
    - User authentication and authorization
