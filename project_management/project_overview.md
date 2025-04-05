@@ -7,8 +7,8 @@ A revolutionary, enterprise-grade AI-powered Crypto trading platform featuring c
 ## Key Features
 
 1. **LLM Model Integration**
-   - Bring your AI to work or select from our house models for tour
-   - Customizable language models for trading insights
+   - Bring your AI to work or select from our house models
+   - Customizable language models through API
    - Market sentiment analysis from social media and news sources
    - Trading strategy recommendations
    - Personalized risk assessment reports
@@ -38,7 +38,6 @@ A revolutionary, enterprise-grade AI-powered Crypto trading platform featuring c
    - Earn/Rewards section
    - Community page with leaderboards and filters
    
-
 5. **Backend Infrastructure**
    - User authentication and authorization
    - Market data APIs
