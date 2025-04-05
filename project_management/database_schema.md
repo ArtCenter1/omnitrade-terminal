@@ -1,3 +1,4 @@
+
 # Database Schema Design (Initial)
 
 This document outlines the initial design for the database schema supporting the OpenTrade platform.

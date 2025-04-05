@@ -13,10 +13,11 @@ The primary storage for user data resides in the `users` table:
 | `user_id`        | UUID             | PRIMARY KEY, DEFAULT gen_random_uuid() | Unique identifier for the user   |
 | `email`          | VARCHAR(255)     | UNIQUE, NOT NULL         | User's email address (used for login)          |
 | `password_hash`  | VARCHAR(255)     | NOT NULL                 | Hashed user password (e.g., using bcrypt)      |
-| `full_name`      | VARCHAR(255)     | NULL                     | User's full name (optional)                    |
+| `first_name`     | VARCHAR(255)     | NULL                     | User's first name (optional)                   |
+| `last_name`      | VARCHAR(255)     | NULL                     | User's last name (optional)                    |
 | `created_at`     | TIMESTAMPTZ      | NOT NULL, DEFAULT NOW()  | Timestamp when the user account was created    |
 | `updated_at`     | TIMESTAMPTZ      | NOT NULL, DEFAULT NOW()  | Timestamp when the user account was last updated |
-| `last_login_at`  | TIMESTAMPTZ      | NULL                     | Timestamp of the user's last login             |
+| `last_login_at`  | TIMESTAMPTZ      | NULL                     | Timestamp when the user's last login             |
 | `is_active`      | BOOLEAN          | NOT NULL, DEFAULT TRUE   | Flag indicating if the account is active       |
 | `email_verified` | BOOLEAN          | NOT NULL, DEFAULT FALSE  | Flag indicating if the email has been verified |
 
@@ -38,7 +39,8 @@ User data is exposed via the API primarily through authentication and user profi
       "user": {
         "userId": "uuid-string",
         "email": "user@example.com",
-        "fullName": "User Name"
+        "firstName": "User",
+        "lastName": "Name"
       }
     }
     ```
@@ -47,7 +49,8 @@ User data is exposed via the API primarily through authentication and user profi
     {
       "userId": "uuid-string",
       "email": "user@example.com",
-      "fullName": "User Name",
+      "firstName": "User",
+      "lastName": "Name",
       "createdAt": "iso-timestamp",
       "lastLoginAt": "iso-timestamp"
       // email_verified, is_active might be included if needed by frontend logic
@@ -58,13 +61,15 @@ User data is exposed via the API primarily through authentication and user profi
     {
       "email": "user@example.com",
       "password": "...",
-      "fullName": "User Name" // Optional
+      "firstName": "User", // Optional
+      "lastName": "Name" // Optional
     }
     ```
 *   **Update Profile Request (`PUT /api/v1/users/me`):**
     ```json
     {
-      "fullName": "Updated Name"
+      "firstName": "Updated",
+      "lastName": "Name"
       // Other updatable fields TBD
     }
     ```
@@ -77,7 +82,8 @@ Within the React frontend, user state might be managed using context or a state 
 interface AuthenticatedUser {
   userId: string;
   email: string;
-  fullName: string | null;
+  firstName: string | null;
+  lastName: string | null;
   // Potentially add other non-sensitive fields received from API
   // e.g., createdAt?: string;
   // e.g., lastLoginAt?: string;

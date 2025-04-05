@@ -10,7 +10,7 @@ type AuthContextType = {
   user: User | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any | null }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: any | null, success: boolean }>;
+  signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error: any | null, success: boolean }>;
   signOut: () => Promise<void>;
 };
 
@@ -78,15 +78,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (email: string, password: string, firstName: string, lastName: string) => {
     try {
-      console.log('Signing up with:', email, 'full name:', fullName);
+      console.log('Signing up with:', email, 'name:', firstName, lastName);
       
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { full_name: fullName },
+          data: { 
+            first_name: firstName,
+            last_name: lastName 
+          },
         },
       });
       
