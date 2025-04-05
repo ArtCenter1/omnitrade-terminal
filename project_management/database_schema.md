@@ -22,7 +22,8 @@ Stores information about registered users.
 | `user_id`        | UUID             | PRIMARY KEY, DEFAULT gen_random_uuid() | Unique identifier for the user                 |
 | `email`          | VARCHAR(255)     | UNIQUE, NOT NULL         | User's email address (used for login)          |
 | `password_hash`  | VARCHAR(255)     | NOT NULL                 | Hashed user password (e.g., using bcrypt)      |
-| `full_name`      | VARCHAR(255)     | NULL                     | User's full name (optional)                    |
+| `first_name`     | VARCHAR(255)     | NULL                     | User's first name  (optional)                  |
+| `last_name`      | VARCHAR(255)     | NULL                     | User's last name   (optional)                  |
 | `created_at`     | TIMESTAMPTZ      | NOT NULL, DEFAULT NOW()  | Timestamp when the user account was created    |
 | `updated_at`     | TIMESTAMPTZ      | NOT NULL, DEFAULT NOW()  | Timestamp when the user account was last updated |
 | `last_login_at`  | TIMESTAMPTZ      | NULL                     | Timestamp of the user's last login             |
