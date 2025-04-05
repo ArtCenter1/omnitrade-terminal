@@ -8,7 +8,7 @@ import {
   Navigate
 } from 'react-router-dom';
 import { ThemeProvider } from "@/components/ThemeProvider"
-import ScrollToTop from './components/ScrollToTop';
+import { ScrollToTop } from './components/ScrollToTop';
 import Index from './pages/Index';
 import AuthPage from './pages/auth/AuthPage';
 import LoginPage from './pages/auth/LoginPage';
