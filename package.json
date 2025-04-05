@@ -13,10 +13,17 @@
     "check-format": "prettier --check .",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "db:migrate": "node scripts/db.js migrate",
+    "db:reset": "node scripts/db.js reset",
+    "db:seed": "node scripts/db.js seed",
+    "db:studio": "node scripts/db.js studio",
+    "db:status": "node scripts/db.js status",
+    "db:create": "node scripts/db.js create"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
+    "@prisma/client": "6.5.0",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
     "@radix-ui/react-aspect-ratio": "^1.1.0",
@@ -98,5 +105,8 @@
     "typescript-eslint": "^8.0.1",
     "vite": "^5.4.1",
     "vitest": "^3.1.1"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   }
 }

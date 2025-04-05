@@ -4,8 +4,8 @@
 ## Database Setup
 - [x] Design and implement database schema
 - [x] Set up database connection configuration
-- [ ] Implement database migrations system
-- [ ] Create seed data for development/testing
+- [x] Implement database migrations system
+- [x] Create seed data for development/testing
 
 ## Authentication & Authorization
 - [ ] Implement user registration flow
