@@ -8,25 +8,34 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL") // Make sure DATABASE_URL is set in your .env file
+  url      = env("DATABASE_URL") // Using SQLite for local development
 }
 
 // --- User Model ---
 model User {
-  user_id        String    @id @default(uuid()) @db.Uuid
-  email          String    @unique @db.VarChar(255)
-  password_hash  String    @db.VarChar(255)
-  first_name     String?   @db.VarChar(255)
-  last_name      String?   @db.VarChar(255)
-  created_at     DateTime  @default(now()) @db.Timestamptz()
-  updated_at     DateTime  @updatedAt @db.Timestamptz()
-  last_login_at  DateTime? @db.Timestamptz()
+  user_id        String    @id @default(uuid())
+  email          String    @unique
+  password_hash  String
+  first_name     String?
+  last_name      String?
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+  last_login_at  DateTime?
   is_active      Boolean   @default(true)
   email_verified Boolean   @default(false)
+
+  role             Role       @default(USER)
+  reset_token      String?
+  reset_token_expiry DateTime?
 
   apiKeys UserApiKey[] // Relation to UserApiKey model
 
   @@map("users") // Maps to the 'users' table
+}
+
+enum Role {
+  ADMIN
+  USER
 }
 
 // --- Exchange Model ---
@@ -114,7 +123,7 @@ model UserApiKey {
 //   symbol          String
 //   type            String   // e.g., 'limit', 'market'
 //   side            String   // e.g., 'buy', 'sell'
-//   amount          Float    // Consider using Decimal type if precision is critical
+//   amount          Float    // Using Float for SQLite (consider Decimal for PostgreSQL)
 //   price           Float?   // Nullable for market orders
 //   status          String   // e.g., 'open', 'filled', 'canceled', 'rejected'
 //   created_at      DateTime @default(now())

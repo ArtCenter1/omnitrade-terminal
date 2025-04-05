@@ -43,9 +43,11 @@ async function main() {
   const testUser = {
     email: 'test@example.com',
     password_hash: '$2b$10$EpRnTzVlqHNP0.fUbXUwSOyuiXe/QLSUG6xNekdHgTGmrpHEfIoxm', // Password is 'password'
-    full_name: 'Test User',
+    first_name: 'Test',
+    last_name: 'User',
     is_active: true,
     email_verified: true,
+    role: 'USER',
   };
 
   console.log('Creating test user...');
