@@ -1,12 +1,16 @@
+
 import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useRoleBasedAccess } from '@/hooks/useRoleBasedAccess';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 
 // Simple Top Navigation Bar Component
 const TopNavBar = () => {
   const { user, signOut } = useAuth();
+  const { userRole, isLoading } = useRoleBasedAccess();
 
   const handleSignOut = async () => {
     try {
@@ -31,7 +35,18 @@ const TopNavBar = () => {
       <div className="flex items-center space-x-4">
         {user ? (
           <>
-            {/* Placeholder for user menu/avatar */}
+            {/* Display user role with a badge */}
+            {!isLoading && userRole && (
+              <Badge variant="outline" className={`
+                ${userRole === 'admin' ? 'border-purple-500 text-purple-400' : ''}
+                ${userRole === 'premium' ? 'border-green-500 text-green-400' : ''}
+                ${userRole === 'user' ? 'border-gray-500 text-gray-400' : ''}
+              `}>
+                {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
+              </Badge>
+            )}
+            
+            {/* User profile link */}
             <Link to="/profile" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
               {user.email}
             </Link>

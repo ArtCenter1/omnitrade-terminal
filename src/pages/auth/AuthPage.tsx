@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -20,7 +21,8 @@ const AuthPage = () => {
   const [registerEmail, setRegisterEmail] = useState('');
   const [registerPassword, setRegisterPassword] = useState('');
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [registerLoading, setRegisterLoading] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
 
@@ -79,7 +81,7 @@ const AuthPage = () => {
     setRegisterLoading(true);
 
     try {
-      const { error, success } = await signUp(registerEmail, registerPassword, fullName);
+      const { error, success } = await signUp(registerEmail, registerPassword, firstName, lastName);
       
       if (error) {
         toast.error(error.message || 'Failed to sign up');
@@ -91,7 +93,8 @@ const AuthPage = () => {
         setRegisterEmail('');
         setRegisterPassword('');
         setRegisterConfirmPassword('');
-        setFullName('');
+        setFirstName('');
+        setLastName('');
         
         // Switch to login tab
         document.getElementById('login-tab')?.click();
@@ -189,16 +192,29 @@ const AuthPage = () => {
               
               <TabsContent value="register">
                 <form onSubmit={handleRegister} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="fullName">Full Name</Label>
-                    <Input 
-                      id="fullName"
-                      type="text"
-                      placeholder="John Doe"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="bg-gray-800 border-gray-700 text-white"
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName">First Name</Label>
+                      <Input 
+                        id="firstName"
+                        type="text"
+                        placeholder="John"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        className="bg-gray-800 border-gray-700 text-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName">Last Name</Label>
+                      <Input 
+                        id="lastName"
+                        type="text"
+                        placeholder="Doe"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        className="bg-gray-800 border-gray-700 text-white"
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="registerEmail">Email</Label>
