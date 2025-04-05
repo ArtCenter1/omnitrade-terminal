@@ -8,12 +8,12 @@
 - [ ] Create seed data for development/testing
 
 ## Authentication & Authorization
-- [ ] Implement user registration flow
-- [ ] Implement login/logout functionality
-- [ ] Set up JWT token system
+- [x] Implement user registration flow
+- [x] Implement login/logout functionality
+- [x] Set up JWT token system
 - [ ] Implement role-based access control
 - [ ] Create password reset functionality
-- [ ] Implement session management
+- [x] Implement session management
 
 ## Market Data APIs
 - [ ] Create API endpoints for market data
@@ -55,7 +55,7 @@
 - [ ] Implement health check endpoints
 
 ## Documentation
-- [ ] Document all API endpoints
-- [ ] Create database schema documentation
-- [ ] Write service architecture docs
+- [x] Document all API endpoints
+- [x] Create database schema documentation
+- [x] Write service architecture docs
 - [ ] Document monitoring setup
