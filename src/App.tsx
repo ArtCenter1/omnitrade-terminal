@@ -1,64 +1,108 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import './App.css';
+import React, { useState, useEffect } from 'react';
+import {
+  BrowserRouter as Router,
+  Route,
+  Routes,
+  useLocation,
+  Navigate
+} from 'react-router-dom';
+import { ThemeProvider } from "@/components/theme-provider"
+import { ScrollToTop } from './components/ScrollToTop';
+import Index from './pages/Index';
+import AuthPage from './pages/auth/AuthPage';
+import LoginPage from './pages/auth/LoginPage';
+import RegisterPage from './pages/auth/RegisterPage';
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import Pricing from './pages/Pricing';
+import OmniToken from './pages/OmniToken';
+import TradingBotsLanding from './pages/TradingBotsLanding';
+import Blog from './pages/Blog';
+import NotFound from './pages/NotFound';
 import Dashboard from './pages/Dashboard';
 import Terminal from './pages/Terminal';
 import Bots from './pages/Bots';
 import Markets from './pages/Markets';
 import Earn from './pages/Earn';
 import Community from './pages/Community';
-import { TradingBotsLandingPage } from './pages/TradingBotsLanding';
-import { ProtectedRoute } from './components/ProtectedRoute';
-import NotFound from './pages/NotFound';
-import Index from './pages/Index';
-import UserProfilePage from './pages/UserProfilePage'; // Corrected import path and name
+import CodyAI from './pages/CodyAI';
+import UserProfile from './pages/profile/UserProfile';
 import MyAccounts from './pages/profile/MyAccounts';
-import Preferences from './pages/profile/Preferences';
 import Security from './pages/profile/Security';
+import ChangePassword from './pages/profile/ChangePassword';
+import Preferences from './pages/profile/Preferences';
 import PlanSubscription from './pages/profile/PlanSubscription';
-import { BlogPage } from './pages/Blog';
-import { PricingPage } from './pages/Pricing';
-import { OmniTokenPage } from './pages/OmniToken';
-import { CodyAIPage } from './pages/CodyAI';
-import AuthPage from './pages/auth/AuthPage';
-import { AuthProvider } from './contexts/AuthContext';
-import { ProtectedLayout } from './components/layout/ProtectedLayout'; // Import the layout
+import { useAuth } from './hooks/useAuth';
+
+// Add import for our new components
+import { RoleProtectedRoute } from './components/layout/RoleProtectedRoute';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 
 function App() {
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  useEffect(() => {
+    // Simulate loading
+    setTimeout(() => {
+      setLoading(false);
+    }, 500);
+  }, [])
+
+  const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+    const location = useLocation();
+    if (loading) {
+      return <div>Loading...</div>; // Replace with your loading component
+    }
+    if (!user) {
+      return <Navigate to="/auth" replace state={{ from: location }} />;
+    }
+    return children;
+  };
+
   return (
-    <Router>
-      <AuthProvider>
+    <ThemeProvider defaultTheme="dark" storageKey="omnitrade-theme">
+      <Router>
+        <ScrollToTop />
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<Index />} />
-          <Route path="/auth/*" element={<AuthPage />} />
-          <Route path="/blog" element={<BlogPage />} />
-          <Route path="/pricing" element={<PricingPage />} />
-          <Route path="/omni-token" element={<OmniTokenPage />} />
-          <Route path="/trading-bots" element={<TradingBotsLandingPage />} />
-          <Route path="/cody-ai" element={<CodyAIPage />} />
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/omni-token" element={<OmniToken />} />
+          <Route path="/trading-bots" element={<TradingBotsLanding />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="*" element={<NotFound />} />
 
           {/* Protected routes */}
-          <Route path="/dashboard" element={<ProtectedRoute><ProtectedLayout><Dashboard /></ProtectedLayout></ProtectedRoute>} />
-          <Route path="/terminal" element={<ProtectedRoute><ProtectedLayout><Terminal /></ProtectedLayout></ProtectedRoute>} />
-          <Route path="/bots" element={<ProtectedRoute><ProtectedLayout><Bots /></ProtectedLayout></ProtectedRoute>} />
-          <Route path="/markets" element={<ProtectedRoute><ProtectedLayout><Markets /></ProtectedLayout></ProtectedRoute>} />
-          <Route path="/earn" element={<ProtectedRoute><ProtectedLayout><Earn /></ProtectedLayout></ProtectedRoute>} />
-          <Route path="/community" element={<ProtectedRoute><ProtectedLayout><Community /></ProtectedLayout></ProtectedRoute>} />
-          
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/terminal" element={<ProtectedRoute><Terminal /></ProtectedRoute>} />
+          <Route path="/bots" element={<ProtectedRoute><Bots /></ProtectedRoute>} />
+          <Route path="/markets" element={<ProtectedRoute><Markets /></ProtectedRoute>} />
+          <Route path="/earn" element={<ProtectedRoute><Earn /></ProtectedRoute>} />
+          <Route path="/community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
+          <Route path="/cody-ai" element={<ProtectedRoute><CodyAI /></ProtectedRoute>} />
+
           {/* Profile routes */}
-          {/* Profile routes also use the ProtectedLayout */}
-          <Route path="/profile" element={<ProtectedRoute><ProtectedLayout><UserProfilePage /></ProtectedLayout></ProtectedRoute>} />
-          <Route path="/profile/accounts" element={<ProtectedRoute><ProtectedLayout><MyAccounts /></ProtectedLayout></ProtectedRoute>} />
-          <Route path="/profile/preferences" element={<ProtectedRoute><ProtectedLayout><Preferences /></ProtectedLayout></ProtectedRoute>} />
-          <Route path="/profile/security" element={<ProtectedRoute><ProtectedLayout><Security /></ProtectedLayout></ProtectedRoute>} />
-          <Route path="/profile/subscription" element={<ProtectedRoute><ProtectedLayout><PlanSubscription /></ProtectedLayout></ProtectedRoute>} />
-          
-          {/* 404 and fallback */}
-          <Route path="/404" element={<NotFound />} />
-          <Route path="*" element={<Navigate to="/404" replace />} />
+          <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
+          <Route path="/profile/accounts" element={<ProtectedRoute><MyAccounts /></ProtectedRoute>} />
+          <Route path="/profile/security" element={<ProtectedRoute><Security /></ProtectedRoute>} />
+          <Route path="/profile/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+          <Route path="/profile/preferences" element={<ProtectedRoute><Preferences /></ProtectedRoute>} />
+          <Route path="/profile/subscription" element={<ProtectedRoute><PlanSubscription /></ProtectedRoute>} />
+
+          {/* Admin routes - protected by role */}
+          <Route path="/admin" element={
+            <RoleProtectedRoute allowedRoles={['admin']} redirectTo="/dashboard">
+              <AdminDashboard />
+            </RoleProtectedRoute>
+          } />
         </Routes>
-      </AuthProvider>
-    </Router>
+      </Router>
+    </ThemeProvider>
   );
 }
 

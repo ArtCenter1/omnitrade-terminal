@@ -12,6 +12,7 @@ type AuthContextType = {
   signIn: (email: string, password: string) => Promise<{ error: any | null }>;
   signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error: any | null, success: boolean }>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ error: any | null, success: boolean }>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -88,7 +89,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         options: {
           data: { 
             first_name: firstName,
-            last_name: lastName 
+            last_name: lastName,
+            role: 'user' // Default role for new users
           },
         },
       });
@@ -126,6 +128,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const resetPassword = async (email: string) => {
+    try {
+      console.log('Requesting password reset for:', email);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+      
+      if (error) {
+        console.error('Password reset error:', error.message);
+        return { error, success: false };
+      }
+      
+      console.log('Password reset email sent successfully');
+      return { error: null, success: true };
+    } catch (error) {
+      console.error('Exception during password reset:', error);
+      return { error, success: false };
+    }
+  };
+
   const value = {
     session,
     user,
@@ -133,6 +155,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signIn,
     signUp,
     signOut,
+    resetPassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
