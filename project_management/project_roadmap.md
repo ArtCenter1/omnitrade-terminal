@@ -1,4 +1,3 @@
-
 # Project Roadmap
 
 ## Phase 1: Project Setup and Planning

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Route,
@@ -35,8 +34,10 @@ import { useAuth } from './hooks/useAuth';
 
 // Add import for our new components
 import { RoleProtectedRoute } from './components/layout/RoleProtectedRoute';
+// Removed ProtectedLayout import
 import AdminDashboard from './pages/admin/AdminDashboard';
 import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
+// Removed Navbar import as it's not used globally here anymore
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -48,6 +49,7 @@ function App() {
     }, 500);
   }, [])
 
+  // Restore the old ProtectedRoute component definition
   const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     const location = useLocation();
     if (loading) {
@@ -76,7 +78,7 @@ function App() {
         <Route path="/blog" element={<Blog />} />
         <Route path="*" element={<NotFound />} />
 
-        {/* Protected routes */}
+        {/* Protected routes (reverted to individual wrappers) */}
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/terminal" element={<ProtectedRoute><Terminal /></ProtectedRoute>} />
         <Route path="/bots" element={<ProtectedRoute><Bots /></ProtectedRoute>} />
@@ -85,7 +87,7 @@ function App() {
         <Route path="/community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
         <Route path="/cody-ai" element={<ProtectedRoute><CodyAI /></ProtectedRoute>} />
 
-        {/* Profile routes */}
+        {/* Profile routes (reverted to individual wrappers) */}
         <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
         <Route path="/profile/accounts" element={<ProtectedRoute><MyAccounts /></ProtectedRoute>} />
         <Route path="/profile/security" element={<ProtectedRoute><Security /></ProtectedRoute>} />

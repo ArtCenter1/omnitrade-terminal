@@ -133,6 +133,24 @@ The API will be versioned.
     *   **Response:** `{ [asset: string]: { free: string, locked: string } }` (e.g., `{ "BTC": { "free": "0.1", "locked": "0.01" }, ... }`)
     *   **Auth Required:** Yes
 
+### 7. Performance Tracking (`/performance`)
+
+*   **`GET /api/v1/performance/bots/{botId}`**
+    *   **Description:** Get the latest live performance snapshot and recent backtest results for a specific bot owned by the authenticated user.
+    *   **Path Params:** `botId` (string, required) - The ID of the bot.
+    *   **Response:** `{ live: BotPerformance | null, backtests: BacktestResult[] }`
+        *   `BotPerformance`: `{ performance_id, bot_id, timestamp, roi, win_rate, max_drawdown, profit_factor, total_trades, sharpe_ratio?, sortino_ratio?, equity, is_live, created_at, updated_at }`
+        *   `BacktestResult`: `{ backtest_id, bot_id, strategy_config, start_date, end_date, roi, win_rate, max_drawdown, profit_factor, total_trades, sharpe_ratio?, sortino_ratio?, equity_curve?, created_at }`
+    *   **Auth Required:** Yes
+*   **`GET /api/v1/performance/leaderboard`**
+    *   **Description:** Get aggregated performance data for leaderboards (e.g., top bots by ROI). Currently uses mock data.
+    *   **Query Params:**
+        *   `metric` (string, optional, default: 'roi'): The performance metric to rank by (e.g., 'roi', 'profit_factor').
+        *   `timePeriod` (string, optional, default: 'all'): The time period for aggregation (e.g., '1d', '7d', '30d', 'all'). (Note: Mock data ignores this currently).
+        *   `limit` (integer, optional, default: 10): The maximum number of leaderboard entries to return.
+    *   **Response:** `[ { rank, bot_id, bot_name, user_name, metric_value, metric_name, timestamp }, ... ]`
+    *   **Auth Required:** Yes
+
 ## Data Formats
 
 *   Use JSON for request and response bodies.

@@ -29,6 +29,10 @@ model User {
   reset_token_expiry DateTime?
 
   apiKeys UserApiKey[] // Relation to UserApiKey model
+  bots Bot[] @relation("UserBots")
+  settings UserSetting[] // Relation to UserSetting model
+  notifications Notification[] // Relation to Notification model
+  activityLogs UserActivityLog[] // Relation to UserActivityLog model
 
   @@map("users") // Maps to the 'users' table
 }
@@ -73,21 +77,24 @@ model UserApiKey {
   @@map("user_api_keys") // Maps to the 'user_api_keys' table
 }
 
-// --- Placeholder Models (Future Implementation) ---
-// model TradingBot {
-//   bot_id      String   @id @default(uuid())
-//   user_id     String
-//   strategy_id String
-//   config      Json
-//   status      String   // e.g., 'active', 'inactive', 'error'
-//   created_at  DateTime @default(now())
-//
-//   user        User     @relation(fields: [user_id], references: [user_id])
-//   // strategy Strategy @relation(fields: [strategy_id], references: [strategy_id])
-//   instances   BotInstance[]
-//
-//   @@map("trading_bots")
-// }
+model Bot {
+ id          String   @id @default(uuid())
+ userId      String
+ strategyId  String
+ config      Json
+ status      String   // e.g., 'active', 'inactive', 'error'
+ createdAt   DateTime @default(now())
+ consecutiveFailures Int @default(0)
+ isActive    Boolean  @default(true)
+
+ user        User     @relation("UserBots", fields: [userId], references: [user_id])
+ // strategy Strategy @relation(fields: [strategyId], references: [strategy_id])
+ executions  BotExecutionLog[]
+ performance BotPerformance[]
+ backtests   BacktestResult[]
+
+ @@map("trading_bots")
+}
 
 // model BotInstance {
 //   instance_id String   @id @default(uuid())
@@ -137,14 +144,112 @@ model UserApiKey {
 //   @@map("orders")
 // }
 
-// model UserSetting {
-//   setting_id    String @id @default(uuid())
-//   user_id       String
-//   setting_key   String
-//   setting_value Json
-//
-//   user          User   @relation(fields: [user_id], references: [user_id])
-//
-//   @@unique([user_id, setting_key])
-//   @@map("user_settings")
-// }
+model UserSetting {
+  setting_id    String @id @default(uuid())
+  user_id       String
+  setting_key   String // e.g., 'notification_prefs', 'security_2fa_enabled'
+  setting_value Json   // Store setting value as JSON
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  user          User   @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@unique([user_id, setting_key])
+  @@index([user_id])
+  @@map("user_settings")
+}
+
+model BotExecutionLog {
+  id           String   @id @default(uuid())
+  executionId  String   @unique
+  botId        String
+  userId       String
+  status       String
+  trigger      String
+  startTime    DateTime
+  endTime      DateTime?
+  durationMs   Int?
+  errorMessage String?
+
+  bot          Bot      @relation(fields: [botId], references: [id])
+
+  @@map("bot_execution_logs")
+}
+
+// --- Notification Model ---
+model Notification {
+  notification_id String   @id @default(uuid())
+  user_id         String
+  type            String   // e.g., 'BOT_EXECUTION_SUCCESS', 'BOT_EXECUTION_FAILURE', 'PROFILE_UPDATE'
+  message         String
+  is_read         Boolean  @default(false)
+  created_at      DateTime @default(now())
+
+  user            User     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@map("notifications")
+}
+
+// --- User Activity Log Model ---
+model UserActivityLog {
+  log_id        String   @id @default(uuid())
+  user_id       String
+  activity_type String   // e.g., 'LOGIN', 'LOGOUT', 'PROFILE_UPDATE', 'BOT_START', 'BOT_STOP', 'API_KEY_CREATE'
+  details       Json?    // Optional details about the activity
+  ip_address    String?
+  user_agent    String?
+  timestamp     DateTime @default(now())
+
+  user          User     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@map("user_activity_logs")
+}
+
+// --- Bot Performance Model ---
+model BotPerformance {
+  performance_id String   @id @default(uuid())
+  bot_id         String
+  timestamp      DateTime @default(now()) // Timestamp of the last update or snapshot
+  roi            Float    @default(0.0) // Return on Investment
+  win_rate       Float    @default(0.0) // Percentage of winning trades
+  max_drawdown   Float    @default(0.0) // Maximum peak-to-trough decline
+  profit_factor  Float    @default(0.0) // Gross profit / Gross loss
+  total_trades   Int      @default(0)   // Total number of trades executed
+  sharpe_ratio   Float?                 // Optional: Risk-adjusted return (e.g., Sharpe Ratio)
+  sortino_ratio  Float?                 // Optional: Downside risk-adjusted return (e.g., Sortino Ratio)
+  equity         Float    @default(0.0) // Current equity value
+  is_live        Boolean                // Flag to distinguish live trading performance
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  bot            Bot      @relation(fields: [bot_id], references: [id], onDelete: Cascade)
+
+  @@index([bot_id])
+  @@index([bot_id, is_live]) // Index for querying live/shared performance
+  @@map("bot_performance")
+}
+
+// --- Backtest Result Model ---
+model BacktestResult {
+  backtest_id     String   @id @default(uuid())
+  bot_id          String
+  strategy_config Json     // Configuration of the bot/strategy used for this backtest
+  start_date      DateTime // Start date of the backtest period
+  end_date        DateTime // End date of the backtest period
+  roi             Float    // Return on Investment for the backtest
+  win_rate        Float    // Win rate during the backtest
+  max_drawdown    Float    // Maximum drawdown during the backtest
+  profit_factor   Float    // Profit factor during the backtest
+  total_trades    Int      // Total trades during the backtest
+  sharpe_ratio    Float?   // Optional: Sharpe Ratio for the backtest
+  sortino_ratio   Float?   // Optional: Sortino Ratio for the backtest
+  equity_curve    Json?    // Optional: Store historical equity points {timestamp, value}[]
+  created_at      DateTime @default(now())
+
+  bot             Bot      @relation(fields: [bot_id], references: [id], onDelete: Cascade)
+
+  @@index([bot_id])
+  @@map("backtest_results")
+}
