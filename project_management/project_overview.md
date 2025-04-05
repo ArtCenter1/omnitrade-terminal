@@ -1,8 +1,8 @@
 
-# OminiTrade Trading Platform - Project Overview
+# OmniTrade Trading Platform - Project Overview
 
 ## Vision
-A fully functional, commercial-ready full-stack bot trading website with customizable LLM models integration. The platform will include blockchain integration for token distribution, rewarding user referrals and code contributions.
+A revolutionary, enterprise-grade AI-powered Crypto trading platform featuring cutting-edge LLM model integration. The platform also seamlessly integrates blockchain technology to create a thriving ecosystem where community members earn tokens through referrals and valuable code contributions. The token also gives access to exclusive features such as voting power to improve the platform.
 
 ## Key Features
 
