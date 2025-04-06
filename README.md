@@ -51,7 +51,7 @@ OmniTrade is a comprehensive platform designed for automated cryptocurrency trad
 1.  **Clone the repository:**
     ```bash
     git clone <YOUR_REPOSITORY_URL>
-    cd omnitrade
+    cd open-trade
     ```
 
 2.  **Install dependencies:**
