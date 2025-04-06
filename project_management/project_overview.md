@@ -2,21 +2,23 @@
 # OminiTrade Trading Platform - Project Overview
 
 ## Vision
-A fully functional, commercial-ready full-stack bot trading website with customizable LLM models integration. The platform will include blockchain integration for token distribution, rewarding user referrals and code contributions.
+A revolutionary, enterprise-grade AI-powered Crypto trading platform featuring cutting-edge LLM model customization. The platform seamlessly integrates blockchain technology to create a thriving ecosystem where community members earn tokens through referrals and valuable code contributions.
 
 ## Key Features
 
-1. **Trading Bot Functionality**
+1. **LLM Model Integration**
+   - Customizable language models for trading insights
+   - Natural language interface for bot configuration
+   - Market sentiment analysis from social media and news sources
+   - Trading strategy recommendations
+   - Personalized risk assessment reports
+   - Real-time market narrative summaries
+
+2. **Trading Bot Functionality**
    - Automated trading strategies
    - Real-time market data integration
    - Customizable trading parameters
    - Performance tracking and analytics
-
-2. **LLM Model Integration**
-   - Customizable language models for trading insights
-   - Natural language interface for bot configuration
-   - Market sentiment analysis
-   - Trading strategy recommendations
 
 3. **Blockchain Integration**
    - Platform token implementation
