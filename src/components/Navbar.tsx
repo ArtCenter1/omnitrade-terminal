@@ -70,31 +70,25 @@ export default function Navbar() {
                   </Link>
                 </NavigationMenuItem>
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger>More</NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <div className="grid gap-3 p-4 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
-                      <ul className="grid gap-3">
-                        <li>
-                          <Link to="/markets" className="block p-3 space-y-1 rounded-md hover:bg-gray-800">
-                            <div className="font-medium">Markets</div>
-                            <p className="text-sm text-gray-400">View market data and analysis</p>
-                          </Link>
-                        </li>
-                        <li>
-                          <Link to="/earn" className="block p-3 space-y-1 rounded-md hover:bg-gray-800">
-                            <div className="font-medium">Earn</div>
-                            <p className="text-sm text-gray-400">Staking and rewards opportunities</p>
-                          </Link>
-                        </li>
-                        <li>
-                          <Link to="/community" className="block p-3 space-y-1 rounded-md hover:bg-gray-800">
-                            <div className="font-medium">Community</div>
-                            <p className="text-sm text-gray-400">Join the trading community</p>
-                          </Link>
-                        </li>
-                      </ul>
-                    </div>
-                  </NavigationMenuContent>
+                  <Link to="/markets">
+                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                      Markets
+                    </NavigationMenuLink>
+                  </Link>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <Link to="/earn">
+                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                      Earn
+                    </NavigationMenuLink>
+                  </Link>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <Link to="/community">
+                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                      Community
+                    </NavigationMenuLink>
+                  </Link>
                 </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>
