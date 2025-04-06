@@ -36,7 +36,7 @@ export function LandingNavbar() {
           <Button
             variant="link"
             className="font-medium text-gray-300 hover:text-white p-0 h-auto"
-            onClick={() => navigate("/cody-ai")}
+            onClick={() => navigate("/ai-driven")}
           >
             AI-Driven
           </Button>

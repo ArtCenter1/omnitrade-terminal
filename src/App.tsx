@@ -23,7 +23,7 @@ import Bots from './pages/Bots';
 import Markets from './pages/Markets';
 import Earn from './pages/Earn';
 import Community from './pages/Community';
-import CodyAI from './pages/CodyAI';
+import CodyAI from './pages/AIDriven';
 import UserProfile from './pages/profile/UserProfile';
 import MyAccounts from './pages/profile/MyAccounts';
 import Security from './pages/profile/Security';
