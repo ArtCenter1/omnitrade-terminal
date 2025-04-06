@@ -34,10 +34,10 @@ import { useAuth } from './hooks/useAuth';
 
 // Add import for our new components
 import { RoleProtectedRoute } from './components/layout/RoleProtectedRoute';
-// Removed ProtectedLayout import
+// Import Navbar for protected routes
+import Navbar from './components/Navbar';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
-// Removed Navbar import as it's not used globally here anymore
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -49,7 +49,7 @@ function App() {
     }, 500);
   }, [])
 
-  // Restore the old ProtectedRoute component definition
+  // ProtectedRoute component with Navbar
   const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     const location = useLocation();
     if (loading) {
@@ -58,7 +58,12 @@ function App() {
     if (!user) {
       return <Navigate to="/auth" replace state={{ from: location }} />;
     }
-    return children;
+    return (
+      <>
+        <Navbar />
+        {children}
+      </>
+    );
   };
 
   return (
