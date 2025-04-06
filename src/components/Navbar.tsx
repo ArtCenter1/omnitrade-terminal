@@ -13,7 +13,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Settings, Bell, ChevronDown } from "lucide-react";
+import { 
+  LogOut, 
+  User, 
+  Settings, 
+  Bell, 
+  ChevronDown,
+  CreditCard, 
+  Lock, 
+  Shield, 
+  Wallet 
+} from "lucide-react";
 import { useAuth } from '@/hooks/useAuth';
 
 export default function Navbar() {
@@ -121,22 +131,50 @@ export default function Navbar() {
                     <DropdownMenuSeparator className="bg-gray-800" />
                     <DropdownMenuItem 
                       onClick={() => navigate('/profile')}
-                      className="cursor-pointer hover:bg-gray-800"
+                      className="cursor-pointer hover:bg-gray-800 text-gray-300"
                     >
                       <User className="mr-2 h-4 w-4" />
-                      <span>Profile</span>
+                      <span>User Profile</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem 
-                      onClick={() => navigate('/profile/preferences')}
-                      className="cursor-pointer hover:bg-gray-800"
+                      onClick={() => navigate('/preferences')}
+                      className="cursor-pointer hover:bg-gray-800 text-gray-300"
                     >
                       <Settings className="mr-2 h-4 w-4" />
-                      <span>Settings</span>
+                      <span>Preferences</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => navigate('/plan')}
+                      className="cursor-pointer hover:bg-gray-800 text-gray-300"
+                    >
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      <span>Plan & Subscription</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => navigate('/password')}
+                      className="cursor-pointer hover:bg-gray-800 text-gray-300"
+                    >
+                      <Lock className="mr-2 h-4 w-4" />
+                      <span>Change Password</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => navigate('/security')}
+                      className="cursor-pointer hover:bg-gray-800 text-gray-300"
+                    >
+                      <Shield className="mr-2 h-4 w-4" />
+                      <span>Security (2FA)</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => navigate('/accounts')}
+                      className="cursor-pointer hover:bg-gray-800 text-gray-300"
+                    >
+                      <Wallet className="mr-2 h-4 w-4" />
+                      <span>My Accounts</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="bg-gray-800" />
                     <DropdownMenuItem 
                       onClick={handleSignOut}
-                      className="cursor-pointer hover:bg-gray-800"
+                      className="cursor-pointer hover:bg-gray-800 text-gray-300"
                     >
                       <LogOut className="mr-2 h-4 w-4" />
                       <span>Log out</span>
