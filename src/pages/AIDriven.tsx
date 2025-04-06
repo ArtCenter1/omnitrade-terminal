@@ -4,7 +4,7 @@ import { Footer } from "@/components/Footer"; // Assuming a shared Footer exists
 import { Button } from "@/components/ui/button";
 import { ArrowRight, BrainCircuit, Zap, ShieldCheck } from "lucide-react"; // Example icons
 
-export function CodyAIPage() {
+export function AIDrivenPage() {
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-black via-gray-900 to-black text-white">
       <LandingNavbar />
@@ -64,4 +64,4 @@ export function CodyAIPage() {
 }
 
 // Add default export for the component
-export default CodyAIPage;
+export default AIDrivenPage;

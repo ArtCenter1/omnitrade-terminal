@@ -23,7 +23,7 @@ import Bots from './pages/Bots';
 import Markets from './pages/Markets';
 import Earn from './pages/Earn';
 import Community from './pages/Community';
-import CodyAI from './pages/AIDriven';
+import AIDrivenPage from './pages/AIDriven';
 import UserProfile from './pages/profile/UserProfile';
 import MyAccounts from './pages/profile/MyAccounts';
 import Security from './pages/profile/Security';
@@ -42,6 +42,7 @@ import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 function App() {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const location = useLocation(); // Add location hook here
   useEffect(() => {
     // Simulate loading
     setTimeout(() => {
@@ -90,7 +91,9 @@ function App() {
         <Route path="/markets" element={<ProtectedRoute><Markets /></ProtectedRoute>} />
         <Route path="/earn" element={<ProtectedRoute><Earn /></ProtectedRoute>} />
         <Route path="/community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
-        <Route path="/cody-ai" element={<ProtectedRoute><CodyAI /></ProtectedRoute>} />
+        <Route path="/ai-driven" element={
+          loading ? <div>Loading...</div> : !user ? <Navigate to="/auth" replace state={{ from: location }} /> : <AIDrivenPage />
+        } />
 
         {/* Profile routes (reverted to individual wrappers) */}
         <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
