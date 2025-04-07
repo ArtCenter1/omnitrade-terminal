@@ -15,35 +15,35 @@ export function ProfileSidebar() {
   const location = useLocation();
 
   const menuItems = [
-    { 
-      name: "User Profile", 
-      path: "/profile", 
-      icon: <User size={16} className="mr-2" /> 
+    {
+      name: "User Profile",
+      path: "/profile",
+      icon: <User size={16} className="mr-2" />
     },
-    { 
-      name: "Preferences", 
-      path: "/preferences", 
-      icon: <Settings size={16} className="mr-2" /> 
+    {
+      name: "Preferences",
+      path: "/profile/preferences",
+      icon: <Settings size={16} className="mr-2" />
     },
-    { 
-      name: "Plan & Subscription", 
-      path: "/plan", 
-      icon: <CreditCard size={16} className="mr-2" /> 
+    {
+      name: "Plan & Subscription",
+      path: "/profile/subscription",
+      icon: <CreditCard size={16} className="mr-2" />
     },
-    { 
-      name: "Change Password", 
-      path: "/password", 
-      icon: <Lock size={16} className="mr-2" /> 
+    {
+      name: "Change Password",
+      path: "/profile/change-password",
+      icon: <Lock size={16} className="mr-2" />
     },
-    { 
-      name: "Security (2FA)", 
-      path: "/security", 
-      icon: <Shield size={16} className="mr-2" /> 
+    {
+      name: "Security (2FA)",
+      path: "/profile/security",
+      icon: <Shield size={16} className="mr-2" />
     },
-    { 
-      name: "My Accounts", 
-      path: "/accounts", 
-      icon: <Wallet size={16} className="mr-2" /> 
+    {
+      name: "My Accounts",
+      path: "/profile/accounts",
+      icon: <Wallet size={16} className="mr-2" />
     },
   ];
 
