@@ -27,7 +27,7 @@ export function LandingNavbar() {
               className="h-6 w-6"
             />
           </div>
-           <span className="font-bold text-xl ml-2">OMNITRADE</span>
+           <span className="font-sans font-bold text-xl ml-2">OMNITRADE</span>
         </Link>
 
         {/* Navigation Links */}
