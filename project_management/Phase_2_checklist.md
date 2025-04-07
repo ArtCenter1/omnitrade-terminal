@@ -1,5 +1,7 @@
 # Phase 2 Checklist: Frontend Core Development
 
+**Workflow Note:** Please complete the tasks in this checklist sequentially, one by one. Reordering is permissible only if it demonstrably leads to a more efficient or effective outcome.
+
 ## Phase Objective
 Implement the core user interface components, pages, and navigation for the OpenTrade frontend application based on the designs and specifications from Phase 1.
 

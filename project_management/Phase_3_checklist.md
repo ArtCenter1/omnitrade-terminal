@@ -1,6 +1,8 @@
 
 # Phase 3 Checklist: Backend Infrastructure
 
+**Workflow Note:** Please complete the tasks in this checklist sequentially, one by one. Reordering is permissible only if it demonstrably leads to a more efficient or effective outcome.
+
 ## Database Setup
 - [x] Design and implement database schema
 - [x] Set up database connection configuration

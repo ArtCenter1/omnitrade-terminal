@@ -1,6 +1,8 @@
 
 # Phase 1 Checklist: Project Setup and Planning
 
+**Workflow Note:** Please complete the tasks in this checklist sequentially, one by one. Reordering is permissible only if it demonstrably leads to a more efficient or effective outcome.
+
 ## Phase Objective
 Set up the project structure, define requirements, and create the foundation for development.
 
