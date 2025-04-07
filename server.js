@@ -17,6 +17,8 @@ const rateLimit = require('express-rate-limit');
 const http = require('http');
 const WebSocket = require('ws');
 
+const { loadUserPermissions, checkPermission } = require('./rbacMiddleware');
+
 const app = express();
 const prisma = new PrismaClient();
 
@@ -73,14 +75,26 @@ function requireRole(roles) {
 }
 
 // Example protected route (admin only)
-app.get('/admin/dashboard', authenticateToken, requireRole(['admin']), (req, res) => {
-  res.json({ message: 'Welcome, admin!' });
-});
+app.get(
+  '/admin/dashboard',
+  authenticateToken,
+  loadUserPermissions,
+  checkPermission('system_settings:manage'),
+  (req, res) => {
+    res.json({ message: 'Welcome, admin!' });
+  }
+);
 
 // Example protected route (any logged-in user)
-app.get('/user/profile', authenticateToken, requireRole(['user', 'admin']), (req, res) => {
-  res.json({ message: 'Welcome, user!' });
-});
+app.get(
+  '/user/profile',
+  authenticateToken,
+  loadUserPermissions,
+  checkPermission('profile:read:own'),
+  (req, res) => {
+    res.json({ message: 'Welcome, user!' });
+  }
+);
 
 // Password reset request
 app.post('/auth/request-password-reset', async (req, res) => {
