@@ -39,6 +39,7 @@ src/
 │   │   ├── AccountTabs.tsx
 │   │   ├── AssetsTable.tsx
 │   │   ├── AvailableBalances.tsx
+│   │   ├── AssetChart.tsx
 │   │   ├── ChartHeader.tsx
 │   │   ├── ChartSection.tsx
 │   │   ├── ExchangeSelector.tsx
@@ -96,7 +97,7 @@ src/
 ## Key Component Types
 
 1.  **UI Primitives (`components/ui/`):** Base building blocks like Buttons, Inputs, Cards, etc. Primarily uses shadcn/ui components. Should be stateless and highly reusable.
-2.  **Layout & Common Components (`components/` root):** Components defining overall page structure (e.g., `Navbar.tsx`, `Footer.tsx`, `ThemeProvider.tsx`) and reusable components used across features (e.g., `BotCard.tsx`, `RewardCard.tsx`, various charts) are currently located at the root of `src/components/`. *Consideration should be given to potentially grouping these into dedicated `layout/` and `common/` subdirectories in the future for better organization as the project grows.*
+2.  **Layout & Common Components (`components/` root):** Components defining overall page structure (e.g., `Navbar.tsx`, `Footer.tsx`, `ThemeProvider.tsx`) and reusable components used across features (e.g., `BotCard.tsx`, `RewardCard.tsx`, various charts) are currently located at the root of `src/components/`. The `Navbar.tsx` component includes direct navigation links for Dashboard, Terminal, Bots, Markets, Earn, and Community. *Consideration should be given to potentially grouping these into dedicated `layout/` and `common/` subdirectories in the future for better organization as the project grows.*
 3.  **(Removed - Merged into above)**
 4.  **Feature Components (`components/<feature>/`):** Components specific to a particular feature area (Dashboard, Terminal, Profile). These might contain their own state and logic related to the feature.
 5.  **Page Components (`pages/`):** Top-level components for each route/page. Responsible for fetching page-specific data and assembling layout and feature components.

@@ -137,35 +137,35 @@ export default function Navbar() {
                       <span>User Profile</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem 
-                      onClick={() => navigate('/preferences')}
+                      onClick={() => navigate('/profile/preferences')}
                       className="cursor-pointer hover:bg-gray-800 text-gray-300"
                     >
                       <Settings className="mr-2 h-4 w-4" />
                       <span>Preferences</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem 
-                      onClick={() => navigate('/plan')}
+                      onClick={() => navigate('/profile/subscription')}
                       className="cursor-pointer hover:bg-gray-800 text-gray-300"
                     >
                       <CreditCard className="mr-2 h-4 w-4" />
                       <span>Plan & Subscription</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem 
-                      onClick={() => navigate('/password')}
+                      onClick={() => navigate('/profile/change-password')}
                       className="cursor-pointer hover:bg-gray-800 text-gray-300"
                     >
                       <Lock className="mr-2 h-4 w-4" />
                       <span>Change Password</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem 
-                      onClick={() => navigate('/security')}
+                      onClick={() => navigate('/profile/security')}
                       className="cursor-pointer hover:bg-gray-800 text-gray-300"
                     >
                       <Shield className="mr-2 h-4 w-4" />
                       <span>Security (2FA)</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem 
-                      onClick={() => navigate('/accounts')}
+                      onClick={() => navigate('/profile/accounts')}
                       className="cursor-pointer hover:bg-gray-800 text-gray-300"
                     >
                       <Wallet className="mr-2 h-4 w-4" />
