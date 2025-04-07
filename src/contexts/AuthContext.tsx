@@ -10,7 +10,7 @@ type AuthContextType = {
   user: User | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any | null }>;
-  signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error: any | null, success: boolean }>;
+  signUp: (email: string, password: string, userName: string) => Promise<{ error: any | null, success: boolean }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any | null, success: boolean }>;
 };
@@ -79,17 +79,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signUp = async (email: string, password: string, firstName: string, lastName: string) => {
+  const signUp = async (email: string, password: string, userName: string) => {
     try {
-      console.log('Signing up with:', email, 'name:', firstName, lastName);
+      console.log('Signing up with:', email, 'username:', userName);
       
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { 
-            first_name: firstName,
-            last_name: lastName,
+          data: {
+            user_name: userName,
             role: 'user' // Default role for new users
           },
         },
@@ -104,8 +103,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Email confirmation is usually enabled in Supabase by default
       if (data.user && !data.user.confirmed_at) {
-        return { 
-          error: null, 
+        return {
+          error: null,
           success: true,
           // Email confirmation message is handled by the component
         };

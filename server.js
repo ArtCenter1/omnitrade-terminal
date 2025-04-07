@@ -216,8 +216,7 @@ app.get('/api/v1/users/me', authenticateToken, async (req, res) => {
       select: { // Select only public profile fields
         user_id: true,
         email: true,
-        first_name: true,
-        last_name: true,
+        user_name: true,
         created_at: true,
         last_login_at: true,
         role: true
@@ -235,12 +234,11 @@ app.get('/api/v1/users/me', authenticateToken, async (req, res) => {
 
 // PUT /api/v1/users/update-profile - Update current user's profile
 app.put('/api/v1/users/update-profile', authenticateToken, async (req, res) => {
-  const { first_name, last_name } = req.body;
+  const { user_name } = req.body;
   const updateData = {};
 
   // Only include fields that are provided in the request
-  if (first_name !== undefined) updateData.first_name = first_name;
-  if (last_name !== undefined) updateData.last_name = last_name;
+  if (user_name !== undefined) updateData.user_name = user_name;
 
   if (Object.keys(updateData).length === 0) {
     return res.status(400).json({ error: 'No fields provided for update' });
@@ -253,8 +251,7 @@ app.put('/api/v1/users/update-profile', authenticateToken, async (req, res) => {
       select: { // Return updated public profile
         user_id: true,
         email: true,
-        first_name: true,
-        last_name: true,
+        user_name: true,
         created_at: true,
         last_login_at: true,
         role: true,
@@ -571,9 +568,7 @@ app.get('/api/v1/performance/leaderboard', authenticateToken, async (req, res) =
             // bot_name: true, // Assuming a name field exists on Bot model
             user: { // Include related user info
               select: {
-                // user_name: true // Assuming a username field exists
-                first_name: true,
-                last_name: true
+                user_name: true
               }
             }
           }
