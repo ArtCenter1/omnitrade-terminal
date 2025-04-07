@@ -50,68 +50,69 @@ export default function Navbar() {
   return (
     <div className="border-b border-gray-800 bg-black sticky top-0 z-50">
       <div className="flex items-center justify-between p-4">
-        <div className="flex justify-between h-16">
-          <div className="flex items-center">
-            <Link to="/" className="flex items-center cursor-pointer">
-              <div className="bg-[#1A1A1A] p-2 flex items-center justify-center rounded">
-                <img
-                  src="/placeholder.svg"
-                  alt="OmniTrade Logo"
-                  className="h-6 w-6"
-                />
-              </div>
-              <span className="font-bold text-xl ml-2">OMNITRADE</span>
-            </Link>
-            
-            <NavigationMenu className="ml-10 hidden md:flex">
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <Link to="/dashboard">
-                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                      Dashboard
-                    </NavigationMenuLink>
-                  </Link>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
-                  <Link to="/terminal">
-                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                      Terminal
-                    </NavigationMenuLink>
-                  </Link>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
-                  <Link to="/bots">
-                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                      Bots
-                    </NavigationMenuLink>
-                  </Link>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
-                  <Link to="/markets">
-                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                      Markets
-                    </NavigationMenuLink>
-                  </Link>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
-                  <Link to="/earn">
-                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                      Earn
-                    </NavigationMenuLink>
-                  </Link>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
-                  <Link to="/community">
-                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                      Community
-                    </NavigationMenuLink>
-                  </Link>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
-          </div>
-          
-          <div className="flex items-center space-x-4">
+        <div className="flex items-center">
+          <Link to="/" className="flex items-center cursor-pointer">
+            <div className="bg-[#1A1A1A] p-2 flex items-center justify-center rounded">
+              <img
+                src="/placeholder.svg"
+                alt="OmniTrade Logo"
+                className="h-6 w-6"
+              />
+            </div>
+            <span className="font-bold text-xl ml-2">OMNITRADE</span>
+          </Link>
+        </div>
+
+        <div className="flex-1 flex justify-center">
+          <NavigationMenu className="hidden md:flex">
+            <NavigationMenuList>
+              <NavigationMenuItem>
+                <Link to="/dashboard">
+                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                    Dashboard
+                  </NavigationMenuLink>
+                </Link>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <Link to="/terminal">
+                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                    Terminal
+                  </NavigationMenuLink>
+                </Link>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <Link to="/bots">
+                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                    Bots
+                  </NavigationMenuLink>
+                </Link>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <Link to="/markets">
+                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                    Markets
+                  </NavigationMenuLink>
+                </Link>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <Link to="/earn">
+                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                    Earn
+                  </NavigationMenuLink>
+                </Link>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <Link to="/community">
+                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                    Community
+                  </NavigationMenuLink>
+                </Link>
+              </NavigationMenuItem>
+            </NavigationMenuList>
+          </NavigationMenu>
+        </div>
+
+        <div className="flex items-center justify-end space-x-4">
             {user ? (
               <>
                 <Button variant="outline" size="icon" className="border-gray-800 text-gray-400">
@@ -199,9 +200,8 @@ export default function Navbar() {
                 </Button>
               </>
             )}
-          </div>
+        </div>
         </div>
       </div>
-    </div>
   );
 }
