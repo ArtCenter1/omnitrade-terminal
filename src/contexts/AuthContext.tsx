@@ -36,7 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Use setTimeout to avoid calling Supabase inside the callback
           setTimeout(() => {
             toast.success(`Welcome back, ${currentSession?.user?.email}`);
-            navigate('/dashboard');
+            // Removed automatic redirect to dashboard on sign-in to allow landing page default
           }, 0);
         } else if (event === 'SIGNED_OUT') {
           // Use setTimeout to avoid calling Supabase inside the callback
