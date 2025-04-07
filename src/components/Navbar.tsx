@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   NavigationMenu,
@@ -28,6 +28,10 @@ import { useAuth } from '@/hooks/useAuth';
 
 export default function Navbar() {
   const { user, signOut } = useAuth();
+const isAdmin = useMemo(() => {
+  if (!user) return false;
+  return user.role === 'admin';
+}, [user]);
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -108,7 +112,25 @@ export default function Navbar() {
                   </NavigationMenuLink>
                 </Link>
               </NavigationMenuItem>
-            </NavigationMenuList>
+                {isAdmin && (
+                  <>
+                    <NavigationMenuItem>
+                      <Link to="/admin/users">
+                        <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                          Manage Users
+                        </NavigationMenuLink>
+                      </Link>
+                    </NavigationMenuItem>
+                    <NavigationMenuItem>
+                      <Link to="/admin/roles">
+                        <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                          Manage Roles
+                        </NavigationMenuLink>
+                      </Link>
+                    </NavigationMenuItem>
+                  </>
+                )}
+              </NavigationMenuList>
           </NavigationMenu>
         </div>
 

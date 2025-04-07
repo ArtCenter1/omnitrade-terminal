@@ -6,6 +6,8 @@ import {
   Navigate
 } from 'react-router-dom';
 import { ThemeProvider } from "@/components/ThemeProvider"
+import UserManagement from './components/admin/UserManagement';
+import RoleManagement from './components/admin/RoleManagement';
 import { ScrollToTop } from './components/ScrollToTop';
 import Index from './pages/Index';
 import AuthPage from './pages/auth/AuthPage';
@@ -107,6 +109,16 @@ function App() {
         <Route path="/admin" element={
           <RoleProtectedRoute allowedRoles={['admin']} redirectTo="/dashboard">
             <AdminDashboard />
+          </RoleProtectedRoute>
+        } />
+        <Route path="/admin/users" element={
+          <RoleProtectedRoute allowedRoles={['admin']} redirectTo="/dashboard">
+            <UserManagement />
+          </RoleProtectedRoute>
+        } />
+        <Route path="/admin/roles" element={
+          <RoleProtectedRoute allowedRoles={['admin']} redirectTo="/dashboard">
+            <RoleManagement />
           </RoleProtectedRoute>
         } />
       </Routes>
