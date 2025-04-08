@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   NavigationMenu,
@@ -13,25 +13,23 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { 
-  LogOut, 
-  User, 
-  Settings, 
-  Bell, 
+import {
+  LogOut,
+  User,
+  Settings,
+  Bell,
   ChevronDown,
-  CreditCard, 
-  Lock, 
-  Shield, 
-  Wallet 
+  CreditCard,
+  Lock,
+  Shield,
+  Wallet
 } from "lucide-react";
 import { useAuth } from '@/hooks/useAuth';
+import { useRoleBasedAccess, switchRole } from '@/hooks/useRoleBasedAccess';
 
 export default function Navbar() {
   const { user, signOut } = useAuth();
-const isAdmin = useMemo(() => {
-  if (!user) return false;
-  return user.role === 'admin';
-}, [user]);
+  const { isAdmin, userRole } = useRoleBasedAccess();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -41,13 +39,13 @@ const isAdmin = useMemo(() => {
 
   const getInitials = () => {
     if (!user) return '?';
-    
+
     const name = user.user_metadata?.full_name || user.email || '';
     if (!name) return '?';
-    
+
     const parts = name.split(' ');
     if (parts.length === 1) return name.charAt(0).toUpperCase();
-    
+
     return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
   };
 
@@ -140,7 +138,7 @@ const isAdmin = useMemo(() => {
                 <Button variant="outline" size="icon" className="border-gray-800 text-gray-400">
                   <Bell size={18} />
                 </Button>
-                
+
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <div className="flex items-center space-x-2 cursor-pointer">
@@ -156,45 +154,51 @@ const isAdmin = useMemo(() => {
                       <div className="flex flex-col space-y-1 leading-none">
                         <p className="font-medium text-sm text-white">{user.user_metadata?.full_name || 'User'}</p>
                         <p className="w-[200px] truncate text-xs text-gray-400">{user.email}</p>
+                        <div className="flex items-center mt-1">
+                          <span className="text-xs mr-2 text-gray-400">Role:</span>
+                          <span className={`text-xs px-2 py-0.5 rounded ${userRole === 'admin' ? 'bg-red-900 text-white' : userRole === 'premium' ? 'bg-purple-900 text-white' : 'bg-gray-700 text-gray-300'}`}>
+                            {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
+                          </span>
+                        </div>
                       </div>
                     </div>
                     <DropdownMenuSeparator className="bg-gray-800" />
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={() => navigate('/profile')}
                       className="cursor-pointer hover:bg-gray-800 text-gray-300"
                     >
                       <User className="mr-2 h-4 w-4" />
                       <span>User Profile</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={() => navigate('/profile/preferences')}
                       className="cursor-pointer hover:bg-gray-800 text-gray-300"
                     >
                       <Settings className="mr-2 h-4 w-4" />
                       <span>Preferences</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={() => navigate('/profile/subscription')}
                       className="cursor-pointer hover:bg-gray-800 text-gray-300"
                     >
                       <CreditCard className="mr-2 h-4 w-4" />
                       <span>Plan & Subscription</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={() => navigate('/profile/change-password')}
                       className="cursor-pointer hover:bg-gray-800 text-gray-300"
                     >
                       <Lock className="mr-2 h-4 w-4" />
                       <span>Change Password</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={() => navigate('/profile/security')}
                       className="cursor-pointer hover:bg-gray-800 text-gray-300"
                     >
                       <Shield className="mr-2 h-4 w-4" />
                       <span>Security (2FA)</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={() => navigate('/profile/accounts')}
                       className="cursor-pointer hover:bg-gray-800 text-gray-300"
                     >
@@ -202,7 +206,34 @@ const isAdmin = useMemo(() => {
                       <span>My Accounts</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="bg-gray-800" />
-                    <DropdownMenuItem 
+
+                    {/* Role Switcher */}
+                    <div className="px-2 py-1.5">
+                      <p className="text-xs font-medium text-gray-400 mb-1">Switch Role (Testing)</p>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => switchRole('user')}
+                          className={`text-xs px-2 py-1 rounded ${userRole === 'user' ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}
+                        >
+                          User
+                        </button>
+                        <button
+                          onClick={() => switchRole('premium')}
+                          className={`text-xs px-2 py-1 rounded ${userRole === 'premium' ? 'bg-purple-900 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}
+                        >
+                          Premium
+                        </button>
+                        <button
+                          onClick={() => switchRole('admin')}
+                          className={`text-xs px-2 py-1 rounded ${userRole === 'admin' ? 'bg-red-900 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}
+                        >
+                          Admin
+                        </button>
+                      </div>
+                    </div>
+
+                    <DropdownMenuSeparator className="bg-gray-800" />
+                    <DropdownMenuItem
                       onClick={handleSignOut}
                       className="cursor-pointer hover:bg-gray-800 text-gray-300"
                     >
