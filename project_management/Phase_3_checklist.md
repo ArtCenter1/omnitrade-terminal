@@ -19,11 +19,11 @@
 - [x] Implement session management
 
 ## Market Data APIs
-- [ ] Create API endpoints for market data
-- [ ] Implement data caching layer
-- [ ] Set up real-time market data updates
-- [ ] Create historical data endpoints
-- [ ] Implement rate limiting
+- [x] Create API endpoints for market data
+- [x] Implement data caching layer
+- [x] Set up real-time market data updates
+- [x] Create historical data endpoints
+- [x] Implement rate limiting
 
 ## Bot Execution Engine
 - [ ] Design bot execution architecture
