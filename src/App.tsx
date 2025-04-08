@@ -93,9 +93,7 @@ function App() {
         <Route path="/markets" element={<ProtectedRoute><Markets /></ProtectedRoute>} />
         <Route path="/earn" element={<ProtectedRoute><Earn /></ProtectedRoute>} />
         <Route path="/community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
-        <Route path="/ai-driven" element={
-          loading ? <div>Loading...</div> : !user ? <Navigate to="/auth" replace state={{ from: location }} /> : <AIDrivenPage />
-        } />
+        <Route path="/ai-driven" element={<AIDrivenPage />} />
 
         {/* Profile routes (reverted to individual wrappers) */}
         <Route path="/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
