@@ -2,6 +2,46 @@ import { Injectable, Logger } from '@nestjs/common';
 import axios, { AxiosResponse } from 'axios';
 import Redis from 'ioredis';
 
+// Define interfaces for API responses
+interface TickerResponse {
+  symbol: string;
+  price: string;
+  volume: string;
+  change: string;
+  changePercent: string;
+  high: string;
+  low: string;
+  [key: string]: any; // Allow additional properties
+}
+
+interface OrderbookResponse {
+  symbol: string;
+  bids: [string, string][]; // [price, quantity]
+  asks: [string, string][]; // [price, quantity]
+  timestamp: number;
+  [key: string]: any; // Allow additional properties
+}
+
+interface TradeResponse {
+  id: string;
+  price: string;
+  quantity: string;
+  timestamp: number;
+  isBuyerMaker: boolean;
+  [key: string]: any; // Allow additional properties
+}
+
+interface KlineResponse {
+  openTime: number;
+  open: string;
+  high: string;
+  low: string;
+  close: string;
+  volume: string;
+  closeTime: number;
+  [key: string]: any; // Allow additional properties
+}
+
 const redis = new Redis();
 
 @Injectable()
@@ -37,12 +77,12 @@ export class MarketDataService {
     });
   }
 
-  async getTicker(symbol: string): Promise<any> {
+  async getTicker(symbol: string): Promise<TickerResponse> {
     const key = `ticker:${symbol}`;
-    return this.cacheFetch<any>(key, 2, async () => {
+    return this.cacheFetch<TickerResponse>(key, 2, async () => {
       this.logger.log(`Fetching ticker for ${symbol} from exchange API`);
       try {
-        const response: AxiosResponse<any> = await axios.get(
+        const response: AxiosResponse<TickerResponse> = await axios.get(
           'https://api.exchange.example.com/ticker',
           {
             params: { symbol },
@@ -56,12 +96,15 @@ export class MarketDataService {
     });
   }
 
-  async getOrderbook(symbol: string, limit?: number): Promise<any> {
+  async getOrderbook(
+    symbol: string,
+    limit?: number,
+  ): Promise<OrderbookResponse> {
     const key = `orderbook:${symbol}:${limit ?? 'default'}`;
-    return this.cacheFetch<any>(key, 2, async () => {
+    return this.cacheFetch<OrderbookResponse>(key, 2, async () => {
       this.logger.log(`Fetching orderbook for ${symbol} from exchange API`);
       try {
-        const response: AxiosResponse<any> = await axios.get(
+        const response: AxiosResponse<OrderbookResponse> = await axios.get(
           'https://api.exchange.example.com/orderbook',
           {
             params: { symbol, limit },
@@ -75,12 +118,12 @@ export class MarketDataService {
     });
   }
 
-  async getTrades(symbol: string, limit?: number): Promise<any[]> {
+  async getTrades(symbol: string, limit?: number): Promise<TradeResponse[]> {
     const key = `trades:${symbol}:${limit ?? 'default'}`;
-    return this.cacheFetch<any[]>(key, 2, async () => {
+    return this.cacheFetch<TradeResponse[]>(key, 2, async () => {
       this.logger.log(`Fetching trades for ${symbol} from exchange API`);
       try {
-        const response: AxiosResponse<any[]> = await axios.get(
+        const response: AxiosResponse<TradeResponse[]> = await axios.get(
           'https://api.exchange.example.com/trades',
           {
             params: { symbol, limit },
@@ -100,12 +143,12 @@ export class MarketDataService {
     startTime?: number,
     endTime?: number,
     limit?: number,
-  ): Promise<any[]> {
+  ): Promise<KlineResponse[]> {
     const key = `klines:${symbol}:${interval}:${startTime ?? 'null'}:${endTime ?? 'null'}:${limit ?? 'default'}`;
-    return this.cacheFetch<any[]>(key, 10, async () => {
+    return this.cacheFetch<KlineResponse[]>(key, 10, async () => {
       this.logger.log(`Fetching klines for ${symbol} from exchange API`);
       try {
-        const response: AxiosResponse<any[]> = await axios.get(
+        const response: AxiosResponse<KlineResponse[]> = await axios.get(
           'https://api.exchange.example.com/klines',
           {
             params: { symbol, interval, startTime, endTime, limit },
