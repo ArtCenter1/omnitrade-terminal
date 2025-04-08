@@ -15,6 +15,7 @@
 - [x] Set up JWT token system
 - [ ] Implement role-based access control
 - [ ] Create password reset functionality
+**Note:** Password reset enhancement is deferred. Revisit this task after completing Market Data APIs in Phase 3.
 - [x] Implement session management
 
 ## Market Data APIs
