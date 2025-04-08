@@ -10,8 +10,6 @@ import { RateLimitMiddleware } from './rate-limit.middleware';
 })
 export class MarketDataModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(RateLimitMiddleware)
-      .forRoutes('/api/v1/market-data');
+    consumer.apply(RateLimitMiddleware).forRoutes('/api/v1/market-data');
   }
 }
