@@ -19,14 +19,19 @@ export class MarketDataGateway
   @WebSocketServer() server: Server;
   private logger: Logger = new Logger('MarketDataGateway');
 
-  constructor(private readonly marketDataService: MarketDataService) {}
+  constructor(private readonly marketDataService: MarketDataService) {
+    // Log that the service is available
+    this.logger.debug(
+      `MarketDataService initialized: ${!!this.marketDataService}`,
+    );
+  }
 
-  afterInit(server: Server) {
+  afterInit() {
     this.logger.log('WebSocket Gateway Initialized');
     // TODO: Start data fetching/streaming logic from service here?
   }
 
-  handleConnection(client: Socket, ...args: any[]) {
+  handleConnection(client: Socket) {
     this.logger.log(`Client connected: ${client.id}`);
     // TODO: Handle new connection, maybe send initial data?
   }
@@ -45,7 +50,7 @@ export class MarketDataGateway
       `Client ${client.id} subscribing to ${data.type} for ${data.symbol}`,
     );
     // TODO: Implement subscription logic (e.g., join room)
-    client.join(`${data.type}_${data.symbol}`); // Example room naming
+    void client.join(`${data.type}_${data.symbol}`); // Example room naming
     // Potentially send current state upon subscription
   }
 
@@ -58,7 +63,7 @@ export class MarketDataGateway
       `Client ${client.id} unsubscribing from ${data.type} for ${data.symbol}`,
     );
     // TODO: Implement unsubscription logic (e.g., leave room)
-    client.leave(`${data.type}_${data.symbol}`);
+    void client.leave(`${data.type}_${data.symbol}`);
   }
 
   // Example method to broadcast data (will be called by the service later)

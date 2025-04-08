@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import Navbar from '@/components/Navbar'; // Assuming main Navbar is here
 import { useAuth } from '@/hooks/useAuth';
 
-export function ProtectedLayout() {
+interface ProtectedLayoutProps {
+  children?: ReactNode;
+}
+
+export function ProtectedLayout({ children }: ProtectedLayoutProps) {
   const { user, isLoading } = useAuth();
   const location = useLocation();
 
@@ -24,7 +28,7 @@ export function ProtectedLayout() {
     <div className="flex flex-col min-h-screen">
       <Navbar /> {/* Render the main navbar */}
       <main className="flex-grow"> {/* Ensure content area grows */}
-        <Outlet /> {/* Render the nested route's component */}
+        {children || <Outlet />} {/* Render children if provided, otherwise render the Outlet */}
       </main>
       {/* You could add a shared Footer here if needed */}
     </div>
