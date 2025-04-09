@@ -79,35 +79,35 @@ export default function AdminDashboard() {
           )}
         </div>
 
-        <div className="bg-gray-900 rounded-lg p-6">
-          <h2 className="text-xl font-medium mb-4">Admin Dashboard</h2>
-          <p className="text-gray-300 mb-6">
+        <div className="bg-theme-card rounded-lg p-6 shadow-theme-md theme-transition">
+          <h2 className="text-xl font-medium mb-4 text-theme-primary">Admin Dashboard</h2>
+          <p className="text-theme-secondary mb-6">
             Welcome to the administration center. Here you can manage users, roles, and system settings.
           </p>
 
           {/* Quick Stats Section */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-gray-800 p-4 rounded-lg border-l-4 border-blue-500">
-              <h4 className="text-gray-400 text-sm">Total Users</h4>
-              <p className="text-2xl font-bold">247</p>
+            <div className="bg-theme-tertiary p-4 rounded-lg border-l-4 border-blue-500 shadow-theme-sm theme-transition">
+              <h4 className="text-theme-tertiary text-sm">Total Users</h4>
+              <p className="text-2xl font-bold text-theme-primary">247</p>
               <p className="text-xs text-green-400">↑ 12% from last month</p>
             </div>
 
-            <div className="bg-gray-800 p-4 rounded-lg border-l-4 border-green-500">
-              <h4 className="text-gray-400 text-sm">Active Roles</h4>
-              <p className="text-2xl font-bold">5</p>
+            <div className="bg-theme-tertiary p-4 rounded-lg border-l-4 border-green-500 shadow-theme-sm theme-transition">
+              <h4 className="text-theme-tertiary text-sm">Active Roles</h4>
+              <p className="text-2xl font-bold text-theme-primary">5</p>
               <p className="text-xs text-blue-400">3 with custom permissions</p>
             </div>
 
-            <div className="bg-gray-800 p-4 rounded-lg border-l-4 border-purple-500">
-              <h4 className="text-gray-400 text-sm">System Status</h4>
-              <p className="text-2xl font-bold">Healthy</p>
+            <div className="bg-theme-tertiary p-4 rounded-lg border-l-4 border-purple-500 shadow-theme-sm theme-transition">
+              <h4 className="text-theme-tertiary text-sm">System Status</h4>
+              <p className="text-2xl font-bold text-theme-primary">Healthy</p>
               <p className="text-xs text-green-400">All services operational</p>
             </div>
 
-            <div className="bg-gray-800 p-4 rounded-lg border-l-4 border-yellow-500">
-              <h4 className="text-gray-400 text-sm">Pending Actions</h4>
-              <p className="text-2xl font-bold">2</p>
+            <div className="bg-theme-tertiary p-4 rounded-lg border-l-4 border-yellow-500 shadow-theme-sm theme-transition">
+              <h4 className="text-theme-tertiary text-sm">Pending Actions</h4>
+              <p className="text-2xl font-bold text-theme-primary">2</p>
               <p className="text-xs text-yellow-400">Requires attention</p>
             </div>
           </div>

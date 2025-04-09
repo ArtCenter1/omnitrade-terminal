@@ -56,7 +56,7 @@ export default function Navbar() {
   };
 
   return (
-    <div className={`border-b border-theme sticky top-0 z-50 ${theme === 'dark' ? 'bg-black border-gray-800' : 'bg-white border-gray-200'}`}>
+    <div className="border-b border-theme-primary bg-theme-navbar sticky top-0 z-50 theme-transition">
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center">
           <Link to="/" className="flex items-center cursor-pointer">
@@ -138,19 +138,19 @@ export default function Navbar() {
           {/* Settings Gear */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className={theme === 'dark' ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'}>
+              <button className="text-theme-secondary hover:text-theme-primary theme-transition">
                 <Settings size={20} />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className={`w-56 ${theme === 'dark' ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'}`}>
+            <DropdownMenuContent align="end" className="w-56 bg-theme-dropdown border-theme-primary shadow-theme-md theme-transition">
               <div className="p-2">
-                <h3 className={`font-medium text-sm mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Settings</h3>
+                <h3 className="font-medium text-sm mb-2 text-theme-secondary">Settings</h3>
                 <div className="space-y-3">
                   {/* Theme Toggle */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       {theme === 'dark' ? <Moon size={16} className="text-blue-400" /> : <Sun size={16} className="text-yellow-400" />}
-                      <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Theme</span>
+                      <span className="text-sm text-theme-secondary">Theme</span>
                     </div>
                     <button
                       onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -166,7 +166,7 @@ export default function Navbar() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       {notificationsEnabled ? <Bell size={16} className="text-green-400" /> : <BellOff size={16} className="text-gray-400" />}
-                      <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Notifications</span>
+                      <span className="text-sm text-theme-secondary">Notifications</span>
                     </div>
                     <button
                       onClick={() => setNotificationsEnabled(!notificationsEnabled)}
@@ -184,7 +184,7 @@ export default function Navbar() {
 
           {/* Notification Bell */}
           <button
-            className={theme === 'dark' ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'}
+            className="text-theme-secondary hover:text-theme-primary theme-transition"
             title={notificationsEnabled ? 'Notifications enabled' : 'Notifications disabled'}
           >
             {notificationsEnabled ? <Bell size={20} /> : <BellOff size={20} />}
@@ -202,30 +202,30 @@ export default function Navbar() {
                     <ChevronDown size={16} className="text-gray-400" />
                   </div>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className={`w-56 ${theme === 'dark' ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'}`}>
+                <DropdownMenuContent align="end" className="w-56 bg-theme-dropdown border-theme-primary shadow-theme-md theme-transition">
                   <div className="flex items-center justify-start gap-2 p-2">
                     <div className="flex flex-col space-y-1 leading-none">
-                      <p className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{user.user_metadata?.full_name || 'User'}</p>
-                      <p className={`w-[200px] truncate text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>{user.email}</p>
+                      <p className="font-medium text-sm text-theme-primary">{user.user_metadata?.full_name || 'User'}</p>
+                      <p className="w-[200px] truncate text-xs text-theme-secondary">{user.email}</p>
                       <div className="flex items-center mt-1">
-                        <span className={`text-xs mr-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Role:</span>
+                        <span className="text-xs mr-2 text-theme-secondary">Role:</span>
                         <span className={`text-xs px-2 py-0.5 rounded ${userRole === 'admin' ? 'bg-red-900 text-white' : userRole === 'premium' ? 'bg-purple-900 text-white' : 'bg-gray-700 text-gray-300'}`}>
                           {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
                         </span>
                       </div>
                     </div>
                   </div>
-                  <DropdownMenuSeparator className={theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'} />
+                  <DropdownMenuSeparator className="bg-theme-tertiary" />
                   <DropdownMenuItem
                     onClick={() => navigate('/profile')}
-                    className={`cursor-pointer ${theme === 'dark' ? 'hover:bg-gray-800 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}
+                    className="cursor-pointer hover:bg-theme-hover text-theme-secondary theme-transition"
                   >
                     <User className="mr-2 h-4 w-4" />
                     <span>User Profile</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => navigate('/profile/preferences')}
-                    className={`cursor-pointer ${theme === 'dark' ? 'hover:bg-gray-800 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}
+                    className="cursor-pointer hover:bg-theme-hover text-theme-secondary theme-transition"
                   >
                     <Settings className="mr-2 h-4 w-4" />
                     <span>Preferences</span>
@@ -234,8 +234,8 @@ export default function Navbar() {
                   {/* Admin Section */}
                   {isAdmin && (
                     <>
-                      <DropdownMenuSeparator className={theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'} />
-                      <div className="px-2 py-1.5 text-xs font-semibold text-gray-500">
+                      <DropdownMenuSeparator className="bg-theme-tertiary" />
+                      <div className="px-2 py-1.5 text-xs font-semibold text-theme-tertiary">
                         ADMIN ACCESS
                       </div>
                       <DropdownMenuItem
@@ -255,40 +255,40 @@ export default function Navbar() {
                     </>
                   )}
 
-                  <DropdownMenuSeparator className={theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'} />
+                  <DropdownMenuSeparator className="bg-theme-tertiary" />
                   <DropdownMenuItem
                     onClick={() => navigate('/profile/subscription')}
-                    className={`cursor-pointer ${theme === 'dark' ? 'hover:bg-gray-800 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}
+                    className="cursor-pointer hover:bg-theme-hover text-theme-secondary theme-transition"
                   >
                     <CreditCard className="mr-2 h-4 w-4" />
                     <span>Plan & Subscription</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => navigate('/profile/change-password')}
-                    className={`cursor-pointer ${theme === 'dark' ? 'hover:bg-gray-800 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}
+                    className="cursor-pointer hover:bg-theme-hover text-theme-secondary theme-transition"
                   >
                     <Lock className="mr-2 h-4 w-4" />
                     <span>Change Password</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => navigate('/profile/security')}
-                    className={`cursor-pointer ${theme === 'dark' ? 'hover:bg-gray-800 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}
+                    className="cursor-pointer hover:bg-theme-hover text-theme-secondary theme-transition"
                   >
                     <Shield className="mr-2 h-4 w-4" />
                     <span>Security (2FA)</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => navigate('/profile/accounts')}
-                    className={`cursor-pointer ${theme === 'dark' ? 'hover:bg-gray-800 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}
+                    className="cursor-pointer hover:bg-theme-hover text-theme-secondary theme-transition"
                   >
                     <Wallet className="mr-2 h-4 w-4" />
                     <span>My Accounts</span>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator className={theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'} />
+                  <DropdownMenuSeparator className="bg-theme-tertiary" />
 
                   {/* Role Switcher */}
                   <div className="px-2 py-1.5">
-                    <p className={`text-xs font-medium mb-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Switch Role (Testing)</p>
+                    <p className="text-xs font-medium mb-1 text-theme-tertiary">Switch Role (Testing)</p>
                     <div className="flex gap-1">
                       <button
                         onClick={() => switchRole('user')}
@@ -311,10 +311,10 @@ export default function Navbar() {
                     </div>
                   </div>
 
-                  <DropdownMenuSeparator className={theme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'} />
+                  <DropdownMenuSeparator className="bg-theme-tertiary" />
                   <DropdownMenuItem
                     onClick={handleSignOut}
-                    className={`cursor-pointer ${theme === 'dark' ? 'hover:bg-gray-800 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}
+                    className="cursor-pointer hover:bg-theme-hover text-theme-secondary theme-transition"
                   >
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
@@ -327,13 +327,13 @@ export default function Navbar() {
               <Button
                 variant="ghost"
                 onClick={() => navigate('/auth')}
-                className={theme === 'dark' ? 'text-white' : 'text-gray-800'}
+                className="text-theme-primary theme-transition"
               >
                 Sign In
               </Button>
               <Button
                 onClick={() => navigate('/auth')}
-                className={theme === 'dark' ? 'bg-primary' : 'bg-blue-600 hover:bg-blue-700 text-white'}
+                className="btn-theme-primary theme-transition"
               >
                 Sign Up
               </Button>

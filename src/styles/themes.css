@@ -1,31 +1,99 @@
 /* Dark Theme (Default) */
 .dark-theme {
+  /* Background colors */
   --bg-primary: #121212;
   --bg-secondary: #1e1e1e;
   --bg-tertiary: #2d2d2d;
+  --bg-card: #1a1a1a;
+  --bg-popup: #252525;
+  --bg-sidebar: #0f0f0f;
+  --bg-navbar: #0a0a0a;
+  --bg-dropdown: #1f1f1f;
+  --bg-hover: rgba(255, 255, 255, 0.05);
+  --bg-active: rgba(255, 255, 255, 0.1);
+  --bg-selected: rgba(59, 130, 246, 0.2);
+
+  /* Text colors */
   --text-primary: #ffffff;
   --text-secondary: #a0a0a0;
-  --accent-primary: #3b82f6;
-  --accent-secondary: #1d4ed8;
-  --border-color: #333333;
+  --text-tertiary: #6b7280;
+  --text-disabled: #4b5563;
+  --text-link: #60a5fa;
+  --text-link-hover: #93c5fd;
+
+  /* Border colors */
+  --border-primary: #333333;
+  --border-secondary: #444444;
+  --border-input: #4b5563;
+  --border-focus: #60a5fa;
+
+  /* Button colors */
+  --button-primary: #3b82f6;
+  --button-primary-hover: #2563eb;
+  --button-secondary: #374151;
+  --button-secondary-hover: #4b5563;
+  --button-danger: #ef4444;
+  --button-danger-hover: #dc2626;
+
+  /* Status colors */
   --success-color: #10b981;
   --error-color: #ef4444;
   --warning-color: #f59e0b;
+  --info-color: #3b82f6;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
 }
 
 /* Light Theme */
 .light-theme {
+  /* Background colors */
   --bg-primary: #ffffff;
   --bg-secondary: #f3f4f6;
   --bg-tertiary: #e5e7eb;
+  --bg-card: #ffffff;
+  --bg-popup: #ffffff;
+  --bg-sidebar: #f9fafb;
+  --bg-navbar: #ffffff;
+  --bg-dropdown: #ffffff;
+  --bg-hover: rgba(0, 0, 0, 0.05);
+  --bg-active: rgba(0, 0, 0, 0.1);
+  --bg-selected: rgba(59, 130, 246, 0.1);
+
+  /* Text colors */
   --text-primary: #111827;
   --text-secondary: #4b5563;
-  --accent-primary: #2563eb;
-  --accent-secondary: #1d4ed8;
-  --border-color: #d1d5db;
+  --text-tertiary: #6b7280;
+  --text-disabled: #9ca3af;
+  --text-link: #2563eb;
+  --text-link-hover: #3b82f6;
+
+  /* Border colors */
+  --border-primary: #e5e7eb;
+  --border-secondary: #d1d5db;
+  --border-input: #d1d5db;
+  --border-focus: #3b82f6;
+
+  /* Button colors */
+  --button-primary: #2563eb;
+  --button-primary-hover: #1d4ed8;
+  --button-secondary: #f3f4f6;
+  --button-secondary-hover: #e5e7eb;
+  --button-danger: #ef4444;
+  --button-danger-hover: #dc2626;
+
+  /* Status colors */
   --success-color: #10b981;
   --error-color: #ef4444;
   --warning-color: #f59e0b;
+  --info-color: #3b82f6;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
 /* Apply theme variables to elements */
@@ -35,6 +103,7 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* Background utility classes */
 .bg-theme-primary {
   background-color: var(--bg-primary);
 }
@@ -47,6 +116,39 @@ body {
   background-color: var(--bg-tertiary);
 }
 
+.bg-theme-card {
+  background-color: var(--bg-card);
+}
+
+.bg-theme-popup {
+  background-color: var(--bg-popup);
+}
+
+.bg-theme-sidebar {
+  background-color: var(--bg-sidebar);
+}
+
+.bg-theme-navbar {
+  background-color: var(--bg-navbar);
+}
+
+.bg-theme-dropdown {
+  background-color: var(--bg-dropdown);
+}
+
+.bg-theme-hover {
+  background-color: var(--bg-hover);
+}
+
+.bg-theme-active {
+  background-color: var(--bg-active);
+}
+
+.bg-theme-selected {
+  background-color: var(--bg-selected);
+}
+
+/* Text utility classes */
 .text-theme-primary {
   color: var(--text-primary);
 }
@@ -55,8 +157,143 @@ body {
   color: var(--text-secondary);
 }
 
-.border-theme {
-  border-color: var(--border-color);
+.text-theme-tertiary {
+  color: var(--text-tertiary);
 }
 
-/* Add more theme-based classes as needed */
+.text-theme-disabled {
+  color: var(--text-disabled);
+}
+
+.text-theme-link {
+  color: var(--text-link);
+}
+
+.text-theme-link:hover {
+  color: var(--text-link-hover);
+}
+
+/* Border utility classes */
+.border-theme-primary {
+  border-color: var(--border-primary);
+}
+
+.border-theme-secondary {
+  border-color: var(--border-secondary);
+}
+
+.border-theme-input {
+  border-color: var(--border-input);
+}
+
+.border-theme-focus {
+  border-color: var(--border-focus);
+}
+
+/* Button utility classes */
+.btn-theme-primary {
+  background-color: var(--button-primary);
+  color: white;
+}
+
+.btn-theme-primary:hover {
+  background-color: var(--button-primary-hover);
+}
+
+.btn-theme-secondary {
+  background-color: var(--button-secondary);
+  color: var(--text-primary);
+}
+
+.btn-theme-secondary:hover {
+  background-color: var(--button-secondary-hover);
+}
+
+.btn-theme-danger {
+  background-color: var(--button-danger);
+  color: white;
+}
+
+.btn-theme-danger:hover {
+  background-color: var(--button-danger-hover);
+}
+
+/* Shadow utility classes */
+.shadow-theme-sm {
+  box-shadow: var(--shadow-sm);
+}
+
+.shadow-theme-md {
+  box-shadow: var(--shadow-md);
+}
+
+.shadow-theme-lg {
+  box-shadow: var(--shadow-lg);
+}
+
+/* Status utility classes */
+.text-theme-success {
+  color: var(--success-color);
+}
+
+.text-theme-error {
+  color: var(--error-color);
+}
+
+.text-theme-warning {
+  color: var(--warning-color);
+}
+
+.text-theme-info {
+  color: var(--info-color);
+}
+
+/* Card styling */
+.card-theme {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Input styling */
+.input-theme {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-input);
+  color: var(--text-primary);
+}
+
+.input-theme:focus {
+  border-color: var(--border-focus);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+/* Table styling */
+.table-theme {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.table-theme th {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--border-primary);
+  padding: 0.75rem;
+  text-align: left;
+}
+
+.table-theme td {
+  border-bottom: 1px solid var(--border-primary);
+  padding: 0.75rem;
+  color: var(--text-primary);
+}
+
+.table-theme tr:hover {
+  background-color: var(--bg-hover);
+}
+
+/* Transition for smooth theme switching */
+.theme-transition {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
