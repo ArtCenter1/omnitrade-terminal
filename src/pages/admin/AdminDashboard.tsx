@@ -1,16 +1,19 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
 import { useRoleBasedAccess } from '@/hooks/useRoleBasedAccess';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
+import { Users, Settings, BarChart3, ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function AdminDashboard() {
   const { userRole, isAdmin } = useRoleBasedAccess();
   const { user } = useAuth();
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
 
   // Function to temporarily grant admin role for testing
   const grantAdminRole = async () => {
@@ -46,47 +49,161 @@ export default function AdminDashboard() {
       <div className="container mx-auto p-6">
         <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
 
-        {/* Debug Panel */}
-        <div className="bg-gray-800 rounded-lg p-4 mb-6 border border-gray-700">
-          <h3 className="text-lg font-medium mb-2">Debug Information</h3>
-          <p className="text-sm text-gray-300 mb-2">User Email: {user?.email}</p>
-          <p className="text-sm text-gray-300 mb-2">Current Role: <span className="font-bold text-green-500">{userRole}</span></p>
-          <p className="text-sm text-gray-300 mb-2">Is Admin: {isAdmin ? 'Yes' : 'No'}</p>
-          <p className="text-sm text-gray-300 mb-4">User Metadata: {JSON.stringify(user?.user_metadata || {})}</p>
-
-          <Button
-            onClick={grantAdminRole}
-            disabled={loading || isAdmin}
-            className="bg-blue-600 hover:bg-blue-700 text-white py-1 px-3 rounded text-sm"
+        {/* Debug Panel - Collapsible */}
+        <div className="bg-gray-800 rounded-lg mb-6 border border-gray-700 overflow-hidden">
+          <button
+            className="w-full p-4 flex justify-between items-center text-left focus:outline-none"
+            onClick={() => setShowDebug(!showDebug)}
           >
-            {loading ? 'Processing...' : isAdmin ? 'Already Admin' : 'Grant Admin Role (Testing)'}
-          </Button>
+            <h3 className="text-lg font-medium">Debug Information</h3>
+            {showDebug ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+          </button>
 
-          {message && <p className="mt-2 text-sm text-yellow-400">{message}</p>}
+          {showDebug && (
+            <div className="p-4 pt-0 border-t border-gray-700">
+              <p className="text-sm text-gray-300 mb-2">User Email: {user?.email}</p>
+              <p className="text-sm text-gray-300 mb-2">Current Role: <span className="font-bold text-green-500">{userRole}</span></p>
+              <p className="text-sm text-gray-300 mb-2">Is Admin: {isAdmin ? 'Yes' : 'No'}</p>
+              <p className="text-sm text-gray-300 mb-4">User Metadata: {JSON.stringify(user?.user_metadata || {})}</p>
+
+              <Button
+                onClick={grantAdminRole}
+                disabled={loading || isAdmin}
+                className="bg-blue-600 hover:bg-blue-700 text-white py-1 px-3 rounded text-sm"
+              >
+                {loading ? 'Processing...' : isAdmin ? 'Already Admin' : 'Grant Admin Role (Testing)'}
+              </Button>
+
+              {message && <p className="mt-2 text-sm text-yellow-400">{message}</p>}
+            </div>
+          )}
         </div>
 
         <div className="bg-gray-900 rounded-lg p-6">
-          <h2 className="text-xl font-medium mb-4">Welcome Admin</h2>
-          <p className="text-gray-300 mb-4">
-            This page is only accessible to users with the 'admin' role.
-            Your current role is: <span className="font-bold text-green-500">{userRole}</span>
+          <h2 className="text-xl font-medium mb-4">Admin Dashboard</h2>
+          <p className="text-gray-300 mb-6">
+            Welcome to the administration center. Here you can manage users, roles, and system settings.
           </p>
 
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="bg-gray-800 p-4 rounded-lg">
-              <h3 className="font-medium mb-2">User Management</h3>
-              <p className="text-sm text-gray-400">Manage user accounts and permissions</p>
+          {/* Quick Stats Section */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div className="bg-gray-800 p-4 rounded-lg border-l-4 border-blue-500">
+              <h4 className="text-gray-400 text-sm">Total Users</h4>
+              <p className="text-2xl font-bold">247</p>
+              <p className="text-xs text-green-400">↑ 12% from last month</p>
             </div>
 
-            <div className="bg-gray-800 p-4 rounded-lg">
-              <h3 className="font-medium mb-2">System Settings</h3>
+            <div className="bg-gray-800 p-4 rounded-lg border-l-4 border-green-500">
+              <h4 className="text-gray-400 text-sm">Active Roles</h4>
+              <p className="text-2xl font-bold">5</p>
+              <p className="text-xs text-blue-400">3 with custom permissions</p>
+            </div>
+
+            <div className="bg-gray-800 p-4 rounded-lg border-l-4 border-purple-500">
+              <h4 className="text-gray-400 text-sm">System Status</h4>
+              <p className="text-2xl font-bold">Healthy</p>
+              <p className="text-xs text-green-400">All services operational</p>
+            </div>
+
+            <div className="bg-gray-800 p-4 rounded-lg border-l-4 border-yellow-500">
+              <h4 className="text-gray-400 text-sm">Pending Actions</h4>
+              <p className="text-2xl font-bold">2</p>
+              <p className="text-xs text-yellow-400">Requires attention</p>
+            </div>
+          </div>
+
+          {/* Admin Sections */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div className="bg-gray-800 rounded-lg p-4">
+              <h3 className="font-medium mb-4 border-b border-gray-700 pb-2">Recent Activity</h3>
+              <ul className="space-y-3">
+                <li className="flex items-start">
+                  <div className="bg-blue-500 rounded-full h-2 w-2 mt-2 mr-2"></div>
+                  <div>
+                    <p className="text-sm">New user registered: <span className="text-blue-400">john.doe@example.com</span></p>
+                    <p className="text-xs text-gray-500">Today, 10:23 AM</p>
+                  </div>
+                </li>
+                <li className="flex items-start">
+                  <div className="bg-green-500 rounded-full h-2 w-2 mt-2 mr-2"></div>
+                  <div>
+                    <p className="text-sm">Role <span className="text-green-400">Editor</span> modified</p>
+                    <p className="text-xs text-gray-500">Yesterday, 4:45 PM</p>
+                  </div>
+                </li>
+                <li className="flex items-start">
+                  <div className="bg-yellow-500 rounded-full h-2 w-2 mt-2 mr-2"></div>
+                  <div>
+                    <p className="text-sm">System update scheduled</p>
+                    <p className="text-xs text-gray-500">Yesterday, 2:30 PM</p>
+                  </div>
+                </li>
+                <li className="flex items-start">
+                  <div className="bg-purple-500 rounded-full h-2 w-2 mt-2 mr-2"></div>
+                  <div>
+                    <p className="text-sm">New permission added: <span className="text-purple-400">manage_reports</span></p>
+                    <p className="text-xs text-gray-500">Aug 15, 2023</p>
+                  </div>
+                </li>
+              </ul>
+              <button className="text-sm text-blue-400 mt-3 hover:text-blue-300">View all activity →</button>
+            </div>
+
+            <div className="bg-gray-800 rounded-lg p-4">
+              <h3 className="font-medium mb-4 border-b border-gray-700 pb-2">Pending Tasks</h3>
+              <ul className="space-y-3">
+                <li className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <input type="checkbox" className="mr-3 rounded" />
+                    <span className="text-sm">Review new user registrations</span>
+                  </div>
+                  <span className="text-xs bg-yellow-500 text-yellow-900 px-2 py-1 rounded">High</span>
+                </li>
+                <li className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <input type="checkbox" className="mr-3 rounded" />
+                    <span className="text-sm">Update system permissions</span>
+                  </div>
+                  <span className="text-xs bg-blue-500 text-blue-900 px-2 py-1 rounded">Medium</span>
+                </li>
+                <li className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <input type="checkbox" className="mr-3 rounded" />
+                    <span className="text-sm">Review security logs</span>
+                  </div>
+                  <span className="text-xs bg-green-500 text-green-900 px-2 py-1 rounded">Low</span>
+                </li>
+              </ul>
+              <button className="text-sm text-blue-400 mt-3 hover:text-blue-300">Manage tasks →</button>
+            </div>
+          </div>
+
+          {/* Admin Navigation */}
+          <h3 className="font-medium mb-4 border-b border-gray-700 pb-2">Admin Tools</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Link to="/admin/users-roles" className="bg-gray-800 p-4 rounded-lg hover:bg-gray-700 transition-colors">
+              <div className="flex items-center mb-2">
+                <Users className="h-5 w-5 mr-2 text-blue-500" />
+                <h3 className="font-medium">User & Role Management</h3>
+              </div>
+              <p className="text-sm text-gray-400">Manage user accounts, roles and permissions</p>
+            </Link>
+
+            <Link to="/admin/settings" className="bg-gray-800 p-4 rounded-lg hover:bg-gray-700 transition-colors">
+              <div className="flex items-center mb-2">
+                <Settings className="h-5 w-5 mr-2 text-green-500" />
+                <h3 className="font-medium">System Settings</h3>
+              </div>
               <p className="text-sm text-gray-400">Configure platform settings</p>
-            </div>
+            </Link>
 
-            <div className="bg-gray-800 p-4 rounded-lg">
-              <h3 className="font-medium mb-2">Analytics</h3>
+            <Link to="/admin/analytics" className="bg-gray-800 p-4 rounded-lg hover:bg-gray-700 transition-colors">
+              <div className="flex items-center mb-2">
+                <BarChart3 className="h-5 w-5 mr-2 text-purple-500" />
+                <h3 className="font-medium">Analytics</h3>
+              </div>
               <p className="text-sm text-gray-400">View system-wide analytics and reports</p>
-            </div>
+            </Link>
           </div>
         </div>
       </div>

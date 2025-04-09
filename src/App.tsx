@@ -6,8 +6,7 @@ import {
   Navigate
 } from 'react-router-dom';
 import { ThemeProvider } from "@/components/ThemeProvider"
-import UserManagement from './components/admin/UserManagement';
-import RoleManagement from './components/admin/RoleManagement';
+import UserRoleManagement from './pages/admin/UserRoleManagement';
 import { ScrollToTop } from './components/ScrollToTop';
 import Index from './pages/Index';
 import AuthPage from './pages/auth/AuthPage';
@@ -109,16 +108,14 @@ function App() {
             <AdminDashboard />
           </RoleProtectedRoute>
         } />
-        <Route path="/admin/users" element={
+        <Route path="/admin/users-roles" element={
           <RoleProtectedRoute allowedRoles={['admin']} redirectTo="/dashboard">
-            <UserManagement />
+            <UserRoleManagement />
           </RoleProtectedRoute>
         } />
-        <Route path="/admin/roles" element={
-          <RoleProtectedRoute allowedRoles={['admin']} redirectTo="/dashboard">
-            <RoleManagement />
-          </RoleProtectedRoute>
-        } />
+        {/* Keep old routes for backward compatibility, but redirect to the new combined page */}
+        <Route path="/admin/users" element={<Navigate to="/admin/users-roles" replace />} />
+        <Route path="/admin/roles" element={<Navigate to="/admin/users-roles?tab=roles" replace />} />
       </Routes>
     </ThemeProvider>
   );

@@ -12,7 +12,11 @@ import {
   Permission,
 } from '../../services/adminApi';
 
-const RoleManagement: React.FC = () => {
+interface RoleManagementProps {
+  hideHeader?: boolean;
+}
+
+const RoleManagement: React.FC<RoleManagementProps> = ({ hideHeader = false }) => {
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,18 +113,20 @@ const RoleManagement: React.FC = () => {
 
   return (
     <div className="p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">Role & Permission Management</h2>
-        <a
-          href="/dashboard"
-          className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm flex items-center"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          Return to Dashboard
-        </a>
-      </div>
+      {!hideHeader && (
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">Role & Permission Management</h2>
+          <a
+            href="/dashboard"
+            className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm flex items-center"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Return to Dashboard
+          </a>
+        </div>
+      )}
       {loading && <p>Loading...</p>}
       {message && <p className="text-green-600">{message}</p>}
       {error && <p className="text-red-600">{error}</p>}
