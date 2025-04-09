@@ -12,19 +12,19 @@ export default function Index() {
   const { user } = useAuth();
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen theme-transition">
       <LandingNavbar />
-      
+
       <main className="flex-grow">
         {/* Hero Section */}
-        <section className="py-20 lg:py-32 bg-gray-950 text-white">
+        <section className="py-20 lg:py-32 bg-theme-primary text-theme-primary theme-transition">
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-10 text-center">
               <div className="space-y-4 max-w-3xl">
                 <h1 className="text-4xl md:text-6xl font-bold tracking-tighter">
                   Trade Smarter with OpenTrade
                 </h1>
-                <p className="mx-auto max-w-[700px] text-gray-400 md:text-xl">
+                <p className="mx-auto max-w-[700px] text-theme-secondary md:text-xl">
                   Advanced trading platform with powerful bots, real-time market data, and a thriving community.
                 </p>
                 <div className="flex flex-col sm:flex-row justify-center gap-4 pt-6">
@@ -47,7 +47,7 @@ export default function Index() {
             </div>
           </div>
         </section>
-        
+
         {/* Features Section */}
         <section className="py-20 bg-gray-900">
           <div className="container px-4 md:px-6">
@@ -81,7 +81,7 @@ export default function Index() {
             </div>
           </div>
         </section>
-        
+
         {/* Leaderboard Preview Section */}
         <section className="py-20 bg-gray-950">
           <div className="container px-4 md:px-6">
@@ -98,7 +98,7 @@ export default function Index() {
           </div>
         </section>
       </main>
-      
+
       <Footer />
     </div>
   );

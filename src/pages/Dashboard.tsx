@@ -79,50 +79,50 @@ return (
         </div>
       </div>
 
-      <div className="bg-gray-900 rounded-lg overflow-hidden mb-8">
+      <div className="bg-theme-card rounded-lg overflow-hidden mb-8 shadow-theme-md theme-transition">
         <div className="p-6 pb-0">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-medium text-white">Portfolio Overview</h2>
+            <h2 className="text-xl font-medium text-theme-primary">Portfolio Overview</h2>
             <div className="flex items-center">
               <div className="relative mr-4">
-                <Search className="text-gray-500 absolute left-3 top-1/2 transform -translate-y-1/2" size={16} />
+                <Search className="text-theme-tertiary absolute left-3 top-1/2 transform -translate-y-1/2" size={16} />
                 <Input
                   placeholder="Search Assets"
-                  className="pl-10 bg-gray-800 border-gray-700 text-sm h-9 rounded-full w-60"
+                  className="pl-10 bg-theme-tertiary border-theme-primary text-sm h-9 rounded-full w-60 text-theme-secondary"
                 />
               </div>
-              <Button className="text-xs bg-green-500 hover:bg-green-600 text-white rounded px-4">
+              <Button className="text-xs bg-success-color hover:bg-success-color/90 text-white rounded px-4 theme-transition">
                 DEPOSIT
               </Button>
-              <Button variant="outline" className="ml-2 text-xs border-gray-700 text-gray-300 hover:bg-gray-800 rounded">
+              <Button variant="outline" className="ml-2 text-xs border-theme-primary text-theme-secondary hover:bg-theme-hover rounded theme-transition">
                 WITHDRAW
               </Button>
             </div>
           </div>
 
           <Tabs defaultValue="balances">
-            <TabsList className="bg-transparent border-b border-gray-800 w-full justify-start">
+            <TabsList className="bg-transparent border-b border-theme-primary w-full justify-start theme-transition">
               <TabsTrigger
                 value="balances"
-                className="data-[state=active]:border-primary border-b-2 border-transparent rounded-none data-[state=active]:shadow-none data-[state=active]:bg-transparent text-sm"
+                className="data-[state=active]:border-primary border-b-2 border-transparent rounded-none data-[state=active]:shadow-none data-[state=active]:bg-transparent text-sm text-theme-secondary theme-transition"
               >
                 Balances
               </TabsTrigger>
               <TabsTrigger
                 value="openOrders"
-                className="data-[state=active]:border-primary border-b-2 border-transparent rounded-none data-[state=active]:shadow-none data-[state=active]:bg-transparent text-sm"
+                className="data-[state=active]:border-primary border-b-2 border-transparent rounded-none data-[state=active]:shadow-none data-[state=active]:bg-transparent text-sm text-theme-secondary theme-transition"
               >
                 Open Orders
               </TabsTrigger>
               <TabsTrigger
                 value="orderHistory"
-                className="data-[state=active]:border-primary border-b-2 border-transparent rounded-none data-[state=active]:shadow-none data-[state=active]:bg-transparent text-sm"
+                className="data-[state=active]:border-primary border-b-2 border-transparent rounded-none data-[state=active]:shadow-none data-[state=active]:bg-transparent text-sm text-theme-secondary theme-transition"
               >
                 Order History
               </TabsTrigger>
               <TabsTrigger
                 value="transfers"
-                className="data-[state=active]:border-primary border-b-2 border-transparent rounded-none data-[state=active]:shadow-none data-[state=active]:bg-transparent text-sm"
+                className="data-[state=active]:border-primary border-b-2 border-transparent rounded-none data-[state=active]:shadow-none data-[state=active]:bg-transparent text-sm text-theme-secondary theme-transition"
               >
                 Transfers
               </TabsTrigger>
@@ -132,24 +132,24 @@ return (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-gray-800">
-                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-400">Asset</th>
-                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-400">Amount</th>
-                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-400">
+                    <tr className="border-b border-theme-primary">
+                      <th className="text-left py-4 px-4 text-sm font-medium text-theme-tertiary">Asset</th>
+                      <th className="text-left py-4 px-4 text-sm font-medium text-theme-tertiary">Amount</th>
+                      <th className="text-left py-4 px-4 text-sm font-medium text-theme-tertiary">
                         <div className="flex items-center">
                           Value (USD)
-                          <Info size={14} className="ml-1 text-gray-500" />
+                          <Info size={14} className="ml-1 text-theme-tertiary" />
                         </div>
                       </th>
-                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-400">
+                      <th className="text-left py-4 px-4 text-sm font-medium text-theme-tertiary">
                         <div className="flex items-center">
                           Last Price
-                          <Info size={14} className="ml-1 text-gray-500" />
+                          <Info size={14} className="ml-1 text-theme-tertiary" />
                         </div>
                       </th>
-                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-400">24h Change</th>
-                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-400">7d Chart</th>
-                      <th className="text-left py-4 px-4 text-sm font-medium text-gray-400">Actions</th>
+                      <th className="text-left py-4 px-4 text-sm font-medium text-theme-tertiary">24h Change</th>
+                      <th className="text-left py-4 px-4 text-sm font-medium text-theme-tertiary">7d Chart</th>
+                      <th className="text-left py-4 px-4 text-sm font-medium text-theme-tertiary">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -162,19 +162,19 @@ return (
             </TabsContent>
 
             <TabsContent value="openOrders">
-              <div className="p-8 text-center text-gray-400">
+              <div className="p-8 text-center text-theme-secondary">
                 <p>No open orders at the moment</p>
               </div>
             </TabsContent>
 
             <TabsContent value="orderHistory">
-              <div className="p-8 text-center text-gray-400">
+              <div className="p-8 text-center text-theme-secondary">
                 <p>No recent order history</p>
               </div>
             </TabsContent>
 
             <TabsContent value="transfers">
-              <div className="p-8 text-center text-gray-400">
+              <div className="p-8 text-center text-theme-secondary">
                 <p>No recent transfers</p>
               </div>
             </TabsContent>

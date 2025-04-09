@@ -12,7 +12,7 @@ import { SlidersHorizontal } from "lucide-react";
 
 export function LeaderboardFilters() {
   return (
-    <div className="bg-gray-900 rounded-lg p-4 mb-6">
+    <div className="bg-theme-card rounded-lg p-4 mb-6 shadow-theme-sm theme-transition">
       <div className="flex flex-wrap items-center gap-4">
         {/* Filter Trigger Button (Optional, for mobile or complex filters) */}
         {/* <Button variant="outline" className="border-gray-700 text-gray-300 hover:bg-gray-800">

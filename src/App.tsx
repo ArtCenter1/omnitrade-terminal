@@ -8,6 +8,7 @@ import {
 import { ThemeProvider as ShadcnThemeProvider } from "@/components/ThemeProvider";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import "@/styles/themes.css";
+import "@/styles/components.css";
 import UserRoleManagement from './pages/admin/UserRoleManagement';
 import ComingSoon from './pages/admin/ComingSoon';
 import { ScrollToTop } from './components/ScrollToTop';
@@ -22,7 +23,7 @@ import OmniToken from './pages/OmniToken';
 import TradingBotsLanding from './pages/TradingBotsLanding';
 import Blog from './pages/Blog';
 import NotFound from './pages/NotFound';
-import Dashboard from './pages/Dashboard';
+import Dashboard from './pages/dashboard/Dashboard';
 import Terminal from './pages/Terminal';
 import Bots from './pages/Bots';
 import Markets from './pages/Markets';

@@ -147,35 +147,35 @@ export default function Navbar() {
                 <h3 className="font-medium text-sm mb-2 text-theme-secondary">Settings</h3>
                 <div className="space-y-3">
                   {/* Theme Toggle */}
-                  <div className="flex items-center justify-between">
+                  <div className="settings-menu-item">
                     <div className="flex items-center space-x-2">
-                      {theme === 'dark' ? <Moon size={16} className="text-blue-400" /> : <Sun size={16} className="text-yellow-400" />}
-                      <span className="text-sm text-theme-secondary">Theme</span>
+                      {theme === 'dark' ? <Moon size={16} className="text-theme-link" /> : <Sun size={16} className="text-warning-color" />}
+                      <span className="settings-menu-item-label">Dark Mode</span>
                     </div>
-                    <button
-                      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${theme === 'dark' ? 'bg-blue-600' : 'bg-gray-600'}`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${theme === 'dark' ? 'translate-x-6' : 'translate-x-1'}`}
+                    <label className="toggle-switch">
+                      <input
+                        type="checkbox"
+                        checked={theme === 'dark'}
+                        onChange={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                       />
-                    </button>
+                      <span className="toggle-slider"></span>
+                    </label>
                   </div>
 
                   {/* Notifications Toggle */}
-                  <div className="flex items-center justify-between">
+                  <div className="settings-menu-item">
                     <div className="flex items-center space-x-2">
-                      {notificationsEnabled ? <Bell size={16} className="text-green-400" /> : <BellOff size={16} className="text-gray-400" />}
-                      <span className="text-sm text-theme-secondary">Notifications</span>
+                      {notificationsEnabled ? <Bell size={16} className="text-success-color" /> : <BellOff size={16} className="text-theme-tertiary" />}
+                      <span className="settings-menu-item-label">Order Notifications</span>
                     </div>
-                    <button
-                      onClick={() => setNotificationsEnabled(!notificationsEnabled)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${notificationsEnabled ? 'bg-green-600' : 'bg-gray-600'}`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${notificationsEnabled ? 'translate-x-6' : 'translate-x-1'}`}
+                    <label className="toggle-switch">
+                      <input
+                        type="checkbox"
+                        checked={notificationsEnabled}
+                        onChange={() => setNotificationsEnabled(!notificationsEnabled)}
                       />
-                    </button>
+                      <span className="toggle-slider"></span>
+                    </label>
                   </div>
                 </div>
               </div>
