@@ -101,3 +101,17 @@ export async function deletePermission(permissionId: string) {
     method: 'DELETE',
   });
 }
+
+// Role Permissions
+export async function assignPermissionToRole(roleId: string, permissionId: string) {
+  return fetchJSON(`${API_BASE}/roles/${roleId}/permissions`, {
+    method: 'POST',
+    body: JSON.stringify({ permissionId }),
+  });
+}
+
+export async function removePermissionFromRole(roleId: string, permissionId: string) {
+  return fetchJSON(`${API_BASE}/roles/${roleId}/permissions/${permissionId}`, {
+    method: 'DELETE',
+  });
+}

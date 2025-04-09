@@ -320,6 +320,59 @@ export function setupMockAdminApi() {
 
       if (index !== -1) {
         mockPermissions.splice(index, 1);
+
+        // Also remove this permission from all roles
+        mockRoles.forEach(role => {
+          role.permissions = role.permissions.filter(p => p.permission_id !== permissionId);
+        });
+
+        // Save changes to localStorage
+        saveMockData();
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Handle assign permission to role
+    if (url.match(/\/api\/roles\/.*\/permissions/) && init?.method === 'POST') {
+      const roleId = url.split('/')[3];
+      const body = init.body ? JSON.parse(init.body.toString()) : {};
+      const permissionId = body.permissionId;
+
+      // Find the role and permission
+      const role = mockRoles.find(r => r.role_id === roleId);
+      const permission = mockPermissions.find(p => p.permission_id === permissionId);
+
+      if (role && permission) {
+        // Check if role already has this permission
+        if (!role.permissions.some(p => p.permission_id === permissionId)) {
+          role.permissions.push(permission);
+          // Save changes to localStorage
+          saveMockData();
+        }
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Handle remove permission from role
+    if (url.match(/\/api\/roles\/.*\/permissions\/.*/) && init?.method === 'DELETE') {
+      const parts = url.split('/');
+      const roleId = parts[3];
+      const permissionId = parts[5];
+
+      // Find the role
+      const role = mockRoles.find(r => r.role_id === roleId);
+
+      if (role) {
+        // Remove the permission
+        role.permissions = role.permissions.filter(p => p.permission_id !== permissionId);
         // Save changes to localStorage
         saveMockData();
       }
