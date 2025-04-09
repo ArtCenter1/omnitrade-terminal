@@ -40,7 +40,7 @@ import { useAuth } from './hooks/useAuth';
 
 // Add import for our new components
 import { RoleProtectedRoute } from './components/layout/RoleProtectedRoute';
-import { ProtectedRoute } from './components/layout/ProtectedRoute';
+import ProtectedRoute from './components/layout/ProtectedRoute.tsx';
 // Import Navbar for protected routes
 import Navbar from './components/Navbar';
 import AdminDashboard from './pages/admin/AdminDashboard';
