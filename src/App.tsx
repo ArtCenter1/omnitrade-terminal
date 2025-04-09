@@ -7,6 +7,7 @@ import {
 } from 'react-router-dom';
 import { ThemeProvider } from "@/components/ThemeProvider"
 import UserRoleManagement from './pages/admin/UserRoleManagement';
+import ComingSoon from './pages/admin/ComingSoon';
 import { ScrollToTop } from './components/ScrollToTop';
 import Index from './pages/Index';
 import AuthPage from './pages/auth/AuthPage';
@@ -116,6 +117,13 @@ function App() {
         {/* Keep old routes for backward compatibility, but redirect to the new combined page */}
         <Route path="/admin/users" element={<Navigate to="/admin/users-roles" replace />} />
         <Route path="/admin/roles" element={<Navigate to="/admin/users-roles?tab=roles" replace />} />
+
+        {/* Coming Soon pages for features under development */}
+        <Route path="/admin/:feature" element={
+          <RoleProtectedRoute allowedRoles={['admin']} redirectTo="/dashboard">
+            <ComingSoon />
+          </RoleProtectedRoute>
+        } />
       </Routes>
     </ThemeProvider>
   );

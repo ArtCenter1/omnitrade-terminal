@@ -7,6 +7,7 @@ import { Loader2 } from 'lucide-react';
 
 // Global function to toggle the debug panel
 // Can be called from anywhere in the application
+// To enable the debug panel, open the browser console and type: toggleRoleDebug()
 (window as any).toggleRoleDebug = () => {
   const currentValue = localStorage.getItem('roleDebugHidden');
   const newValue = currentValue === 'true' ? 'false' : 'true';
@@ -46,7 +47,11 @@ export const RoleProtectedRoute: React.FC<RoleProtectedRouteProps> = ({
   }
 
   // Environment check - only show debug in development
-  const isDevelopment = process.env.NODE_ENV === 'development' || localStorage.getItem('enableRoleDebug') === 'true';
+  // By default, hide the debug panel completely
+  const isDevelopment = false; // process.env.NODE_ENV === 'development';
+
+  // To enable the debug panel for testing, uncomment the line above and comment out the line below
+  // or use the toggleRoleDebug() function in the browser console
 
   // Create separate components for the debug panel and toggle button
   const RoleDebugPanel = () => {

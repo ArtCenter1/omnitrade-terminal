@@ -189,7 +189,8 @@ export default function AdminDashboard() {
               <p className="text-sm text-gray-400">Manage user accounts, roles and permissions</p>
             </Link>
 
-            <Link to="/admin/settings" className="bg-gray-800 p-4 rounded-lg hover:bg-gray-700 transition-colors">
+            <Link to="/admin/settings" className="bg-gray-800 p-4 rounded-lg hover:bg-gray-700 transition-colors relative">
+              <div className="absolute -top-2 -right-2 bg-yellow-600 text-xs px-2 py-1 rounded-full text-white">Coming Soon</div>
               <div className="flex items-center mb-2">
                 <Settings className="h-5 w-5 mr-2 text-green-500" />
                 <h3 className="font-medium">System Settings</h3>
@@ -197,7 +198,8 @@ export default function AdminDashboard() {
               <p className="text-sm text-gray-400">Configure platform settings</p>
             </Link>
 
-            <Link to="/admin/analytics" className="bg-gray-800 p-4 rounded-lg hover:bg-gray-700 transition-colors">
+            <Link to="/admin/analytics" className="bg-gray-800 p-4 rounded-lg hover:bg-gray-700 transition-colors relative">
+              <div className="absolute -top-2 -right-2 bg-yellow-600 text-xs px-2 py-1 rounded-full text-white">Coming Soon</div>
               <div className="flex items-center mb-2">
                 <BarChart3 className="h-5 w-5 mr-2 text-purple-500" />
                 <h3 className="font-medium">Analytics</h3>
