@@ -1,6 +1,6 @@
 # OmniTrade Platform
 
-OmniTrade is a comprehensive platform designed for automated cryptocurrency trading. It allows users to configure and manage trading bots, monitor market data, visualize portfolio performance, and participate in token reward programs.
+A revolutionary, enterprise-grade AI-powered Crypto trading platform featuring cutting-edge LLM model customization. The platform seamlessly integrates blockchain technology to create a thriving ecosystem where community members earn tokens through referrals and valuable code contributions.
 
 ## Key Features
 
@@ -51,7 +51,7 @@ OmniTrade is a comprehensive platform designed for automated cryptocurrency trad
 1.  **Clone the repository:**
     ```bash
     git clone <YOUR_REPOSITORY_URL>
-    cd open-trade
+    cd omnitrade
     ```
 
 2.  **Install dependencies:**
