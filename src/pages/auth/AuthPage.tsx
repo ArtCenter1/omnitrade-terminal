@@ -11,13 +11,13 @@ import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader, CheckCircle, XCircle } from 'lucide-react';
+import LoginPage from './LoginPage'; // Import LoginPage
 
 const AuthPage = () => {
   // State for the login form
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
+  // Removed: const [loginEmail, setLoginEmail] = useState('');
+  // Removed: const [loginPassword, setLoginPassword] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
-
   // State for the registration form
   const [registerEmail, setRegisterEmail] = useState('');
   const [registerPassword, setRegisterPassword] = useState('');
@@ -52,12 +52,12 @@ const AuthPage = () => {
     return 'login';
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Updated handleLogin to accept email and password
+  const handleLogin = async (email: string, password: string) => {
+    // e.preventDefault(); // Prevent default is handled within LoginPage's form
     setLoginLoading(true);
-
     try {
-      const { error } = await signIn(loginEmail, loginPassword);
+      const { error } = await signIn(email, password);
       
       if (error) {
         toast.error(error.message || 'Failed to sign in');
@@ -144,8 +144,8 @@ const AuthPage = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-950 p-4">
-      <div className="w-full max-w-md">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-950 p-4">
+      <div className="w-full max-w-md flex justify-center items-center">
         <Card className="border-gray-800 bg-gray-900 text-white shadow-lg">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold text-center">OmniTrade</CardTitle>
@@ -161,48 +161,12 @@ const AuthPage = () => {
               </TabsList>
               
               <TabsContent value="login">
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input 
-                      id="email"
-                      type="email"
-                      placeholder="name@example.com"
-                      required
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                      className="bg-gray-800 border-gray-700 text-white"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="password">Password</Label>
-                      <Button 
-                        variant="link" 
-                        className="px-0 text-xs text-green-500 hover:text-green-400"
-                        onClick={() => setForgotPasswordOpen(true)}
-                        type="button"
-                      >
-                        Forgot password?
-                      </Button>
-                    </div>
-                    <Input 
-                      id="password"
-                      type="password"
-                      required
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      className="bg-gray-800 border-gray-700 text-white"
-                    />
-                  </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-green-600 hover:bg-green-700 text-white" 
-                    disabled={loginLoading}
-                  >
-                    {loginLoading ? 'Signing in...' : 'Sign In'}
-                  </Button>
-                </form>
+                {/* Render the LoginPage component, passing the login handler and loading state */}
+                <LoginPage
+                  onLoginSubmit={handleLogin}
+                  isLoading={loginLoading}
+                />
+                {/* Removed inline form and its "Forgot password?" button */}
               </TabsContent>
               
               <TabsContent value="register">
