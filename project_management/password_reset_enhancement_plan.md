@@ -22,6 +22,7 @@
 - **Token Expiration:**
   - Ensure reset tokens expire within 15-60 minutes.
   - Supabase handles this, but verify settings.
+  - **NOTE (2025-04-11): Supabase dashboard is currently inaccessible, so token expiration and one-time use settings cannot be verified at this time. Revisit this step when Supabase is available.**
 
 - **One-Time Use Tokens:**
   - Tokens should be invalid after first use (Supabase default).
@@ -31,7 +32,8 @@
   - Implement on frontend or via API gateway/middleware.
 
 - **CAPTCHA:**
-  - Add CAPTCHA (e.g., Google reCAPTCHA) to the reset request form to prevent abuse.
+  - ~~Add CAPTCHA (e.g., Google reCAPTCHA) to the reset request form to prevent abuse.~~
+  - **NOTE (2025-04-11): CAPTCHA implementation deferred. No permanent site/domain available for registration at this time. Revisit when project is deployed to a permanent domain.**
 
 - **Audit Logging:**
   - Log reset requests and completions for security audits.
@@ -70,7 +72,7 @@ sequenceDiagram
     participant Frontend
     participant Supabase
 
-    User->>Frontend: Request password reset (email + CAPTCHA)
+    User->>Frontend: Request password reset (email)
     Frontend->>Supabase: Call resetPasswordForEmail(email)
     Supabase-->>User: Sends branded reset email with link
 

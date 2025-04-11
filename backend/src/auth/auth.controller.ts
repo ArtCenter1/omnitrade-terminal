@@ -6,7 +6,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
-import { AuthError } from '@supabase/supabase-js'; // Import AuthError for type safety
+import { AuthError } from '@supabase/supabase-js';
 
 @Controller('auth')
 export class AuthController {
@@ -25,13 +25,11 @@ export class AuthController {
       const { error } = await this.supabase
         .getClient()
         .auth.resetPasswordForEmail(body.email, {
-          redirectTo: `${process.env.FRONTEND_URL}/auth/reset-password`, // Ensure FRONTEND_URL is set in .env
+          redirectTo: `${process.env.FRONTEND_URL}/auth/reset-password`,
         });
 
-      // Handle potential Supabase errors
       if (error) {
         console.error('Supabase password reset error:', error);
-        // Provide a generic error message to the user
         throw new HttpException(
           error.message || 'Failed to send password reset email',
           error instanceof AuthError
@@ -40,16 +38,14 @@ export class AuthController {
         );
       }
 
-      // Return success message regardless of whether the email exists to prevent email enumeration
       return {
         message:
           'If an account exists for this email, a password reset link has been sent.',
       };
     } catch (err) {
-      // Catch unexpected errors
       console.error('Unexpected error in password reset request:', err);
       if (err instanceof HttpException) {
-        throw err; // Re-throw known HTTP exceptions
+        throw err;
       }
       throw new HttpException(
         'An internal server error occurred',

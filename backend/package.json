@@ -26,11 +26,13 @@
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/platform-socket.io": "^11.0.13",
     "@nestjs/websockets": "^11.0.13",
+    "@types/node-fetch": "^2.6.12",
     "axios": "^1.6.7",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "express-rate-limit": "^7.5.0",
     "ioredis": "^5.3.2",
+    "node-fetch": "^2.7.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "ws": "^8.13.0"

@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
+import { Loader, CheckCircle, XCircle } from 'lucide-react';
 
 const AuthPage = () => {
   // State for the login form
@@ -29,6 +30,8 @@ const AuthPage = () => {
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+  const [forgotPasswordStatus, setForgotPasswordStatus] = useState<null | 'success' | 'error'>(null);
+  const [forgotPasswordMessage, setForgotPasswordMessage] = useState<string>('');
 
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
@@ -106,6 +109,8 @@ const AuthPage = () => {
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setForgotPasswordLoading(true);
+    setForgotPasswordStatus(null);
+    setForgotPasswordMessage('');
 
     try {
       const response = await fetch('/api/auth/password-reset-request', {
@@ -119,15 +124,20 @@ const AuthPage = () => {
       const data = await response.json().catch(() => ({}));
 
       if (response.ok) {
-        toast.success(data.message || `If an account exists for ${forgotEmail}, we've sent a password reset link.`);
-        setForgotPasswordOpen(false);
+        setForgotPasswordStatus('success');
+        setForgotPasswordMessage(data.message || `If an account exists for ${forgotEmail}, we've sent a password reset link.`);
+        // Optionally close dialog after a delay
+        setTimeout(() => setForgotPasswordOpen(false), 2000);
       } else if (response.status === 429) {
-        toast.error(data.message || 'Too many requests. Please try again later.');
+        setForgotPasswordStatus('error');
+        setForgotPasswordMessage(data.message || 'Too many requests. Please try again later.');
       } else {
-        toast.error(data.message || 'Failed to send reset link');
+        setForgotPasswordStatus('error');
+        setForgotPasswordMessage(data.message || 'Failed to send reset link');
       }
     } catch (error: any) {
-      toast.error(error?.message || 'An error occurred while sending reset link');
+      setForgotPasswordStatus('error');
+      setForgotPasswordMessage(error?.message || 'An error occurred while sending reset link');
     } finally {
       setForgotPasswordLoading(false);
     }
@@ -284,21 +294,44 @@ const AuthPage = () => {
                 className="bg-gray-800 border-gray-700 text-white"
               />
             </div>
-            <div className="flex justify-end space-x-2">
-              <Button 
-                type="button" 
-                variant="outline" 
+            {forgotPasswordStatus && (
+              <div
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm mb-2 ${
+                  forgotPasswordStatus === 'success'
+                    ? 'bg-green-900/20 border border-green-700 text-green-300'
+                    : 'bg-red-900/20 border border-red-700 text-red-300'
+                }`}
+              >
+                {forgotPasswordStatus === 'success' ? (
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                ) : (
+                  <XCircle className="w-5 h-5 text-red-400" />
+                )}
+                <span>{forgotPasswordMessage}</span>
+              </div>
+            )}
+            <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2">
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => setForgotPasswordOpen(false)}
                 className="border-gray-700 text-gray-300 hover:bg-gray-800"
               >
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
-                className="bg-green-600 hover:bg-green-700 text-white"
+              <Button
+                type="submit"
+                className="bg-green-600 hover:bg-green-700 text-white flex items-center justify-center"
                 disabled={forgotPasswordLoading}
               >
-                {forgotPasswordLoading ? 'Sending...' : 'Send Link'}
+                {forgotPasswordLoading ? (
+                  <>
+                    <Loader className="w-4 h-4 mr-2 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  'Send Link'
+                )}
               </Button>
             </div>
           </form>

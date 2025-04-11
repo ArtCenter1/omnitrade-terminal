@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Loader, CheckCircle, XCircle } from "lucide-react";
 
 export default function ResetPasswordPage() {
   const [newPassword, setNewPassword] = useState('');
@@ -83,14 +84,16 @@ export default function ResetPasswordPage() {
         </CardHeader>
         <CardContent>
           {errorMessage && (
-            <div className="bg-red-900/20 border border-red-800 text-red-300 px-4 py-2 rounded-md mb-4 text-sm">
-              {errorMessage}
+            <div className="flex items-center gap-2 bg-red-900/20 border border-red-800 text-red-300 px-4 py-2 rounded-md mb-4 text-sm">
+              <XCircle className="w-5 h-5 text-red-400" />
+              <span>{errorMessage}</span>
             </div>
           )}
           
           {isSuccess ? (
-            <div className="bg-green-900/20 border border-green-800 text-green-300 px-4 py-2 rounded-md mb-4 text-sm">
-              Password reset successful! You'll be redirected to the login page shortly.
+            <div className="flex items-center gap-2 bg-green-900/20 border border-green-800 text-green-300 px-4 py-2 rounded-md mb-4 text-sm">
+              <CheckCircle className="w-5 h-5 text-green-400" />
+              <span>Password reset successful! You'll be redirected to the login page shortly.</span>
             </div>
           ) : (
             <form onSubmit={handleResetPassword} className="space-y-4">
@@ -120,10 +123,17 @@ export default function ResetPasswordPage() {
               </div>
               <Button
                 type="submit"
-                className="w-full bg-green-600 hover:bg-green-700"
+                className="w-full bg-green-600 hover:bg-green-700 flex items-center justify-center"
                 disabled={isProcessing}
               >
-                {isProcessing ? 'Resetting...' : 'Reset Password'}
+                {isProcessing ? (
+                  <>
+                    <Loader className="w-4 h-4 mr-2 animate-spin" />
+                    Resetting...
+                  </>
+                ) : (
+                  "Reset Password"
+                )}
               </Button>
             </form>
           )}
