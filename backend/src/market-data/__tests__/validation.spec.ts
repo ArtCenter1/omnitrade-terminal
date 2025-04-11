@@ -24,13 +24,19 @@ describe('DTO Validation', () => {
 
   describe('OrderbookDto', () => {
     it('validates with optional limit', () => {
-      const dto = Object.assign(new OrderbookDto(), { symbol: 'BTCUSDT', limit: '50' });
+      const dto = Object.assign(new OrderbookDto(), {
+        symbol: 'BTCUSDT',
+        limit: '50',
+      });
       const errors = validateSync(dto);
       expect(errors.length).toBe(0);
     });
 
     it('fails with invalid limit', () => {
-      const dto = Object.assign(new OrderbookDto(), { symbol: 'BTCUSDT', limit: 'abc' });
+      const dto = Object.assign(new OrderbookDto(), {
+        symbol: 'BTCUSDT',
+        limit: 'abc',
+      });
       const errors = validateSync(dto);
       expect(errors.length).toBeGreaterThan(0);
     });
@@ -38,13 +44,19 @@ describe('DTO Validation', () => {
 
   describe('TradesDto', () => {
     it('validates with optional limit', () => {
-      const dto = Object.assign(new TradesDto(), { symbol: 'BTCUSDT', limit: '100' });
+      const dto = Object.assign(new TradesDto(), {
+        symbol: 'BTCUSDT',
+        limit: '100',
+      });
       const errors = validateSync(dto);
       expect(errors.length).toBe(0);
     });
 
     it('fails with invalid limit', () => {
-      const dto = Object.assign(new TradesDto(), { symbol: 'BTCUSDT', limit: 'xyz' });
+      const dto = Object.assign(new TradesDto(), {
+        symbol: 'BTCUSDT',
+        limit: 'xyz',
+      });
       const errors = validateSync(dto);
       expect(errors.length).toBeGreaterThan(0);
     });

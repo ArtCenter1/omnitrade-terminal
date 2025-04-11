@@ -3,7 +3,7 @@ import axios, { AxiosResponse } from 'axios';
 import Redis from 'ioredis';
 
 // Define interfaces for API responses
-interface TickerResponse {
+export interface TickerResponse {
   symbol: string;
   price: string;
   volume: string;
@@ -14,7 +14,7 @@ interface TickerResponse {
   [key: string]: any; // Allow additional properties
 }
 
-interface OrderbookResponse {
+export interface OrderbookResponse {
   symbol: string;
   bids: [string, string][]; // [price, quantity]
   asks: [string, string][]; // [price, quantity]
@@ -22,7 +22,7 @@ interface OrderbookResponse {
   [key: string]: any; // Allow additional properties
 }
 
-interface TradeResponse {
+export interface TradeResponse {
   id: string;
   price: string;
   quantity: string;
@@ -31,7 +31,7 @@ interface TradeResponse {
   [key: string]: any; // Allow additional properties
 }
 
-interface KlineResponse {
+export interface KlineResponse {
   openTime: number;
   open: string;
   high: string;

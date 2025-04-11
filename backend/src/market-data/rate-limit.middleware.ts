@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NestMiddleware,
-  HttpException,
-} from '@nestjs/common';
+import { Injectable, NestMiddleware, HttpException } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import Redis from 'ioredis';
 

@@ -108,18 +108,26 @@ const AuthPage = () => {
     setForgotPasswordLoading(true);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+      const response = await fetch('/api/auth/password-reset-request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: forgotEmail }),
       });
 
-      if (error) {
-        toast.error(error.message || 'Failed to send reset link');
-      } else {
-        toast.success(`If an account exists for ${forgotEmail}, we've sent a password reset link.`);
+      const data = await response.json().catch(() => ({}));
+
+      if (response.ok) {
+        toast.success(data.message || `If an account exists for ${forgotEmail}, we've sent a password reset link.`);
         setForgotPasswordOpen(false);
+      } else if (response.status === 429) {
+        toast.error(data.message || 'Too many requests. Please try again later.');
+      } else {
+        toast.error(data.message || 'Failed to send reset link');
       }
     } catch (error: any) {
-      toast.error(error.message || 'An error occurred while sending reset link');
+      toast.error(error?.message || 'An error occurred while sending reset link');
     } finally {
       setForgotPasswordLoading(false);
     }

@@ -8,7 +8,13 @@ jest.mock('ioredis');
 const mockRedisGet = jest.fn();
 const mockRedisSet = jest.fn();
 
-(Redis as any).mockImplementation(() => ({
+(
+  Redis as unknown as {
+    mockImplementation: (
+      impl: () => { get: jest.Mock; set: jest.Mock },
+    ) => void;
+  }
+).mockImplementation(() => ({
   get: mockRedisGet,
   set: mockRedisSet,
 }));
@@ -25,7 +31,11 @@ describe('MarketDataService', () => {
     it('returns cached data if present', async () => {
       mockRedisGet.mockResolvedValue(JSON.stringify({ foo: 'bar' }));
 
-      const result = await (service as any).cacheFetch('key', 60, async () => {
+      // Helper to access private method
+      const cacheFetch = (
+        service as unknown as { cacheFetch: (typeof service)['cacheFetch'] }
+      ).cacheFetch.bind(service);
+      const result = await cacheFetch('key', 60, () => {
         throw new Error('Should not call fetcher');
       });
 
@@ -37,10 +47,18 @@ describe('MarketDataService', () => {
       const fetcher = jest.fn().mockResolvedValue({ data: 123 });
       mockRedisSet.mockResolvedValue('OK');
 
-      const result = await (service as any).cacheFetch('key', 60, fetcher);
+      const cacheFetch = (
+        service as unknown as { cacheFetch: (typeof service)['cacheFetch'] }
+      ).cacheFetch.bind(service);
+      const result = await cacheFetch('key', 60, fetcher);
 
       expect(fetcher).toHaveBeenCalled();
-      expect(mockRedisSet).toHaveBeenCalledWith('key', JSON.stringify({ data: 123 }), 'EX', 60);
+      expect(mockRedisSet).toHaveBeenCalledWith(
+        'key',
+        JSON.stringify({ data: 123 }),
+        'EX',
+        60,
+      );
       expect(result).toEqual({ data: 123 });
     });
   });
@@ -48,13 +66,17 @@ describe('MarketDataService', () => {
   describe('getSymbols', () => {
     it('fetches symbols from API and caches them', async () => {
       mockRedisGet.mockResolvedValue(null);
-      (axios.get as jest.Mock).mockResolvedValue({ data: ['BTCUSDT', 'ETHUSDT'] });
+      (axios.get as jest.Mock).mockResolvedValue({
+        data: ['BTCUSDT', 'ETHUSDT'],
+      });
       mockRedisSet.mockResolvedValue('OK');
 
       const result = await service.getSymbols();
 
       expect(result).toEqual(['BTCUSDT', 'ETHUSDT']);
-      expect(axios.get).toHaveBeenCalledWith('https://api.exchange.example.com/symbols');
+      expect((axios.get as jest.Mock).mock.calls).toContainEqual([
+        'https://api.exchange.example.com/symbols',
+      ]);
     });
 
     it('returns cached symbols if present', async () => {
@@ -80,20 +102,28 @@ describe('MarketDataService', () => {
       const result = await service.getTicker('BTCUSDT');
 
       expect(result).toEqual({ price: '100' });
-      expect(axios.get).toHaveBeenCalledWith('https://api.exchange.example.com/ticker', { params: { symbol: 'BTCUSDT' } });
+      expect((axios.get as jest.Mock).mock.calls).toContainEqual([
+        'https://api.exchange.example.com/ticker',
+        { params: { symbol: 'BTCUSDT' } },
+      ]);
     });
   });
 
   describe('getOrderbook', () => {
     it('fetches orderbook from API and caches it', async () => {
       mockRedisGet.mockResolvedValue(null);
-      (axios.get as jest.Mock).mockResolvedValue({ data: { bids: [], asks: [] } });
+      (axios.get as jest.Mock).mockResolvedValue({
+        data: { bids: [], asks: [] },
+      });
       mockRedisSet.mockResolvedValue('OK');
 
       const result = await service.getOrderbook('BTCUSDT', 50);
 
       expect(result).toEqual({ bids: [], asks: [] });
-      expect(axios.get).toHaveBeenCalledWith('https://api.exchange.example.com/orderbook', { params: { symbol: 'BTCUSDT', limit: 50 } });
+      expect((axios.get as jest.Mock).mock.calls).toContainEqual([
+        'https://api.exchange.example.com/orderbook',
+        { params: { symbol: 'BTCUSDT', limit: 50 } },
+      ]);
     });
   });
 
@@ -106,22 +136,34 @@ describe('MarketDataService', () => {
       const result = await service.getTrades('BTCUSDT', 10);
 
       expect(result).toEqual([{ id: 1 }]);
-      expect(axios.get).toHaveBeenCalledWith('https://api.exchange.example.com/trades', { params: { symbol: 'BTCUSDT', limit: 10 } });
+      expect((axios.get as jest.Mock).mock.calls).toContainEqual([
+        'https://api.exchange.example.com/trades',
+        { params: { symbol: 'BTCUSDT', limit: 10 } },
+      ]);
     });
   });
 
   describe('getKlines', () => {
     it('fetches klines from API and caches them', async () => {
       mockRedisGet.mockResolvedValue(null);
-      (axios.get as jest.Mock).mockResolvedValue({ data: [[1,2,3]] });
+      (axios.get as jest.Mock).mockResolvedValue({ data: [[1, 2, 3]] });
       mockRedisSet.mockResolvedValue('OK');
 
       const result = await service.getKlines('BTCUSDT', '1m', 1000, 2000, 500);
 
-      expect(result).toEqual([[1,2,3]]);
-      expect(axios.get).toHaveBeenCalledWith('https://api.exchange.example.com/klines', {
-        params: { symbol: 'BTCUSDT', interval: '1m', startTime: 1000, endTime: 2000, limit: 500 }
-      });
+      expect(result).toEqual([[1, 2, 3]]);
+      expect((axios.get as jest.Mock).mock.calls).toContainEqual([
+        'https://api.exchange.example.com/klines',
+        {
+          params: {
+            symbol: 'BTCUSDT',
+            interval: '1m',
+            startTime: 1000,
+            endTime: 2000,
+            limit: 500,
+          },
+        },
+      ]);
     });
   });
 });
