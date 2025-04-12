@@ -90,9 +90,11 @@ const Dashboard: React.FC = () => {
             </div>
             <PerformanceChart data={mockPerformanceData} isPositive={true} />
           </div>
-          <div className="dashboard-card p-5">
-            <h2 className="text-lg font-semibold text-theme-primary mb-4">Current Allocations</h2>
-            <AllocationChart data={mockAllocationData} />
+          <div className="dashboard-card p-5 flex flex-col items-center justify-center">
+            <h2 className="text-lg font-semibold text-theme-primary mb-4 text-center w-full">Current Allocations</h2>
+            <div className="flex items-center justify-center w-full h-full">
+              <AllocationChart data={mockAllocationData} />
+            </div>
           </div>
         </div>
 
