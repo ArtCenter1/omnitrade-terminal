@@ -21,8 +21,7 @@ const AuthPage = () => {
   const [registerEmail, setRegisterEmail] = useState('');
   const [registerPassword, setRegisterPassword] = useState('');
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  const [fullName, setFullName] = useState(''); // Replace firstName and lastName
   const [registerLoading, setRegisterLoading] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
 
@@ -81,7 +80,8 @@ const AuthPage = () => {
     setRegisterLoading(true);
 
     try {
-      const { error, success } = await signUp(registerEmail, registerPassword, firstName, lastName);
+      // Pass fullName as the third argument (userName)
+      const { error, success } = await signUp(registerEmail, registerPassword, fullName);
       
       if (error) {
         toast.error(error.message || 'Failed to sign up');
@@ -93,8 +93,7 @@ const AuthPage = () => {
         setRegisterEmail('');
         setRegisterPassword('');
         setRegisterConfirmPassword('');
-        setFirstName('');
-        setLastName('');
+        setFullName(''); // Reset fullName instead
         
         // Switch to login tab
         document.getElementById('login-tab')?.click();
@@ -192,29 +191,18 @@ const AuthPage = () => {
               
               <TabsContent value="register">
                 <form onSubmit={handleRegister} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">First Name</Label>
-                      <Input 
-                        id="firstName"
-                        type="text"
-                        placeholder="John"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        className="bg-gray-800 border-gray-700 text-white"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <Input 
-                        id="lastName"
-                        type="text"
-                        placeholder="Doe"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        className="bg-gray-800 border-gray-700 text-white"
-                      />
-                    </div>
+                  {/* Replace First/Last Name inputs with Full Name */}
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName">Full Name</Label>
+                    <Input
+                      id="fullName"
+                      type="text"
+                      placeholder="John Doe"
+                      required // Add required if needed
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      className="bg-gray-800 border-gray-700 text-white"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="registerEmail">Email</Label>
