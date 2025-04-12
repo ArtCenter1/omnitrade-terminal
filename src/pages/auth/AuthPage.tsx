@@ -10,19 +10,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader, CheckCircle, XCircle } from 'lucide-react';
-import LoginPage from './LoginPage'; // Import LoginPage
 
 const AuthPage = () => {
   // State for the login form
-  // Removed: const [loginEmail, setLoginEmail] = useState('');
-  // Removed: const [loginPassword, setLoginPassword] = useState('');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
+
   // State for the registration form
   const [registerEmail, setRegisterEmail] = useState('');
   const [registerPassword, setRegisterPassword] = useState('');
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
-  const [userName, setUserName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [registerLoading, setRegisterLoading] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
 
@@ -30,8 +30,6 @@ const AuthPage = () => {
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
-  const [forgotPasswordStatus, setForgotPasswordStatus] = useState<null | 'success' | 'error'>(null);
-  const [forgotPasswordMessage, setForgotPasswordMessage] = useState<string>('');
 
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
@@ -52,12 +50,12 @@ const AuthPage = () => {
     return 'login';
   };
 
-  // Updated handleLogin to accept email and password
-  const handleLogin = async (email: string, password: string) => {
-    // e.preventDefault(); // Prevent default is handled within LoginPage's form
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoginLoading(true);
+
     try {
-      const { error } = await signIn(email, password);
+      const { error } = await signIn(loginEmail, loginPassword);
       
       if (error) {
         toast.error(error.message || 'Failed to sign in');
@@ -83,7 +81,7 @@ const AuthPage = () => {
     setRegisterLoading(true);
 
     try {
-      const { error, success } = await signUp(registerEmail, registerPassword, userName);
+      const { error, success } = await signUp(registerEmail, registerPassword, firstName, lastName);
       
       if (error) {
         toast.error(error.message || 'Failed to sign up');
@@ -95,6 +93,8 @@ const AuthPage = () => {
         setRegisterEmail('');
         setRegisterPassword('');
         setRegisterConfirmPassword('');
+        setFirstName('');
+        setLastName('');
         
         // Switch to login tab
         document.getElementById('login-tab')?.click();
@@ -109,43 +109,28 @@ const AuthPage = () => {
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setForgotPasswordLoading(true);
-    setForgotPasswordStatus(null);
-    setForgotPasswordMessage('');
 
     try {
-      const response = await fetch('/api/auth/password-reset-request', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: forgotEmail }),
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
       });
 
-      const data = await response.json().catch(() => ({}));
-
-      if (response.ok) {
-        setForgotPasswordStatus('success');
-        setForgotPasswordMessage(data.message || `If an account exists for ${forgotEmail}, we've sent a password reset link.`);
-        // Optionally close dialog after a delay
-        setTimeout(() => setForgotPasswordOpen(false), 2000);
-      } else if (response.status === 429) {
-        setForgotPasswordStatus('error');
-        setForgotPasswordMessage(data.message || 'Too many requests. Please try again later.');
+      if (error) {
+        toast.error(error.message || 'Failed to send reset link');
       } else {
-        setForgotPasswordStatus('error');
-        setForgotPasswordMessage(data.message || 'Failed to send reset link');
+        toast.success(`If an account exists for ${forgotEmail}, we've sent a password reset link.`);
+        setForgotPasswordOpen(false);
       }
     } catch (error: any) {
-      setForgotPasswordStatus('error');
-      setForgotPasswordMessage(error?.message || 'An error occurred while sending reset link');
+      toast.error(error.message || 'An error occurred while sending reset link');
     } finally {
       setForgotPasswordLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-950 p-4">
-      <div className="w-full max-w-md flex justify-center items-center">
+    <div className="flex items-center justify-center min-h-screen bg-gray-950 p-4">
+      <div className="w-full max-w-md">
         <Card className="border-gray-800 bg-gray-900 text-white shadow-lg">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold text-center">OmniTrade</CardTitle>
@@ -161,27 +146,75 @@ const AuthPage = () => {
               </TabsList>
               
               <TabsContent value="login">
-                {/* Render the LoginPage component, passing the login handler and loading state */}
-                <LoginPage
-                  onLoginSubmit={handleLogin}
-                  isLoading={loginLoading}
-                />
-                {/* Removed inline form and its "Forgot password?" button */}
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input 
+                      id="email"
+                      type="email"
+                      placeholder="name@example.com"
+                      required
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                      className="bg-gray-800 border-gray-700 text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password">Password</Label>
+                      <Button 
+                        variant="link" 
+                        className="px-0 text-xs text-green-500 hover:text-green-400"
+                        onClick={() => setForgotPasswordOpen(true)}
+                        type="button"
+                      >
+                        Forgot password?
+                      </Button>
+                    </div>
+                    <Input 
+                      id="password"
+                      type="password"
+                      required
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      className="bg-gray-800 border-gray-700 text-white"
+                    />
+                  </div>
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-green-600 hover:bg-green-700 text-white" 
+                    disabled={loginLoading}
+                  >
+                    {loginLoading ? 'Signing in...' : 'Sign In'}
+                  </Button>
+                </form>
               </TabsContent>
               
               <TabsContent value="register">
                 <form onSubmit={handleRegister} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="userName">Username</Label>
-                    <Input
-                      id="userName"
-                      type="text"
-                      placeholder="your_username"
-                      required
-                      value={userName}
-                      onChange={(e) => setUserName(e.target.value)}
-                      className="bg-gray-800 border-gray-700 text-white"
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName">First Name</Label>
+                      <Input 
+                        id="firstName"
+                        type="text"
+                        placeholder="John"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        className="bg-gray-800 border-gray-700 text-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName">Last Name</Label>
+                      <Input 
+                        id="lastName"
+                        type="text"
+                        placeholder="Doe"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        className="bg-gray-800 border-gray-700 text-white"
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="registerEmail">Email</Label>
@@ -258,44 +291,21 @@ const AuthPage = () => {
                 className="bg-gray-800 border-gray-700 text-white"
               />
             </div>
-            {forgotPasswordStatus && (
-              <div
-                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm mb-2 ${
-                  forgotPasswordStatus === 'success'
-                    ? 'bg-green-900/20 border border-green-700 text-green-300'
-                    : 'bg-red-900/20 border border-red-700 text-red-300'
-                }`}
-              >
-                {forgotPasswordStatus === 'success' ? (
-                  <CheckCircle className="w-5 h-5 text-green-400" />
-                ) : (
-                  <XCircle className="w-5 h-5 text-red-400" />
-                )}
-                <span>{forgotPasswordMessage}</span>
-              </div>
-            )}
-            <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2">
-              <Button
-                type="button"
-                variant="outline"
+            <div className="flex justify-end space-x-2">
+              <Button 
+                type="button" 
+                variant="outline" 
                 onClick={() => setForgotPasswordOpen(false)}
                 className="border-gray-700 text-gray-300 hover:bg-gray-800"
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                className="bg-green-600 hover:bg-green-700 text-white flex items-center justify-center"
+              <Button 
+                type="submit" 
+                className="bg-green-600 hover:bg-green-700 text-white"
                 disabled={forgotPasswordLoading}
               >
-                {forgotPasswordLoading ? (
-                  <>
-                    <Loader className="w-4 h-4 mr-2 animate-spin" />
-                    Sending...
-                  </>
-                ) : (
-                  'Send Link'
-                )}
+                {forgotPasswordLoading ? 'Sending...' : 'Send Link'}
               </Button>
             </div>
           </form>
