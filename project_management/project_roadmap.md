@@ -23,6 +23,10 @@
 - Implement navigation and routing
 - Implement Landing Page AI Introduction section
 
+### Frontend Market Data Integration
+- Develop dedicated frontend integration for Market Data API (REST and WebSocket)
+- Implement state management, data fetching, and real-time updates for market data
+
 ## Phase 3: Backend Infrastructure
 - Set up database schema
 - Implement authentication and authorization

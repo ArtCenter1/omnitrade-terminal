@@ -20,4 +20,28 @@ Implement the core user interface components, pages, and navigation for the Open
 *   [x] Implement navigation and routing (Navbar/Footer links updated, ProtectedRoute structure added)
 
 ---
+
+## Frontend Market Data Integration
+
+**Objective:** Develop dedicated frontend integration for the Market Data API, including REST and WebSocket support, robust state management, and real-time updates.
+
+**Checklist:**
+- [ ] **Phase 1: Foundation & Setup**
+  - [ ] Review `market_data_api_openapi.yaml` and `market_data_websocket.md` for endpoint/event details, schemas, and authentication.
+  - [ ] Select and configure state management (e.g., Zustand), data fetching (e.g., React Query), and WebSocket client libraries.
+  - [ ] Define API base URLs and WebSocket endpoints in environment variables (`.env`).
+  - [ ] Install selected libraries (`zustand`, `react-query`, `reconnecting-websocket`, etc.).
+  - [ ] Confirm/create directories: `src/services/`, `src/hooks/`, `src/store/`, `src/types/`.
+- [ ] **Phase 2: Implementation**
+  - [ ] Define or generate TypeScript types for all API responses and WebSocket messages in `src/types/marketData.ts`.
+  - [ ] Implement `src/services/marketDataApi.ts` using React Query for REST API calls (getSymbols, getTicker, getOrderbook, etc.). Handle errors and API keys.
+  - [ ] Implement `src/services/marketDataSocket.ts` for WebSocket management (connect, disconnect, subscribe, unsubscribe, handle messages, reconnection).
+  - [ ] Implement `src/store/marketDataStore.ts` (or similar) using Zustand to hold data and handle updates from WebSocket.
+  - [ ] Implement custom React Hooks (`src/hooks/`) like `useSymbols`, `useTicker`, `useOrderbook`, etc., integrating React Query, Zustand, and WebSocket subscriptions.
+- [ ] **Phase 3: Integration & Refinement**
+  - [ ] Refactor UI components (e.g., `Markets.tsx`, Trading Terminal) to use the new custom hooks.
+  - [ ] Write unit/integration tests for services, store, and hooks.
+  - [ ] Add JSDoc comments to new code.
+
+---
 *Mark items as complete ([x]) as development progresses.*
