@@ -1,5 +1,5 @@
 import React from 'react';
-import PortfolioOverview from '@/components/dashboard/PortfolioOverview';
+import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import PerformanceChart from '@/components/dashboard/PerformanceChart';
 import { Search } from 'lucide-react';
 
@@ -14,13 +14,9 @@ const Dashboard: React.FC = () => {
   return (
     <div className="container mx-auto p-4 theme-transition">
       <div className="grid grid-cols-1 gap-6">
-        {/* Portfolio Overview */}
-        <PortfolioOverview 
-          portfolioValue={portfolioData.portfolioValue}
-          change24h={portfolioData.change24h}
-          changePercent={portfolioData.changePercent}
-        />
-        
+        {/* Portfolio Overview - replaced with DashboardHeader */}
+        <DashboardHeader />
+
         {/* Performance Chart */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { ChevronDown, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -31,7 +30,7 @@ const MOCK_ACCOUNTS: Account[] = [
   {
     id: "2",
     name: "OmniTrade",
-    exchange: "Omni", // Assuming exchange identifier changes too
+    exchange: "Omni",
     value: "$8,784.14",
     change: "+1.94%",
     logo: "/placeholder.svg"
@@ -62,16 +61,16 @@ export function ExchangeAccountSelector() {
       <div className="text-xs text-gray-400 mb-2">Select Account</div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="w-full bg-gray-900 border-gray-800 hover:bg-gray-800 justify-between"
           >
             <div className="flex items-center">
               <div className="w-6 h-6 rounded-full overflow-hidden mr-2">
-                <img 
-                  src={selectedAccount.logo} 
-                  alt={selectedAccount.exchange} 
-                  className="w-full h-full object-cover" 
+                <img
+                  src={selectedAccount.logo}
+                  alt={selectedAccount.exchange}
+                  className="w-full h-full object-cover"
                 />
               </div>
               <div className="flex flex-col items-start">
@@ -84,17 +83,17 @@ export function ExchangeAccountSelector() {
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-[300px] bg-gray-900 border-gray-800">
           {MOCK_ACCOUNTS.map((account) => (
-            <DropdownMenuItem 
+            <DropdownMenuItem
               key={account.id}
               onClick={() => setSelectedAccount(account)}
               className="py-3 cursor-pointer hover:bg-gray-800"
             >
               <div className="flex items-center w-full">
                 <div className="w-6 h-6 rounded-full overflow-hidden mr-2">
-                  <img 
-                    src={account.logo} 
-                    alt={account.exchange} 
-                    className="w-full h-full object-cover" 
+                  <img
+                    src={account.logo}
+                    alt={account.exchange}
+                    className="w-full h-full object-cover"
                   />
                 </div>
                 <div className="flex flex-col flex-1">
