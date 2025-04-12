@@ -125,7 +125,11 @@ export function switchRole(role: UserRole, userEmail?: string) {
   toast.success(`Switched to ${role.toUpperCase()} role. Reloading...`);
 
   // Reload the page to apply changes
-  setTimeout(() => window.location.reload(), 500);
+  // Dynamically update the role state and trigger UI updates
+  setTimeout(() => {
+    const event = new CustomEvent('roleChanged', { detail: { role } });
+    window.dispatchEvent(event);
+  }, 500);
 }
 
 // The main hook for role-based access control
@@ -160,6 +164,21 @@ export function useRoleBasedAccess() {
         switchRole('admin', userEmail);
       }
     }
+
+    // Add an event listener for role changes
+    const handleRoleChange = (event: CustomEvent) => {
+      const { role } = event.detail;
+      setUserRole(role);
+      setIsAdmin(role === 'admin');
+      setIsPremium(role === 'admin' || role === 'premium');
+    };
+
+    window.addEventListener('roleChanged', handleRoleChange as EventListener);
+
+    // Cleanup the event listener on unmount
+    return () => {
+      window.removeEventListener('roleChanged', handleRoleChange as EventListener);
+    };
   }, [user]);
 
   // Helper functions to check role permissions

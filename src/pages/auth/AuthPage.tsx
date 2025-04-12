@@ -49,6 +49,8 @@ const AuthPage = () => {
     return 'login';
   };
 
+  const [activeTab, setActiveTab] = useState(getInitialTab());
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginLoading(true);
@@ -96,7 +98,7 @@ const AuthPage = () => {
         setFullName(''); // Reset fullName instead
         
         // Switch to login tab
-        document.getElementById('login-tab')?.click();
+        setActiveTab('login');
       }
     } catch (error: any) {
       toast.error(error.message || 'An error occurred during registration');
@@ -138,7 +140,7 @@ const AuthPage = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue={getInitialTab()} className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger id="login-tab" value="login">Login</TabsTrigger>
                 <TabsTrigger value="register">Register</TabsTrigger>

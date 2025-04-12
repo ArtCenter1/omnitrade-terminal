@@ -384,7 +384,12 @@ export function setupMockAdminApi() {
     }
 
     // Pass through to original fetch for all other requests
-    return originalFetch(input, init);
+    try {
+      return await originalFetch(input, init);
+    } catch (error) {
+      console.error('Error in mock API or original fetch:', error);
+      throw error; // Re-throw the error to ensure it propagates correctly
+    }
   };
 
   console.log('Mock Admin API setup complete');

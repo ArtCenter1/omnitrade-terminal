@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -48,13 +47,13 @@ export const RoleProtectedRoute: React.FC<RoleProtectedRouteProps> = ({
 
   // Environment check - only show debug in development
   // By default, hide the debug panel completely
-  const isDevelopment = false; // process.env.NODE_ENV === 'development';
+  const isDevelopment = process.env.NODE_ENV === 'development';
 
   // To enable the debug panel for testing, uncomment the line above and comment out the line below
   // or use the toggleRoleDebug() function in the browser console
 
   // Create separate components for the debug panel and toggle button
-  const RoleDebugPanel = () => {
+  const RoleDebugPanel = ({ setDebugHidden }: { setDebugHidden: React.Dispatch<React.SetStateAction<boolean>> }) => {
     // Load saved position from localStorage or use default
     const getSavedPosition = () => {
       try {
@@ -86,7 +85,7 @@ export const RoleProtectedRoute: React.FC<RoleProtectedRouteProps> = ({
     const handleHide = (e: React.MouseEvent) => {
       e.stopPropagation(); // Prevent triggering drag
       localStorage.setItem('roleDebugHidden', 'true');
-      window.location.reload(); // Force reload to apply changes
+      setDebugHidden(true); // Dynamically hide the debug panel
     };
 
     // Handle mouse move event to update position while dragging
@@ -184,10 +183,10 @@ export const RoleProtectedRoute: React.FC<RoleProtectedRouteProps> = ({
   };
 
   // Toggle button component
-  const RoleDebugToggle = () => {
+  const RoleDebugToggle = ({ setDebugHidden }: { setDebugHidden: React.Dispatch<React.SetStateAction<boolean>> }) => {
     const handleShow = () => {
       localStorage.setItem('roleDebugHidden', 'false');
-      window.location.reload(); // Force reload to apply changes
+      setDebugHidden(false); // Dynamically show the debug panel
     };
 
     return (
@@ -212,11 +211,13 @@ export const RoleProtectedRoute: React.FC<RoleProtectedRouteProps> = ({
     // Only show in development or if explicitly enabled
     if (!isDevelopment) return null;
 
-    // Check if debug panel is hidden
-    const isHidden = localStorage.getItem('roleDebugHidden') === 'true';
+    // React state to manage debug panel visibility
+    const [debugHidden, setDebugHidden] = React.useState(
+      localStorage.getItem('roleDebugHidden') === 'true'
+    );
 
     // Return the appropriate component based on visibility state
-    return isHidden ? <RoleDebugToggle /> : <RoleDebugPanel />;
+    return debugHidden ? <RoleDebugToggle setDebugHidden={setDebugHidden} /> : <RoleDebugPanel setDebugHidden={setDebugHidden} />;
   };
 
   // If authenticated but doesn't have the required role
