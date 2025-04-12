@@ -4,6 +4,7 @@ import { PerformanceChart } from '@/components/PerformanceChart';
 import { AllocationChart } from '@/components/AllocationChart';
 import { AssetRow } from '@/components/AssetRow';
 import { Button } from '@/components/ui/button';
+import { Search } from 'lucide-react';
 
 const mockPerformanceData = [
   { date: 'Mon', value: 40000 },
@@ -60,6 +61,9 @@ const TABS = [
 
 const TIME_RANGES = ['Day', 'Week', 'Month', 'Year', '5 Years'];
 
+// Custom card background for TradingView style
+const tradingViewBg = "#131722";
+
 const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Balances');
   const [activeRange, setActiveRange] = useState('Week');
@@ -72,7 +76,10 @@ const Dashboard: React.FC = () => {
 
         {/* Performance Chart and Allocation Chart */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 dashboard-card p-5">
+          <div
+            className="lg:col-span-2 dashboard-card p-5"
+            style={{ background: tradingViewBg }}
+          >
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-theme-primary">Performance</h2>
               <div className="flex gap-2">
@@ -90,7 +97,10 @@ const Dashboard: React.FC = () => {
             </div>
             <PerformanceChart data={mockPerformanceData} isPositive={true} />
           </div>
-          <div className="dashboard-card p-5 flex flex-col items-center justify-center">
+          <div
+            className="dashboard-card p-5 flex flex-col items-center justify-center"
+            style={{ background: tradingViewBg }}
+          >
             <h2 className="text-lg font-semibold text-theme-primary mb-4 text-center w-full">Current Allocations</h2>
             <div className="flex items-center justify-center w-full h-full">
               <AllocationChart data={mockAllocationData} />
@@ -99,15 +109,22 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Assets Table with Tabs */}
-        <div className="dashboard-card p-5">
+        <div
+          className="dashboard-card p-5"
+          style={{ background: tradingViewBg }}
+        >
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-theme-primary">Portfolio Overview</h2>
             <div className="flex gap-2 items-center">
               <div className="relative">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                  <Search size={18} />
+                </span>
                 <input
                   type="text"
                   placeholder="Search Assets"
-                  className="search-input"
+                  className="search-input rounded-full bg-gray-900 border border-gray-700 text-white px-10 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                  style={{ minWidth: 180 }}
                 />
               </div>
               <Button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-xs">DEPOSIT</Button>
