@@ -14,7 +14,7 @@
 - [x] Implement login/logout functionality
 - [x] Set up JWT token system
 - [x] Implement role-based access control (Completed 2025-04-11)
-- [ ] Create password reset functionality
+- [x] Create password reset functionality (Completed 2025-04-13)
 **Note:** Password reset enhancement is deferred. Revisit this task after completing Market Data APIs in Phase 3.
 - [x] Implement session management
 
