@@ -3,119 +3,50 @@ import { CircleDollarSign, Info, Search, Star } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
+import { useCoingeckoMarkets } from "../hooks/useCoingeckoMarkets";
+
+function getSparklinePath(data: number[], width = 100, height = 30): string {
+  if (!data || data.length === 0) return "";
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const step = width / (data.length - 1);
+  return data
+    .map((d, i) => {
+      const x = i * step;
+      // Invert y so higher prices are higher in SVG
+      const y = height - ((d - min) / range) * (height - 4) - 2;
+      return `${i === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`;
+    })
+    .join(" ");
+}
+
 export default function Markets() {
-  const markets = [
-    {
-      name: "Bitcoin",
-      symbol: "BTC",
-      price: "$85,138.00",
-      change: "+1.5%",
-      volume: "18.9bn BTC",
-      marketCap: "$1.65T",
-      supply: "19.5M BTC",
-      isPositive: true,
-      isFavorite: true
-    },
-    {
-      name: "Ethereum",
-      symbol: "ETH",
-      price: "$3,448.21",
-      change: "-4.6%",
-      volume: "19.4bn ETH",
-      marketCap: "$414.18B",
-      supply: "120.4M ETH",
-      isPositive: false,
-      isFavorite: true
-    },
-    {
-      name: "Tether",
-      symbol: "USDT",
-      price: "$1.00",
-      change: "+0.01%",
-      volume: "$90.35B",
-      marketCap: "$114.13B",
-      supply: "114.1B USDT",
-      isPositive: true,
-      isFavorite: false
-    },
-    {
-      name: "BNB",
-      symbol: "BNB",
-      price: "$606.25",
-      change: "-3.28%",
-      volume: "$1.41B",
-      marketCap: "$91.08B",
-      supply: "150.2M BNB",
-      isPositive: false,
-      isFavorite: true
-    },
-    {
-      name: "Solana",
-      symbol: "SOL",
-      price: "$131.83",
-      change: "-1.7%",
-      volume: "$2.17B",
-      marketCap: "$57.17B",
-      supply: "433.8M SOL",
-      isPositive: false,
-      isFavorite: true
-    },
-    {
-      name: "USDC",
-      symbol: "USDC",
-      price: "$1.00",
-      change: "+0.001%",
-      volume: "$28.10B",
-      marketCap: "$33.10B",
-      supply: "33.1B USDC",
-      isPositive: true,
-      isFavorite: false
-    },
-    {
-      name: "XRP",
-      symbol: "XRP",
-      price: "$0.5881",
-      change: "-1.45%",
-      volume: "$2.12B",
-      marketCap: "$32.31B",
-      supply: "55.0B XRP",
-      isPositive: false,
-      isFavorite: false
-    },
-    {
-      name: "Cardano",
-      symbol: "ADA",
-      price: "$0.45",
-      change: "-1.20%",
-      volume: "$391.9M",
-      marketCap: "$16.17B",
-      supply: "36.0B ADA",
-      isPositive: false,
-      isFavorite: false
-    },
-    {
-      name: "Dogecoin",
-      symbol: "DOGE",
-      price: "$0.1127",
-      change: "-2.32%",
-      volume: "$1.19B",
-      marketCap: "$16.02B",
-      supply: "142.4B DOGE",
-      isPositive: false,
-      isFavorite: false
-    },
-    {
-      name: "TRON",
-      symbol: "TRX",
-      price: "$0.14",
-      change: "-1.54%",
-      volume: "$300.2M",
-      marketCap: "$12.91B",
-      supply: "88.7B TRX",
-      isPositive: false,
-      isFavorite: false
-    }
-  ];
+  const { markets, loading, error } = useCoingeckoMarkets();
+
+  if (loading) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="text-center text-gray-400 py-20">Loading market data...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="text-center text-red-500 py-20">Error: {error}</div>
+      </div>
+    );
+  }
+
+  if (!markets || markets.length === 0) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="text-center text-gray-400 py-20">No market data available.</div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-6">
@@ -170,7 +101,7 @@ export default function Markets() {
                   <td className="py-4 px-4">
                     <div className="flex items-center">
                       <div className="w-8 h-8 rounded-full overflow-hidden mr-3">
-                        <img src="/placeholder.svg" alt={market.name} className="w-full h-full object-cover" />
+                        <img src={market.image} alt={market.name} className="w-full h-full object-cover" />
                       </div>
                       <div>
                         <div className="font-medium text-white">{market.name}</div>
@@ -184,17 +115,23 @@ export default function Markets() {
                   </td>
                   <td className="py-4 px-4 text-right text-gray-300">{market.volume}</td>
                   <td className="py-4 px-4 text-right text-gray-300">{market.marketCap}</td>
-                  <td className="py-4 px-4 text-right text-gray-300">{market.supply}</td>
+                  <td className="py-4 px-4 text-right text-gray-300">
+                    {(() => {
+                      // Remove symbol from supply if present (case-insensitive, with or without space)
+                      const symbol = market.symbol.toUpperCase();
+                      let supply = String(market.supply);
+                      const regex = new RegExp(`\\s*${symbol}$`, "i");
+                      supply = supply.replace(regex, "");
+                      return `${supply} ${symbol}`;
+                    })()}
+                  </td>
                   <td className="py-4 px-4 text-right">
                     <div className="h-10 w-20 ml-auto">
                       <svg viewBox="0 0 100 30" className="h-full w-full">
-                        <path 
-                          d={market.isPositive ? 
-                            "M0,15 Q10,5 20,10 T40,5 T60,15 T80,5 T100,10" : 
-                            "M0,10 Q10,15 20,20 T40,15 T60,25 T80,20 T100,25"
-                          } 
-                          stroke={market.isPositive ? "#05c48a" : "#ea384d"} 
-                          fill="none" 
+                        <path
+                          d={getSparklinePath(market.sparkline)}
+                          stroke={market.isPositive ? "#05c48a" : "#ea384d"}
+                          fill="none"
                           strokeWidth="2"
                         />
                       </svg>
