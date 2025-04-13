@@ -3,12 +3,12 @@ import {
   Get,
   Query,
   Headers,
-  BadRequestException,
   InternalServerErrorException,
+  Logger, // Import Logger
 } from '@nestjs/common';
 import {
   MarketDataService,
-  TickerResponse,
+  MarketCoin, // Import the new MarketCoin interface
   OrderbookResponse,
   TradeResponse,
   KlineResponse,
@@ -17,7 +17,10 @@ import {
   IsString,
   IsOptional,
   IsNumberString,
-  validateSync,
+  IsInt,
+  IsBooleanString,
+  Min,
+  Max,
 } from 'class-validator';
 
 export class SymbolDto {
@@ -25,7 +28,7 @@ export class SymbolDto {
   symbol: string;
 }
 
-export class TickerDto extends SymbolDto {}
+// Removed unused TickerDto
 
 export class OrderbookDto extends SymbolDto {
   @IsOptional()
@@ -56,35 +59,62 @@ export class KlinesDto extends SymbolDto {
   limit?: string;
 }
 
+// DTO for the new /markets endpoint query parameters
+export class MarketsDto {
+  @IsOptional()
+  @IsString()
+  vs_currency?: string = 'usd';
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  page?: number = 1;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(250) // CoinGecko limit
+  per_page?: number = 100;
+
+  @IsOptional()
+  @IsString() // Add validation for allowed values if needed
+  order?: string = 'market_cap_desc';
+
+  @IsOptional()
+  @IsBooleanString() // Accept 'true' or 'false' string
+  sparkline?: string = 'false'; // Default to false as string
+}
+
 @Controller('/api/v1/market-data')
 export class MarketDataController {
   constructor(private readonly marketDataService: MarketDataService) {}
 
-  @Get('symbols')
-  async getSymbols(@Headers('x-api-key') _apiKey?: string): Promise<string[]> {
-    void _apiKey;
-    try {
-      return await this.marketDataService.getSymbols();
-    } catch (_error: unknown) {
-      void _error;
-      throw new InternalServerErrorException('Failed to fetch symbols');
-    }
-  }
-
-  @Get('ticker')
-  async getTicker(
+  @Get('markets') // Renamed route from 'symbols' to 'markets'
+  async getMarkets(
     @Headers('x-api-key') _apiKey: string,
-    @Query() query: TickerDto,
-  ): Promise<TickerResponse> {
-    void _apiKey;
-    this.validateDto(query);
+    @Query() query: MarketsDto, // Use the new MarketsDto
+  ): Promise<MarketCoin[]> {
+    void _apiKey; // API key might be used later for internal logic/rate limiting
+    // Validation is handled by the global ValidationPipe
     try {
-      return await this.marketDataService.getTicker(query.symbol);
-    } catch (_error: unknown) {
-      void _error;
-      throw new InternalServerErrorException('Failed to fetch ticker');
+      // Convert sparkline string to boolean for service call
+      const sparklineBool = query.sparkline === 'true';
+      return await this.marketDataService.getMarkets(
+        query.vs_currency,
+        query.page,
+        query.per_page,
+        query.order,
+        sparklineBool,
+      );
+    } catch (error: unknown) {
+      this.logger.error('Error in getMarkets controller', error); // Added logger
+      throw new InternalServerErrorException('Failed to fetch market data');
     }
   }
+  // Added logger instance
+  private readonly logger = new Logger(MarketDataController.name);
+
+  // Removed getTicker method
 
   @Get('orderbook')
   async getOrderbook(
@@ -92,7 +122,9 @@ export class MarketDataController {
     @Query() query: OrderbookDto,
   ): Promise<OrderbookResponse> {
     void _apiKey;
-    this.validateDto(query);
+    // Validation is handled by the global ValidationPipe
+    // Note: OrderbookDto still uses SymbolDto, which might need adjustment
+    // if the 'symbol' should now be the CoinGecko 'id'. Assuming it's okay for now.
     try {
       return await this.marketDataService.getOrderbook(
         query.symbol,
@@ -110,7 +142,9 @@ export class MarketDataController {
     @Query() query: TradesDto,
   ): Promise<TradeResponse[]> {
     void _apiKey;
-    this.validateDto(query);
+    // Validation is handled by the global ValidationPipe
+    // Note: KlinesDto still uses SymbolDto.
+    // Note: TradesDto still uses SymbolDto.
     try {
       return await this.marketDataService.getTrades(
         query.symbol,
@@ -128,7 +162,7 @@ export class MarketDataController {
     @Query() query: KlinesDto,
   ): Promise<KlineResponse[]> {
     void _apiKey;
-    this.validateDto(query);
+    // Validation is handled by the global ValidationPipe
     try {
       return await this.marketDataService.getKlines(
         query.symbol,
@@ -142,11 +176,5 @@ export class MarketDataController {
       throw new InternalServerErrorException('Failed to fetch klines');
     }
   }
-
-  private validateDto(dto: object) {
-    const errors = validateSync(dto);
-    if (errors.length > 0) {
-      throw new BadRequestException(errors);
-    }
-  }
+  // validateDto method was already removed
 }

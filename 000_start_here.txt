@@ -38,5 +38,20 @@ We are currently setting up the backend infrastructure, including:
 2. Check current phase status in `/project_management/current_phase.md`
 3. Set up your development environment with the dependencies in `package.json`
 4. Start the development server with `bun run dev`
+To contribute, please follow the coding standards in `/project_management/coding_standards.md`
+
+---
+
+## Authentication Provider Setup & Migration Status
+
+The platform supports both **Supabase** and **Firebase** for authentication.
+- The active provider is controlled by the `VITE_AUTH_PROVIDER` variable in your `.env` file (`supabase` or `firebase`).
+- Both sets of environment variables are present in `.env` for compatibility.
+- See `README.md` and `project_management/authentication_flow.md` for setup instructions and migration notes.
+
+**Migration Status:**
+- The project is transitioning from Supabase to Firebase authentication.
+- Supabase documentation and configuration remain for reference.
+- When switching providers, update `VITE_AUTH_PROVIDER` and the relevant variables, then restart the dev server.
 
 To contribute, please follow the coding standards in `/project_management/coding_standards.md`

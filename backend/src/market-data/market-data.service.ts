@@ -1,36 +1,61 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config'; // Import ConfigService
 import axios, { AxiosResponse } from 'axios';
 import Redis from 'ioredis';
 
-// Define interfaces for API responses
-export interface TickerResponse {
+// Interface representing data from CoinGecko /coins/markets
+export interface MarketCoin {
+  id: string;
   symbol: string;
-  price: string;
-  volume: string;
-  change: string;
-  changePercent: string;
-  high: string;
-  low: string;
-  [key: string]: any; // Allow additional properties
+  name: string;
+  image: string;
+  current_price: number;
+  market_cap: number;
+  market_cap_rank: number;
+  fully_diluted_valuation: number | null;
+  total_volume: number;
+  high_24h: number;
+  low_24h: number;
+  price_change_24h: number;
+  price_change_percentage_24h: number;
+  market_cap_change_24h: number;
+  market_cap_change_percentage_24h: number;
+  circulating_supply: number;
+  total_supply: number | null;
+  max_supply: number | null;
+  ath: number;
+  ath_change_percentage: number;
+  ath_date: string;
+  atl: number;
+  atl_change_percentage: number;
+  atl_date: string;
+  roi: {
+    times: number;
+    currency: string;
+    percentage: number;
+  } | null;
+  last_updated: string;
+  sparkline_in_7d?: {
+    // Optional sparkline data
+    price: number[];
+  };
 }
 
+// Keep Orderbook, Trade, Kline interfaces if needed for other endpoints
+// (Assuming they might be implemented later)
 export interface OrderbookResponse {
   symbol: string;
-  bids: [string, string][]; // [price, quantity]
-  asks: [string, string][]; // [price, quantity]
+  bids: [string, string][];
+  asks: [string, string][];
   timestamp: number;
-  [key: string]: any; // Allow additional properties
 }
-
 export interface TradeResponse {
   id: string;
   price: string;
   quantity: string;
   timestamp: number;
   isBuyerMaker: boolean;
-  [key: string]: any; // Allow additional properties
 }
-
 export interface KlineResponse {
   openTime: number;
   open: string;
@@ -39,14 +64,28 @@ export interface KlineResponse {
   close: string;
   volume: string;
   closeTime: number;
-  [key: string]: any; // Allow additional properties
 }
 
-const redis = new Redis();
+const redis = new Redis(); // Consider configuring Redis connection via ConfigService too
+
+// Removed unused CoinGeckoCoin interface
 
 @Injectable()
 export class MarketDataService {
   private readonly logger = new Logger(MarketDataService.name);
+  private readonly coingeckoBaseUrl: string;
+
+  constructor(private configService: ConfigService) {
+    // Inject ConfigService
+    const baseUrl = this.configService.get<string>('COINGECKO_API_BASE_URL');
+    if (!baseUrl) {
+      // Ensure proper formatting for the error message
+      throw new Error(
+        'COINGECKO_API_BASE_URL is not defined in the environment variables',
+      );
+    }
+    this.coingeckoBaseUrl = baseUrl;
+  }
 
   private async cacheFetch<T>(
     key: string,
@@ -58,43 +97,50 @@ export class MarketDataService {
       return JSON.parse(cached) as T;
     }
     const data = await fetcher();
-    await redis.set(key, JSON.stringify(data), 'EX', ttlSeconds);
-    return data;
-  }
-
-  async getSymbols(): Promise<string[]> {
-    return this.cacheFetch<string[]>('symbols', 3600, async () => {
-      this.logger.log('Fetching symbols from exchange API');
-      try {
-        const response: AxiosResponse<string[]> = await axios.get(
-          'https://api.exchange.example.com/symbols',
-        );
-        return response.data;
-      } catch (error) {
-        this.logger.error('Error fetching symbols', error);
-        throw error;
-      }
+    // Set cache but don't wait for it to complete; log errors if caching fails
+    redis.set(key, JSON.stringify(data), 'EX', ttlSeconds).catch((err) => {
+      this.logger.error(`Failed to set cache key ${key}:`, err);
     });
+    return data; // Return data immediately
   }
 
-  async getTicker(symbol: string): Promise<TickerResponse> {
-    const key = `ticker:${symbol}`;
-    return this.cacheFetch<TickerResponse>(key, 2, async () => {
-      this.logger.log(`Fetching ticker for ${symbol} from exchange API`);
+  async getMarkets(
+    vs_currency: string = 'usd',
+    page: number = 1,
+    per_page: number = 100,
+    order: string = 'market_cap_desc',
+    sparkline: boolean = false, // Add sparkline option
+  ): Promise<MarketCoin[]> {
+    const key = `markets:${vs_currency}:page${page}:per${per_page}:${order}:sparkline${sparkline}`;
+    // Cache for 5 minutes (adjust as needed)
+    return this.cacheFetch<MarketCoin[]>(key, 300, async () => {
+      this.logger.log(
+        `Fetching markets from CoinGecko API (/coins/markets) - Page: ${page}, Per Page: ${per_page}`,
+      );
       try {
-        const response: AxiosResponse<TickerResponse> = await axios.get(
-          'https://api.exchange.example.com/ticker',
+        const response: AxiosResponse<MarketCoin[]> = await axios.get(
+          `${this.coingeckoBaseUrl}/coins/markets`,
           {
-            params: { symbol },
+            params: {
+              vs_currency,
+              order,
+              per_page,
+              page,
+              sparkline,
+              price_change_percentage: '24h', // Request 24h price change
+            },
           },
         );
         return response.data;
       } catch (error) {
-        this.logger.error(`Error fetching ticker for ${symbol}`, error);
-        throw error;
+        this.logger.error('Error fetching markets from CoinGecko', error);
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed to fetch markets from CoinGecko: ${message}`);
       }
     });
   }
+
+  // Removed getTicker method as it's replaced by getMarkets
 
   async getOrderbook(
     symbol: string,
@@ -102,10 +148,11 @@ export class MarketDataService {
   ): Promise<OrderbookResponse> {
     const key = `orderbook:${symbol}:${limit ?? 'default'}`;
     return this.cacheFetch<OrderbookResponse>(key, 2, async () => {
-      this.logger.log(`Fetching orderbook for ${symbol} from exchange API`);
+      // TODO: Update this method for CoinGecko API (/coins/{id}/tickers)
+      this.logger.log(`Fetching orderbook for ${symbol} from placeholder API`);
       try {
         const response: AxiosResponse<OrderbookResponse> = await axios.get(
-          'https://api.exchange.example.com/orderbook',
+          `https://api.exchange.example.com/orderbook`, // Placeholder URL
           {
             params: { symbol, limit },
           },
@@ -121,10 +168,11 @@ export class MarketDataService {
   async getTrades(symbol: string, limit?: number): Promise<TradeResponse[]> {
     const key = `trades:${symbol}:${limit ?? 'default'}`;
     return this.cacheFetch<TradeResponse[]>(key, 2, async () => {
-      this.logger.log(`Fetching trades for ${symbol} from exchange API`);
+      // TODO: Update this method for CoinGecko API (/coins/{id}/market_chart) or similar
+      this.logger.log(`Fetching trades for ${symbol} from placeholder API`);
       try {
         const response: AxiosResponse<TradeResponse[]> = await axios.get(
-          'https://api.exchange.example.com/trades',
+          `https://api.exchange.example.com/trades`, // Placeholder URL
           {
             params: { symbol, limit },
           },
@@ -146,10 +194,11 @@ export class MarketDataService {
   ): Promise<KlineResponse[]> {
     const key = `klines:${symbol}:${interval}:${startTime ?? 'null'}:${endTime ?? 'null'}:${limit ?? 'default'}`;
     return this.cacheFetch<KlineResponse[]>(key, 10, async () => {
-      this.logger.log(`Fetching klines for ${symbol} from exchange API`);
+      // TODO: Update this method for CoinGecko API (/coins/{id}/ohlc)
+      this.logger.log(`Fetching klines for ${symbol} from placeholder API`);
       try {
         const response: AxiosResponse<KlineResponse[]> = await axios.get(
-          'https://api.exchange.example.com/klines',
+          `https://api.exchange.example.com/klines`, // Placeholder URL
           {
             params: { symbol, interval, startTime, endTime, limit },
           },
