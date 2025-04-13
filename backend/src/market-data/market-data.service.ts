@@ -35,7 +35,8 @@ export interface MarketCoin {
     percentage: number;
   } | null;
   last_updated: string;
-  sparkline_in_7d?: { // Optional sparkline data
+  sparkline_in_7d?: {
+    // Optional sparkline data
     price: number[];
   };
 }
@@ -96,8 +97,11 @@ export class MarketDataService {
       return JSON.parse(cached) as T;
     }
     const data = await fetcher();
-    await redis.set(key, JSON.stringify(data), 'EX', ttlSeconds);
-    return data;
+    // Set cache but don't wait for it to complete; log errors if caching fails
+    redis.set(key, JSON.stringify(data), 'EX', ttlSeconds).catch((err) => {
+      this.logger.error(`Failed to set cache key ${key}:`, err);
+    });
+    return data; // Return data immediately
   }
 
   async getMarkets(
