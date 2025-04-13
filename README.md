@@ -64,6 +64,40 @@ A revolutionary, enterprise-grade AI-powered Crypto trading platform featuring c
     ```bash
     bun run dev
     ```
+## Authentication Provider Setup
+
+The OmniTrade platform supports two authentication providers: **Supabase** and **Firebase**. You can switch between them using the `VITE_AUTH_PROVIDER` environment variable in your `.env` file.
+
+- Set `VITE_AUTH_PROVIDER=supabase` to use Supabase authentication.
+- Set `VITE_AUTH_PROVIDER=firebase` to use Firebase authentication.
+
+**Required environment variables:**
+
+- For **Supabase**:
+  - `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+- For **Firebase**:
+  - `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`, `VITE_FIREBASE_MEASUREMENT_ID`
+
+See the `.env` file for detailed placeholders and instructions.
+
+**Switching Providers:**
+Update the `VITE_AUTH_PROVIDER` value and ensure the corresponding environment variables are set. Restart the development server after making changes.
+
+## Environment Variables
+
+All configuration is managed via the `.env` file in the project root.
+- Both Supabase and Firebase variables are present with comments.
+- Update the relevant variables based on your chosen provider.
+- See `.env` for detailed instructions.
+
+## Migration Notes
+
+- The platform is migrating from Supabase to Firebase for authentication.
+- Both providers are currently supported via the `VITE_AUTH_PROVIDER` flag.
+- Supabase documentation and variables remain for reference and backward compatibility.
+- Future developers should review the `.env` file and authentication documentation before making changes.
+- See `project_management/authentication_flow.md` for details on authentication flows and caveats.
+
 
 ## Available Scripts
 

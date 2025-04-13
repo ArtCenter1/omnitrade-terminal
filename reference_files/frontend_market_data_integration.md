@@ -12,6 +12,7 @@
     *   **(Optional) OpenAPI Code Generation:** Evaluate using a tool like `openapi-typescript-codegen` to generate TypeScript types and potentially basic client functions from the OpenAPI spec, ensuring type safety and reducing boilerplate.
 3.  **Configuration &amp; Environment:**
     *   Define API base URLs and WebSocket endpoints in environment variables (`.env`) for different environments (development, production).
+    *   **Authentication Provider:** Set the `VITE_AUTH_PROVIDER` variable in `.env` to choose between Supabase and Firebase authentication. Configure the corresponding environment variables as described in the `README.md`.
     *   Install selected libraries (`zustand`, `react-query`, `reconnecting-websocket`, etc.).
 4.  **Project Structure:**
     *   Confirm/create directories:

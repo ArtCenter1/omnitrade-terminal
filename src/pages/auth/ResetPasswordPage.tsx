@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
 export default function ResetPasswordPage() {
@@ -15,22 +16,24 @@ export default function ResetPasswordPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const navigate = useNavigate();
-  
-  // Get hash fragment from URL which contains the access token
   const location = useLocation();
-  
+  const { resetPassword } = useAuth();
+
+  const AUTH_PROVIDER = import.meta.env.VITE_AUTH_PROVIDER || 'supabase';
+
   useEffect(() => {
-    // The hash contains the access token
-    const hashParams = new URLSearchParams(location.hash.substring(1));
-    
-    if (!hashParams.get('access_token')) {
-      setErrorMessage('Invalid or expired password reset link. Please request a new one.');
+    if (AUTH_PROVIDER === 'supabase') {
+      // The hash contains the access token
+      const hashParams = new URLSearchParams(location.hash.substring(1));
+      if (!hashParams.get('access_token')) {
+        setErrorMessage('Invalid or expired password reset link. Please request a new one.');
+      }
     }
-  }, [location.hash]);
+  }, [location.hash, AUTH_PROVIDER]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (newPassword !== confirmPassword) {
       setErrorMessage('Passwords do not match');
       return;
@@ -43,29 +46,35 @@ export default function ResetPasswordPage() {
 
     setIsProcessing(true);
     setErrorMessage(null);
-    
-    try {
-      // The updateUser method will use the access token from the URL automatically
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword
-      });
-      
-      if (error) {
-        setErrorMessage(error.message);
-        toast.error('Failed to reset password: ' + error.message);
-      } else {
-        setIsSuccess(true);
-        toast.success('Password has been reset successfully');
-        
-        // Redirect to login after a delay
-        setTimeout(() => {
-          navigate('/auth');
-        }, 3000);
+
+    if (AUTH_PROVIDER === 'supabase') {
+      try {
+        // The updateUser method will use the access token from the URL automatically
+        const { error } = await supabase.auth.updateUser({
+          password: newPassword
+        });
+
+        if (error) {
+          setErrorMessage(error.message);
+          toast.error('Failed to reset password: ' + error.message);
+        } else {
+          setIsSuccess(true);
+          toast.success('Password has been reset successfully');
+          setTimeout(() => {
+            navigate('/auth');
+          }, 3000);
+        }
+      } catch (error: any) {
+        setErrorMessage(error.message || 'An error occurred while resetting your password');
+        toast.error('An unexpected error occurred');
+      } finally {
+        setIsProcessing(false);
       }
-    } catch (error: any) {
-      setErrorMessage(error.message || 'An error occurred while resetting your password');
-      toast.error('An unexpected error occurred');
-    } finally {
+    } else {
+      // Firebase: instruct user to use the link in their email
+      setErrorMessage(null);
+      setIsSuccess(false);
+      toast.info('Please use the password reset link sent to your email. If you did not receive it, request a new password reset.');
       setIsProcessing(false);
     }
   };
@@ -76,9 +85,11 @@ export default function ResetPasswordPage() {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">Reset Your Password</CardTitle>
           <CardDescription className="text-center text-gray-400">
-            {isSuccess 
-              ? 'Your password has been reset successfully!' 
-              : 'Enter your new password below'}
+            {AUTH_PROVIDER === 'firebase'
+              ? "Please use the password reset link sent to your email to reset your password."
+              : isSuccess
+                ? 'Your password has been reset successfully!'
+                : 'Enter your new password below'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -87,12 +98,8 @@ export default function ResetPasswordPage() {
               {errorMessage}
             </div>
           )}
-          
-          {isSuccess ? (
-            <div className="bg-green-900/20 border border-green-800 text-green-300 px-4 py-2 rounded-md mb-4 text-sm">
-              Password reset successful! You'll be redirected to the login page shortly.
-            </div>
-          ) : (
+
+          {AUTH_PROVIDER === 'supabase' && !isSuccess && (
             <form onSubmit={handleResetPassword} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="new-password">New Password</Label>
@@ -126,6 +133,12 @@ export default function ResetPasswordPage() {
                 {isProcessing ? 'Resetting...' : 'Reset Password'}
               </Button>
             </form>
+          )}
+
+          {AUTH_PROVIDER === 'supabase' && isSuccess && (
+            <div className="bg-green-900/20 border border-green-800 text-green-300 px-4 py-2 rounded-md mb-4 text-sm">
+              Password reset successful! You'll be redirected to the login page shortly.
+            </div>
           )}
         </CardContent>
         <CardFooter className="flex justify-center">

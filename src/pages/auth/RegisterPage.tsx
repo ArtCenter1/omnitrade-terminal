@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Link, useNavigate } from "react-router-dom"; // Add useNavigate
-import { useAuth } from '@/contexts/AuthContext'; // Import useAuth
+import { useAuth } from '@/hooks/useAuth'; // Use the unified hook
 import { toast } from 'sonner'; // Import toast for notifications
 // Remove this duplicate import line
 
@@ -46,14 +46,14 @@ export default function RegisterPage() {
         setError(errorMessage);
         toast.error(errorMessage);
       } else if (success) {
-        toast.success('Account created successfully! Please check your email to confirm your account.');
-        // Optionally redirect or clear form
-        // navigate('/login'); // Example redirect
+        toast.success('Account created successfully!');
         setFullName('');
         setEmail('');
         setPassword('');
-        // Consider redirecting to a page telling the user to check their email
-        // navigate('/auth/check-email');
+        // For Firebase, redirect to login immediately; for Supabase, user may need to confirm email
+        if (import.meta.env.VITE_AUTH_PROVIDER === 'firebase') {
+          navigate('/login');
+        }
       }
     } catch (err: any) {
       console.error("Registration submit error:", err);
