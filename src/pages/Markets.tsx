@@ -3,7 +3,7 @@ import { CircleDollarSign, Info, Search, Star } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-import { useMarkets } from "@/services/MarketDataApi"; // Import the new hook
+import { useMarkets } from "@/services/marketDataApi"; // Import the new hook
 import { MarketCoin } from "@/types/marketData"; // Import the type
 // Removed unused SymbolRow import
 // Removed unused getSparklinePath function
