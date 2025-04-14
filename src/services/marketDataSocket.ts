@@ -20,7 +20,7 @@ type MessageHandler = (msg: WebSocketMessage) => void;
 class MarketDataSocket {
   private static instance: MarketDataSocket;
   private socket: Socket | null = null;
-  private readonly endpoint = "wss://api.omnitrade.example.com/ws/v1/market-data";
+  private readonly endpoint = import.meta.env.VITE_MARKET_DATA_WS_URL;
   private isConnected = false;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
@@ -37,6 +37,9 @@ class MarketDataSocket {
    * @returns {MarketDataSocket} The singleton instance.
    */
   public static getInstance(): MarketDataSocket {
+    if (!import.meta.env.VITE_MARKET_DATA_WS_URL) {
+      throw new Error("VITE_MARKET_DATA_WS_URL environment variable is not set. WebSocket connection cannot be established.");
+    }
     if (!MarketDataSocket.instance) {
       MarketDataSocket.instance = new MarketDataSocket();
     }

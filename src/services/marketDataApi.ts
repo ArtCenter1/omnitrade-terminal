@@ -7,7 +7,7 @@ import {
 } from "../types/marketData"; // Removed unused Symbol, Ticker
 
 // Base URL for the market data API
-const BASE_URL = "/api/v1/market-data";
+const BASE_URL = import.meta.env.VITE_MARKET_DATA_API_URL || "/api/v1/market-data"; // Use env variable, fallback to relative
 
 // Optionally inject API key from environment variable or config
 const API_KEY = import.meta.env.VITE_MARKET_DATA_API_KEY || undefined;

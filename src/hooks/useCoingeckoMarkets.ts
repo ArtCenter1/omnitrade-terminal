@@ -20,8 +20,7 @@ interface UseCoingeckoMarketsResult {
   error: string | null;
 }
 
-const COINGECKO_URL =
-  "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&sparkline=true";
+const COINGECKO_URL = import.meta.env.VITE_COINGECKO_API_URL;
 
 const FAVORITES = ["BTC", "ETH", "BNB", "SOL"]; // Example favorites
 

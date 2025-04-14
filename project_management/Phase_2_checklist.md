@@ -29,7 +29,7 @@ Implement the core user interface components, pages, and navigation for the Open
 - [ ] **Phase 1: Foundation & Setup**
   - [x] Review `market_data_api_openapi.yaml` and `market_data_websocket.md` for endpoint/event details, schemas, and authentication.
   - [x] Select and configure state management (e.g., Zustand), data fetching (e.g., React Query), and WebSocket client libraries.
-  - [ ] Define API base URLs and WebSocket endpoints in environment variables (`.env`).
+  - [x] Define API base URLs and WebSocket endpoints in environment variables (`.env`).
   - [x] Install selected libraries (`zustand`, `react-query`, `reconnecting-websocket`, etc.).
   - [x] Confirm/create directories: `src/services/`, `src/hooks/`, `src/store/`, `src/types/`.
 - [x] **Phase 2: Implementation**
