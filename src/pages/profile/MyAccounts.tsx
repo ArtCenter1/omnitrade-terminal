@@ -1,9 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import { ProfileLayout } from "@/components/profile/ProfileLayout";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { AddExchangeAccountModal } from "@/components/profile/AddExchangeAccountModal";
 
 export default function MyAccounts() {
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
   return (
     <ProfileLayout title="My Accounts">
       <div className="space-y-8">
@@ -19,7 +22,10 @@ export default function MyAccounts() {
             Connect your first exchange to start trading, tracking balances, and
             creating automated strategies.
           </p>
-          <Button className="bg-purple-600 hover:bg-purple-700 text-white">
+          <Button
+            className="bg-purple-600 hover:bg-purple-700 text-white"
+            onClick={() => setIsAddModalOpen(true)}
+          >
             <Plus size={16} className="mr-1" />
             Add Exchange
           </Button>
@@ -43,6 +49,7 @@ export default function MyAccounts() {
           </Button>
         </div>
       </div>
+      <AddExchangeAccountModal open={isAddModalOpen} onOpenChange={setIsAddModalOpen} />
     </ProfileLayout>
   );
 }
