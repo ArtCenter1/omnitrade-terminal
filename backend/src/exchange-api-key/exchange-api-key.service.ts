@@ -1,7 +1,6 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { CreateExchangeApiKeyDto } from './dto/create-exchange-api-key.dto';
-import { TestExchangeApiKeyDto } from './dto/test-exchange-api-key.dto';
 import * as crypto from 'crypto';
 import * as ccxt from 'ccxt';
 
@@ -123,11 +122,7 @@ export class ExchangeApiKeyService {
    * Test the connection/credentials for a given exchange API key.
    * (This is a mock implementation. Replace with real exchange API call.)
    */
-  async testApiKey(
-    userId: string,
-    apiKeyId: string,
-    _dto: TestExchangeApiKeyDto, // dto is unused, prefixed with _
-  ) {
+  async testApiKey(userId: string, apiKeyId: string) {
     const key = await prisma.userApiKey.findUnique({
       where: { api_key_id: apiKeyId },
       select: {
@@ -160,8 +155,8 @@ export class ExchangeApiKeyService {
       }
 
       // Instantiate the exchange and cast to 'any' to bypass strict TS checks for dynamic access
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       // @ts-expect-error - Suppress TS error for dynamic instantiation which is handled by runtime checks
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
       const exchange: any = new ccxt[exchangeId]({
         apiKey: apiKey,
         secret: apiSecret,
@@ -192,22 +187,31 @@ export class ExchangeApiKeyService {
       //   data: { is_valid: false },
       // });
 
-      let errorMessage = 'API key connection failed.';
-      if (error instanceof ccxt.AuthenticationError) {
-        errorMessage = 'API key connection failed: Invalid credentials.';
-      } else if (error instanceof ccxt.ExchangeNotAvailable) {
-        errorMessage = `API key connection failed: Exchange '${key.exchange_id}' is currently unavailable.`;
-      } else if (error instanceof ccxt.NetworkError) {
-        errorMessage = `API key connection failed: Network error (${error.message}).`;
-      } else if (error instanceof Error) {
-        // Catch specific ccxt errors or generic errors
-        errorMessage = `API key connection failed: ${error.message}`;
+      let errorMessage =
+        'API key connection failed: An unknown error occurred.';
+      if (error instanceof Error) {
+        // Use specific CCXT error messages if available, otherwise generic Error message
+        if (error instanceof ccxt.AuthenticationError) {
+          errorMessage = 'API key connection failed: Invalid credentials.';
+        } else if (error instanceof ccxt.ExchangeNotAvailable) {
+          // Need 'key' in scope to use key.exchange_id. Let's use a generic message for now or fetch key again if needed.
+          // For simplicity, using a generic message based on instructions.
+          // If key.exchange_id is crucial, the 'key' variable would need to be accessible here.
+          // Reverting to a more generic message as 'key' might not be in scope if the initial findUnique failed,
+          // although the current structure fetches 'key' before the try block.
+          // Let's assume 'key' is accessible as per original code structure.
+          errorMessage = `API key connection failed: Exchange '${key?.exchange_id || 'selected exchange'}' is currently unavailable.`;
+        } else if (error instanceof ccxt.NetworkError) {
+          errorMessage = `API key connection failed: Network error (${error.message}).`;
+        } else {
+          errorMessage = `API key connection failed: ${error.message}`;
+        }
+      } else if (typeof error === 'string') {
+        errorMessage = `API key connection failed: ${error}`;
       }
-
-      return {
-        success: false,
-        message: errorMessage,
-      };
+      // Log the full error object for debugging
+      console.error('CCXT Test Error:', error);
+      return { success: false, message: errorMessage };
     }
     // --- End CCXT Validation ---
   }
