@@ -5,12 +5,14 @@ import * as api from "../services/marketDataApi";
 import { useSymbols } from "../hooks/useSymbols";
 
 // Mock the API hook
+// Mock the specific function used by the hook (useMarkets)
 vi.mock("../services/marketDataApi", () => ({
-  useSymbols: vi.fn(),
+  useMarkets: vi.fn(), // Mock only useMarkets
 }));
 
 function setupMockApi(data: any, overrides: any = {}) {
-  (api.useSymbols as any).mockReturnValue({
+  // Mock the return value of useMarkets
+  (api.useMarkets as any).mockReturnValue({
     data,
     isLoading: false,
     isError: false,
@@ -22,11 +24,13 @@ function setupMockApi(data: any, overrides: any = {}) {
 
 describe("useSymbols (custom hook)", () => {
   it("returns symbols from API hook", () => {
-    const symbols = [{ symbol: "BTCUSDT" }, { symbol: "ETHUSDT" }];
-    setupMockApi(symbols);
+    // Mock the market data returned by useMarkets
+    const marketData = [{ id: "bitcoin" }, { id: "ethereum" }];
+    setupMockApi(marketData);
 
     const { result } = renderHook(() => useSymbols());
-    expect(result.current.symbols).toEqual(symbols);
+    // Expect the hook to extract the IDs
+    expect(result.current.symbols).toEqual(["bitcoin", "ethereum"]);
     expect(result.current.isLoading).toBe(false);
     expect(result.current.isError).toBe(false);
     expect(result.current.error).toBeNull();
@@ -37,7 +41,8 @@ describe("useSymbols (custom hook)", () => {
     const options = { staleTime: 1000 };
     setupMockApi([], { isLoading: true });
     renderHook(() => useSymbols(options));
-    expect(api.useSymbols).toHaveBeenCalledWith(options);
+    // Expect useMarkets to be called with undefined params (default) and the options
+    expect(api.useMarkets).toHaveBeenCalledWith(undefined, options);
   });
 
   it("handles error state", () => {
