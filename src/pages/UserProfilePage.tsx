@@ -1,4 +1,13 @@
 import React, { useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogClose,
+} from '../components/ui/dialog';
+import { addExchangeApiKey } from '../services/exchangeApiKeyService';
 
 const UserProfilePage: React.FC = () => {
   const [activeSection, setActiveSection] = useState('User Profile');
@@ -15,6 +24,46 @@ const UserProfilePage: React.FC = () => {
     { id: 2, label: 'crypto9ight Binance', type: 'Futures', exchange: 'Binance', apiKeyMasked: '****...****' },
     { id: 3, label: 'KuCoin crypto9ight', type: 'Spot', exchange: 'KuCoin', apiKeyMasked: '****...****' },
   ];
+
+  // Modal state and form fields for Add Exchange
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [exchangeId, setExchangeId] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [apiSecret, setApiSecret] = useState('');
+  const [keyNickname, setKeyNickname] = useState('');
+  const [addLoading, setAddLoading] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+
+  // Example exchange options (should be dynamic in real app)
+  const exchangeOptions = [
+    { id: 'binance', name: 'Binance' },
+    { id: 'kucoin', name: 'KuCoin' },
+    // Add more as needed
+  ];
+
+  const handleAddAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAddLoading(true);
+    setAddError(null);
+    try {
+      await addExchangeApiKey({
+        exchange_id: exchangeId,
+        api_key: apiKey,
+        api_secret: apiSecret,
+        key_nickname: keyNickname || undefined,
+      });
+      setAddModalOpen(false);
+      setExchangeId('');
+      setApiKey('');
+      setApiSecret('');
+      setKeyNickname('');
+      // TODO: Refresh accounts list from backend here
+    } catch (err: any) {
+      setAddError(err.message || 'Failed to add exchange API key');
+    } finally {
+      setAddLoading(false);
+    }
+  };
 
   const sidebarItems = [
     'User Profile',
@@ -453,8 +502,11 @@ const UserProfilePage: React.FC = () => {
                 </button>
               </div>
             </div>
-          </section>
-        )}
+            {/* Removed redundant Dialog open tag here */}
+          </section> // Added closing section tag
+        )} // Added closing brace for Security (2FA) block
+
+        {/* Moved My Accounts section here */}
         {activeSection === 'My Accounts' && (
           <section className="mb-10 bg-gray-800 p-6 rounded-lg border border-gray-700">
             {/* Section Title is handled by the main H1 */}
@@ -462,19 +514,92 @@ const UserProfilePage: React.FC = () => {
             <div className="mb-6 pb-4 border-b border-gray-600">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-gray-300">External Accounts</h2>
-                <div className="flex space-x-3">
-                  <button className="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-gray-800">
-                    SYNC ALL ACCOUNTS
-                  </button>
-                  <button className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800">
-                    ADD ACCOUNT
-                  </button>
-                </div>
               </div>
               <p className="text-sm text-gray-400">
                 Manage your connected exchange API keys. Add new keys or remove existing ones.
               </p>
             </div>
+            {/* Add Exchange Modal */}
+            <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add Exchange API Key</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleAddAccount} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                      Exchange
+                    </label>
+                    <select
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-gray-200"
+                      value={exchangeId}
+                      onChange={e => setExchangeId(e.target.value)}
+                      required
+                    >
+                      <option value="">Select Exchange</option>
+                      {exchangeOptions.map(opt => (
+                        <option key={opt.id} value={opt.id}>{opt.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                      API Key
+                    </label>
+                    <input
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-gray-200"
+                      type="text"
+                      value={apiKey}
+                      onChange={e => setApiKey(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                      API Secret
+                    </label>
+                    <input
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-gray-200"
+                      type="password"
+                      value={apiSecret}
+                      onChange={e => setApiSecret(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                      Nickname (optional)
+                    </label>
+                    <input
+                      className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-gray-200"
+                      type="text"
+                      value={keyNickname}
+                      onChange={e => setKeyNickname(e.target.value)}
+                    />
+                  </div>
+                  {addError && (
+                    <div className="text-red-500 text-sm">{addError}</div>
+                  )}
+                  <DialogFooter>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 disabled:opacity-50"
+                      disabled={addLoading}
+                    >
+                      {addLoading ? 'Adding...' : 'Add Exchange'}
+                    </button>
+                    <DialogClose asChild>
+                      <button
+                        type="button"
+                        className="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded hover:bg-gray-500"
+                      >
+                        Cancel
+                      </button>
+                    </DialogClose>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
 
             {/* Accounts Table/List */}
             <div className="overflow-x-auto">

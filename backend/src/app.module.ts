@@ -10,6 +10,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MarketDataModule } from './market-data/market-data.module';
 import { AuthModule } from './auth/auth.module'; // Assuming this is Firebase Auth
+import { ExchangeApiKeyModule } from './exchange-api-key/exchange-api-key.module';
 // Determine which auth module to load based on environment variable
 const authProvider = process.env.VITE_AUTH_PROVIDER;
 const authModules = [];
@@ -36,6 +37,7 @@ if (authProvider === 'firebase') {
     }),
     MarketDataModule,
     ...authModules, // Spread the conditionally added auth modules here
+    ExchangeApiKeyModule,
   ],
   controllers: [AppController],
   providers: [AppService],
