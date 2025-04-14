@@ -130,7 +130,8 @@ export class ExchangeApiKeyService {
   ) {
     const key = await prisma.userApiKey.findUnique({
       where: { api_key_id: apiKeyId },
-      select: { // Added select to fetch necessary fields
+      select: {
+        // Added select to fetch necessary fields
         user_id: true,
         exchange_id: true, // Fetch exchange_id
         api_key_encrypted: true,
