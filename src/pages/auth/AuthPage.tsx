@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { supabase } from '@/integrations/supabase/client';
 
 const AuthPage = () => {
   // State for the login form
@@ -21,8 +20,7 @@ const AuthPage = () => {
   const [registerEmail, setRegisterEmail] = useState('');
   const [registerPassword, setRegisterPassword] = useState('');
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  const [fullName, setFullName] = useState(''); // Replace firstName and lastName
   const [registerLoading, setRegisterLoading] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
 
@@ -31,7 +29,7 @@ const AuthPage = () => {
   const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
 
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, signUp, resetPassword, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as any)?.from?.pathname || '/dashboard';
@@ -49,6 +47,8 @@ const AuthPage = () => {
     if (path.includes('/register')) return 'register';
     return 'login';
   };
+
+  const [activeTab, setActiveTab] = useState(getInitialTab());
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,7 +81,8 @@ const AuthPage = () => {
     setRegisterLoading(true);
 
     try {
-      const { error, success } = await signUp(registerEmail, registerPassword, firstName, lastName);
+      // Pass fullName as the third argument (userName)
+      const { error, success } = await signUp(registerEmail, registerPassword, fullName);
       
       if (error) {
         toast.error(error.message || 'Failed to sign up');
@@ -93,11 +94,10 @@ const AuthPage = () => {
         setRegisterEmail('');
         setRegisterPassword('');
         setRegisterConfirmPassword('');
-        setFirstName('');
-        setLastName('');
+        setFullName(''); // Reset fullName instead
         
         // Switch to login tab
-        document.getElementById('login-tab')?.click();
+        setActiveTab('login');
       }
     } catch (error: any) {
       toast.error(error.message || 'An error occurred during registration');
@@ -109,12 +109,10 @@ const AuthPage = () => {
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setForgotPasswordLoading(true);
-
+  
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
-      });
-
+      const { error, success } = await resetPassword(forgotEmail);
+  
       if (error) {
         toast.error(error.message || 'Failed to send reset link');
       } else {
@@ -139,7 +137,7 @@ const AuthPage = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue={getInitialTab()} className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger id="login-tab" value="login">Login</TabsTrigger>
                 <TabsTrigger value="register">Register</TabsTrigger>
@@ -192,29 +190,18 @@ const AuthPage = () => {
               
               <TabsContent value="register">
                 <form onSubmit={handleRegister} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">First Name</Label>
-                      <Input 
-                        id="firstName"
-                        type="text"
-                        placeholder="John"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        className="bg-gray-800 border-gray-700 text-white"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <Input 
-                        id="lastName"
-                        type="text"
-                        placeholder="Doe"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        className="bg-gray-800 border-gray-700 text-white"
-                      />
-                    </div>
+                  {/* Replace First/Last Name inputs with Full Name */}
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName">Full Name</Label>
+                    <Input
+                      id="fullName"
+                      type="text"
+                      placeholder="John Doe"
+                      required // Add required if needed
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      className="bg-gray-800 border-gray-700 text-white"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="registerEmail">Email</Label>

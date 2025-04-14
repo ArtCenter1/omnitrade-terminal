@@ -11,7 +11,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Link } from "react-router-dom";
 
+import React, { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+
 export default function LoginPage() {
+  const { signIn, isLoading } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [formLoading, setFormLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormLoading(true);
+    setError(null);
+    const { error } = await signIn(email, password);
+    if (error) {
+      setError(error.message || "Login failed");
+    }
+    setFormLoading(false);
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
       <Card className="w-full max-w-sm bg-gray-950 border-gray-800">
@@ -22,36 +42,49 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="email" className="text-gray-300">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="m@example.com"
-              required
-              className="bg-gray-900 border-gray-700 text-white placeholder-gray-500 focus:border-green-500 focus:ring-green-500"
-            />
-          </div>
-          <div className="grid gap-2">
-            <div className="flex items-center">
-              <Label htmlFor="password" className="text-gray-300">Password</Label>
-              <Link to="/forgot-password" className="ml-auto inline-block text-sm text-green-500 hover:underline">
-                Forgot your password?
-              </Link>
+          <form className="grid gap-4" onSubmit={handleSubmit}>
+            <div className="grid gap-2">
+              <Label htmlFor="email" className="text-gray-300">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="m@example.com"
+                required
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                className="bg-gray-900 border-gray-700 text-white placeholder-gray-500 focus:border-green-500 focus:ring-green-500"
+              />
             </div>
-            <Input
-              id="password"
-              type="password"
-              required
-              className="bg-gray-900 border-gray-700 text-white placeholder-gray-500 focus:border-green-500 focus:ring-green-500"
-            />
-          </div>
-          <Button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white">
-            Login
-          </Button>
-          <Button variant="outline" className="w-full border-gray-700 hover:bg-gray-800 text-white">
-            Login with Google
-          </Button>
+            <div className="grid gap-2">
+              <div className="flex items-center">
+                <Label htmlFor="password" className="text-gray-300">Password</Label>
+                <Link to="/forgot-password" className="ml-auto inline-block text-sm text-green-500 hover:underline">
+                  Forgot your password?
+                </Link>
+              </div>
+              <Input
+                id="password"
+                type="password"
+                required
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                className="bg-gray-900 border-gray-700 text-white placeholder-gray-500 focus:border-green-500 focus:ring-green-500"
+              />
+            </div>
+            {error && (
+              <div className="text-red-500 text-sm text-center">{error}</div>
+            )}
+            <Button
+              type="submit"
+              className="w-full bg-green-600 hover:bg-green-700 text-white"
+              disabled={formLoading || isLoading}
+            >
+              {formLoading || isLoading ? "Logging in..." : "Login"}
+            </Button>
+            <Button variant="outline" className="w-full border-gray-700 hover:bg-gray-800 text-white" type="button" disabled>
+              Login with Google
+            </Button>
+          </form>
         </CardContent>
         <CardFooter className="text-center text-sm text-gray-400">
           Don't have an account?{" "}

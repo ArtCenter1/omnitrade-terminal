@@ -1,5 +1,25 @@
 # Authentication Flow Design
 
+---
+
+## Provider Support & Migration Status
+
+**OmniTrade uses Firebase for authentication.**
+- See the `.env` file and `README.md` for setup instructions.
+
+### Flow Differences
+
+- **Firebase**: Handles user registration, login, session management, and password resets via Firebase Auth. Tokens and user state are managed by the Firebase SDK.
+- The frontend code uses the `VITE_AUTH_PROVIDER` flag to determine which provider to use at runtime.
+
+**Caveats:**
+- Ensure only one provider is active at a time.
+- Review all authentication logic and environment variables when switching providers.
+- Future changes should update both documentation and environment setup instructions.
+
+---
+
+
 This document details the proposed authentication flow for the OpenTrade platform, using JSON Web Tokens (JWT).
 
 ## Overview

@@ -27,37 +27,37 @@ const mockLeaderboardData = [
 
 export function LeaderboardTable() {
   return (
-    <div className="bg-gray-900 rounded-lg overflow-hidden">
+    <div className="bg-theme-card rounded-lg overflow-hidden shadow-theme-md theme-transition">
       <Table>
         <TableHeader>
-          <TableRow className="border-gray-800 hover:bg-gray-900">
-            <TableHead className="w-[50px] text-gray-400">Rank</TableHead>
-            <TableHead className="text-gray-400">Trader</TableHead>
-            <TableHead className="text-right text-gray-400">PNL (30d)</TableHead>
-            <TableHead className="text-right text-gray-400">Win Rate (30d)</TableHead>
-            <TableHead className="text-right text-gray-400">Trades (30d)</TableHead>
-            <TableHead className="text-center text-gray-400">Actions</TableHead>
+          <TableRow className="border-theme-primary hover:bg-theme-hover theme-transition">
+            <TableHead className="w-[50px] text-theme-tertiary">Rank</TableHead>
+            <TableHead className="text-theme-tertiary">Trader</TableHead>
+            <TableHead className="text-right text-theme-tertiary">PNL (30d)</TableHead>
+            <TableHead className="text-right text-theme-tertiary">Win Rate (30d)</TableHead>
+            <TableHead className="text-right text-theme-tertiary">Trades (30d)</TableHead>
+            <TableHead className="text-center text-theme-tertiary">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {mockLeaderboardData.map((trader) => (
-            <TableRow key={trader.rank} className="border-gray-800 hover:bg-gray-800/50">
-              <TableCell className="font-medium text-white">{trader.rank}</TableCell>
+            <TableRow key={trader.rank} className="border-theme-primary hover:bg-theme-hover theme-transition">
+              <TableCell className="font-medium text-theme-primary">{trader.rank}</TableCell>
               <TableCell>
                 <div className="flex items-center space-x-3">
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={trader.avatar || "/placeholder.svg"} alt={trader.name} />
                     <AvatarFallback>{trader.name.charAt(0)}</AvatarFallback>
                   </Avatar>
-                  <span className="font-medium text-white">{trader.name}</span>
+                  <span className="font-medium text-theme-primary">{trader.name}</span>
                   {trader.isVerified && <Badge variant="secondary" className="bg-blue-500/20 text-blue-400 border-none text-xs px-1.5 py-0.5">Verified</Badge>}
                 </div>
               </TableCell>
               <TableCell className="text-right text-crypto-green">{trader.pnl}</TableCell>
-              <TableCell className="text-right text-white">{trader.winRate}</TableCell>
-              <TableCell className="text-right text-white">{trader.trades}</TableCell>
+              <TableCell className="text-right text-theme-primary">{trader.winRate}</TableCell>
+              <TableCell className="text-right text-theme-primary">{trader.trades}</TableCell>
               <TableCell className="text-center">
-                <Button variant={trader.isFollowing ? "secondary" : "outline"} size="sm" className={`h-8 text-xs ${trader.isFollowing ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'border-gray-600 hover:bg-gray-800 text-gray-300'}`}>
+                <Button variant={trader.isFollowing ? "secondary" : "outline"} size="sm" className={`h-8 text-xs ${trader.isFollowing ? 'bg-theme-tertiary hover:bg-theme-hover text-theme-primary' : 'border-theme-primary hover:bg-theme-hover text-theme-secondary'} theme-transition`}>
                   <Star size={14} className={`mr-1 ${trader.isFollowing ? 'text-yellow-400 fill-yellow-400' : 'text-gray-500'}`} />
                   {trader.isFollowing ? 'Following' : 'Follow'}
                 </Button>

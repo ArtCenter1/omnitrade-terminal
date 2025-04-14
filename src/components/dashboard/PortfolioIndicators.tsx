@@ -1,4 +1,3 @@
-
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -33,26 +32,26 @@ const PortfolioIndicator = ({ title, value, change, isPercentage = false, isPosi
 export function PortfolioIndicators() {
   return (
     <div className="flex justify-between items-center mb-6 px-1">
-      <PortfolioIndicator 
-        title="Portfolio Value (USD)" 
-        value="$47,854.48" 
-        change="-$2,139.11" 
-        isPositive={false} 
+      <PortfolioIndicator
+        title="Portfolio Value (USD)"
+        value="$47,854.48"
+        change="-$2,139.11"
+        isPositive={false}
       />
-      
-      <PortfolioIndicator 
-        title="24h Change (USD)" 
-        value="-$2,139.11" 
-        change="-$2,139.11" 
-        isPositive={false} 
+
+      <PortfolioIndicator
+        title="24h Change (USD)"
+        value="-$2,139.11"
+        change="-$2,139.11"
+        isPositive={false}
       />
-      
-      <PortfolioIndicator 
-        title="24h Change (%)" 
-        value="-4.28%" 
-        change="4.28" 
-        isPercentage={true} 
-        isPositive={false} 
+
+      <PortfolioIndicator
+        title="24h Change (%)"
+        value="-4.28%"
+        change="4.28"
+        isPercentage={true}
+        isPositive={false}
       />
     </div>
   );

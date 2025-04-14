@@ -1,4 +1,3 @@
-
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
 
 type PerformanceChartProps = {
@@ -23,33 +22,33 @@ export function PerformanceChart({ data = [], isPositive, className = "performan
               <stop offset="95%" stopColor={isPositive ? "#05c48a" : "#ea384d"} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <XAxis 
-            dataKey="date" 
+          <XAxis
+            dataKey="date"
             axisLine={false}
             tickLine={false}
             tick={{ fill: '#666', fontSize: 10 }}
           />
-          <YAxis 
+          <YAxis
             axisLine={false}
             tickLine={false}
             tick={{ fill: '#666', fontSize: 10 }}
             orientation="right"
           />
-          <Tooltip 
-            contentStyle={{ 
-              backgroundColor: '#111', 
-              borderColor: '#333', 
-              borderRadius: '4px' 
+          <Tooltip
+            contentStyle={{
+              backgroundColor: '#111',
+              borderColor: '#333',
+              borderRadius: '4px'
             }}
             itemStyle={{ color: '#fff' }}
             labelStyle={{ color: '#999' }}
           />
-          <Area 
-            type="monotone" 
-            dataKey="value" 
-            stroke={isPositive ? "#05c48a" : "#ea384d"} 
-            fillOpacity={1} 
-            fill="url(#colorPerformance)" 
+          <Area
+            type="monotone"
+            dataKey="value"
+            stroke={isPositive ? "#05c48a" : "#ea384d"}
+            fillOpacity={1}
+            fill="url(#colorPerformance)"
           />
         </AreaChart>
       </ResponsiveContainer>

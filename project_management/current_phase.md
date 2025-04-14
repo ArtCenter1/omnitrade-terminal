@@ -1,46 +1,28 @@
+---
+### Assistant Startup Instruction
 
-# Current Phase: Phase 3 - Backend Infrastructure
+**At the start of every session or when resuming a task, you must:**
 
-## Status: In Progress
+- **Read the current phase and next step from this file.**
+- **Provide the user with a brief summary of the current project status.**
+- **Explain the next step in simple, easy-to-understand language.**
+- **Outline a clear, step-by-step plan to accomplish the next step.**
 
-## Completed Tasks (from Previous Phases)
-- Created project management folder structure
-- Created 000_start_here.txt file
-- Created initial reference files
-- Set up basic UI components and pages structure
-- Created project overview document
-- Created project roadmap
-- Implemented UI components library (leveraging shadcn/ui)
-- Developed responsive layout foundation
-- Built Dashboard page UI with portfolio indicators
-- Built Terminal page UI with trading interface
-- Implemented navigation and routing between pages
-- Created authentication UI (login, registration, password reset)
-- Built Bots management page UI
-- Built Markets page UI with market data display
-- Built Earn/Rewards page UI
-- Implemented Community page with leaderboards
+---
 
-## Current Tasks
-- ✅ Set up database connection configuration
-- ✅ Implemented database schema
-- ✅ Implemented user authentication flow
-- ✅ Built session management system
-- ✅ Created JWT token integration with Supabase
-- Working on role-based access control
-- Planning API endpoints for market data
-- Designing user management services
+# Current Project Phase
 
-## Next Steps
-- Complete role-based access control
-- Implement password reset functionality
-- Create API endpoints for market data
-- Implement API key management for exchanges
-- Set up monitoring and operations infrastructure
+The API and WebSocket review for the Market Data integration has been completed. All relevant endpoints, event schemas, and authentication requirements have been analyzed using `market_data_api_openapi.yaml` and `market_data_websocket.md`. This review ensures a clear understanding of the data flow and technical requirements for real-time and RESTful market data features.
 
-## Notes
-- The project has now moved from Phase 2 (Frontend Core Development) to Phase 3 (Backend Infrastructure)
-- We've successfully integrated Supabase for authentication and database
-- Basic user registration, login, and session management are now working
-- We've updated the user data model documentation to match implementation
-- Security considerations remain paramount for storing API keys and user data
+---
+
+## Next Step
+
+**Select and configure state management, data fetching, and WebSocket client libraries**
+
+The immediate next focus is to:
+- Evaluate and choose libraries for state management (e.g., Zustand), data fetching (e.g., React Query), and WebSocket connectivity (e.g., Reconnecting WebSocket).
+- Install the selected libraries.
+- Begin configuring the project structure to support robust, real-time market data integration.
+
+This step will lay the technical foundation for implementing the Market Data API and WebSocket features in the frontend.

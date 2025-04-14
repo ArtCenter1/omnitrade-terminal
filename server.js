@@ -9,13 +9,23 @@
  */
 
 const express = require('express');
-const jwt = require('jsonwebtoken');
+const admin = require('firebase-admin');
 const bcrypt = require('bcrypt');
 const { PrismaClient } = require('@prisma/client');
 const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const http = require('http');
 const WebSocket = require('ws');
+
+// --- Firebase Admin Initialization ---
+const serviceAccount = require('./omnitrade-firebase-adminsdk.json'); // Make sure this path is correct
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+// --- End Firebase Admin Initialization ---
+
+const { loadUserPermissions, checkPermission } = require('./rbacMiddleware');
 
 const app = express();
 const prisma = new PrismaClient();
@@ -45,20 +55,38 @@ const marketLimiter = rateLimit({
 
 app.use(express.json());
 
-const JWT_SECRET = process.env.JWT_SECRET || 'changeme';
+// const JWT_SECRET = process.env.JWT_SECRET || 'changeme'; // No longer needed
 
-// Middleware: Authenticate JWT and attach user info
+// Middleware: Authenticate Firebase ID Token and attach user info
 async function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-  if (!token) return res.sendStatus(401);
+  const idToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+
+  if (!idToken) {
+    console.log('Auth: No token provided');
+    return res.sendStatus(401); // Unauthorized
+  }
 
   try {
-    const payload = jwt.verify(token, JWT_SECRET);
-    req.user = payload;
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    // Attach user info to the request. Map Firebase uid to userId for compatibility.
+    // You might need to fetch additional user details (like role) from your DB
+    // based on decodedToken.uid if they aren't stored as custom claims in Firebase.
+    req.user = {
+        userId: decodedToken.uid, // Map uid to userId
+        email: decodedToken.email,
+        // role: decodedToken.role || 'user' // Example: Get role from custom claims or default
+        // Add other relevant fields from decodedToken if needed
+    };
+    console.log(`Auth: Token verified for user ${req.user.userId}`);
     next();
-  } catch {
-    res.sendStatus(403);
+  } catch (error) {
+    console.error('Auth: Error verifying Firebase ID token:', error.message);
+    // Handle specific errors like expired token, revoked token, etc. if needed
+    if (error.code === 'auth/id-token-expired') {
+        return res.status(401).send('Token expired');
+    }
+    return res.sendStatus(403); // Forbidden
   }
 }
 
@@ -73,14 +101,26 @@ function requireRole(roles) {
 }
 
 // Example protected route (admin only)
-app.get('/admin/dashboard', authenticateToken, requireRole(['admin']), (req, res) => {
-  res.json({ message: 'Welcome, admin!' });
-});
+app.get(
+  '/admin/dashboard',
+  authenticateToken,
+  loadUserPermissions,
+  checkPermission('system_settings:manage'),
+  (req, res) => {
+    res.json({ message: 'Welcome, admin!' });
+  }
+);
 
 // Example protected route (any logged-in user)
-app.get('/user/profile', authenticateToken, requireRole(['user', 'admin']), (req, res) => {
-  res.json({ message: 'Welcome, user!' });
-});
+app.get(
+  '/user/profile',
+  authenticateToken,
+  loadUserPermissions,
+  checkPermission('profile:read:own'),
+  (req, res) => {
+    res.json({ message: 'Welcome, user!' });
+  }
+);
 
 // Password reset request
 app.post('/auth/request-password-reset', async (req, res) => {
@@ -212,12 +252,11 @@ wss.on('connection', (ws) => {
 app.get('/api/v1/users/me', authenticateToken, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
-      where: { user_id: req.user.userId },
+      where: { user_id: req.user.userId }, // Uses userId mapped from Firebase uid
       select: { // Select only public profile fields
         user_id: true,
         email: true,
-        first_name: true,
-        last_name: true,
+        user_name: true,
         created_at: true,
         last_login_at: true,
         role: true
@@ -235,12 +274,11 @@ app.get('/api/v1/users/me', authenticateToken, async (req, res) => {
 
 // PUT /api/v1/users/update-profile - Update current user's profile
 app.put('/api/v1/users/update-profile', authenticateToken, async (req, res) => {
-  const { first_name, last_name } = req.body;
+  const { user_name } = req.body;
   const updateData = {};
 
   // Only include fields that are provided in the request
-  if (first_name !== undefined) updateData.first_name = first_name;
-  if (last_name !== undefined) updateData.last_name = last_name;
+  if (user_name !== undefined) updateData.user_name = user_name;
 
   if (Object.keys(updateData).length === 0) {
     return res.status(400).json({ error: 'No fields provided for update' });
@@ -248,13 +286,12 @@ app.put('/api/v1/users/update-profile', authenticateToken, async (req, res) => {
 
   try {
     const updatedUser = await prisma.user.update({
-      where: { user_id: req.user.userId },
+      where: { user_id: req.user.userId }, // Uses userId mapped from Firebase uid
       data: updateData,
       select: { // Return updated public profile
         user_id: true,
         email: true,
-        first_name: true,
-        last_name: true,
+        user_name: true,
         created_at: true,
         last_login_at: true,
         role: true,
@@ -279,7 +316,7 @@ app.put('/api/v1/users/update-profile', authenticateToken, async (req, res) => {
 app.get('/api/v1/users/settings', authenticateToken, async (req, res) => {
   try {
     const settings = await prisma.userSetting.findMany({
-      where: { user_id: req.user.userId },
+      where: { user_id: req.user.userId }, // Uses userId mapped from Firebase uid
       select: { setting_key: true, setting_value: true } // Only return key and value
     });
 
@@ -304,7 +341,7 @@ app.put('/api/v1/users/settings', authenticateToken, async (req, res) => {
     return res.status(400).json({ error: 'Invalid or empty settings object provided' });
   }
 
-  const userId = req.user.userId;
+  const userId = req.user.userId; // Uses userId mapped from Firebase uid
   const updatePromises = [];
 
   for (const key in settingsToUpdate) {
@@ -370,7 +407,7 @@ async function createNotification(userId, type, message) {
 // GET /api/v1/users/notifications - Fetch notifications for the current user
 app.get('/api/v1/users/notifications', authenticateToken, async (req, res) => {
   const { read } = req.query; // Optional query param: ?read=true or ?read=false
-  const whereClause = { user_id: req.user.userId };
+  const whereClause = { user_id: req.user.userId }; // Uses userId mapped from Firebase uid
 
   if (read !== undefined) {
     whereClause.is_read = read === 'true';
@@ -422,7 +459,7 @@ async function logUserActivity(userId, activityType, details = null, req = null)
 app.get('/api/v1/users/activity', authenticateToken, async (req, res) => {
   try {
     const activityLogs = await prisma.userActivityLog.findMany({
-      where: { user_id: req.user.userId },
+      where: { user_id: req.user.userId }, // Uses userId mapped from Firebase uid
       orderBy: { timestamp: 'desc' }, // Show newest first
       take: 100, // Limit the number of logs returned
       select: { // Select specific fields to return
@@ -445,7 +482,7 @@ app.get('/api/v1/users/activity', authenticateToken, async (req, res) => {
 // GET /api/v1/performance/bots/:botId - Fetch performance for a specific bot
 app.get('/api/v1/performance/bots/:botId', authenticateToken, async (req, res) => {
   const { botId } = req.params;
-  const userId = req.user.userId; // Assuming bot performance is tied to the user
+  const userId = req.user.userId; // Uses userId mapped from Firebase uid
 
   try {
     // Verify the bot exists and belongs to the user (or is public if that's a feature)
@@ -571,9 +608,7 @@ app.get('/api/v1/performance/leaderboard', authenticateToken, async (req, res) =
             // bot_name: true, // Assuming a name field exists on Bot model
             user: { // Include related user info
               select: {
-                // user_name: true // Assuming a username field exists
-                first_name: true,
-                last_name: true
+                user_name: true
               }
             }
           }

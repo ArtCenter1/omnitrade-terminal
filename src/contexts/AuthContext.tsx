@@ -1,16 +1,25 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
+// Firebase imports
+import { app as firebaseApp } from '@/integrations/firebase/client';
+import {
+  getAuth,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  signOut as firebaseSignOut,
+  User as FirebaseUser,
+} from 'firebase/auth';
+
 type AuthContextType = {
-  session: Session | null;
-  user: User | null;
+  user: FirebaseUser | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any | null }>;
-  signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error: any | null, success: boolean }>;
+  signUp: (email: string, password: string, userName: string) => Promise<{ error: any | null, success: boolean }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any | null, success: boolean }>;
 };
@@ -18,138 +27,78 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  // State for Firebase
+  const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
-        console.log('Auth state changed:', event, currentSession?.user?.email);
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-        setIsLoading(false);
-
-        if (event === 'SIGNED_IN') {
-          // Use setTimeout to avoid calling Supabase inside the callback
-          setTimeout(() => {
-            toast.success(`Welcome back, ${currentSession?.user?.email}`);
-            navigate('/dashboard');
-          }, 0);
-        } else if (event === 'SIGNED_OUT') {
-          // Use setTimeout to avoid calling Supabase inside the callback
-          setTimeout(() => {
-            toast.info('You have been signed out');
-            navigate('/auth');
-          }, 0);
-        }
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      console.log('Initial session check:', currentSession?.user?.email);
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
+    // Firebase Auth state listener
+    const auth = getAuth(firebaseApp);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
       setIsLoading(false);
+
+      if (firebaseUser) {
+        setTimeout(() => {
+          toast.success(`Welcome back, ${firebaseUser.email}`);
+        }, 0);
+      } else {
+        setTimeout(() => {
+          toast.info('You have been signed out');
+          navigate('/auth');
+        }, 0);
+      }
     });
 
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => unsubscribe();
   }, [navigate]);
 
   const signIn = async (email: string, password: string) => {
     try {
-      console.log('Signing in with:', email);
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      
-      if (error) {
-        console.error('Sign in error:', error.message);
-        return { error };
-      }
-      
-      console.log('Sign in successful:', data.user?.email);
+      const auth = getAuth(firebaseApp);
+      await signInWithEmailAndPassword(auth, email, password);
       return { error: null };
-    } catch (error) {
-      console.error('Exception during sign in:', error);
+    } catch (error: any) {
+      console.error('Firebase sign in error:', error.message);
       return { error };
     }
   };
 
-  const signUp = async (email: string, password: string, firstName: string, lastName: string) => {
+  const signUp = async (email: string, password: string, userName: string) => {
     try {
-      console.log('Signing up with:', email, 'name:', firstName, lastName);
-      
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { 
-            first_name: firstName,
-            last_name: lastName,
-            role: 'user' // Default role for new users
-          },
-        },
-      });
-      
-      if (error) {
-        console.error('Sign up error:', error.message);
-        return { error, success: false };
-      }
-      
-      console.log('Sign up successful:', data);
-      
-      // Email confirmation is usually enabled in Supabase by default
-      if (data.user && !data.user.confirmed_at) {
-        return { 
-          error: null, 
-          success: true,
-          // Email confirmation message is handled by the component
-        };
-      }
-      
-      // If email confirmation is disabled, the user is signed in immediately
+      const auth = getAuth(firebaseApp);
+      await createUserWithEmailAndPassword(auth, email, password);
+      // Optionally update profile with userName here if needed
+      // await updateProfile(userCredential.user, { displayName: userName });
       return { error: null, success: true };
-    } catch (error) {
-      console.error('Exception during sign up:', error);
+    } catch (error: any) {
+      console.error('Firebase sign up error:', error.message);
       return { error, success: false };
     }
   };
 
   const signOut = async () => {
     try {
-      console.log('Signing out');
-      await supabase.auth.signOut();
+      const auth = getAuth(firebaseApp);
+      await firebaseSignOut(auth);
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('Firebase sign out error:', error);
     }
   };
 
   const resetPassword = async (email: string) => {
     try {
-      console.log('Requesting password reset for:', email);
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
-      });
-      
-      if (error) {
-        console.error('Password reset error:', error.message);
-        return { error, success: false };
-      }
-      
-      console.log('Password reset email sent successfully');
+      const auth = getAuth(firebaseApp);
+      await sendPasswordResetEmail(auth, email);
       return { error: null, success: true };
-    } catch (error) {
-      console.error('Exception during password reset:', error);
+    } catch (error: any) {
+      console.error('Firebase password reset error:', error.message);
       return { error, success: false };
     }
   };
 
   const value = {
-    session,
     user,
     isLoading,
     signIn,

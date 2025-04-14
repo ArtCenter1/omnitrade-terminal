@@ -1,7 +1,6 @@
-
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";       
 import { AssetChart } from "./AssetChart";
-import { generateChartData } from "@/lib/utils";
+import { generateChartData } from "@/lib/utils";       
 
 type AssetRowProps = {
   asset: {
@@ -15,10 +14,10 @@ type AssetRowProps = {
   };
 }
 
-export function AssetRow({ asset }: AssetRowProps) {
-  const isPositive = !asset.change.includes('-');
-  const chartData = generateChartData(isPositive);
-  
+export function AssetRow({ asset }: AssetRowProps) {   
+  const isPositive = !asset.change.includes('-');      
+  const chartData = generateChartData(isPositive);     
+
   return (
     <tr className="border-b border-gray-800">
       <td className="py-4 px-4 flex items-center space-x-2">

@@ -1,5 +1,7 @@
 # Phase 2 Checklist: Frontend Core Development
 
+**Workflow Note:** Please complete the tasks in this checklist sequentially, one by one. Reordering is permissible only if it demonstrably leads to a more efficient or effective outcome.
+
 ## Phase Objective
 Implement the core user interface components, pages, and navigation for the OpenTrade frontend application based on the designs and specifications from Phase 1.
 
@@ -16,6 +18,30 @@ Implement the core user interface components, pages, and navigation for the Open
 *   [x] Build Community page UI (Leaderboard page created with filters and table components, routed)
 *   [x] Implement Landing Page Leaderboard Preview section (Component created and added to Index page)
 *   [x] Implement navigation and routing (Navbar/Footer links updated, ProtectedRoute structure added)
+
+---
+
+## Frontend Market Data Integration
+
+**Objective:** Develop dedicated frontend integration for the Market Data API, including REST and WebSocket support, robust state management, and real-time updates.
+
+**Checklist:**
+- [ ] **Phase 1: Foundation & Setup**
+  - [x] Review `market_data_api_openapi.yaml` and `market_data_websocket.md` for endpoint/event details, schemas, and authentication.
+  - [x] Select and configure state management (e.g., Zustand), data fetching (e.g., React Query), and WebSocket client libraries.
+  - [x] Define API base URLs and WebSocket endpoints in environment variables (`.env`).
+  - [x] Install selected libraries (`zustand`, `react-query`, `reconnecting-websocket`, etc.).
+  - [x] Confirm/create directories: `src/services/`, `src/hooks/`, `src/store/`, `src/types/`.
+- [x] **Phase 2: Implementation**
+  - [x] Define or generate TypeScript types for all API responses and WebSocket messages in `src/types/marketData.ts`.
+  - [x] Implement `src/services/marketDataApi.ts` using React Query for REST API calls (getSymbols, getTicker, getOrderbook, etc.). Handle errors and API keys.
+  - [x] Implement `src/services/marketDataSocket.ts` for WebSocket management (connect, disconnect, subscribe, unsubscribe, handle messages, reconnection).
+  - [x] Implement `src/store/marketDataStore.ts` (or similar) using Zustand to hold data and handle updates from WebSocket.
+  - [x] Implement custom React Hooks (`src/hooks/`) like `useSymbols`, `useTicker`, `useOrderbook`, etc., integrating React Query, Zustand, and WebSocket subscriptions.
+- [ ] **Phase 3: Integration & Refinement**
+  - [ ] Refactor UI components (e.g., `Markets.tsx`, Trading Terminal) to use the new custom hooks.
+  - [x] Write unit/integration tests for services, store, and hooks.
+  - [x] Add JSDoc comments to new code.
 
 ---
 *Mark items as complete ([x]) as development progresses.*

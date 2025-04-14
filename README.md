@@ -1,6 +1,6 @@
 # OmniTrade Platform
 
-OmniTrade is a comprehensive platform designed for automated cryptocurrency trading. It allows users to configure and manage trading bots, monitor market data, visualize portfolio performance, and participate in token reward programs.
+A revolutionary, enterprise-grade AI-powered Crypto trading platform featuring cutting-edge LLM model customization. The platform seamlessly integrates blockchain technology to create a thriving ecosystem where community members earn tokens through referrals and valuable code contributions.
 
 ## Key Features
 
@@ -51,7 +51,7 @@ OmniTrade is a comprehensive platform designed for automated cryptocurrency trad
 1.  **Clone the repository:**
     ```bash
     git clone <YOUR_REPOSITORY_URL>
-    cd open-trade
+    cd omnitrade
     ```
 
 2.  **Install dependencies:**
@@ -64,6 +64,37 @@ OmniTrade is a comprehensive platform designed for automated cryptocurrency trad
     ```bash
     bun run dev
     ```
+## Authentication Provider Setup
+
+The OmniTrade platform now uses **Firebase** as the sole authentication provider.
+
+- `VITE_AUTH_PROVIDER=firebase` is required in your `.env` file.
+
+**Required environment variables:**
+
+- `VITE_FIREBASE_API_KEY`
+- `VITE_FIREBASE_AUTH_DOMAIN`
+- `VITE_FIREBASE_PROJECT_ID`
+- `VITE_FIREBASE_STORAGE_BUCKET`
+- `VITE_FIREBASE_MESSAGING_SENDER_ID`
+- `VITE_FIREBASE_APP_ID`
+- `VITE_FIREBASE_MEASUREMENT_ID`
+
+See the `.env` file for detailed placeholders and instructions.
+
+## Environment Variables
+
+All configuration is managed via the `.env` file in the project root.
+- Only Firebase variables are required.
+- See `.env` for detailed instructions.
+
+## Migration Notes
+
+- The platform has fully migrated from Supabase to Firebase for authentication.
+- All Supabase code, configuration, and documentation have been removed.
+- Future developers should review the `.env` file and authentication documentation before making changes.
+- See `project_management/authentication_flow.md` for details on authentication flows and caveats.
+
 
 ## Available Scripts
 

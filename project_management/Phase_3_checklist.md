@@ -1,6 +1,8 @@
 
 # Phase 3 Checklist: Backend Infrastructure
 
+**Workflow Note:** Please complete the tasks in this checklist sequentially, one by one. Reordering is permissible only if it demonstrably leads to a more efficient or effective outcome.
+
 ## Database Setup
 - [x] Design and implement database schema
 - [x] Set up database connection configuration
@@ -11,16 +13,17 @@
 - [x] Implement user registration flow
 - [x] Implement login/logout functionality
 - [x] Set up JWT token system
-- [ ] Implement role-based access control
-- [ ] Create password reset functionality
+- [x] Implement role-based access control (Completed 2025-04-11)
+- [x] Create password reset functionality (Completed 2025-04-13)
+**Note:** Password reset enhancement is deferred. Revisit this task after completing Market Data APIs in Phase 3.
 - [x] Implement session management
 
 ## Market Data APIs
-- [ ] Create API endpoints for market data
-- [ ] Implement data caching layer
-- [ ] Set up real-time market data updates
-- [ ] Create historical data endpoints
-- [ ] Implement rate limiting
+- [x] Create API endpoints for market data
+- [x] Implement data caching layer
+- [x] Set up real-time market data updates
+- [x] Create historical data endpoints
+- [x] Implement rate limiting
 
 ## Bot Execution Engine
 - [ ] Design bot execution architecture

@@ -5,10 +5,8 @@ import { useAuth } from "@/hooks/useAuth";
 export function AccountInfo() {
   const { user } = useAuth();
   
-  // Get user metadata from Supabase
-  const firstName = user?.user_metadata?.first_name || '';
-  const lastName = user?.user_metadata?.last_name || '';
-  const fullName = firstName && lastName ? `${firstName} ${lastName}` : user?.email?.split('@')[0] || 'User';
+  // Get user display name from Firebase
+  const displayName = user?.displayName || user?.email?.split('@')[0] || 'User';
   
   // Format current date for display
   const formatDate = (date: Date) => {
@@ -27,11 +25,11 @@ export function AccountInfo() {
       <div className="space-y-2 mb-4">
         <div className="flex justify-between">
           <span className="text-gray-400 text-sm">Name:</span>
-          <span className="text-white text-sm">{fullName}</span>
+          <span className="text-white text-sm">{displayName}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-gray-400 text-sm">Registered:</span>
-          <span className="text-white text-sm">{user?.created_at ? formatDate(new Date(user.created_at)) : 'Jun, 2019'}</span>
+          <span className="text-white text-sm">{user?.metadata?.creationTime ? formatDate(new Date(user.metadata.creationTime)) : 'Jun, 2019'}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-gray-400 text-sm">Current Plan:</span>

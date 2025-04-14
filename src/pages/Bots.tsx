@@ -14,57 +14,57 @@ export default function Bots() {
           Automate your strategies with our professionally designed trading algorithms.
         </p>
       </div>
-      
+
       <p className="text-gray-400 mb-8 text-sm max-w-4xl">
         Discover a range of trusted, pre-configured, yet fully customizable trading strategies in one place and start effortlessly. Whether you're a beginner aspiring to apply sophisticated strategies or an experienced pro looking for automation, take your trading to the next level. Create your own bots easily or explore our most popular, time-tested strategies.
       </p>
-      
+
       <div className="mb-8">
         <div className="relative max-w-md">
           <Search className="text-gray-500 absolute left-3 top-1/2 transform -translate-y-1/2" size={18} />
-          <Input 
-            placeholder="Search for bots..." 
+          <Input
+            placeholder="Search for bots..."
             className="pl-10 bg-gray-800 border-gray-700 h-10 rounded-lg w-full"
           />
         </div>
       </div>
-      
+
       <Tabs defaultValue="popular">
         <div className="border-b border-gray-800 mb-8">
           <TabsList className="bg-transparent">
-            <TabsTrigger 
-              value="all" 
+            <TabsTrigger
+              value="all"
               className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none data-[state=active]:shadow-none"
             >
               ALL BOTS
             </TabsTrigger>
-            <TabsTrigger 
-              value="popular" 
+            <TabsTrigger
+              value="popular"
               className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none data-[state=active]:shadow-none"
             >
               POPULAR STRATEGIES
             </TabsTrigger>
-            <TabsTrigger 
-              value="ai" 
+            <TabsTrigger
+              value="ai"
               className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none data-[state=active]:shadow-none"
             >
               AI & SMART TRADING
             </TabsTrigger>
-            <TabsTrigger 
-              value="signals" 
+            <TabsTrigger
+              value="signals"
               className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none data-[state=active]:shadow-none"
             >
               SIGNALS
             </TabsTrigger>
-            <TabsTrigger 
-              value="technical" 
+            <TabsTrigger
+              value="technical"
               className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none data-[state=active]:shadow-none"
             >
               TECHNICAL ANALYSIS
             </TabsTrigger>
           </TabsList>
         </div>
-        
+
         <TabsContent value="all" className="mt-0">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {mockBots.map((bot, index) => (
@@ -72,7 +72,7 @@ export default function Bots() {
             ))}
           </div>
         </TabsContent>
-        
+
         <TabsContent value="popular" className="mt-0">
           <div className="mb-6">
             <h3 className="flex items-center text-sm text-primary font-medium mb-4">
@@ -88,7 +88,7 @@ export default function Bots() {
             </div>
           </div>
         </TabsContent>
-        
+
         <TabsContent value="ai" className="mt-0">
           <div className="mb-6">
             <h3 className="flex items-center text-sm text-primary font-medium mb-4">
@@ -120,7 +120,7 @@ export default function Bots() {
             </div>
           </div>
         </TabsContent>
-        
+
         <TabsContent value="signals" className="mt-0">
           <div className="mb-6">
             <h3 className="flex items-center text-sm text-primary font-medium mb-4">
@@ -142,7 +142,7 @@ export default function Bots() {
             </div>
           </div>
         </TabsContent>
-        
+
         <TabsContent value="technical" className="mt-0">
           <div className="mb-6">
             <h3 className="flex items-center text-sm text-primary font-medium mb-4">

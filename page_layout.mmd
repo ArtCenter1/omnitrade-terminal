@@ -1,0 +1,36 @@
+graph TD
+  App --> ThemeProvider
+  ThemeProvider --> ScrollToTop
+  ThemeProvider --> Routes
+  Routes --> Index["Index (/)"]
+  Routes --> AuthPage["AuthPage (/auth)"]
+  Routes --> LoginPage["LoginPage (/login)"]
+  Routes --> RegisterPage["RegisterPage (/register)"]
+  Routes --> ForgotPasswordPage["ForgotPasswordPage (/forgot-password)"]
+  Routes --> ResetPasswordPage["ResetPasswordPage (/auth/reset-password)"]
+  Routes --> Pricing["Pricing (/pricing)"]
+  Routes --> OmniToken["OmniToken (/omni-token)"]
+  Routes --> TradingBotsLanding["TradingBotsLanding (/trading-bots)"]
+  Routes --> Blog["Blog (/blog)"]
+  Routes --> NotFound["NotFound (*)"]
+
+  Routes --> ProtectedRoute
+  ProtectedRoute --> Navbar
+  ProtectedRoute --> Dashboard["Dashboard (/dashboard)"]
+  ProtectedRoute --> Terminal["Terminal (/terminal)"]
+  ProtectedRoute --> Bots["Bots (/bots)"]
+  ProtectedRoute --> Markets["Markets (/markets)"]
+  ProtectedRoute --> Earn["Earn (/earn)"]
+  ProtectedRoute --> Community["Community (/community)"]
+  ProtectedRoute --> AIDrivenPage["AIDrivenPage (/ai-driven)"]
+  ProtectedRoute --> UserProfile["UserProfile (/profile)"]
+  ProtectedRoute --> MyAccounts["MyAccounts (/profile/accounts)"]
+  ProtectedRoute --> Security["Security (/profile/security)"]
+  ProtectedRoute --> ChangePassword["ChangePassword (/profile/change-password)"]
+  ProtectedRoute --> Preferences["Preferences (/profile/preferences)"]
+  ProtectedRoute --> PlanSubscription["PlanSubscription (/profile/subscription)"]
+
+  Routes --> RoleProtectedRoute
+  RoleProtectedRoute --> AdminDashboard["AdminDashboard (/admin)"]
+  RoleProtectedRoute --> UserManagement["UserManagement (/admin/users)"]
+  RoleProtectedRoute --> RoleManagement["RoleManagement (/admin/roles)"]

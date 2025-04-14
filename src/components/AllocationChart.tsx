@@ -1,4 +1,3 @@
-
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 
 type AllocationChartProps = {
@@ -29,11 +28,11 @@ export function AllocationChart({ data = [], className = "pie-chart-container" }
               <Cell key={`cell-${index}`} fill={entry.color} />
             ))}
           </Pie>
-          <Tooltip 
-            contentStyle={{ 
-              backgroundColor: '#111', 
-              borderColor: '#333', 
-              borderRadius: '4px' 
+          <Tooltip
+            contentStyle={{
+              backgroundColor: '#111',
+              borderColor: '#333',
+              borderRadius: '4px'
             }}
             itemStyle={{ color: '#fff' }}
             formatter={(value: number) => [`${value.toFixed(2)}%`, 'Allocation']}

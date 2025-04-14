@@ -16,15 +16,14 @@ model User {
   user_id        String    @id @default(uuid())
   email          String    @unique
   password_hash  String
-  first_name     String?
-  last_name      String?
+  user_name      String    @unique
+  full_name      String?
   created_at     DateTime  @default(now())
   updated_at     DateTime  @updatedAt
   last_login_at  DateTime?
   is_active      Boolean   @default(true)
   email_verified Boolean   @default(false)
 
-  role             Role       @default(USER)
   reset_token      String?
   reset_token_expiry DateTime?
 
@@ -34,13 +33,11 @@ model User {
   notifications Notification[] // Relation to Notification model
   activityLogs UserActivityLog[] // Relation to UserActivityLog model
 
+  roles UserRole[]
+
   @@map("users") // Maps to the 'users' table
 }
 
-enum Role {
-  ADMIN
-  USER
-}
 
 // --- Exchange Model ---
 model Exchange {
@@ -252,4 +249,54 @@ model BacktestResult {
 
   @@index([bot_id])
   @@map("backtest_results")
+}
+model Role {
+  role_id     String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  permissions RolePermission[]
+  users       UserRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  permission_id String   @id @default(uuid())
+  action        String
+  resource      String
+  description   String?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  roles         RolePermission[]
+
+  @@unique([action, resource])
+  @@map("permissions")
+}
+
+model UserRole {
+  user_id     String
+  role_id     String
+  assigned_at DateTime @default(now())
+
+  user        User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  role        Role @relation(fields: [role_id], references: [role_id], onDelete: Cascade)
+
+  @@id([user_id, role_id])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  role_id       String
+  permission_id String
+  assigned_at   DateTime @default(now())
+
+  role        Role       @relation(fields: [role_id], references: [role_id], onDelete: Cascade)
+  permission  Permission @relation(fields: [permission_id], references: [permission_id], onDelete: Cascade)
+
+  @@id([role_id, permission_id])
+  @@map("role_permissions")
 }
