@@ -15,7 +15,9 @@ describe('ExchangeApiKeyController', () => {
           useValue: {
             addApiKey: jest.fn().mockResolvedValue({ api_key_id: 'id1' }),
             listApiKeys: jest.fn().mockResolvedValue([]),
-            deleteApiKey: jest.fn().mockResolvedValue({ message: 'API key deleted' }),
+            deleteApiKey: jest
+              .fn()
+              .mockResolvedValue({ message: 'API key deleted' }),
             testApiKey: jest.fn().mockResolvedValue({ success: true }),
           },
         },

@@ -17,7 +17,13 @@ import marketDataSocket from "../services/marketDataSocket";
  */
 export function useOrderbook(symbol: string, options = {}) {
   // Fetch initial/historical data
-  const { data: initialData, isLoading, isError, error, refetch } = useOrderbookQuery(symbol, options);
+  const {
+    data: initialData,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useOrderbookQuery(symbol, options);
 
   // Subscribe/unsubscribe to real-time updates
   useEffect(() => {
@@ -32,7 +38,10 @@ export function useOrderbook(symbol: string, options = {}) {
   const realtimeData = useMarketDataStore((state) => state.orderbooks[symbol]);
 
   // Merge initial and real-time data (prefer real-time if available)
-  const orderbook = useMemo(() => realtimeData || initialData, [realtimeData, initialData]);
+  const orderbook = useMemo(
+    () => realtimeData || initialData,
+    [realtimeData, initialData]
+  );
 
   return {
     orderbook,

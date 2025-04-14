@@ -1,14 +1,13 @@
-
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
-export function formatCurrency(value: number, currency = 'USD', decimals = 2) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
+export function formatCurrency(value: number, currency = "USD", decimals = 2) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
     currency,
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
@@ -16,15 +15,15 @@ export function formatCurrency(value: number, currency = 'USD', decimals = 2) {
 }
 
 export function formatPercentage(value: number, decimals = 2) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'percent',
+  return new Intl.NumberFormat("en-US", {
+    style: "percent",
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   }).format(value / 100);
 }
 
 export function formatNumber(value: number, decimals = 2) {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat("en-US", {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   }).format(value);
@@ -34,12 +33,12 @@ export function generateChartData(isPositive: boolean) {
   const trend = isPositive ? 1 : -1;
   const volatility = 0.5;
   const startValue = 10;
-  
+
   return Array.from({ length: 20 }, (_, i) => {
     const random = Math.random() * volatility * 2 - volatility;
-    const trendFactor = i / 20 * trend;
+    const trendFactor = (i / 20) * trend;
     return {
-      value: startValue + trendFactor * 5 + random
+      value: startValue + trendFactor * 5 + random,
     };
   });
 }
@@ -53,27 +52,28 @@ export function generatePriceChartData(isPositive: boolean) {
   return Array.from({ length }, (_, i) => {
     const date = new Date(baseDate);
     date.setHours(date.getHours() - (length - i));
-    
+
     const progress = i / (length - 1);
     const direction = isPositive ? 1 : -1;
     const randomFactor = Math.random() * 1000 * direction;
-    const value = startValue + (endValue - startValue) * progress + randomFactor;
-    
+    const value =
+      startValue + (endValue - startValue) * progress + randomFactor;
+
     return {
       date: `${date.getMonth() + 1}/${date.getDate()}`,
-      value
+      value,
     };
   });
 }
 
 export function generateAllocationData() {
   return [
-    { name: 'BTC', value: 35, color: '#F7931A' },
-    { name: 'ETH', value: 25, color: '#627EEA' },
-    { name: 'BNB', value: 15, color: '#F3BA2F' },
-    { name: 'SOL', value: 10, color: '#00FFA3' },
-    { name: 'USDT', value: 8, color: '#26A17B' },
-    { name: 'Others', value: 7, color: '#9B87F5' },
+    { name: "BTC", value: 35, color: "#F7931A" },
+    { name: "ETH", value: 25, color: "#627EEA" },
+    { name: "BNB", value: 15, color: "#F3BA2F" },
+    { name: "SOL", value: 10, color: "#00FFA3" },
+    { name: "USDT", value: 8, color: "#26A17B" },
+    { name: "Others", value: 7, color: "#9B87F5" },
   ];
 }
 
@@ -85,7 +85,7 @@ export const mockAssets = [
     amount: "0.01797199",
     value: "$1,529.96",
     price: "$85,138.00",
-    change: "-1.97%"
+    change: "-1.97%",
   },
   {
     icon: "/placeholder.svg",
@@ -94,7 +94,7 @@ export const mockAssets = [
     amount: "0.95",
     value: "$2,769.45",
     price: "$2,915.21",
-    change: "-4.65%"
+    change: "-4.65%",
   },
   {
     icon: "/placeholder.svg",
@@ -103,7 +103,7 @@ export const mockAssets = [
     amount: "2.04651185",
     value: "$1,240.70",
     price: "$606.25",
-    change: "-3.28%"
+    change: "-3.28%",
   },
   {
     icon: "/placeholder.svg",
@@ -112,7 +112,7 @@ export const mockAssets = [
     amount: "15.12",
     value: "$1,823.98",
     price: "$120.63",
-    change: "-4.77%"
+    change: "-4.77%",
   },
   {
     icon: "/placeholder.svg",
@@ -121,7 +121,7 @@ export const mockAssets = [
     amount: "82.22",
     value: "$1,173.28",
     price: "$14.27",
-    change: "-8.43%"
+    change: "-8.43%",
   },
   {
     icon: "/placeholder.svg",
@@ -130,43 +130,47 @@ export const mockAssets = [
     amount: "11.00869",
     value: "$82.53",
     price: "$7.50",
-    change: "-1.18%"
-  }
+    change: "-1.18%",
+  },
 ];
 
 export const mockBots = [
   {
     title: "Accumulator",
-    description: "Buy the asset little by little to ensure as stable DCA with the accumulator, that fits perfectly with asset price volatility, avoiding huge price swings.",
+    description:
+      "Buy the asset little by little to ensure as stable DCA with the accumulator, that fits perfectly with asset price volatility, avoiding huge price swings.",
     icon: "/placeholder.svg",
     iconBg: "bg-green-500 bg-opacity-10",
     popularity: 3,
-    returns: 4
+    returns: 4,
   },
   {
     title: "Grid Trader",
-    description: "Create a structured trading grid around a defined range for the strategy to buy low and sell high automatically, with a tailored grid setup for optimizing profit.",
+    description:
+      "Create a structured trading grid around a defined range for the strategy to buy low and sell high automatically, with a tailored grid setup for optimizing profit.",
     icon: "/placeholder.svg",
     iconBg: "bg-yellow-500 bg-opacity-10",
     tags: ["POPULAR"],
     popularity: 5,
-    returns: 4
+    returns: 4,
   },
   {
     title: "Portfolio Rebalancer",
-    description: "Automatically maintain your desired weight for each asset in your portfolio, with the flexibility to set your own portfolio percentages based on your strategy.",
+    description:
+      "Automatically maintain your desired weight for each asset in your portfolio, with the flexibility to set your own portfolio percentages based on your strategy.",
     icon: "/placeholder.svg",
     iconBg: "bg-blue-500 bg-opacity-10",
     popularity: 4,
-    returns: 3
+    returns: 3,
   },
   {
     title: "Copy Trader",
-    description: "Copy top-performing traders' strategies directly into your account. This bot will help you automatically copy the trades of top-performing traders without requiring input.",
+    description:
+      "Copy top-performing traders' strategies directly into your account. This bot will help you automatically copy the trades of top-performing traders without requiring input.",
     icon: "/placeholder.svg",
     iconBg: "bg-purple-500 bg-opacity-10",
     tags: ["NEW"],
     popularity: 4,
-    returns: 5
-  }
+    returns: 5,
+  },
 ];

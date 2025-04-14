@@ -18,7 +18,13 @@ import marketDataSocket from "../services/marketDataSocket";
  */
 export function useTrades(symbol: string, limit: number = 50, options = {}) {
   // Fetch initial/historical trades
-  const { data: initialData, isLoading, isError, error, refetch } = useTradesQuery(symbol, limit, options);
+  const {
+    data: initialData,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useTradesQuery(symbol, limit, options);
 
   // Subscribe/unsubscribe to real-time updates
   useEffect(() => {
@@ -30,13 +36,17 @@ export function useTrades(symbol: string, limit: number = 50, options = {}) {
   }, [symbol]);
 
   // Select real-time trades from Zustand
-  const realtimeData = useMarketDataStore((state) => state.trades[symbol] || []);
+  const realtimeData = useMarketDataStore(
+    (state) => state.trades[symbol] || []
+  );
 
   // Merge: real-time trades first, then initial trades (avoid duplicates)
   const trades = useMemo(() => {
     if (!initialData) return realtimeData;
     // Remove duplicates by trade id or timestamp if available
-    const initialIds = new Set(initialData.map((t: any) => t.id || t.timestamp));
+    const initialIds = new Set(
+      initialData.map((t: any) => t.id || t.timestamp)
+    );
     const merged = [
       ...realtimeData,
       ...initialData.filter((t: any) => !initialIds.has(t.id || t.timestamp)),

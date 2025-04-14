@@ -44,21 +44,28 @@ export default function LoginPage() {
         <CardContent className="grid gap-4">
           <form className="grid gap-4" onSubmit={handleSubmit}>
             <div className="grid gap-2">
-              <Label htmlFor="email" className="text-gray-300">Email</Label>
+              <Label htmlFor="email" className="text-gray-300">
+                Email
+              </Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="m@example.com"
                 required
                 value={email}
-                onChange={e => setEmail(e.target.value)}
+                onChange={(e) => setEmail(e.target.value)}
                 className="bg-gray-900 border-gray-700 text-white placeholder-gray-500 focus:border-green-500 focus:ring-green-500"
               />
             </div>
             <div className="grid gap-2">
               <div className="flex items-center">
-                <Label htmlFor="password" className="text-gray-300">Password</Label>
-                <Link to="/forgot-password" className="ml-auto inline-block text-sm text-green-500 hover:underline">
+                <Label htmlFor="password" className="text-gray-300">
+                  Password
+                </Label>
+                <Link
+                  to="/forgot-password"
+                  className="ml-auto inline-block text-sm text-green-500 hover:underline"
+                >
                   Forgot your password?
                 </Link>
               </div>
@@ -67,7 +74,7 @@ export default function LoginPage() {
                 type="password"
                 required
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={(e) => setPassword(e.target.value)}
                 className="bg-gray-900 border-gray-700 text-white placeholder-gray-500 focus:border-green-500 focus:ring-green-500"
               />
             </div>
@@ -81,14 +88,22 @@ export default function LoginPage() {
             >
               {formLoading || isLoading ? "Logging in..." : "Login"}
             </Button>
-            <Button variant="outline" className="w-full border-gray-700 hover:bg-gray-800 text-white" type="button" disabled>
+            <Button
+              variant="outline"
+              className="w-full border-gray-700 hover:bg-gray-800 text-white"
+              type="button"
+              disabled
+            >
               Login with Google
             </Button>
           </form>
         </CardContent>
         <CardFooter className="text-center text-sm text-gray-400">
           Don't have an account?{" "}
-          <Link to="/register" className="underline text-green-500 hover:text-green-400">
+          <Link
+            to="/register"
+            className="underline text-green-500 hover:text-green-400"
+          >
             Sign up
           </Link>
         </CardFooter>

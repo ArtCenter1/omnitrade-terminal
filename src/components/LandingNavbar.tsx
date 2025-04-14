@@ -1,4 +1,3 @@
-
 import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
@@ -22,12 +21,12 @@ export function LandingNavbar() {
           <div className="bg-[#1A1A1A] p-2 flex items-center justify-center rounded">
             {/* Using placeholder, replace with actual logo if available */}
             <img
-              src="/placeholder.svg" 
+              src="/placeholder.svg"
               alt="OmniTrade Logo"
               className="h-6 w-6"
             />
           </div>
-           <span className="font-sans font-bold text-xl ml-2">OMNITRADE</span>
+          <span className="font-sans font-bold text-xl ml-2">OMNITRADE</span>
         </Link>
 
         {/* Navigation Links */}
@@ -74,7 +73,6 @@ export function LandingNavbar() {
           >
             Pricing
           </Button>
-
         </nav>
       </div>
 
@@ -85,7 +83,10 @@ export function LandingNavbar() {
           className="font-medium text-white border-purple-500 hover:bg-purple-500 hover:text-black"
           onClick={() => navigate(user ? "/dashboard" : "/auth")}
         >
-          {user ? "Dashboard" : "Sign In"} <span aria-hidden="true" className="ml-1">→</span>
+          {user ? "Dashboard" : "Sign In"}{" "}
+          <span aria-hidden="true" className="ml-1">
+            →
+          </span>
         </Button>
       </div>
     </div>

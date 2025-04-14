@@ -24,7 +24,9 @@ describe("marketDataStore", () => {
 
   it("updates ticker for a symbol", () => {
     act(() => {
-      useMarketDataStore.getState().updateTicker("BTCUSDT", { price: "100", timestamp: 1 });
+      useMarketDataStore
+        .getState()
+        .updateTicker("BTCUSDT", { price: "100", timestamp: 1 });
     });
     const store = useMarketDataStore.getState();
     expect(store.tickers["BTCUSDT"]).toEqual({ price: "100", timestamp: 1 });
@@ -32,7 +34,11 @@ describe("marketDataStore", () => {
 
   it("updates orderbook for a symbol", () => {
     // Use tuple type for bids/asks
-    const ob = { bids: [["1", "2"] as [string, string]], asks: [["3", "4"] as [string, string]], timestamp: 2 };
+    const ob = {
+      bids: [["1", "2"] as [string, string]],
+      asks: [["3", "4"] as [string, string]],
+      timestamp: 2,
+    };
     act(() => {
       useMarketDataStore.getState().updateOrderbook("BTCUSDT", ob);
     });

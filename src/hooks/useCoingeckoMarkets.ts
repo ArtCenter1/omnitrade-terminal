@@ -39,7 +39,9 @@ function formatSupply(supply: number, symbol: string) {
   return supply.toFixed(2) + " " + symbol;
 }
 
-export function useCoingeckoMarkets(refreshInterval = 60000): UseCoingeckoMarketsResult {
+export function useCoingeckoMarkets(
+  refreshInterval = 60000
+): UseCoingeckoMarketsResult {
   const [markets, setMarkets] = useState<Market[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,11 +58,22 @@ export function useCoingeckoMarkets(refreshInterval = 60000): UseCoingeckoMarket
         name: item.name,
         symbol: item.symbol,
         image: item.image,
-        price: "$" + item.current_price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-        change: (item.price_change_percentage_24h >= 0 ? "+" : "") + item.price_change_percentage_24h.toFixed(2) + "%",
+        price:
+          "$" +
+          item.current_price.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }),
+        change:
+          (item.price_change_percentage_24h >= 0 ? "+" : "") +
+          item.price_change_percentage_24h.toFixed(2) +
+          "%",
         volume: formatNumber(item.total_volume),
         marketCap: formatNumber(item.market_cap),
-        supply: formatSupply(item.circulating_supply, item.symbol.toUpperCase()),
+        supply: formatSupply(
+          item.circulating_supply,
+          item.symbol.toUpperCase()
+        ),
         isPositive: item.price_change_percentage_24h >= 0,
         isFavorite: FAVORITES.includes(item.symbol.toUpperCase()),
         sparkline: item.sparkline_in_7d?.price ?? [],

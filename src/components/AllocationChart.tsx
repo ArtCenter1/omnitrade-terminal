@@ -1,11 +1,21 @@
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Legend,
+  Tooltip,
+} from "recharts";
 
 type AllocationChartProps = {
   data: Array<{ name: string; value: number; color: string }>;
   className?: string;
-}
+};
 
-export function AllocationChart({ data = [], className = "pie-chart-container" }: AllocationChartProps) {
+export function AllocationChart({
+  data = [],
+  className = "pie-chart-container",
+}: AllocationChartProps) {
   // Ensure we have valid data before rendering the chart
   if (!data || data.length === 0) {
     return <div className={className}>No allocation data</div>;
@@ -30,12 +40,15 @@ export function AllocationChart({ data = [], className = "pie-chart-container" }
           </Pie>
           <Tooltip
             contentStyle={{
-              backgroundColor: '#111',
-              borderColor: '#333',
-              borderRadius: '4px'
+              backgroundColor: "#111",
+              borderColor: "#333",
+              borderRadius: "4px",
             }}
-            itemStyle={{ color: '#fff' }}
-            formatter={(value: number) => [`${value.toFixed(2)}%`, 'Allocation']}
+            itemStyle={{ color: "#fff" }}
+            formatter={(value: number) => [
+              `${value.toFixed(2)}%`,
+              "Allocation",
+            ]}
           />
         </PieChart>
       </ResponsiveContainer>

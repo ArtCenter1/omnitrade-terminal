@@ -7,15 +7,15 @@ This checklist tracks the prioritized integration of the core frontend component
 ## Phase 1: Exchange Connection & Basic Data Retrieval
 
 - [ ] Implement secure backend API endpoints for:
-    - [ ] Add new API key (with encryption)
-    - [ ] List connected exchanges/keys for the user
-    - [ ] Delete an API key
-    - [ ] Test connection/credentials with the exchange
+  - [ ] Add new API key (with encryption)
+  - [ ] List connected exchanges/keys for the user
+  - [ ] Delete an API key
+  - [ ] Test connection/credentials with the exchange
 - [ ] Connect frontend API key management UI to backend endpoints:
-    - [ ] Add key form submission
-    - [ ] Display list of connected exchanges/keys
-    - [ ] Delete key functionality
-    - [ ] User feedback on connection status
+  - [ ] Add key form submission
+  - [ ] Display list of connected exchanges/keys
+  - [ ] Delete key functionality
+  - [ ] User feedback on connection status
 
 ---
 
@@ -23,24 +23,24 @@ This checklist tracks the prioritized integration of the core frontend component
 
 - [ ] Implement backend API endpoint to fetch and aggregate user portfolio data from all connected exchanges
 - [ ] Connect Dashboard page and components to portfolio endpoint:
-    - [ ] Fetch and display portfolio data
-    - [ ] Display asset breakdown and charts
-    - [ ] Handle loading and error states
+  - [ ] Fetch and display portfolio data
+  - [ ] Display asset breakdown and charts
+  - [ ] Handle loading and error states
 
 ---
 
 ## Phase 3: Trading Terminal Integration
 
 - [ ] Implement backend endpoints/WebSocket for:
-    - [ ] Fetching available trading pairs per exchange
-    - [ ] Streaming live market data for selected pair/exchange
-    - [ ] Placing trade orders
-    - [ ] Fetching open orders/trade history
+  - [ ] Fetching available trading pairs per exchange
+  - [ ] Streaming live market data for selected pair/exchange
+  - [ ] Placing trade orders
+  - [ ] Fetching open orders/trade history
 - [ ] Connect Terminal page components:
-    - [ ] Fetch and display available pairs
-    - [ ] Subscribe to and display live market data
-    - [ ] Submit trade orders
-    - [ ] Display open orders/history
-    - [ ] Handle real-time updates and errors
+  - [ ] Fetch and display available pairs
+  - [ ] Subscribe to and display live market data
+  - [ ] Submit trade orders
+  - [ ] Display open orders/history
+  - [ ] Handle real-time updates and errors
 
 ---

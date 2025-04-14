@@ -1,4 +1,3 @@
-
 import React from "react";
 import { ProfileLayout } from "@/components/profile/ProfileLayout";
 import { Button } from "@/components/ui/button";
@@ -10,10 +9,13 @@ export default function UserProfile() {
       <div className="space-y-6">
         <div>
           <h2 className="text-xl font-medium mb-4">General</h2>
-          
+
           <div className="space-y-6">
             <div>
-              <label htmlFor="name" className="block text-sm text-gray-400 mb-2">
+              <label
+                htmlFor="name"
+                className="block text-sm text-gray-400 mb-2"
+              >
                 Name
               </label>
               <Input
@@ -23,9 +25,12 @@ export default function UserProfile() {
                 className="bg-gray-800 border-gray-700 text-white focus:border-purple-500 w-full"
               />
             </div>
-            
+
             <div>
-              <label htmlFor="email" className="block text-sm text-gray-400 mb-2">
+              <label
+                htmlFor="email"
+                className="block text-sm text-gray-400 mb-2"
+              >
                 Email
               </label>
               <Input
@@ -37,7 +42,7 @@ export default function UserProfile() {
             </div>
           </div>
         </div>
-        
+
         <div className="flex justify-end">
           <Button className="bg-purple-600 hover:bg-purple-700 text-white">
             SAVE CHANGES
@@ -47,7 +52,7 @@ export default function UserProfile() {
 
       <div className="mt-10 space-y-6">
         <h2 className="text-xl font-medium mb-4">Activity Log</h2>
-        
+
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="text-left text-gray-400 border-b border-gray-800">
@@ -80,13 +85,14 @@ export default function UserProfile() {
 
       <div className="mt-10 space-y-6">
         <h2 className="text-xl font-medium mb-4 text-red-500">Danger Zone</h2>
-        
+
         <div className="bg-gray-800 rounded-lg p-4 border-l-4 border-red-500">
           <p className="text-sm text-gray-300 mb-4">
-            Permanently delete your OmniTrade user account and remove any associated exchange and wallet
-            accounts and their data. This action cannot be undone.
+            Permanently delete your OmniTrade user account and remove any
+            associated exchange and wallet accounts and their data. This action
+            cannot be undone.
           </p>
-          
+
           <Button variant="destructive" className="bg-red-600 hover:bg-red-700">
             DELETE ACCOUNT
           </Button>

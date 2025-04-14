@@ -1,7 +1,7 @@
-import React, { ReactNode } from 'react';
-import { Outlet, Navigate, useLocation } from 'react-router-dom';
-import Navbar from '@/components/Navbar'; // Assuming main Navbar is here
-import { useAuth } from '@/hooks/useAuth';
+import React, { ReactNode } from "react";
+import { Outlet, Navigate, useLocation } from "react-router-dom";
+import Navbar from "@/components/Navbar"; // Assuming main Navbar is here
+import { useAuth } from "@/hooks/useAuth";
 
 interface ProtectedLayoutProps {
   children?: ReactNode;
@@ -31,8 +31,11 @@ export function ProtectedLayout({ children }: ProtectedLayoutProps) {
   return (
     <div className="flex flex-col min-h-screen bg-theme-primary theme-transition">
       <Navbar /> {/* Render the main navbar */}
-      <main className="flex-grow bg-theme-primary text-theme-primary theme-transition"> {/* Ensure content area grows */}
-        {children || <Outlet />} {/* Render children if provided, otherwise render the Outlet */}
+      <main className="flex-grow bg-theme-primary text-theme-primary theme-transition">
+        {" "}
+        {/* Ensure content area grows */}
+        {children || <Outlet />}{" "}
+        {/* Render children if provided, otherwise render the Outlet */}
       </main>
       {/* You could add a shared Footer here if needed */}
     </div>

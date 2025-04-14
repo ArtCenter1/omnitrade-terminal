@@ -1,22 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import UserManagement from '@/components/admin/UserManagement';
-import RoleManagement from '@/components/admin/RoleManagement';
-import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
-import { ArrowLeft } from 'lucide-react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import UserManagement from "@/components/admin/UserManagement";
+import RoleManagement from "@/components/admin/RoleManagement";
+import { ProtectedLayout } from "@/components/layout/ProtectedLayout";
+import { ArrowLeft } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 const UserRoleManagement: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('users');
+  const [activeTab, setActiveTab] = useState("users");
 
   // Set the active tab based on the URL query parameter
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const tabParam = params.get('tab');
-    if (tabParam === 'roles') {
-      setActiveTab('roles');
+    const tabParam = params.get("tab");
+    if (tabParam === "roles") {
+      setActiveTab("roles");
     }
   }, [location]);
 
@@ -40,7 +40,10 @@ const UserRoleManagement: React.FC = () => {
           onValueChange={(value) => {
             setActiveTab(value);
             // Update the URL when tab changes
-            navigate(`/admin/users-roles${value === 'roles' ? '?tab=roles' : ''}`, { replace: true });
+            navigate(
+              `/admin/users-roles${value === "roles" ? "?tab=roles" : ""}`,
+              { replace: true }
+            );
           }}
           className="w-full"
         >

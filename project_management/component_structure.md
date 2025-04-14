@@ -4,10 +4,10 @@ This document outlines the **current** structure for React components within the
 
 ## Guiding Principles
 
-*   **Atomic Design Inspiration:** While not strictly adhering to Atomic Design, we'll draw inspiration from its principles: building interfaces from small, reusable pieces up to complex pages.
-*   **Feature-Based Grouping:** Group components related to specific features or pages together.
-*   **Clear Separation:** Distinguish between UI primitives, layout components, feature-specific components, and page-level components.
-*   **Reusability:** Design components to be reusable across different parts of the application where applicable.
+- **Atomic Design Inspiration:** While not strictly adhering to Atomic Design, we'll draw inspiration from its principles: building interfaces from small, reusable pieces up to complex pages.
+- **Feature-Based Grouping:** Group components related to specific features or pages together.
+- **Clear Separation:** Distinguish between UI primitives, layout components, feature-specific components, and page-level components.
+- **Reusability:** Design components to be reusable across different parts of the application where applicable.
 
 ## Current Directory Structure (within `src/components/`)
 
@@ -97,10 +97,11 @@ src/
 ## Key Component Types
 
 1.  **UI Primitives (`components/ui/`):** Base building blocks like Buttons, Inputs, Cards, etc. Primarily uses shadcn/ui components. Should be stateless and highly reusable.
-2.  **Layout & Common Components (`components/` root):** Components defining overall page structure (e.g., `Navbar.tsx`, `Footer.tsx`, `ThemeProvider.tsx`) and reusable components used across features (e.g., `BotCard.tsx`, `RewardCard.tsx`, various charts) are currently located at the root of `src/components/`. The `Navbar.tsx` component includes direct navigation links for Dashboard, Terminal, Bots, Markets, Earn, and Community. *Consideration should be given to potentially grouping these into dedicated `layout/` and `common/` subdirectories in the future for better organization as the project grows.*
+2.  **Layout & Common Components (`components/` root):** Components defining overall page structure (e.g., `Navbar.tsx`, `Footer.tsx`, `ThemeProvider.tsx`) and reusable components used across features (e.g., `BotCard.tsx`, `RewardCard.tsx`, various charts) are currently located at the root of `src/components/`. The `Navbar.tsx` component includes direct navigation links for Dashboard, Terminal, Bots, Markets, Earn, and Community. _Consideration should be given to potentially grouping these into dedicated `layout/` and `common/` subdirectories in the future for better organization as the project grows._
 3.  **(Removed - Merged into above)**
 4.  **Feature Components (`components/<feature>/`):** Components specific to a particular feature area (Dashboard, Terminal, Profile). These might contain their own state and logic related to the feature.
 5.  **Page Components (`pages/`):** Top-level components for each route/page. Responsible for fetching page-specific data and assembling layout and feature components.
 
 ---
-*This structure provides a starting point and can be adapted as the application grows.*
+
+_This structure provides a starting point and can be adapted as the application grows._

@@ -38,7 +38,9 @@ class MarketDataSocket {
    */
   public static getInstance(): MarketDataSocket {
     if (!import.meta.env.VITE_MARKET_DATA_WS_URL) {
-      throw new Error("VITE_MARKET_DATA_WS_URL environment variable is not set. WebSocket connection cannot be established.");
+      throw new Error(
+        "VITE_MARKET_DATA_WS_URL environment variable is not set. WebSocket connection cannot be established."
+      );
     }
     if (!MarketDataSocket.instance) {
       MarketDataSocket.instance = new MarketDataSocket();

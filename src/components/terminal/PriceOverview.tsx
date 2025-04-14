@@ -1,4 +1,3 @@
-
 import React from "react";
 
 export function PriceOverview() {
@@ -12,7 +11,7 @@ export function PriceOverview() {
             <div className="text-crypto-green text-sm">+0.84%</div>
           </div>
         </div>
-        
+
         <div className="grid grid-cols-4 gap-4 text-xs">
           <div>
             <div className="text-gray-400">24h Change</div>

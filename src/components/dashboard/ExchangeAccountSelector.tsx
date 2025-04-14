@@ -25,7 +25,7 @@ const MOCK_ACCOUNTS: Account[] = [
     exchange: "Binance",
     value: "$23,579.83",
     change: "-3.06%",
-    logo: "/placeholder.svg"
+    logo: "/placeholder.svg",
   },
   {
     id: "2",
@@ -33,7 +33,7 @@ const MOCK_ACCOUNTS: Account[] = [
     exchange: "Omni",
     value: "$8,784.14",
     change: "+1.94%",
-    logo: "/placeholder.svg"
+    logo: "/placeholder.svg",
   },
   {
     id: "3",
@@ -41,7 +41,7 @@ const MOCK_ACCOUNTS: Account[] = [
     exchange: "Binance",
     value: "$12,990.83",
     change: "-0.78%",
-    logo: "/placeholder.svg"
+    logo: "/placeholder.svg",
   },
   {
     id: "4",
@@ -49,12 +49,14 @@ const MOCK_ACCOUNTS: Account[] = [
     exchange: "KuCoin",
     value: "$2,499.68",
     change: "+1.65%",
-    logo: "/placeholder.svg"
-  }
+    logo: "/placeholder.svg",
+  },
 ];
 
 export function ExchangeAccountSelector() {
-  const [selectedAccount, setSelectedAccount] = useState<Account>(MOCK_ACCOUNTS[0]);
+  const [selectedAccount, setSelectedAccount] = useState<Account>(
+    MOCK_ACCOUNTS[0]
+  );
 
   return (
     <div className="mb-6">
@@ -74,8 +76,12 @@ export function ExchangeAccountSelector() {
                 />
               </div>
               <div className="flex flex-col items-start">
-                <span className="text-white text-sm">{selectedAccount.name}</span>
-                <span className="text-xs text-gray-400">{selectedAccount.value} | {selectedAccount.change}</span>
+                <span className="text-white text-sm">
+                  {selectedAccount.name}
+                </span>
+                <span className="text-xs text-gray-400">
+                  {selectedAccount.value} | {selectedAccount.change}
+                </span>
               </div>
             </div>
             <ChevronDown size={16} className="ml-2 text-gray-400" />
@@ -98,14 +104,19 @@ export function ExchangeAccountSelector() {
                 </div>
                 <div className="flex flex-col flex-1">
                   <span className="text-white text-sm">{account.name}</span>
-                  <span className="text-xs text-gray-400">{account.value} | {account.change}</span>
+                  <span className="text-xs text-gray-400">
+                    {account.value} | {account.change}
+                  </span>
                 </div>
               </div>
             </DropdownMenuItem>
           ))}
           <DropdownMenuSeparator className="bg-gray-800" />
           <DropdownMenuItem className="cursor-pointer hover:bg-gray-800">
-            <Button variant="outline" className="w-full border-dashed border-gray-700 bg-gray-800/50 hover:bg-gray-800">
+            <Button
+              variant="outline"
+              className="w-full border-dashed border-gray-700 bg-gray-800/50 hover:bg-gray-800"
+            >
               <Plus size={16} className="mr-2" />
               <span>Add Account</span>
             </Button>

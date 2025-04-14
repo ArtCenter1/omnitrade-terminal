@@ -1,4 +1,3 @@
-
 import React from "react";
 
 export function OrderBook() {
@@ -7,13 +6,13 @@ export function OrderBook() {
       <div className="p-3 border-b border-gray-800">
         <h3 className="text-white font-medium">Order Book</h3>
       </div>
-      
+
       <div className="px-3 py-2 flex justify-between text-xs text-gray-400">
         <div>Amount (BTC)</div>
         <div>Price (USDT)</div>
         <div>Total</div>
       </div>
-      
+
       <div className="px-3 py-2 h-80 overflow-y-auto">
         <div className="space-y-1">
           {[...Array(10)].map((_, i) => (
@@ -24,14 +23,14 @@ export function OrderBook() {
             </div>
           ))}
         </div>
-        
+
         <div className="my-2 py-2 border-y border-gray-800">
           <div className="flex justify-between text-sm">
             <div className="font-medium text-white">83,055.34</div>
             <div className="font-medium text-white">$83,055.34</div>
           </div>
         </div>
-        
+
         <div className="space-y-1">
           {[...Array(10)].map((_, i) => (
             <div key={`buy-${i}`} className="flex justify-between text-xs">
@@ -42,16 +41,16 @@ export function OrderBook() {
           ))}
         </div>
       </div>
-      
+
       <div className="p-3 border-t border-gray-800">
         <h3 className="text-white font-medium mb-2">Recent Trades</h3>
-        
+
         <div className="grid grid-cols-3 text-xs text-gray-400 mb-2">
           <div>Amount (BTC)</div>
           <div>Price (USDT)</div>
           <div>Time</div>
         </div>
-        
+
         <div className="space-y-2 h-60 overflow-y-auto">
           {[...Array(10)].map((_, i) => (
             <div key={`trade-${i}`} className="grid grid-cols-3 text-xs">

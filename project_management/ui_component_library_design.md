@@ -4,24 +4,24 @@ This document outlines the design approach for the UI component library used in 
 
 ## Base Library: shadcn/ui
 
-*   **Foundation:** The primary foundation for our UI components is **shadcn/ui**. We leverage its collection of beautifully designed, unstyled components built on Radix UI and styled with Tailwind CSS.
-*   **Component Addition:** New base components (like buttons, inputs, dialogs, cards, etc.) should preferably be added using the `shadcn-ui` CLI (`npx shadcn-ui@latest add [component]`). This ensures they are integrated correctly into the project structure (`src/components/ui/`) and can receive potential future updates.
-*   **Customization:** Styling customization should primarily be done through Tailwind CSS utility classes applied directly where the components are used, or by modifying the base component files within `src/components/ui/` if global style changes are needed for a specific shadcn component. Theme-level changes (colors, fonts, spacing) should be configured in `tailwind.config.ts`.
+- **Foundation:** The primary foundation for our UI components is **shadcn/ui**. We leverage its collection of beautifully designed, unstyled components built on Radix UI and styled with Tailwind CSS.
+- **Component Addition:** New base components (like buttons, inputs, dialogs, cards, etc.) should preferably be added using the `shadcn-ui` CLI (`npx shadcn-ui@latest add [component]`). This ensures they are integrated correctly into the project structure (`src/components/ui/`) and can receive potential future updates.
+- **Customization:** Styling customization should primarily be done through Tailwind CSS utility classes applied directly where the components are used, or by modifying the base component files within `src/components/ui/` if global style changes are needed for a specific shadcn component. Theme-level changes (colors, fonts, spacing) should be configured in `tailwind.config.ts`.
 
 ## Custom & Composed Components
 
-*   **Necessity:** Custom components will be created when:
-    *   A required UI element is not available in `shadcn/ui`.
-    *   A significant composition of multiple `shadcn/ui` or base HTML elements is frequently reused across the application with specific logic or layout.
-    *   A highly specialized component is needed for a specific feature (e.g., a custom chart interaction element).
-*   **Structure:** Custom and composed components should follow the directory structure outlined in `project_management/component_structure.md`:
-    *   **`src/components/common/`:** For reusable components not tied to a single feature (e.g., `MarketSelector`, `AssetIcon`).
-    *   **`src/components/<feature>/`:** For components specific to a feature area (e.g., `terminal/TradingForm`, `dashboard/PortfolioOverview`).
-*   **Design Principles:**
-    *   **Reusability:** Design custom components with reusability in mind where appropriate.
-    *   **Props API:** Define clear and well-typed (TypeScript) props interfaces.
-    *   **Composition:** Build complex components by composing simpler ones (including `shadcn/ui` components).
-    *   **Consistency:** Ensure custom components match the overall visual style and interaction patterns established by the base `shadcn/ui` library and the application's theme.
+- **Necessity:** Custom components will be created when:
+  - A required UI element is not available in `shadcn/ui`.
+  - A significant composition of multiple `shadcn/ui` or base HTML elements is frequently reused across the application with specific logic or layout.
+  - A highly specialized component is needed for a specific feature (e.g., a custom chart interaction element).
+- **Structure:** Custom and composed components should follow the directory structure outlined in `project_management/component_structure.md`:
+  - **`src/components/common/`:** For reusable components not tied to a single feature (e.g., `MarketSelector`, `AssetIcon`).
+  - **`src/components/<feature>/`:** For components specific to a feature area (e.g., `terminal/TradingForm`, `dashboard/PortfolioOverview`).
+- **Design Principles:**
+  - **Reusability:** Design custom components with reusability in mind where appropriate.
+  - **Props API:** Define clear and well-typed (TypeScript) props interfaces.
+  - **Composition:** Build complex components by composing simpler ones (including `shadcn/ui` components).
+  - **Consistency:** Ensure custom components match the overall visual style and interaction patterns established by the base `shadcn/ui` library and the application's theme.
 
 ## Development Process
 
@@ -33,4 +33,5 @@ This document outlines the design approach for the UI component library used in 
 6.  **Document (If Complex):** Add comments or potentially Storybook stories (if Storybook is added later) for complex custom components.
 
 ---
-*This document confirms `shadcn/ui` as the base library and sets guidelines for creating additional components.*
+
+_This document confirms `shadcn/ui` as the base library and sets guidelines for creating additional components._

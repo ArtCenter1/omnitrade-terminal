@@ -6,45 +6,45 @@ This document outlines the design for the Role-Based Access Control (RBAC) syste
 
 The following roles are defined for the system:
 
-*   **`Admin`**: Superuser with full system access. Can manage users (CRUD, role assignment), manage system-wide settings, view all data (including audit logs), manage exchanges, and potentially oversee all trading bots and API keys.
-*   **`Trader`**: Standard user role. Can manage their own profile, create/manage their own trading bots and API keys, view their own performance data and activity logs.
-*   **(Optional)** `Viewer`: A role with read-only access (e.g., public market data, shared bot performance). Cannot perform write operations.
-*   **(Optional)** `Support`: A role for internal support staff with limited read/update access for troubleshooting.
+- **`Admin`**: Superuser with full system access. Can manage users (CRUD, role assignment), manage system-wide settings, view all data (including audit logs), manage exchanges, and potentially oversee all trading bots and API keys.
+- **`Trader`**: Standard user role. Can manage their own profile, create/manage their own trading bots and API keys, view their own performance data and activity logs.
+- **(Optional)** `Viewer`: A role with read-only access (e.g., public market data, shared bot performance). Cannot perform write operations.
+- **(Optional)** `Support`: A role for internal support staff with limited read/update access for troubleshooting.
 
 ## 2. Permissions
 
 Permissions define actions allowed on specific resources, using a `resource:action` format. Permissions are assigned to Roles.
 
-| Resource          | Action         | Description                                      | Admin | Trader | Viewer | Support |
-| :---------------- | :------------- | :----------------------------------------------- | :---- | :----- | :----- | :------ |
-| `user`            | `create`       | Create new users                                 | ✓     |        |        |         |
-| `user`            | `read`         | View user profiles (all)                         | ✓     |        |        | ✓       |
-| `user`            | `update`       | Update any user profile                          | ✓     |        |        | ✓¹      |
-| `user`            | `delete`       | Delete users                                     | ✓     |        |        |         |
-| `user`            | `assign_role`  | Assign/remove roles to/from users                | ✓     |        |        |         |
-| `profile`         | `read:own`     | View own user profile                            | ✓     | ✓      |        | ✓       |
-| `profile`         | `update:own`   | Update own user profile                          | ✓     | ✓      |        | ✓       |
-| `bot`             | `create`       | Create new trading bots (own)                    | ✓     | ✓      |        |         |
-| `bot`             | `read:own`     | View own trading bots                            | ✓     | ✓      |        | ✓       |
-| `bot`             | `read:all`     | View all trading bots                            | ✓     |        |        | ✓       |
-| `bot`             | `update:own`   | Update own trading bots                          | ✓     | ✓      |        |         |
-| `bot`             | `update:all`   | Update any trading bot                           | ✓     |        |        |         |
-| `bot`             | `delete:own`   | Delete own trading bots                          | ✓     | ✓      |        |         |
-| `bot`             | `delete:all`   | Delete any trading bot                           | ✓     |        |        |         |
-| `apikey`          | `create`       | Create new API keys (own)                        | ✓     | ✓      |        |         |
-| `apikey`          | `read:own`     | View own API keys                                | ✓     | ✓      |        | ✓       |
-| `apikey`          | `read:all`     | View all API keys (sensitive info masked)        | ✓     |        |        | ✓       |
-| `apikey`          | `update:own`   | Update own API keys                              | ✓     | ✓      |        |         |
-| `apikey`          | `update:all`   | Update any API key                               | ✓     |        |        |         |
-| `apikey`          | `delete:own`   | Delete own API keys                              | ✓     | ✓      |        |         |
-| `apikey`          | `delete:all`   | Delete any API key                               | ✓     |        |        |         |
-| `exchange`        | `manage`       | Add/update/remove supported exchanges            | ✓     |        |        |         |
-| `system_settings` | `manage`       | Modify system-wide configurations                | ✓     |        |        |         |
-| `auditlog`        | `read`         | View user activity logs                          | ✓     |        |        | ✓       |
-| `data`            | `read:public`  | View public market data/platform stats           | ✓     | ✓      | ✓      | ✓       |
-| `data`            | `read:own`     | View own performance, logs, etc.                 | ✓     | ✓      |        | ✓       |
+| Resource          | Action        | Description                               | Admin | Trader | Viewer | Support |
+| :---------------- | :------------ | :---------------------------------------- | :---- | :----- | :----- | :------ |
+| `user`            | `create`      | Create new users                          | ✓     |        |        |         |
+| `user`            | `read`        | View user profiles (all)                  | ✓     |        |        | ✓       |
+| `user`            | `update`      | Update any user profile                   | ✓     |        |        | ✓¹      |
+| `user`            | `delete`      | Delete users                              | ✓     |        |        |         |
+| `user`            | `assign_role` | Assign/remove roles to/from users         | ✓     |        |        |         |
+| `profile`         | `read:own`    | View own user profile                     | ✓     | ✓      |        | ✓       |
+| `profile`         | `update:own`  | Update own user profile                   | ✓     | ✓      |        | ✓       |
+| `bot`             | `create`      | Create new trading bots (own)             | ✓     | ✓      |        |         |
+| `bot`             | `read:own`    | View own trading bots                     | ✓     | ✓      |        | ✓       |
+| `bot`             | `read:all`    | View all trading bots                     | ✓     |        |        | ✓       |
+| `bot`             | `update:own`  | Update own trading bots                   | ✓     | ✓      |        |         |
+| `bot`             | `update:all`  | Update any trading bot                    | ✓     |        |        |         |
+| `bot`             | `delete:own`  | Delete own trading bots                   | ✓     | ✓      |        |         |
+| `bot`             | `delete:all`  | Delete any trading bot                    | ✓     |        |        |         |
+| `apikey`          | `create`      | Create new API keys (own)                 | ✓     | ✓      |        |         |
+| `apikey`          | `read:own`    | View own API keys                         | ✓     | ✓      |        | ✓       |
+| `apikey`          | `read:all`    | View all API keys (sensitive info masked) | ✓     |        |        | ✓       |
+| `apikey`          | `update:own`  | Update own API keys                       | ✓     | ✓      |        |         |
+| `apikey`          | `update:all`  | Update any API key                        | ✓     |        |        |         |
+| `apikey`          | `delete:own`  | Delete own API keys                       | ✓     | ✓      |        |         |
+| `apikey`          | `delete:all`  | Delete any API key                        | ✓     |        |        |         |
+| `exchange`        | `manage`      | Add/update/remove supported exchanges     | ✓     |        |        |         |
+| `system_settings` | `manage`      | Modify system-wide configurations         | ✓     |        |        |         |
+| `auditlog`        | `read`        | View user activity logs                   | ✓     |        |        | ✓       |
+| `data`            | `read:public` | View public market data/platform stats    | ✓     | ✓      | ✓      | ✓       |
+| `data`            | `read:own`    | View own performance, logs, etc.          | ✓     | ✓      |        | ✓       |
 
-*¹ Support update permissions might be limited (e.g., only password reset, email verification).*
+_¹ Support update permissions might be limited (e.g., only password reset, email verification)._
 
 ## 3. Database Schema (Prisma)
 
@@ -219,16 +219,25 @@ Enforcement in the backend (Node.js/Express) will follow these steps:
 1.  **Authentication Middleware:** Verifies user identity (e.g., JWT) and attaches `req.user = { id: userId }`.
 2.  **Permission Loading Middleware:** Fetches the user's roles and associated permissions based on `req.user.id`. Compiles a flat list/Set of permission strings (e.g., `['bot:create', 'profile:read:own']`) and attaches it as `req.user.permissions`. Consider caching this data.
 3.  **Authorization Middleware/Helpers:** A reusable function (e.g., `checkPermission(requiredPermission)`) checks if `req.user.permissions` contains the required permission for the route.
+
     ```javascript
     // Example Middleware Factory
     const checkPermission = (requiredPermission) => (req, res, next) => {
       if (!req.user?.permissions?.has(requiredPermission)) {
-        return res.status(403).send({ message: 'Forbidden: Insufficient permissions.' });
+        return res
+          .status(403)
+          .send({ message: "Forbidden: Insufficient permissions." });
       }
       next();
     };
 
     // Example Usage in Routes
-    app.post('/api/bots', isAuthenticated, checkPermission('bot:create'), botsController.createBot);
+    app.post(
+      "/api/bots",
+      isAuthenticated,
+      checkPermission("bot:create"),
+      botsController.createBot
+    );
     ```
+
 4.  **Ownership Checks:** For permissions ending in `:own` (e.g., `bot:update:own`), the route handler must perform an additional check to compare the resource's owner ID with `req.user.id` after fetching the resource.

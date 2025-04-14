@@ -5,6 +5,7 @@
 ## 1. Branding Enhancements
 
 - **Customize Firebase Email Templates:**
+
   - Add project logo, colors, and friendly language.
   - Clear subject line, e.g., "Reset your OmniTrade password".
   - Instructions with support contact info.
@@ -20,17 +21,21 @@
 ## 2. Security Improvements
 
 - **Token Expiration:**
+
   - Ensure reset tokens expire within 15-60 minutes.
   - Firebase handles this, but verify settings in the Firebase console.
 
 - **One-Time Use Tokens:**
+
   - Tokens should be invalid after first use (Firebase default).
 
 - **Rate Limiting:**
+
   - Limit password reset requests per IP/email (e.g., 3 per hour).
   - Implement on frontend or via API gateway/middleware.
 
 - **CAPTCHA:**
+
   - ~~Add CAPTCHA (e.g., Google reCAPTCHA) to the reset request form to prevent abuse.~~
   - **NOTE (2025-04-11): CAPTCHA implementation deferred. No permanent site/domain available for registration at this time. Revisit when project is deployed to a permanent domain.**
 
@@ -43,11 +48,13 @@
 ## 3. User Experience Enhancements
 
 - **Clear Feedback:**
+
   - Confirm when reset email is sent (regardless of email existence, for security).
   - Show error messages for invalid/expired tokens.
   - Success message after password reset with redirect countdown.
 
 - **Guided Instructions:**
+
   - Explain steps clearly on reset pages.
   - Provide link back to login or support.
 
@@ -79,3 +86,4 @@ sequenceDiagram
     Frontend->>Firebase: Call confirmPasswordReset(auth, actionCode, newPassword)
     Firebase-->>Frontend: Success or error
     Frontend-->>User: Show success/error, redirect to login
+```

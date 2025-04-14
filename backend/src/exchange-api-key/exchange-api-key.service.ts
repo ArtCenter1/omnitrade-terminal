@@ -5,7 +5,10 @@ import { TestExchangeApiKeyDto } from './dto/test-exchange-api-key.dto';
 import * as crypto from 'crypto';
 
 // WARNING: For demo only. Use a secure key management system in production!
-const ENCRYPTION_KEY = crypto.createHash('sha256').update('super_secret_key').digest(); // 32 bytes
+const ENCRYPTION_KEY = crypto
+  .createHash('sha256')
+  .update('super_secret_key')
+  .digest(); // 32 bytes
 const IV = Buffer.alloc(16, 0); // 16 bytes IV (all zeros for demo)
 
 const prisma = new PrismaClient();
@@ -47,7 +50,10 @@ export class ExchangeApiKeyService {
       },
     });
     if (existing) {
-      throw new HttpException('API key with this nickname already exists for this exchange', HttpStatus.CONFLICT);
+      throw new HttpException(
+        'API key with this nickname already exists for this exchange',
+        HttpStatus.CONFLICT,
+      );
     }
 
     // Encrypt API key and secret
@@ -116,7 +122,11 @@ export class ExchangeApiKeyService {
    * Test the connection/credentials for a given exchange API key.
    * (This is a mock implementation. Replace with real exchange API call.)
    */
-  async testApiKey(userId: string, apiKeyId: string, dto: TestExchangeApiKeyDto) {
+  async testApiKey(
+    userId: string,
+    apiKeyId: string,
+    dto: TestExchangeApiKeyDto,
+  ) {
     const key = await prisma.userApiKey.findUnique({
       where: { api_key_id: apiKeyId },
     });
@@ -130,7 +140,10 @@ export class ExchangeApiKeyService {
     // TODO: Implement real exchange connectivity test here.
     // For now, just return a mock "success" if decrypted values are non-empty.
     if (apiKey && apiSecret) {
-      return { success: true, message: 'API key credentials are valid (mocked)' };
+      return {
+        success: true,
+        message: 'API key credentials are valid (mocked)',
+      };
     } else {
       return { success: false, message: 'Invalid credentials (mocked)' };
     }

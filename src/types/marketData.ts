@@ -37,7 +37,8 @@ export interface MarketCoin {
     percentage: number;
   } | null;
   last_updated: string;
-  sparkline_in_7d?: { // Optional sparkline data
+  sparkline_in_7d?: {
+    // Optional sparkline data
     price: number[];
   };
 }
@@ -67,14 +68,14 @@ export interface Trade {
  * open, high, low, close, volume: string
  */
 export type Kline = [
-  number,    // openTime
-  string,    // open
-  string,    // high
-  string,    // low
-  string,    // close
-  string,    // volume
-  number,    // closeTime
-  ...any[]   // (optional) additional fields
+  number, // openTime
+  string, // open
+  string, // high
+  string, // low
+  string, // close
+  string, // volume
+  number, // closeTime
+  ...any[], // (optional) additional fields
 ];
 
 // --- WebSocket Message Types ---

@@ -1,7 +1,7 @@
-import React from 'react';
+import React from "react";
 
-describe('RegisterForm', () => {
-  it('should render without crashing', () => {
+describe("RegisterForm", () => {
+  it("should render without crashing", () => {
     expect(true).toBe(true);
   });
 });

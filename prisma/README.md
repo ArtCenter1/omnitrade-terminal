@@ -5,6 +5,7 @@ This directory contains the database schema and migrations for the OmniTrade pla
 ## Overview
 
 We use [Prisma](https://www.prisma.io/) as our ORM (Object-Relational Mapping) tool to:
+
 - Define the database schema
 - Generate type-safe database client
 - Manage database migrations
@@ -63,6 +64,7 @@ npm run db:create add-new-feature
 ```
 
 This will:
+
 1. Compare your current schema with the database
 2. Generate a migration file with the necessary SQL
 3. Apply the migration to your database
@@ -77,6 +79,7 @@ npm run db:seed
 ```
 
 This will run the `seed.js` script, which creates:
+
 - Default exchanges
 - A test user (for development only)
 

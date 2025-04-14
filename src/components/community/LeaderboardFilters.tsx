@@ -22,9 +22,14 @@ export function LeaderboardFilters() {
 
         {/* Timeframe Select */}
         <div className="flex items-center space-x-2">
-          <Label htmlFor="timeframe" className="text-sm text-gray-400">Timeframe:</Label>
+          <Label htmlFor="timeframe" className="text-sm text-gray-400">
+            Timeframe:
+          </Label>
           <Select defaultValue="30d">
-            <SelectTrigger id="timeframe" className="w-[100px] h-8 text-xs bg-gray-800 border-gray-700 text-white">
+            <SelectTrigger
+              id="timeframe"
+              className="w-[100px] h-8 text-xs bg-gray-800 border-gray-700 text-white"
+            >
               <SelectValue placeholder="Select" />
             </SelectTrigger>
             <SelectContent className="bg-gray-800 border-gray-700 text-white">
@@ -38,9 +43,14 @@ export function LeaderboardFilters() {
 
         {/* Market Type Select */}
         <div className="flex items-center space-x-2">
-          <Label htmlFor="market" className="text-sm text-gray-400">Market:</Label>
+          <Label htmlFor="market" className="text-sm text-gray-400">
+            Market:
+          </Label>
           <Select defaultValue="all">
-            <SelectTrigger id="market" className="w-[120px] h-8 text-xs bg-gray-800 border-gray-700 text-white">
+            <SelectTrigger
+              id="market"
+              className="w-[120px] h-8 text-xs bg-gray-800 border-gray-700 text-white"
+            >
               <SelectValue placeholder="Select" />
             </SelectTrigger>
             <SelectContent className="bg-gray-800 border-gray-700 text-white">
@@ -53,14 +63,24 @@ export function LeaderboardFilters() {
 
         {/* Verified Checkbox */}
         <div className="flex items-center space-x-2">
-          <Checkbox id="verified" className="border-gray-600 data-[state=checked]:bg-primary data-[state=checked]:border-primary" />
-          <Label htmlFor="verified" className="text-sm text-gray-300">Verified Traders</Label>
+          <Checkbox
+            id="verified"
+            className="border-gray-600 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+          />
+          <Label htmlFor="verified" className="text-sm text-gray-300">
+            Verified Traders
+          </Label>
         </div>
 
         {/* Following Checkbox */}
         <div className="flex items-center space-x-2">
-          <Checkbox id="following" className="border-gray-600 data-[state=checked]:bg-primary data-[state=checked]:border-primary" />
-          <Label htmlFor="following" className="text-sm text-gray-300">Following</Label>
+          <Checkbox
+            id="following"
+            className="border-gray-600 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+          />
+          <Label htmlFor="following" className="text-sm text-gray-300">
+            Following
+          </Label>
         </div>
 
         {/* Reset Button (Optional) */}
