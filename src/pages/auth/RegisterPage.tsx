@@ -50,10 +50,8 @@ export default function RegisterPage() {
         setFullName('');
         setEmail('');
         setPassword('');
-        // For Firebase, redirect to login immediately; for Supabase, user may need to confirm email
-        if (import.meta.env.VITE_AUTH_PROVIDER === 'firebase') {
-          navigate('/login');
-        }
+        // Redirect to login after successful registration (Firebase)
+        navigate('/login');
       }
     } catch (err: any) {
       console.error("Registration submit error:", err);

@@ -10,7 +10,6 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MarketDataModule } from './market-data/market-data.module';
 import { AuthModule } from './auth/auth.module'; // Assuming this is Firebase Auth
-import { SupabaseModule } from './supabase/supabase.module';
 // Determine which auth module to load based on environment variable
 const authProvider = process.env.VITE_AUTH_PROVIDER;
 const authModules = [];
@@ -18,13 +17,10 @@ const authModules = [];
 if (authProvider === 'firebase') {
   authModules.push(AuthModule);
   console.log('Using Firebase Auth Module'); // Added log for confirmation
-} else if (authProvider === 'supabase') {
-  authModules.push(SupabaseModule);
-  console.log('Using Supabase Auth Module'); // Added log for confirmation
 } else {
   // Optional: Handle cases where the provider is not set or invalid
   console.warn(
-    `WARN: VITE_AUTH_PROVIDER is set to "${authProvider}", which is not "firebase" or "supabase". No specific auth module loaded.`,
+    `WARN: VITE_AUTH_PROVIDER is set to "${authProvider}", which is not "firebase". No specific auth module loaded.`,
   );
   // Decide if you want to default or throw an error
   // For now, we'll load neither if unspecified/invalid

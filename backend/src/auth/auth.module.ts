@@ -5,11 +5,10 @@ import {
   RequestMethod,
 } from '@nestjs/common';
 import { AuthController } from './auth.controller';
-import { SupabaseModule } from '../supabase/supabase.module';
 import { passwordResetLimiter } from '../middleware/rate-limiter.middleware';
 
 @Module({
-  imports: [SupabaseModule],
+  imports: [],
   controllers: [AuthController],
   providers: [],
 })

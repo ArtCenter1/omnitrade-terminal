@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
 import { useRoleBasedAccess } from '@/hooks/useRoleBasedAccess';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Users, Settings, BarChart3, ChevronDown, ChevronUp } from 'lucide-react';
@@ -11,38 +10,9 @@ import { Users, Settings, BarChart3, ChevronDown, ChevronUp } from 'lucide-react
 export default function AdminDashboard() {
   const { userRole, isAdmin } = useRoleBasedAccess();
   const { user } = useAuth();
-  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
 
-  // Function to temporarily grant admin role for testing
-  const grantAdminRole = async () => {
-    if (!user) return;
-
-    setLoading(true);
-    setMessage('');
-
-    try {
-      // Update the user's metadata to include the admin role
-      const { error } = await supabase.auth.updateUser({
-        data: { role: 'admin' }
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      // Also update localStorage for immediate effect
-      localStorage.setItem('userRole', 'admin');
-
-      setMessage('Admin role granted! Please refresh the page.');
-    } catch (error) {
-      console.error('Error granting admin role:', error);
-      setMessage(`Error: ${error.message || 'Failed to grant admin role'}`);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <ProtectedLayout>
@@ -64,17 +34,9 @@ export default function AdminDashboard() {
               <p className="text-sm text-gray-300 mb-2">User Email: {user?.email}</p>
               <p className="text-sm text-gray-300 mb-2">Current Role: <span className="font-bold text-green-500">{userRole}</span></p>
               <p className="text-sm text-gray-300 mb-2">Is Admin: {isAdmin ? 'Yes' : 'No'}</p>
-              <p className="text-sm text-gray-300 mb-4">User Metadata: {JSON.stringify(user?.user_metadata || {})}</p>
+              <p className="text-sm text-gray-300 mb-4">User Metadata: {JSON.stringify(user?.metadata || {})}</p>
 
-              <Button
-                onClick={grantAdminRole}
-                disabled={loading || isAdmin}
-                className="bg-blue-600 hover:bg-blue-700 text-white py-1 px-3 rounded text-sm"
-              >
-                {loading ? 'Processing...' : isAdmin ? 'Already Admin' : 'Grant Admin Role (Testing)'}
-              </Button>
 
-              {message && <p className="mt-2 text-sm text-yellow-400">{message}</p>}
             </div>
           )}
         </div>

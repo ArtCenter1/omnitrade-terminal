@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { supabase } from '@/integrations/supabase/client';
 
 const AuthPage = () => {
   // State for the login form
@@ -30,7 +29,7 @@ const AuthPage = () => {
   const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
 
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, signUp, resetPassword, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as any)?.from?.pathname || '/dashboard';
@@ -110,12 +109,10 @@ const AuthPage = () => {
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setForgotPasswordLoading(true);
-
+  
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
-      });
-
+      const { error, success } = await resetPassword(forgotEmail);
+  
       if (error) {
         toast.error(error.message || 'Failed to send reset link');
       } else {

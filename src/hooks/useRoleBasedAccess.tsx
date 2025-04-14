@@ -14,35 +14,11 @@ const ADMIN_EMAILS = [
 // Simple direct role storage - this is the source of truth for the current session
 let CURRENT_ROLE: UserRole = (localStorage.getItem('userRole') as UserRole) || 'user';
 
-// Get the current user's email from localStorage or use a default
-function getCurrentUserEmail(): string {
-  try {
-    // Try to get the current user's email from localStorage
-    const userDataStr = localStorage.getItem('supabase.auth.token');
-    if (userDataStr) {
-      const userData = JSON.parse(userDataStr);
-      if (userData?.currentSession?.user?.email) {
-        return userData.currentSession.user.email;
-      }
-    }
-
-    // If we can't get the email from localStorage, check if it's stored separately
-    const userEmail = localStorage.getItem('userEmail');
-    if (userEmail) {
-      return userEmail;
-    }
-  } catch (error) {
-    console.error('Error getting current user email:', error);
-  }
-
-  // Default to the admin email if we can't find the current user's email
-  return 'artcenter1@gmail.com';
-}
 
 // Function to switch roles - this can be called from anywhere
 export function switchRole(role: UserRole, userEmail?: string) {
   // Get the current user's email
-  const email = userEmail || getCurrentUserEmail();
+  const email = userEmail;
   console.log('Switching role to:', role, 'for user:', email);
 
   // Store the email for future use
