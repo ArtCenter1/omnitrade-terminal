@@ -9,7 +9,7 @@ import {
 export class AuthController {
   // TODO: Implement password reset using Firebase Admin SDK
   @Post('password-reset-request')
-  async handlePasswordResetRequest(
+  handlePasswordResetRequest(
     @Body() body: { email: string },
   ): Promise<{ message: string }> {
     // Ensure email is provided
