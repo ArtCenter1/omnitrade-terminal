@@ -5,7 +5,7 @@ While assessing our current codebase architecture and development trajectory, we
 Yes, it is feasible to selectively open-source components of your OmniTrade Trading Platform to enable broader extensibility while keeping the core logic proprietary, and this can be achieved with minimal refactoring or restructuring of your existing project layout, given that you are currently in Phase 3 of your project roadmap.
 
 ### Context and Feasibility
-You are in Phase 3 ("Backend Infrastructure") of a 9-phase roadmap, focusing on foundational backend elements like database schemas, authentication, market data APIs, and the bot execution engine. Your technology stack (React, TypeScript, Tailwind CSS, shadcn/ui for frontend; potentially Node.js/Express or Supabase for backend) and structured development approach (e.g., version control and CI/CD from Phase 1) suggest a modern, modular architecture. This foundation supports selective open-sourcing with manageable effort, especially since you’re early enough in the development lifecycle to shape your architecture proactively.
+You are in Phase 3 ("Backend Infrastructure") of a 9-phase roadmap, focusing on foundational backend elements like database schemas, authentication, market data APIs, and the bot execution engine. Your technology stack (React, TypeScript, Tailwind CSS, shadcn/ui for frontend; Node.js/Express or Firebase for backend) and structured development approach (e.g., version control and CI/CD from Phase 1) suggest a modern, modular architecture. This foundation supports selective open-sourcing with manageable effort, especially since you’re early enough in the development lifecycle to shape your architecture proactively.
 
 The goal of "broader platform extensibility" likely means enabling third-party developers or the community to build plugins, integrations, or tools that enhance your platform without exposing its proprietary core. Below, I outline a practical yet thoughtful approach to achieve this.
 
@@ -40,7 +40,7 @@ By isolating these from extensible components, you maintain control over your in
 Your technology choices and phased approach suggest a codebase conducive to modular design:
 
 - **Frontend**: React’s component-based structure supports reusable, shareable UI elements (e.g., open-sourcing a UI component library).
-- **Backend**: Node.js/Express or Supabase typically encourages service-oriented or API-driven architectures, making it easier to separate public-facing APIs from internal logic.
+- **Backend**: Node.js/Express or Firebase typically encourages service-oriented or API-driven architectures, making it easier to separate public-facing APIs from internal logic.
 - **Phase 1 Foundations**: Version control and CI/CD imply a structured workflow, likely with some separation of concerns already in place.
 
 Given this, your Phase 3 work (e.g., market data APIs, authentication) is likely being built as distinct modules or services. If not, minor adjustments now can ensure modularity without a full overhaul.

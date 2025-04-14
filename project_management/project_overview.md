@@ -43,8 +43,8 @@ A revolutionary, enterprise-grade AI-powered Crypto trading platform featuring c
 ## Technology Stack
 
 - **Frontend**: React, TypeScript, Tailwind CSS, shadcn/ui
-- **Backend**: To be determined (potentially Node.js/Express or Supabase)
-- **Database**: To be determined (potentially PostgreSQL via Supabase)
+- **Backend**: Node.js/Express (or Firebase Functions - TBD based on specific needs)
+- **Database**: Firebase (Firestore/Realtime Database)
 - **Blockchain**: To be determined (Ethereum/Solana/others based on requirement analysis)
 - **LLM Integration**: To be determined (potentially OpenAI API, Anthropic, or other providers)
 

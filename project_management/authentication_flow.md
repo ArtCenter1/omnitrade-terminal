@@ -4,16 +4,12 @@
 
 ## Provider Support & Migration Status
 
-**OmniTrade now supports both Supabase and Firebase as authentication providers.**
-The active provider is controlled by the `VITE_AUTH_PROVIDER` environment variable (`supabase` or `firebase`).
+**OmniTrade uses Firebase for authentication.**
 - See the `.env` file and `README.md` for setup instructions.
-- Both sets of environment variables are present for compatibility.
-- Supabase documentation and code remain for reference during the migration.
 
 ### Flow Differences
 
-- **Supabase**: Handles user registration, login, and session management via Supabase's built-in auth APIs. Tokens are managed by Supabase.
-- **Firebase**: Handles authentication via Firebase Auth. Tokens and user state are managed by Firebase SDK.
+- **Firebase**: Handles user registration, login, session management, and password resets via Firebase Auth. Tokens and user state are managed by the Firebase SDK.
 - The frontend code uses the `VITE_AUTH_PROVIDER` flag to determine which provider to use at runtime.
 
 **Caveats:**

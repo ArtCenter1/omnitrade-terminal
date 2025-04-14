@@ -4,11 +4,11 @@
 
 ## 1. Branding Enhancements
 
-- **Customize Supabase Email Templates:**
+- **Customize Firebase Email Templates:**
   - Add project logo, colors, and friendly language.
   - Clear subject line, e.g., "Reset your OmniTrade password".
   - Instructions with support contact info.
-  - Use Supabase dashboard's email template editor.
+  - Use Firebase console's email template editor.
 
 - **Consistent UI Styling:**
   - Match reset pages (`ForgotPasswordPage`, `ResetPasswordPage`) with overall app theme.
@@ -21,11 +21,10 @@
 
 - **Token Expiration:**
   - Ensure reset tokens expire within 15-60 minutes.
-  - Supabase handles this, but verify settings.
-  - **NOTE (2025-04-11): Supabase dashboard is currently inaccessible, so token expiration and one-time use settings cannot be verified at this time. Revisit this step when Supabase is available.**
+  - Firebase handles this, but verify settings in the Firebase console.
 
 - **One-Time Use Tokens:**
-  - Tokens should be invalid after first use (Supabase default).
+  - Tokens should be invalid after first use (Firebase default).
 
 - **Rate Limiting:**
   - Limit password reset requests per IP/email (e.g., 3 per hour).
@@ -70,13 +69,13 @@
 sequenceDiagram
     participant User
     participant Frontend
-    participant Supabase
+    participant Firebase
 
     User->>Frontend: Request password reset (email)
-    Frontend->>Supabase: Call resetPasswordForEmail(email)
-    Supabase-->>User: Sends branded reset email with link
+    Frontend->>Firebase: Call sendPasswordResetEmail(auth, email)
+    Firebase-->>User: Sends branded reset email with link
 
     User->>Frontend: Clicks reset link (with token)
-    Frontend->>Supabase: updateUser({ password: newPassword }) with token
-    Supabase-->>Frontend: Success or error
+    Frontend->>Firebase: Call confirmPasswordReset(auth, actionCode, newPassword)
+    Firebase-->>Frontend: Success or error
     Frontend-->>User: Show success/error, redirect to login
