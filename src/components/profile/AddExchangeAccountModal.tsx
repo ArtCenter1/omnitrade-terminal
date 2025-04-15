@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { addExchangeApiKey, testExchangeApiKey } from '@/services/exchangeApiKeyService'; // Assuming this path is correct
-import { useToast } from "@/components/ui/use-toast"; // Import the actual toast hook
+import { useToast } from "@/components/ui/use-toast";
+import ConnectionSuccessModal from './ConnectionSuccessModal'; // Import the new success modal
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -44,7 +45,8 @@ export function AddExchangeAccountModal({ open, onOpenChange, onSuccess }: AddEx
   const [apiKey, setApiKey] = useState('');
   const [secretKey, setSecretKey] = useState('');
   const [accountLabel, setAccountLabel] = useState('');
-  const { toast } = useToast(); // Initialize toast
+  const { toast } = useToast();
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false); // State for success modal
 
   // Define exchange data with placeholder logos
   const exchanges = [
@@ -60,14 +62,21 @@ export function AddExchangeAccountModal({ open, onOpenChange, onSuccess }: AddEx
   const testApiKeyMutation = useMutation<TestApiKeyResponse, Error, string>({ // Add types: Response, Error, Variables (apiKeyId)
     mutationFn: testExchangeApiKey, // Use the test function
     onSuccess: (data) => { // data is now typed as TestApiKeyResponse
-      // Display success/error toast based on backend response
-      toast({
-        title: data.success ? "API Key Test Successful" : "API Key Test Failed",
-        description: data.message,
-        variant: data.success ? "default" : "destructive",
-      });
-      // Optionally refetch account list if test updates status
-      // queryClient.invalidateQueries({ queryKey: ['exchangeApiKeys'] }); // Example refetch
+      if (data.success) {
+        // Open the success modal instead of showing a toast
+        setIsSuccessModalOpen(true);
+        // Close the current AddExchangeAccountModal
+        onOpenChange(false);
+        // Optionally refetch account list if test updates status
+        // queryClient.invalidateQueries({ queryKey: ['exchangeApiKeys'] }); // Example refetch
+      } else {
+        // Show error toast only if the test failed
+        toast({
+          title: "API Key Test Failed",
+          description: data.message,
+          variant: "destructive",
+        });
+      }
     },
     onError: (error: Error) => { // Explicitly type error
       // Display error toast
@@ -89,7 +98,7 @@ export function AddExchangeAccountModal({ open, onOpenChange, onSuccess }: AddEx
       }
 
       // Keep original success logic
-      onOpenChange(false); // Close modal
+      // onOpenChange(false); // Close modal - Moved to testApiKeyMutation onSuccess
       if (onSuccess) {
         onSuccess(); // Call optional success callback (e.g., refetch accounts)
       }
@@ -106,10 +115,13 @@ export function AddExchangeAccountModal({ open, onOpenChange, onSuccess }: AddEx
   });
 
   const handleConnect = () => {
+    console.log("[Debug] handleConnect entered."); // Added log
+    console.log("[Debug] State before mutate:", { selectedExchange, apiKey: apiKey ? '******' : '', secretKey: secretKey ? '******' : '', accountLabel }); // Added log (mask secrets)
+
     if (!selectedExchange || !apiKey || !secretKey) {
         // Basic validation - enhance as needed
         toast({ variant: "destructive", title: "Missing Information", description: "Please fill in all required fields." });
-        console.error("Missing required fields");
+        console.error("[Debug] Validation failed: Missing required fields."); // Enhanced log
         return;
     }
     addApiKeyMutation.mutate({ // Use the renamed mutation
@@ -118,6 +130,7 @@ export function AddExchangeAccountModal({ open, onOpenChange, onSuccess }: AddEx
       api_secret: secretKey,
       key_nickname: accountLabel || selectedExchange, // Use selected exchange as label if none provided
     });
+    console.log("[Debug] addApiKeyMutation.mutate() called successfully."); // Added log
   };
 
   // Update label placeholder based on selection
@@ -131,6 +144,7 @@ export function AddExchangeAccountModal({ open, onOpenChange, onSuccess }: AddEx
 
 
   return (
+    <> {/* Add React Fragment wrapper */}
     <Dialog open={open} onOpenChange={onOpenChange}>
       {/* Increased max-width slightly for better spacing */}
       <DialogContent className="sm:max-w-md bg-background text-foreground border-border">
@@ -233,5 +247,8 @@ export function AddExchangeAccountModal({ open, onOpenChange, onSuccess }: AddEx
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    {/* Render the success modal */}
+    <ConnectionSuccessModal open={isSuccessModalOpen} onOpenChange={setIsSuccessModalOpen} />
+    </> // Close React Fragment wrapper
   );
 }

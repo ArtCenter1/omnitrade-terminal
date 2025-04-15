@@ -9,7 +9,6 @@ import {
 } from '@nestjs/common';
 import { ExchangeApiKeyService } from './exchange-api-key.service';
 import { CreateExchangeApiKeyDto } from './dto/create-exchange-api-key.dto';
-import { TestExchangeApiKeyDto } from './dto/test-exchange-api-key.dto';
 import { Request as ExpressRequest } from 'express';
 /**
  * Controller for managing user exchange API keys.
@@ -50,8 +49,7 @@ export class ExchangeApiKeyController {
   async testApiKey(
     @Request() req: ExpressRequest & { user: { user_id: string } },
     @Param('id') id: string,
-    @Body() dto: TestExchangeApiKeyDto,
   ) {
-    return this.apiKeyService.testApiKey(req.user.user_id, id, dto);
+    return this.apiKeyService.testApiKey(req.user.user_id, id);
   }
 }
