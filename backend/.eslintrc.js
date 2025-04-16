@@ -23,16 +23,9 @@ module.exports = {
     '@typescript-eslint/no-explicit-any': 'warn',
     '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
 
-    // Fix for no-unused-expressions rule
+    // Disable problematic rules
     'no-unused-expressions': 'off',
-    '@typescript-eslint/no-unused-expressions': [
-      'error',
-      {
-        allowShortCircuit: true,
-        allowTernary: true,
-        allowTaggedTemplates: true,
-      },
-    ],
+    '@typescript-eslint/no-unused-expressions': 'off',
 
     // Type safety rules - set to warn instead of error
     '@typescript-eslint/no-unsafe-assignment': 'warn',

@@ -16,6 +16,8 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   private readonly logger = new Logger(PrismaService.name);
+  // Unused variable to test ESLint
+  private unusedVar = 'test';
 
   constructor() {
     // Pass the path to the schema file
