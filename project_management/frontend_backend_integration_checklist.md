@@ -21,11 +21,11 @@ This checklist tracks the prioritized integration of the core frontend component
   - [x] List connected exchanges/keys for the user
   - [x] Delete an API key
   - [x] Test connection/credentials with the exchange
-- [ ] Connect frontend API key management UI to backend endpoints:
+- [x] Connect frontend API key management UI to backend endpoints:
   - [x] Add key form submission
-  - [ ] Display list of connected exchanges/keys
-  - [ ] Delete key functionality
-  - [ ] User feedback on connection status
+  - [x] Display list of connected exchanges/keys
+  - [x] Delete key functionality
+  - [x] User feedback on connection status
 
 ---
 

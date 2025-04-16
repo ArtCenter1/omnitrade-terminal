@@ -36,7 +36,7 @@ import { useAuth } from './hooks/useAuth';
 
 // Add import for our new components
 import { RoleProtectedRoute } from './components/layout/RoleProtectedRoute';
-import ProtectedRoute from './components/layout/ProtectedRoute.tsx';
+// ProtectedRoute is now defined inline
 // Import Navbar for protected routes
 import Navbar from './components/Navbar';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -54,14 +54,32 @@ function App() {
   }, []);
 
   // ProtectedRoute component with Navbar
-  const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const ProtectedRouteWrapper = ({
+    children,
+  }: {
+    children: React.ReactNode;
+  }) => {
     const location = useLocation();
+
+    console.log(
+      'ProtectedRoute - User:',
+      user ? 'Authenticated' : 'Not authenticated',
+    );
+
     if (loading) {
-      return <div>Loading...</div>; // Replace with your loading component
+      return (
+        <div className="flex items-center justify-center h-screen">
+          Loading...
+        </div>
+      ); // Replace with your loading component
     }
+
     if (!user) {
+      console.log('ProtectedRoute - Redirecting to auth page');
       return <Navigate to="/auth" replace state={{ from: location }} />;
     }
+
+    console.log('ProtectedRoute - Rendering protected content');
     return (
       <>
         <Navbar />
@@ -92,49 +110,49 @@ function App() {
           <Route
             path="/dashboard"
             element={
-              <ProtectedRoute>
+              <ProtectedRouteWrapper>
                 <Dashboard />
-              </ProtectedRoute>
+              </ProtectedRouteWrapper>
             }
           />
           <Route
             path="/terminal"
             element={
-              <ProtectedRoute>
+              <ProtectedRouteWrapper>
                 <Terminal />
-              </ProtectedRoute>
+              </ProtectedRouteWrapper>
             }
           />
           <Route
             path="/bots"
             element={
-              <ProtectedRoute>
+              <ProtectedRouteWrapper>
                 <Bots />
-              </ProtectedRoute>
+              </ProtectedRouteWrapper>
             }
           />
           <Route
             path="/markets"
             element={
-              <ProtectedRoute>
+              <ProtectedRouteWrapper>
                 <Markets />
-              </ProtectedRoute>
+              </ProtectedRouteWrapper>
             }
           />
           <Route
             path="/earn"
             element={
-              <ProtectedRoute>
+              <ProtectedRouteWrapper>
                 <Earn />
-              </ProtectedRoute>
+              </ProtectedRouteWrapper>
             }
           />
           <Route
             path="/community"
             element={
-              <ProtectedRoute>
+              <ProtectedRouteWrapper>
                 <Community />
-              </ProtectedRoute>
+              </ProtectedRouteWrapper>
             }
           />
           <Route path="/ai-driven" element={<AIDrivenPage />} />
@@ -143,9 +161,9 @@ function App() {
           <Route
             path="/demo/exchange"
             element={
-              <ProtectedRoute>
+              <ProtectedRouteWrapper>
                 <ExchangeDemo />
-              </ProtectedRoute>
+              </ProtectedRouteWrapper>
             }
           />
 
@@ -153,49 +171,49 @@ function App() {
           <Route
             path="/profile"
             element={
-              <ProtectedRoute>
+              <ProtectedRouteWrapper>
                 <UserProfile />
-              </ProtectedRoute>
+              </ProtectedRouteWrapper>
             }
           />
           <Route
             path="/profile/accounts"
             element={
-              <ProtectedRoute>
+              <ProtectedRouteWrapper>
                 <MyAccounts />
-              </ProtectedRoute>
+              </ProtectedRouteWrapper>
             }
           />
           <Route
             path="/profile/security"
             element={
-              <ProtectedRoute>
+              <ProtectedRouteWrapper>
                 <Security />
-              </ProtectedRoute>
+              </ProtectedRouteWrapper>
             }
           />
           <Route
             path="/profile/change-password"
             element={
-              <ProtectedRoute>
+              <ProtectedRouteWrapper>
                 <ChangePassword />
-              </ProtectedRoute>
+              </ProtectedRouteWrapper>
             }
           />
           <Route
             path="/profile/preferences"
             element={
-              <ProtectedRoute>
+              <ProtectedRouteWrapper>
                 <Preferences />
-              </ProtectedRoute>
+              </ProtectedRouteWrapper>
             }
           />
           <Route
             path="/profile/subscription"
             element={
-              <ProtectedRoute>
+              <ProtectedRouteWrapper>
                 <PlanSubscription />
-              </ProtectedRoute>
+              </ProtectedRouteWrapper>
             }
           />
 

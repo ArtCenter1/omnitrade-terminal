@@ -1,9 +1,9 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 // Firebase imports
-import { app as firebaseApp } from "@/integrations/firebase/client";
+import { app as firebaseApp } from '@/integrations/firebase/client';
 import {
   getAuth,
   onAuthStateChanged,
@@ -12,7 +12,7 @@ import {
   sendPasswordResetEmail,
   signOut as firebaseSignOut,
   User as FirebaseUser,
-} from "firebase/auth";
+} from 'firebase/auth';
 
 type AuthContextType = {
   user: FirebaseUser | null;
@@ -21,11 +21,11 @@ type AuthContextType = {
   signUp: (
     email: string,
     password: string,
-    userName: string
+    userName: string,
   ) => Promise<{ error: any | null; success: boolean }>;
   signOut: () => Promise<void>;
   resetPassword: (
-    email: string
+    email: string,
   ) => Promise<{ error: any | null; success: boolean }>;
 };
 
@@ -40,21 +40,79 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Firebase Auth state listener
+    // For development, create a mock user if needed
+    if (process.env.NODE_ENV === 'development') {
+      // Check if we should use a mock user (you can toggle this in localStorage)
+      const useMockUser = localStorage.getItem('useMockUser') === 'true';
+      if (useMockUser) {
+        console.log('Using mock user for development');
+        // Create a mock Firebase user
+        const mockUser = {
+          uid: 'mock-user-id',
+          email: 'dev@example.com',
+          displayName: 'Dev User',
+          emailVerified: true,
+          isAnonymous: false,
+          metadata: {
+            creationTime: new Date().toISOString(),
+            lastSignInTime: new Date().toISOString(),
+          },
+          providerData: [],
+          refreshToken: 'mock-refresh-token',
+          tenantId: null,
+          delete: () => Promise.resolve(),
+          getIdToken: () => Promise.resolve('mock-id-token'),
+          getIdTokenResult: () =>
+            Promise.resolve({
+              token: 'mock-id-token',
+              signInProvider: 'password',
+              expirationTime: new Date(Date.now() + 3600000).toISOString(),
+              issuedAtTime: new Date().toISOString(),
+              authTime: new Date().toISOString(),
+              claims: {},
+            }),
+          reload: () => Promise.resolve(),
+          toJSON: () => ({}),
+        } as unknown as FirebaseUser;
+
+        setUser(mockUser);
+        setIsLoading(false);
+        return () => {}; // No cleanup needed for mock user
+      }
+    }
+
+    // Regular Firebase Auth state listener
     const auth = getAuth(firebaseApp);
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      console.log(
+        'Auth state changed:',
+        firebaseUser ? 'User authenticated' : 'No user',
+      );
       setUser(firebaseUser);
       setIsLoading(false);
 
       if (firebaseUser) {
+        console.log('User is authenticated:', firebaseUser.email);
         setTimeout(() => {
           toast.success(`Welcome back, ${firebaseUser.email}`);
         }, 0);
       } else {
-        setTimeout(() => {
-          toast.info("You have been signed out");
-          navigate("/auth");
-        }, 0);
+        console.log('No authenticated user, redirecting to auth page');
+        // Only redirect to auth if we're not already on an auth page
+        const currentPath = window.location.pathname;
+        const isAuthPage = [
+          '/auth',
+          '/login',
+          '/register',
+          '/forgot-password',
+        ].some((path) => currentPath.startsWith(path));
+
+        if (!isAuthPage) {
+          setTimeout(() => {
+            toast.info('You have been signed out');
+            navigate('/auth');
+          }, 0);
+        }
       }
     });
 
@@ -67,7 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       await signInWithEmailAndPassword(auth, email, password);
       return { error: null };
     } catch (error: any) {
-      console.error("Firebase sign in error:", error.message);
+      console.error('Firebase sign in error:', error.message);
       return { error };
     }
   };
@@ -80,7 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // await updateProfile(userCredential.user, { displayName: userName });
       return { error: null, success: true };
     } catch (error: any) {
-      console.error("Firebase sign up error:", error.message);
+      console.error('Firebase sign up error:', error.message);
       return { error, success: false };
     }
   };
@@ -90,7 +148,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const auth = getAuth(firebaseApp);
       await firebaseSignOut(auth);
     } catch (error) {
-      console.error("Firebase sign out error:", error);
+      console.error('Firebase sign out error:', error);
     }
   };
 
@@ -100,7 +158,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       await sendPasswordResetEmail(auth, email);
       return { error: null, success: true };
     } catch (error: any) {
-      console.error("Firebase password reset error:", error.message);
+      console.error('Firebase password reset error:', error.message);
       return { error, success: false };
     }
   };
@@ -120,7 +178,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };

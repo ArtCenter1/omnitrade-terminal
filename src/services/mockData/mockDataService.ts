@@ -555,7 +555,13 @@ export class MockDataService {
   }
 
   // Validate API key (mock implementation)
-  public validateApiKey(apiKey: string, apiSecret: string): boolean {
+  public async validateApiKey(
+    apiKey: string,
+    apiSecret: string,
+  ): Promise<boolean> {
+    // Add a small delay to simulate network latency
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
     // For mock purposes, consider any non-empty strings as valid
     return apiKey.length > 0 && apiSecret.length > 0;
   }
