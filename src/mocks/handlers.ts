@@ -3,11 +3,27 @@ import { http, HttpResponse } from 'msw';
 
 // Mock data for exchange API keys
 let mockApiKeys = [
-  // You can add some initial mock data here if needed
+  // Initial mock data that matches the account list
   {
     api_key_id: 'mock-key-1',
+    exchange_id: 'kraken',
+    key_nickname: 'kraken', // Match the exact label from the account list
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    is_valid: true,
+  },
+  {
+    api_key_id: 'mock-key-2',
     exchange_id: 'binance',
-    key_nickname: 'My Binance Account',
+    key_nickname: 'binance artcenter1', // Match the exact label from the account list
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    is_valid: true,
+  },
+  {
+    api_key_id: 'mock-key-3',
+    exchange_id: 'coinbase',
+    key_nickname: 'Coinbase 123', // Match the exact label from the account list
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     is_valid: true,
@@ -42,11 +58,16 @@ export const handlers = [
     const newApiKey = {
       api_key_id: generateId(),
       exchange_id: body.exchange_id,
-      key_nickname: body.key_nickname || body.exchange_id,
+      key_nickname: body.key_nickname || body.exchange_id, // Preserve the exact label
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       is_valid: true,
     };
+
+    console.log(
+      'Handlers: Created new API key with nickname:',
+      newApiKey.key_nickname,
+    );
 
     // Add to mock data
     mockApiKeys.push(newApiKey);

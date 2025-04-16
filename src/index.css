@@ -69,3 +69,43 @@
   height: 200px;
   width: 100%;
 }
+
+/* Style browser password dialogs */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #1a1a1c inset !important;
+  -webkit-text-fill-color: white !important;
+}
+
+/* Style Chrome's password save dialog */
+:root {
+  color-scheme: dark;
+}
+
+/* Style password inputs */
+input[type='password'] {
+  background-color: #1a1a1c !important;
+  color: white !important;
+}
+
+/* Style Chrome password manager dialog */
+@media (prefers-color-scheme: dark) {
+  form.chrome-form {
+    background-color: #1a1a1c !important;
+    color: white !important;
+  }
+
+  form.chrome-form input {
+    background-color: #1a1a1c !important;
+    color: white !important;
+    border-color: #333 !important;
+  }
+
+  form.chrome-form button {
+    background-color: #333 !important;
+    color: white !important;
+    border-color: #444 !important;
+  }
+}

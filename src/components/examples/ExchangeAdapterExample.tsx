@@ -18,25 +18,50 @@ export default function ExchangeAdapterExample() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Create refs at the top level of the component
+  const previousExchangeIdRef = React.useRef(exchangeId);
+  const previousPairRef = React.useRef(selectedPair);
+
   // Load trading pairs when exchange changes
   useEffect(() => {
+    let isMounted = true;
+
+    // Skip if the exchange hasn't changed
+    if (
+      previousExchangeIdRef.current === exchangeId &&
+      tradingPairs.length > 0
+    ) {
+      return;
+    }
+
+    previousExchangeIdRef.current = exchangeId;
+
     async function loadTradingPairs() {
+      if (!isMounted) return;
+
       setLoading(true);
       setError(null);
       try {
+        console.log(`Loading trading pairs for ${exchangeId}...`);
         const adapter = ExchangeFactory.getAdapter(exchangeId);
         const pairs = await adapter.getTradingPairs();
+
+        if (!isMounted) return;
+
         setTradingPairs(pairs);
         if (pairs.length > 0) {
           setSelectedPair(pairs[0].symbol);
         }
+        console.log(`Loaded ${pairs.length} trading pairs for ${exchangeId}`);
       } catch (err) {
+        if (!isMounted) return;
+
         console.error('Error loading trading pairs:', err);
         setError(
           err instanceof Error ? err.message : 'Failed to load trading pairs',
         );
         // Set some default pairs to prevent blank screen
-        setTradingPairs([
+        const defaultPairs = [
           {
             symbol: 'BTC/USDT',
             baseAsset: 'BTC',
@@ -63,28 +88,58 @@ export default function ExchangeAdapterExample() {
             maxPrice: 1000000,
             minNotional: 10,
           },
-        ]);
+        ];
+        setTradingPairs(defaultPairs);
         setSelectedPair('BTC/USDT');
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     }
 
     loadTradingPairs();
-  }, [exchangeId]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [exchangeId, tradingPairs.length]);
 
   // Load order book when pair changes
   useEffect(() => {
     if (!selectedPair) return;
 
+    let isMounted = true;
+
+    // Skip if nothing has changed
+    if (
+      previousPairRef.current === selectedPair &&
+      previousExchangeIdRef.current === exchangeId &&
+      orderBook?.symbol === selectedPair
+    ) {
+      return;
+    }
+
+    previousPairRef.current = selectedPair;
+    previousExchangeIdRef.current = exchangeId;
+
     async function loadOrderBook() {
+      if (!isMounted) return;
+
       setLoading(true);
       setError(null);
       try {
+        console.log(`Loading order book for ${selectedPair}...`);
         const adapter = ExchangeFactory.getAdapter(exchangeId);
         const book = await adapter.getOrderBook(selectedPair);
+
+        if (!isMounted) return;
+
         setOrderBook(book);
+        console.log(`Loaded order book for ${selectedPair}`);
       } catch (err) {
+        if (!isMounted) return;
+
         console.error('Error loading order book:', err);
         setError(
           err instanceof Error ? err.message : 'Failed to load order book',
@@ -110,46 +165,59 @@ export default function ExchangeAdapterExample() {
         };
         setOrderBook(defaultOrderBook);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     }
 
     loadOrderBook();
-  }, [exchangeId, selectedPair]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [exchangeId, selectedPair, orderBook]);
 
   // Handle exchange change
   const handleExchangeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setExchangeId(e.target.value);
+    const newExchangeId = e.target.value;
+    console.log(`Changing exchange from ${exchangeId} to ${newExchangeId}`);
+    setExchangeId(newExchangeId);
   };
 
   // Handle pair change
   const handlePairChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedPair(e.target.value);
+    const newPair = e.target.value;
+    console.log(`Changing trading pair from ${selectedPair} to ${newPair}`);
+    setSelectedPair(newPair);
   };
 
   // Handle connection mode change
   const handleModeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const mode = e.target.value as 'mock' | 'sandbox' | 'live';
+    console.log(`Changing connection mode to ${mode}`);
     setConnectionMode(mode);
     setConnectionModeState(mode);
-    // Reload data
-    setExchangeId(exchangeId); // Trigger a reload
+    // We don't need to trigger a reload here, the effect will handle it
   };
 
   // Load mock portfolio
   const handleLoadPortfolio = async () => {
+    console.log('Loading portfolio...');
     setLoading(true);
     setError(null);
     try {
       const adapter = ExchangeFactory.getAdapter(exchangeId);
       // Using a dummy API key ID for demonstration
       const portfolio = await adapter.getPortfolio('dummy-api-key-id');
+      console.log('Portfolio loaded successfully');
       setPortfolio(portfolio);
     } catch (err) {
       console.error('Error loading portfolio:', err);
       setError(err instanceof Error ? err.message : 'Failed to load portfolio');
 
       // Create a default portfolio to prevent blank screen
+      console.log('Using default portfolio data');
       const defaultPortfolio = {
         totalUsdValue: 25000,
         assets: [

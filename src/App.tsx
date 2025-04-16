@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Route, Routes, useLocation, Navigate } from 'react-router-dom';
 import { ThemeProvider as ShadcnThemeProvider } from '@/components/ThemeProvider';
-import { ThemeProvider } from '@/contexts/ThemeContext';
 import '@/styles/themes.css';
 import '@/styles/components.css';
 import UserRoleManagement from './pages/admin/UserRoleManagement';
@@ -89,181 +88,184 @@ function App() {
   };
 
   return (
-    <ShadcnThemeProvider defaultTheme="dark" storageKey="omnitrade-theme">
-      <ThemeProvider>
-        <ScrollToTop />
-        <Routes>
-          {/* Public routes */}
-          <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<AuthPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="/omni-token" element={<OmniToken />} />
-          <Route path="/trading-bots" element={<TradingBotsLanding />} />
-          <Route path="/blog" element={<Blog />} />
-          <Route path="*" element={<NotFound />} />
+    <ShadcnThemeProvider
+      attribute="class"
+      defaultTheme="dark"
+      storageKey="omnitrade-theme"
+      enableSystem={false}
+    >
+      <ScrollToTop />
+      <Routes>
+        {/* Public routes */}
+        <Route path="/" element={<Index />} />
+        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/pricing" element={<Pricing />} />
+        <Route path="/omni-token" element={<OmniToken />} />
+        <Route path="/trading-bots" element={<TradingBotsLanding />} />
+        <Route path="/blog" element={<Blog />} />
+        <Route path="*" element={<NotFound />} />
 
-          {/* Protected routes (reverted to individual wrappers) */}
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRouteWrapper>
-                <Dashboard />
-              </ProtectedRouteWrapper>
-            }
-          />
-          <Route
-            path="/terminal"
-            element={
-              <ProtectedRouteWrapper>
-                <Terminal />
-              </ProtectedRouteWrapper>
-            }
-          />
-          <Route
-            path="/bots"
-            element={
-              <ProtectedRouteWrapper>
-                <Bots />
-              </ProtectedRouteWrapper>
-            }
-          />
-          <Route
-            path="/markets"
-            element={
-              <ProtectedRouteWrapper>
-                <Markets />
-              </ProtectedRouteWrapper>
-            }
-          />
-          <Route
-            path="/earn"
-            element={
-              <ProtectedRouteWrapper>
-                <Earn />
-              </ProtectedRouteWrapper>
-            }
-          />
-          <Route
-            path="/community"
-            element={
-              <ProtectedRouteWrapper>
-                <Community />
-              </ProtectedRouteWrapper>
-            }
-          />
-          <Route path="/ai-driven" element={<AIDrivenPage />} />
+        {/* Protected routes (reverted to individual wrappers) */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRouteWrapper>
+              <Dashboard />
+            </ProtectedRouteWrapper>
+          }
+        />
+        <Route
+          path="/terminal"
+          element={
+            <ProtectedRouteWrapper>
+              <Terminal />
+            </ProtectedRouteWrapper>
+          }
+        />
+        <Route
+          path="/bots"
+          element={
+            <ProtectedRouteWrapper>
+              <Bots />
+            </ProtectedRouteWrapper>
+          }
+        />
+        <Route
+          path="/markets"
+          element={
+            <ProtectedRouteWrapper>
+              <Markets />
+            </ProtectedRouteWrapper>
+          }
+        />
+        <Route
+          path="/earn"
+          element={
+            <ProtectedRouteWrapper>
+              <Earn />
+            </ProtectedRouteWrapper>
+          }
+        />
+        <Route
+          path="/community"
+          element={
+            <ProtectedRouteWrapper>
+              <Community />
+            </ProtectedRouteWrapper>
+          }
+        />
+        <Route path="/ai-driven" element={<AIDrivenPage />} />
 
-          {/* Demo routes */}
-          <Route
-            path="/demo/exchange"
-            element={
-              <ProtectedRouteWrapper>
-                <ExchangeDemo />
-              </ProtectedRouteWrapper>
-            }
-          />
+        {/* Demo routes */}
+        <Route
+          path="/demo/exchange"
+          element={
+            <ProtectedRouteWrapper>
+              <ExchangeDemo />
+            </ProtectedRouteWrapper>
+          }
+        />
 
-          {/* Profile routes (reverted to individual wrappers) */}
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRouteWrapper>
-                <UserProfile />
-              </ProtectedRouteWrapper>
-            }
-          />
-          <Route
-            path="/profile/accounts"
-            element={
-              <ProtectedRouteWrapper>
-                <MyAccounts />
-              </ProtectedRouteWrapper>
-            }
-          />
-          <Route
-            path="/profile/security"
-            element={
-              <ProtectedRouteWrapper>
-                <Security />
-              </ProtectedRouteWrapper>
-            }
-          />
-          <Route
-            path="/profile/change-password"
-            element={
-              <ProtectedRouteWrapper>
-                <ChangePassword />
-              </ProtectedRouteWrapper>
-            }
-          />
-          <Route
-            path="/profile/preferences"
-            element={
-              <ProtectedRouteWrapper>
-                <Preferences />
-              </ProtectedRouteWrapper>
-            }
-          />
-          <Route
-            path="/profile/subscription"
-            element={
-              <ProtectedRouteWrapper>
-                <PlanSubscription />
-              </ProtectedRouteWrapper>
-            }
-          />
+        {/* Profile routes (reverted to individual wrappers) */}
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRouteWrapper>
+              <UserProfile />
+            </ProtectedRouteWrapper>
+          }
+        />
+        <Route
+          path="/profile/accounts"
+          element={
+            <ProtectedRouteWrapper>
+              <MyAccounts />
+            </ProtectedRouteWrapper>
+          }
+        />
+        <Route
+          path="/profile/security"
+          element={
+            <ProtectedRouteWrapper>
+              <Security />
+            </ProtectedRouteWrapper>
+          }
+        />
+        <Route
+          path="/profile/change-password"
+          element={
+            <ProtectedRouteWrapper>
+              <ChangePassword />
+            </ProtectedRouteWrapper>
+          }
+        />
+        <Route
+          path="/profile/preferences"
+          element={
+            <ProtectedRouteWrapper>
+              <Preferences />
+            </ProtectedRouteWrapper>
+          }
+        />
+        <Route
+          path="/profile/subscription"
+          element={
+            <ProtectedRouteWrapper>
+              <PlanSubscription />
+            </ProtectedRouteWrapper>
+          }
+        />
 
-          {/* Admin routes - protected by role */}
-          <Route
-            path="/admin"
-            element={
-              <RoleProtectedRoute
-                allowedRoles={['admin']}
-                redirectTo="/dashboard"
-              >
-                <AdminDashboard />
-              </RoleProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/users-roles"
-            element={
-              <RoleProtectedRoute
-                allowedRoles={['admin']}
-                redirectTo="/dashboard"
-              >
-                <UserRoleManagement />
-              </RoleProtectedRoute>
-            }
-          />
-          {/* Keep old routes for backward compatibility, but redirect to the new combined page */}
-          <Route
-            path="/admin/users"
-            element={<Navigate to="/admin/users-roles" replace />}
-          />
-          <Route
-            path="/admin/roles"
-            element={<Navigate to="/admin/users-roles?tab=roles" replace />}
-          />
+        {/* Admin routes - protected by role */}
+        <Route
+          path="/admin"
+          element={
+            <RoleProtectedRoute
+              allowedRoles={['admin']}
+              redirectTo="/dashboard"
+            >
+              <AdminDashboard />
+            </RoleProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/users-roles"
+          element={
+            <RoleProtectedRoute
+              allowedRoles={['admin']}
+              redirectTo="/dashboard"
+            >
+              <UserRoleManagement />
+            </RoleProtectedRoute>
+          }
+        />
+        {/* Keep old routes for backward compatibility, but redirect to the new combined page */}
+        <Route
+          path="/admin/users"
+          element={<Navigate to="/admin/users-roles" replace />}
+        />
+        <Route
+          path="/admin/roles"
+          element={<Navigate to="/admin/users-roles?tab=roles" replace />}
+        />
 
-          {/* Coming Soon pages for features under development */}
-          <Route
-            path="/admin/:feature"
-            element={
-              <RoleProtectedRoute
-                allowedRoles={['admin']}
-                redirectTo="/dashboard"
-              >
-                <ComingSoon />
-              </RoleProtectedRoute>
-            }
-          />
-        </Routes>
-      </ThemeProvider>
+        {/* Coming Soon pages for features under development */}
+        <Route
+          path="/admin/:feature"
+          element={
+            <RoleProtectedRoute
+              allowedRoles={['admin']}
+              redirectTo="/dashboard"
+            >
+              <ComingSoon />
+            </RoleProtectedRoute>
+          }
+        />
+      </Routes>
     </ShadcnThemeProvider>
   );
 }

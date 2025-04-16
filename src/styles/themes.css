@@ -155,7 +155,7 @@ body {
 }
 
 .bg-theme-dropdown {
-  background-color: var(--bg-dropdown);
+  background-color: var(--bg-dropdown) !important;
 }
 
 .bg-theme-hover {

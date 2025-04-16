@@ -5,8 +5,24 @@
 let mockApiKeys = [
   {
     api_key_id: 'mock-key-1',
+    exchange_id: 'kraken',
+    key_nickname: 'kraken', // Match the exact label from the account list
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    is_valid: true,
+  },
+  {
+    api_key_id: 'mock-key-2',
     exchange_id: 'binance',
-    key_nickname: 'My Binance Account',
+    key_nickname: 'binance artcenter1', // Match the exact label from the account list
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    is_valid: true,
+  },
+  {
+    api_key_id: 'mock-key-3',
+    exchange_id: 'coinbase',
+    key_nickname: 'Coinbase 123', // Match the exact label from the account list
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     is_valid: true,
@@ -78,11 +94,16 @@ export function setupMockFetch() {
         const newApiKey = {
           api_key_id: generateId(),
           exchange_id: body.exchange_id,
-          key_nickname: body.key_nickname || body.exchange_id,
+          key_nickname: body.key_nickname || `My ${body.exchange_id} Account`,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           is_valid: true,
         };
+
+        console.log(
+          'Created new API key with nickname:',
+          newApiKey.key_nickname,
+        );
 
         // Add to mock data
         mockApiKeys.push(newApiKey);

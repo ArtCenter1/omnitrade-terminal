@@ -35,7 +35,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRoleBasedAccess, switchRole } from '@/hooks/useRoleBasedAccess';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useTheme } from 'next-themes';
 
 export default function Navbar() {
   const { user, signOut } = useAuth();
@@ -83,72 +83,79 @@ export default function Navbar() {
           <NavigationMenu className="hidden md:flex">
             <NavigationMenuList>
               <NavigationMenuItem>
-                <Link to="/dashboard">
-                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                <NavigationMenuLink asChild>
+                  <Link
+                    to="/dashboard"
+                    className={navigationMenuTriggerStyle()}
+                  >
                     Dashboard
-                  </NavigationMenuLink>
-                </Link>
+                  </Link>
+                </NavigationMenuLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
-                <Link to="/terminal">
-                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                <NavigationMenuLink asChild>
+                  <Link to="/terminal" className={navigationMenuTriggerStyle()}>
                     Terminal
-                  </NavigationMenuLink>
-                </Link>
+                  </Link>
+                </NavigationMenuLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
-                <Link to="/bots">
-                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                <NavigationMenuLink asChild>
+                  <Link to="/bots" className={navigationMenuTriggerStyle()}>
                     Bots
-                  </NavigationMenuLink>
-                </Link>
+                  </Link>
+                </NavigationMenuLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
-                <Link to="/markets">
-                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                <NavigationMenuLink asChild>
+                  <Link to="/markets" className={navigationMenuTriggerStyle()}>
                     Markets
-                  </NavigationMenuLink>
-                </Link>
+                  </Link>
+                </NavigationMenuLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
-                <Link to="/earn">
-                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                <NavigationMenuLink asChild>
+                  <Link to="/earn" className={navigationMenuTriggerStyle()}>
                     Earn
-                  </NavigationMenuLink>
-                </Link>
+                  </Link>
+                </NavigationMenuLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
-                <Link to="/community">
-                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                <NavigationMenuLink asChild>
+                  <Link
+                    to="/community"
+                    className={navigationMenuTriggerStyle()}
+                  >
                     Community
-                  </NavigationMenuLink>
-                </Link>
+                  </Link>
+                </NavigationMenuLink>
               </NavigationMenuItem>
 
               {/* Demo link */}
               <NavigationMenuItem>
-                <Link to="/demo/exchange">
-                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                <NavigationMenuLink asChild>
+                  <Link
+                    to="/demo/exchange"
+                    className={navigationMenuTriggerStyle()}
+                  >
                     <span className="flex items-center text-blue-400">
                       Exchange Demo
                     </span>
-                  </NavigationMenuLink>
-                </Link>
+                  </Link>
+                </NavigationMenuLink>
               </NavigationMenuItem>
 
               {/* Admin link - only visible to admins */}
               {isAdmin && (
                 <NavigationMenuItem>
-                  <Link to="/admin">
-                    <NavigationMenuLink
-                      className={navigationMenuTriggerStyle()}
-                    >
+                  <NavigationMenuLink asChild>
+                    <Link to="/admin" className={navigationMenuTriggerStyle()}>
                       <span className="flex items-center text-red-400">
                         <LayoutDashboard className="h-4 w-4 mr-1" />
                         Admin
                       </span>
-                    </NavigationMenuLink>
-                  </Link>
+                    </Link>
+                  </NavigationMenuLink>
                 </NavigationMenuItem>
               )}
             </NavigationMenuList>
@@ -165,7 +172,7 @@ export default function Navbar() {
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
-              className="w-56 bg-theme-dropdown border-theme-primary shadow-theme-md theme-transition"
+              className="w-56 border-theme-primary shadow-theme-md theme-transition bg-[#1a1a1c]"
             >
               <div className="p-2">
                 <h3 className="font-medium text-sm mb-2 text-theme-secondary">
@@ -188,9 +195,9 @@ export default function Navbar() {
                       <input
                         type="checkbox"
                         checked={theme === 'dark'}
-                        onChange={() =>
-                          setTheme(theme === 'dark' ? 'light' : 'dark')
-                        }
+                        onChange={() => {
+                          setTheme(theme === 'dark' ? 'light' : 'dark');
+                        }}
                       />
                       <span className="toggle-slider"></span>
                     </label>
@@ -252,7 +259,7 @@ export default function Navbar() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
-                  className="w-56 bg-theme-dropdown border-theme-primary shadow-theme-md theme-transition"
+                  className="w-56 border-theme-primary shadow-theme-md theme-transition bg-[#1a1a1c]"
                 >
                   <div className="flex items-center justify-start gap-2 p-2">
                     <div className="flex flex-col space-y-1 leading-none">

@@ -1,8 +1,9 @@
 import { ArrowDownRight, ArrowUpRight, Loader2 } from 'lucide-react';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import { cn } from '@/lib/utils';
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import { getMockPortfolioData } from '@/mocks/mockPortfolio';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 interface PortfolioIndicatorProps {
   title: string;
@@ -46,6 +47,8 @@ const PortfolioIndicator = ({
 export function PortfolioIndicators() {
   // Get the selected account
   const { selectedAccount } = useSelectedAccount();
+  const previousApiKeyIdRef = useRef<string | null>(null);
+
   const [portfolioData, setPortfolioData] = useState<{
     value: string;
     change: string;
@@ -60,7 +63,18 @@ export function PortfolioIndicators() {
 
   // Load portfolio data when the selected account changes
   useEffect(() => {
-    if (selectedAccount) {
+    // Skip if no account is selected
+    if (!selectedAccount) return;
+
+    // Skip if the apiKeyId hasn't changed
+    if (previousApiKeyIdRef.current === selectedAccount.apiKeyId) return;
+
+    // Update the ref to the current apiKeyId
+    previousApiKeyIdRef.current = selectedAccount.apiKeyId;
+
+    console.log('Loading portfolio data for account:', selectedAccount.name);
+
+    try {
       // Get mock portfolio data for the selected account
       const { data } = getMockPortfolioData(selectedAccount.apiKeyId);
 
@@ -91,30 +105,22 @@ export function PortfolioIndicators() {
         // Determine if the change is positive
         const isPositive = !selectedAccount.change.includes('-');
 
-        // Use functional update to avoid dependency on previous state
-        // Only update if the data has actually changed
-        setPortfolioData((prevData) => {
-          // Check if the data is actually different to avoid unnecessary updates
-          if (
-            prevData.value === value &&
-            prevData.change === (isPositive ? `+${change}` : `-${change}`) &&
-            prevData.changePercent === Math.abs(changePercent).toFixed(2) &&
-            prevData.isPositive === isPositive
-          ) {
-            return prevData; // No change needed
-          }
+        // Create the new portfolio data
+        const newData = {
+          value,
+          change: isPositive ? `+${change}` : `-${change}`,
+          changePercent: Math.abs(changePercent).toFixed(2),
+          isPositive,
+        };
 
-          // Return new data if something changed
-          return {
-            value,
-            change: isPositive ? `+${change}` : `-${change}`,
-            changePercent: Math.abs(changePercent).toFixed(2),
-            isPositive,
-          };
-        });
+        // Update state with the new data
+        setPortfolioData(newData);
+        console.log('Portfolio data updated:', newData);
       }
+    } catch (error) {
+      console.error('Error loading portfolio data:', error);
     }
-  }, [selectedAccount?.apiKeyId]); // Only depend on the apiKeyId, not the entire account object
+  }, [selectedAccount]); // Depend on the entire selectedAccount object, but use ref to prevent unnecessary updates
 
   // Show loading state if no account is selected
   if (!selectedAccount) {
@@ -126,40 +132,42 @@ export function PortfolioIndicators() {
   }
 
   return (
-    <div className="flex justify-between items-center mb-6 px-1">
-      <PortfolioIndicator
-        title="Portfolio Value (USD)"
-        value={portfolioData.value}
-        change={
-          portfolioData.isPositive
-            ? `+${portfolioData.change}`
-            : `-${portfolioData.change}`
-        }
-        isPositive={portfolioData.isPositive}
-      />
+    <ErrorBoundary>
+      <div className="flex justify-between items-center mb-6 px-1">
+        <PortfolioIndicator
+          title="Portfolio Value (USD)"
+          value={portfolioData.value}
+          change={
+            portfolioData.isPositive
+              ? `+${portfolioData.change}`
+              : `-${portfolioData.change}`
+          }
+          isPositive={portfolioData.isPositive}
+        />
 
-      <PortfolioIndicator
-        title="24h Change (USD)"
-        value={
-          portfolioData.isPositive
-            ? `+${portfolioData.change}`
-            : `-${portfolioData.change}`
-        }
-        change={
-          portfolioData.isPositive
-            ? `+${portfolioData.change}`
-            : `-${portfolioData.change}`
-        }
-        isPositive={portfolioData.isPositive}
-      />
+        <PortfolioIndicator
+          title="24h Change (USD)"
+          value={
+            portfolioData.isPositive
+              ? `+${portfolioData.change}`
+              : `-${portfolioData.change}`
+          }
+          change={
+            portfolioData.isPositive
+              ? `+${portfolioData.change}`
+              : `-${portfolioData.change}`
+          }
+          isPositive={portfolioData.isPositive}
+        />
 
-      <PortfolioIndicator
-        title="24h Change (%)"
-        value={`${portfolioData.isPositive ? '+' : '-'}${portfolioData.changePercent}%`}
-        change={portfolioData.changePercent}
-        isPercentage={true}
-        isPositive={portfolioData.isPositive}
-      />
-    </div>
+        <PortfolioIndicator
+          title="24h Change (%)"
+          value={`${portfolioData.isPositive ? '+' : '-'}${portfolioData.changePercent}%`}
+          change={portfolioData.changePercent}
+          isPercentage={true}
+          isPositive={portfolioData.isPositive}
+        />
+      </div>
+    </ErrorBoundary>
   );
 }

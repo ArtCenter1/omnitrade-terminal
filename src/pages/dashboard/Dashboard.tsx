@@ -1,11 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { PerformanceChart } from '@/components/PerformanceChart';
 import { AllocationChart } from '@/components/AllocationChart';
 import { AssetRow } from '@/components/AssetRow';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
-import ExchangeAdapterExample from '@/components/examples/ExchangeAdapterExample';
+import ErrorBoundary from '@/components/ErrorBoundary';
+// Import the ExchangeAdapterExample component with React.lazy for code splitting
+const ExchangeAdapterExample = React.lazy(
+  () => import('@/components/examples/ExchangeAdapterExample'),
+);
 
 const mockPerformanceData = [
   { date: 'Mon', value: 40000 },
@@ -74,12 +78,65 @@ const tradingViewBg = '#131722';
 const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Balances');
   const [activeRange, setActiveRange] = useState('Week');
+  const [hasError, setHasError] = useState(false);
+
+  // Error boundary effect
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      console.error('Dashboard error:', event.error);
+      setHasError(true);
+    };
+
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
+
+  // If there's an error, show a simple error message
+  if (hasError) {
+    return (
+      <div className="container mx-auto p-4 theme-transition">
+        <div className="bg-gray-900 rounded-lg p-8 text-center">
+          <h2 className="text-xl font-semibold text-red-500 mb-4">
+            Dashboard Error
+          </h2>
+          <p className="text-gray-400 mb-6">
+            There was a problem loading the dashboard components.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
+          >
+            Reload Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4 theme-transition">
       <div className="grid grid-cols-1 gap-6">
         {/* Portfolio Overview - DashboardHeader */}
-        <DashboardHeader />
+        <ErrorBoundary
+          fallback={
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8 p-4 bg-gray-900 rounded-lg">
+              <h3 className="text-xl font-medium text-red-500">
+                Dashboard Header Error
+              </h3>
+              <p className="text-gray-400">
+                There was an error loading the dashboard header.
+              </p>
+              <button
+                onClick={() => window.location.reload()}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
+              >
+                Reload
+              </button>
+            </div>
+          }
+        >
+          <DashboardHeader />
+        </ErrorBoundary>
 
         {/* Performance Chart and Allocation Chart */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -104,7 +161,17 @@ const Dashboard: React.FC = () => {
                 ))}
               </div>
             </div>
-            <PerformanceChart data={mockPerformanceData} isPositive={true} />
+            <ErrorBoundary
+              fallback={
+                <div className="h-64 flex items-center justify-center">
+                  <p className="text-gray-400">
+                    Unable to load performance chart
+                  </p>
+                </div>
+              }
+            >
+              <PerformanceChart data={mockPerformanceData} isPositive={true} />
+            </ErrorBoundary>
           </div>
           <div
             className="dashboard-card p-5 flex flex-col items-center justify-center"
@@ -114,7 +181,17 @@ const Dashboard: React.FC = () => {
               Current Allocations
             </h2>
             <div className="flex items-center justify-center w-full h-full">
-              <AllocationChart data={mockAllocationData} />
+              <ErrorBoundary
+                fallback={
+                  <div className="h-64 flex items-center justify-center">
+                    <p className="text-gray-400">
+                      Unable to load allocation chart
+                    </p>
+                  </div>
+                }
+              >
+                <AllocationChart data={mockAllocationData} />
+              </ErrorBoundary>
             </div>
           </div>
         </div>
@@ -166,33 +243,46 @@ const Dashboard: React.FC = () => {
             ))}
           </div>
           {/* Tab Content */}
-          {activeTab === 'Balances' && (
-            <div className="overflow-x-auto">
-              <table className="portfolio-table w-full">
-                <thead>
-                  <tr>
-                    <th>Asset</th>
-                    <th>Amount</th>
-                    <th>Value (USD)</th>
-                    <th>Last Price</th>
-                    <th>24h Change</th>
-                    <th>7d Chart</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mockAssets.map((asset, idx) => (
-                    <AssetRow key={asset.symbol + idx} asset={asset} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          {activeTab !== 'Balances' && (
-            <div className="text-gray-400 text-center py-8">
-              No data for this tab yet.
-            </div>
-          )}
+          <ErrorBoundary
+            fallback={
+              <div className="text-center py-8">
+                <p className="text-red-500 mb-2">
+                  Error loading portfolio data
+                </p>
+                <p className="text-gray-400">
+                  There was a problem displaying your assets.
+                </p>
+              </div>
+            }
+          >
+            {activeTab === 'Balances' && (
+              <div className="overflow-x-auto">
+                <table className="portfolio-table w-full">
+                  <thead>
+                    <tr>
+                      <th>Asset</th>
+                      <th>Amount</th>
+                      <th>Value (USD)</th>
+                      <th>Last Price</th>
+                      <th>24h Change</th>
+                      <th>7d Chart</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mockAssets.map((asset, idx) => (
+                      <AssetRow key={asset.symbol + idx} asset={asset} />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {activeTab !== 'Balances' && (
+              <div className="text-gray-400 text-center py-8">
+                No data for this tab yet.
+              </div>
+            )}
+          </ErrorBoundary>
         </div>
 
         {/* Exchange Adapter Example */}
@@ -206,7 +296,17 @@ const Dashboard: React.FC = () => {
             </h2>
             <div className="text-xs text-gray-400">Mock Data System Demo</div>
           </div>
-          <ExchangeAdapterExample />
+          <Suspense
+            fallback={
+              <div className="p-4 bg-gray-800 rounded-lg text-center">
+                <p className="text-gray-400">Loading exchange adapter...</p>
+              </div>
+            }
+          >
+            <ErrorBoundary>
+              <ExchangeAdapterExample />
+            </ErrorBoundary>
+          </Suspense>
         </div>
       </div>
     </div>

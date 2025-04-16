@@ -122,7 +122,11 @@ export function AddExchangeAccountModal({
     mutationFn: addExchangeApiKey,
     onSuccess: (data) => {
       // data is now typed as AddApiKeyResponse
-      console.log('Exchange account added successfully, triggering test...');
+      console.log(
+        'Exchange account added successfully, triggering test...',
+        data,
+      );
+      console.log('API Key response:', data);
       // Show success toast
       toast({
         title: 'API Key Added',
@@ -195,14 +199,20 @@ export function AddExchangeAccountModal({
     }
 
     try {
+      // Log the account label being used
+      console.log('[Debug] Using account label:', accountLabel);
+
       addApiKeyMutation.mutate({
         // Use the renamed mutation
         exchange_id: selectedExchange,
         api_key: apiKey,
         api_secret: secretKey,
-        key_nickname: accountLabel || selectedExchange, // Use selected exchange as label if none provided
+        key_nickname: accountLabel || `My ${selectedExchange} Account`, // Use a better default label if none provided
       });
-      console.log('[Debug] addApiKeyMutation.mutate() called successfully.'); // Added log
+      console.log(
+        '[Debug] addApiKeyMutation.mutate() called successfully with key_nickname:',
+        accountLabel || `My ${selectedExchange} Account`,
+      ); // Enhanced log
     } catch (error) {
       console.error('[Debug] Error calling addApiKeyMutation:', error);
       toast({
@@ -216,11 +226,18 @@ export function AddExchangeAccountModal({
   // Update label placeholder based on selection
   useEffect(() => {
     if (selectedExchange) {
-      setAccountLabel(selectedExchange); // Pre-fill label based on exchange
+      // Find the exchange name from the list
+      const exchange = exchanges.find((e) => e.value === selectedExchange);
+      // Pre-fill label with a more user-friendly name
+      setAccountLabel(
+        exchange
+          ? `My ${exchange.name} Account`
+          : `My ${selectedExchange} Account`,
+      );
     } else {
       setAccountLabel(''); // Clear if no exchange selected
     }
-  }, [selectedExchange]);
+  }, [selectedExchange, exchanges]);
 
   return (
     <>
