@@ -102,6 +102,14 @@ The project uses two separate `.env` files for configuration:
 
 This separation helps maintain a clear distinction between frontend and backend environments.
 
+**Setting up your environment:**
+
+1. Copy `.env.example` to `.env` in the project root
+2. Copy `backend/.env.example` to `backend/.env`
+3. Fill in the appropriate values in both files
+
+**Note:** Both `.env` files are gitignored to prevent committing sensitive information.
+
 ## Migration Notes
 
 - The platform has fully migrated from Supabase to Firebase for authentication.
