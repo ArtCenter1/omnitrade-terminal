@@ -6,6 +6,11 @@ import { AssetRow } from '@/components/AssetRow';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import { useSelectedAccount } from '@/hooks/useSelectedAccount';
+import {
+  generatePerformanceData,
+  generateAllocationData,
+} from '@/utils/portfolioDataUtils';
 // Import the ExchangeAdapterExample component with React.lazy for code splitting
 const ExchangeAdapterExample = React.lazy(
   () => import('@/components/examples/ExchangeAdapterExample'),
@@ -79,6 +84,53 @@ const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Balances');
   const [activeRange, setActiveRange] = useState('Week');
   const [hasError, setHasError] = useState(false);
+  const { selectedAccount } = useSelectedAccount();
+
+  // Generate dynamic chart data based on the selected account
+  const [performanceData, setPerformanceData] = useState(mockPerformanceData);
+  const [allocationData, setAllocationData] = useState(mockAllocationData);
+  const [isPositive, setIsPositive] = useState(true);
+
+  // Update chart data when selected account changes
+  useEffect(() => {
+    if (selectedAccount) {
+      console.log('Updating chart data for account:', selectedAccount.name);
+
+      try {
+        // Generate new performance data based on the selected account
+        const newPerformanceData = generatePerformanceData(selectedAccount);
+
+        // Only update if we got valid data
+        if (newPerformanceData && newPerformanceData.length > 0) {
+          setPerformanceData(newPerformanceData);
+        } else {
+          console.warn(
+            'Using default performance data for account:',
+            selectedAccount.name,
+          );
+        }
+
+        // Generate new allocation data based on the selected account
+        const newAllocationData = generateAllocationData(selectedAccount);
+
+        // Only update if we got valid data
+        if (newAllocationData && newAllocationData.length > 0) {
+          setAllocationData(newAllocationData);
+        } else {
+          console.warn(
+            'Using default allocation data for account:',
+            selectedAccount.name,
+          );
+        }
+
+        // Determine if the change is positive based on the account's change value
+        const accountIsPositive = !selectedAccount.change.includes('-');
+        setIsPositive(accountIsPositive);
+      } catch (error) {
+        console.error('Error updating chart data:', error);
+      }
+    }
+  }, [selectedAccount]);
 
   // Error boundary effect
   useEffect(() => {
@@ -170,7 +222,10 @@ const Dashboard: React.FC = () => {
                 </div>
               }
             >
-              <PerformanceChart data={mockPerformanceData} isPositive={true} />
+              <PerformanceChart
+                data={performanceData}
+                isPositive={isPositive}
+              />
             </ErrorBoundary>
           </div>
           <div
@@ -190,7 +245,7 @@ const Dashboard: React.FC = () => {
                   </div>
                 }
               >
-                <AllocationChart data={mockAllocationData} />
+                <AllocationChart data={allocationData} />
               </ErrorBoundary>
             </div>
           </div>

@@ -7,8 +7,12 @@ export function generateMockPortfolio(
   seed?: number,
 ): Portfolio {
   // Use different portfolio compositions based on the exchange
-  const isBinance = exchangeId.toLowerCase() === 'binance';
-  const isCoinbase = exchangeId.toLowerCase() === 'coinbase';
+  const exchangeType = exchangeId.toLowerCase();
+  const isBinance = exchangeType === 'binance';
+  const isCoinbase = exchangeType === 'coinbase';
+  const isKraken = exchangeType === 'kraken';
+
+  console.log(`Creating portfolio for exchange type: ${exchangeType}`);
   const assets: PortfolioAsset[] = [];
   let totalUsdValue = 0;
 
@@ -24,10 +28,78 @@ export function generateMockPortfolio(
     MATIC: 0.89,
     USDT: 1.0,
     USDC: 1.0,
+    XMR: 160.25, // Monero
+    DASH: 28.45, // Dash
+    ZEC: 35.67, // Zcash
+    XTZ: 0.78, // Tezos
+    EOS: 0.64, // EOS
   };
 
   // Different portfolio compositions based on exchange
-  if (isCoinbase) {
+  if (isKraken) {
+    // Kraken portfolio - more focused on privacy coins and staking assets
+
+    // Add stablecoins with larger balances
+    assets.push({
+      asset: 'USDT',
+      free: 9876.54,
+      locked: 123.46,
+      total: 10000.0,
+      usdValue: 10000.0,
+      exchangeId,
+    });
+    totalUsdValue += 10000.0;
+
+    // Add BTC with significant balance
+    const btcAmount = 0.4231;
+    const btcValue = btcAmount * assetPrices['BTC'];
+    assets.push({
+      asset: 'BTC',
+      free: btcAmount,
+      locked: 0,
+      total: btcAmount,
+      usdValue: btcValue,
+      exchangeId,
+    });
+    totalUsdValue += btcValue;
+
+    // Add ETH
+    const ethAmount = 3.1415;
+    const ethValue = ethAmount * assetPrices['ETH'];
+    assets.push({
+      asset: 'ETH',
+      free: ethAmount,
+      locked: 0,
+      total: ethAmount,
+      usdValue: ethValue,
+      exchangeId,
+    });
+    totalUsdValue += ethValue;
+
+    // Add DOT (Polkadot) - popular on Kraken for staking
+    const dotAmount = 350.75;
+    const dotValue = dotAmount * assetPrices['DOT'];
+    assets.push({
+      asset: 'DOT',
+      free: dotAmount - 100,
+      locked: 100, // Some DOT is staked
+      total: dotAmount,
+      usdValue: dotValue,
+      exchangeId,
+    });
+    totalUsdValue += dotValue;
+
+    // Add privacy coins (Monero) - Kraken is known for privacy coins
+    assets.push({
+      asset: 'XMR',
+      free: 15.5,
+      locked: 0,
+      total: 15.5,
+      usdValue: 15.5 * 160.25, // Monero price
+      exchangeId,
+    });
+    totalUsdValue += 15.5 * 160.25;
+  } else if (isCoinbase) {
     // Coinbase portfolio - more BTC and ETH focused
 
     // Add stablecoins with larger balances
@@ -143,10 +215,17 @@ export function generateMockPortfolio(
     totalUsdValue += solValue;
   }
 
-  // Add a few more assets with smaller balances
-  const smallerAssets = isCoinbase
-    ? ['AVAX', 'DOT', 'ADA']
-    : ['AVAX', 'LINK', 'DOT', 'ADA', 'MATIC'];
+  // Add a few more assets with smaller balances based on the exchange
+  let smallerAssets: string[] = [];
+
+  if (isKraken) {
+    smallerAssets = ['DASH', 'ZEC', 'EOS', 'XTZ', 'ADA'];
+  } else if (isCoinbase) {
+    smallerAssets = ['AVAX', 'DOT', 'ADA'];
+  } else {
+    // Binance and others
+    smallerAssets = ['AVAX', 'LINK', 'DOT', 'ADA', 'MATIC'];
+  }
 
   smallerAssets.forEach((asset) => {
     const amount = parseFloat((Math.random() * 50).toFixed(4));
@@ -162,8 +241,8 @@ export function generateMockPortfolio(
     totalUsdValue += value;
   });
 
-  // Add stablecoin values to total
-  totalUsdValue += 16000.0 + 8750.45;
+  // We've already added the stablecoin values to the total, so no need to add them again
+  // totalUsdValue += 16000.0 + 8750.45;
 
   // Sort assets by USD value (descending)
   assets.sort((a, b) => b.usdValue - a.usdValue);
@@ -197,18 +276,53 @@ export function getMockPortfolioData(apiKeyId?: string): {
   let exchangeId = 'binance'; // Default
 
   try {
-    // Try to get the exchange API keys from localStorage
-    const savedKeys = localStorage.getItem('exchange_api_keys');
-    if (savedKeys) {
-      const apiKeys = JSON.parse(savedKeys);
-      const apiKey = apiKeys.find((key: any) => key.api_key_id === apiKeyId);
-      if (apiKey) {
-        exchangeId = apiKey.exchange_id;
+    // First try to get the exchange API keys from the mock data in handlers.ts
+    // This is stored in memory and is the most up-to-date
+    const mockApiKeys = [
+      {
+        api_key_id: 'mock-key-1',
+        exchange_id: 'kraken',
+        key_nickname: 'kraken',
+      },
+      {
+        api_key_id: 'mock-key-2',
+        exchange_id: 'binance',
+        key_nickname: 'binance artcenter1',
+      },
+      {
+        api_key_id: 'mock-key-3',
+        exchange_id: 'coinbase',
+        key_nickname: 'Coinbase 123',
+      },
+    ];
+
+    const mockApiKey = mockApiKeys.find((key) => key.api_key_id === apiKeyId);
+    if (mockApiKey) {
+      exchangeId = mockApiKey.exchange_id;
+      console.log(
+        `Found exchange ID ${exchangeId} for API key ${apiKeyId} in mock data`,
+      );
+    } else {
+      // If not found in mock data, try localStorage as a fallback
+      const savedKeys = localStorage.getItem('exchange_api_keys');
+      if (savedKeys) {
+        const apiKeys = JSON.parse(savedKeys);
+        const apiKey = apiKeys.find((key: any) => key.api_key_id === apiKeyId);
+        if (apiKey) {
+          exchangeId = apiKey.exchange_id;
+          console.log(
+            `Found exchange ID ${exchangeId} for API key ${apiKeyId} in localStorage`,
+          );
+        }
       }
     }
   } catch (error) {
     console.error('Error getting exchange ID from API key:', error);
   }
+
+  console.log(
+    `Generating portfolio for exchange: ${exchangeId} with API key: ${apiKeyId}`,
+  );
 
   // Generate a mock portfolio
   const portfolio = generateMockPortfolio(
