@@ -1,28 +1,48 @@
 module.exports = {
+  root: true,
   extends: [
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
+    'plugin:react/recommended',
+    'plugin:react-hooks/recommended',
     'prettier',
   ],
   parser: '@typescript-eslint/parser',
   parserOptions: {
     ecmaVersion: 2020,
     sourceType: 'module',
-    project: './tsconfig.json',
+    ecmaFeatures: {
+      jsx: true,
+    },
   },
-  plugins: ['@typescript-eslint'],
-  root: true,
+  settings: {
+    react: {
+      version: 'detect',
+    },
+  },
+  plugins: ['@typescript-eslint', 'react', 'react-hooks', 'react-refresh'],
   env: {
+    browser: true,
+    es2020: true,
     node: true,
-    jest: true,
   },
   rules: {
-    // Basic TypeScript rules
+    // React rules
+    'react/react-in-jsx-scope': 'off',
+    'react/prop-types': 'off',
+    'react-refresh/only-export-components': [
+      'warn',
+      { allowConstantExport: true },
+    ],
+    'react-hooks/rules-of-hooks': 'error',
+    'react-hooks/exhaustive-deps': 'warn',
+
+    // TypeScript rules
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/no-explicit-any': 'warn',
     '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
-
+    
     // Fix for no-unused-expressions rule
     'no-unused-expressions': 'off',
     '@typescript-eslint/no-unused-expressions': [
@@ -33,32 +53,13 @@ module.exports = {
         allowTaggedTemplates: true,
       },
     ],
-
+    
     // Type safety rules - set to warn instead of error
     '@typescript-eslint/no-unsafe-assignment': 'warn',
     '@typescript-eslint/no-unsafe-member-access': 'warn',
     '@typescript-eslint/no-unsafe-call': 'warn',
     '@typescript-eslint/no-unsafe-return': 'warn',
     '@typescript-eslint/no-unsafe-argument': 'warn',
-
-    // Additional helpful rules
-    '@typescript-eslint/ban-ts-comment': 'warn',
-    '@typescript-eslint/no-floating-promises': 'off',
-    '@typescript-eslint/no-misused-promises': 'off',
-    '@typescript-eslint/require-await': 'warn',
-    '@typescript-eslint/restrict-template-expressions': 'off',
-    '@typescript-eslint/unbound-method': 'off',
   },
-  overrides: [
-    {
-      // Specific rules for test files
-      files: ['**/*.spec.ts', '**/*.test.ts'],
-      rules: {
-        '@typescript-eslint/no-explicit-any': 'off',
-        '@typescript-eslint/no-unsafe-member-access': 'off',
-        '@typescript-eslint/no-unsafe-call': 'off',
-        '@typescript-eslint/no-unsafe-assignment': 'off',
-      },
-    },
-  ],
+  ignorePatterns: ['dist', 'node_modules', 'backend/node_modules', 'backend/dist'],
 };

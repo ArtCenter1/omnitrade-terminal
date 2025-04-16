@@ -32,10 +32,21 @@ export class PrismaService
     try {
       await this.$connect();
       this.logger.log('Prisma connected successfully');
-    } catch (error: any) {
+    } catch (error) {
+      // Define a type guard for error objects with a message property
+      const isErrorWithMessage = (err: unknown): err is { message: string } => {
+        return (
+          typeof err === 'object' &&
+          err !== null &&
+          'message' in err &&
+          typeof (err as { message: unknown }).message === 'string'
+        );
+      };
+
       if (
-        (error.message && error.message.includes('did not initialize yet')) ||
-        (error.message && error.message.includes('run "prisma generate"'))
+        isErrorWithMessage(error) &&
+        (error.message.includes('did not initialize yet') ||
+          error.message.includes('run "prisma generate"'))
       ) {
         this.logger.warn(
           'Prisma client not initialized. Running prisma generate...',
@@ -48,14 +59,22 @@ export class PrismaService
           // Try connecting again
           await this.$connect();
           this.logger.log('Prisma connected successfully after generation');
-        } catch (genError: any) {
+        } catch (genError) {
+          const errorMessage = isErrorWithMessage(genError)
+            ? genError.message
+            : 'Unknown error';
+
           this.logger.error(
-            `Failed to generate Prisma client: ${genError.message}`,
+            `Failed to generate Prisma client: ${errorMessage}`,
           );
           throw genError;
         }
       } else {
-        this.logger.error(`Failed to connect to Prisma: ${error.message}`);
+        const errorMessage = isErrorWithMessage(error)
+          ? error.message
+          : 'Unknown error';
+
+        this.logger.error(`Failed to connect to Prisma: ${errorMessage}`);
         throw error;
       }
     }
