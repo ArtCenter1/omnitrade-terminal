@@ -48,9 +48,15 @@ const command = process.argv[2];
 // Execute Prisma command with proper error handling
 function runPrismaCommand(command) {
   try {
+    // Use the backend prisma folder
+    process.chdir(path.join(projectRoot, 'backend'));
     execSync(`npx prisma ${command}`, { stdio: "inherit" });
+    // Return to project root after command execution
+    process.chdir(projectRoot);
   } catch (error) {
     console.error(`Error executing command: npx prisma ${command}`);
+    // Return to project root even if command fails
+    process.chdir(projectRoot);
     process.exit(1);
   }
 }

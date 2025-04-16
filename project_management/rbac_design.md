@@ -46,7 +46,7 @@ Permissions define actions allowed on specific resources, using a `resource:acti
 
 _¹ Support update permissions might be limited (e.g., only password reset, email verification)._
 
-## 3. Database Schema (Prisma)
+## 3. Database Schema (Prisma in backend/prisma)
 
 The RBAC system requires modifications to the Prisma schema, replacing the simple `Role` enum with dedicated `Role` and `Permission` models linked via many-to-many relationships. The `User` model is updated to use an optional `full_name` field.
 

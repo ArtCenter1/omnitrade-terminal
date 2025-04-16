@@ -117,6 +117,6 @@
     "vitest": "^3.1.1"
   },
   "prisma": {
-    "seed": "node prisma/seed.js"
+    "seed": "node backend/prisma/seed.js"
   }
 }
