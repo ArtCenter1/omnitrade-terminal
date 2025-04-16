@@ -1,45 +1,46 @@
-import React, { useState, useEffect } from "react";
-import { Route, Routes, useLocation, Navigate } from "react-router-dom";
-import { ThemeProvider as ShadcnThemeProvider } from "@/components/ThemeProvider";
-import { ThemeProvider } from "@/contexts/ThemeContext";
-import "@/styles/themes.css";
-import "@/styles/components.css";
-import UserRoleManagement from "./pages/admin/UserRoleManagement";
-import ComingSoon from "./pages/admin/ComingSoon";
-import { ScrollToTop } from "./components/ScrollToTop";
-import Index from "./pages/Index";
-import AuthPage from "./pages/auth/AuthPage";
-import LoginPage from "./pages/auth/LoginPage";
-import RegisterPage from "./pages/auth/RegisterPage";
-import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
+import React, { useState, useEffect } from 'react';
+import { Route, Routes, useLocation, Navigate } from 'react-router-dom';
+import { ThemeProvider as ShadcnThemeProvider } from '@/components/ThemeProvider';
+import { ThemeProvider } from '@/contexts/ThemeContext';
+import '@/styles/themes.css';
+import '@/styles/components.css';
+import UserRoleManagement from './pages/admin/UserRoleManagement';
+import ComingSoon from './pages/admin/ComingSoon';
+import { ScrollToTop } from './components/ScrollToTop';
+import Index from './pages/Index';
+import AuthPage from './pages/auth/AuthPage';
+import LoginPage from './pages/auth/LoginPage';
+import RegisterPage from './pages/auth/RegisterPage';
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 // ResetPasswordPage is imported below
-import Pricing from "./pages/Pricing";
-import OmniToken from "./pages/OmniToken";
-import TradingBotsLanding from "./pages/TradingBotsLanding";
-import Blog from "./pages/Blog";
-import NotFound from "./pages/NotFound";
-import Dashboard from "./pages/dashboard/Dashboard";
-import Terminal from "./pages/Terminal";
-import Bots from "./pages/Bots";
-import Markets from "./pages/Markets";
-import Earn from "./pages/Earn";
-import Community from "./pages/Community";
-import AIDrivenPage from "./pages/AIDriven";
-import UserProfile from "./pages/profile/UserProfile";
-import MyAccounts from "./pages/profile/MyAccounts";
-import Security from "./pages/profile/Security";
-import ChangePassword from "./pages/profile/ChangePassword";
-import Preferences from "./pages/profile/Preferences";
-import PlanSubscription from "./pages/profile/PlanSubscription";
-import { useAuth } from "./hooks/useAuth";
+import Pricing from './pages/Pricing';
+import OmniToken from './pages/OmniToken';
+import TradingBotsLanding from './pages/TradingBotsLanding';
+import Blog from './pages/Blog';
+import NotFound from './pages/NotFound';
+import Dashboard from './pages/dashboard/Dashboard';
+import Terminal from './pages/Terminal';
+import Bots from './pages/Bots';
+import Markets from './pages/Markets';
+import Earn from './pages/Earn';
+import Community from './pages/Community';
+import AIDrivenPage from './pages/AIDriven';
+import UserProfile from './pages/profile/UserProfile';
+import MyAccounts from './pages/profile/MyAccounts';
+import Security from './pages/profile/Security';
+import ChangePassword from './pages/profile/ChangePassword';
+import Preferences from './pages/profile/Preferences';
+import PlanSubscription from './pages/profile/PlanSubscription';
+import ExchangeDemo from './pages/demo/ExchangeDemo';
+import { useAuth } from './hooks/useAuth';
 
 // Add import for our new components
-import { RoleProtectedRoute } from "./components/layout/RoleProtectedRoute";
-import ProtectedRoute from "./components/layout/ProtectedRoute.tsx";
+import { RoleProtectedRoute } from './components/layout/RoleProtectedRoute';
+import ProtectedRoute from './components/layout/ProtectedRoute.tsx';
 // Import Navbar for protected routes
-import Navbar from "./components/Navbar";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import { ResetPasswordPage } from "./pages/auth/ResetPasswordPage";
+import Navbar from './components/Navbar';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -138,6 +139,16 @@ function App() {
           />
           <Route path="/ai-driven" element={<AIDrivenPage />} />
 
+          {/* Demo routes */}
+          <Route
+            path="/demo/exchange"
+            element={
+              <ProtectedRoute>
+                <ExchangeDemo />
+              </ProtectedRoute>
+            }
+          />
+
           {/* Profile routes (reverted to individual wrappers) */}
           <Route
             path="/profile"
@@ -193,7 +204,7 @@ function App() {
             path="/admin"
             element={
               <RoleProtectedRoute
-                allowedRoles={["admin"]}
+                allowedRoles={['admin']}
                 redirectTo="/dashboard"
               >
                 <AdminDashboard />
@@ -204,7 +215,7 @@ function App() {
             path="/admin/users-roles"
             element={
               <RoleProtectedRoute
-                allowedRoles={["admin"]}
+                allowedRoles={['admin']}
                 redirectTo="/dashboard"
               >
                 <UserRoleManagement />
@@ -226,7 +237,7 @@ function App() {
             path="/admin/:feature"
             element={
               <RoleProtectedRoute
-                allowedRoles={["admin"]}
+                allowedRoles={['admin']}
                 redirectTo="/dashboard"
               >
                 <ComingSoon />

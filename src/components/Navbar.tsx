@@ -1,22 +1,22 @@
 // Navbar component
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   NavigationMenu,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
   navigationMenuTriggerStyle,
-} from "@/components/ui/navigation-menu";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+} from '@/components/ui/navigation-menu';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
 import {
   LogOut,
   User,
@@ -32,10 +32,10 @@ import {
   Moon,
   Sun,
   BellOff,
-} from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { useRoleBasedAccess, switchRole } from "@/hooks/useRoleBasedAccess";
-import { useTheme } from "@/contexts/ThemeContext";
+} from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { useRoleBasedAccess, switchRole } from '@/hooks/useRoleBasedAccess';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function Navbar() {
   const { user, signOut } = useAuth();
@@ -46,16 +46,16 @@ export default function Navbar() {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate("/");
+    navigate('/');
   };
 
   const getInitials = () => {
-    if (!user) return "?";
+    if (!user) return '?';
 
-    const name = user.user_metadata?.full_name || user.email || "";
-    if (!name) return "?";
+    const name = user.user_metadata?.full_name || user.email || '';
+    if (!name) return '?';
 
-    const parts = name.split(" ");
+    const parts = name.split(' ');
     if (parts.length === 1) return name.charAt(0).toUpperCase();
 
     return (
@@ -125,6 +125,17 @@ export default function Navbar() {
                 </Link>
               </NavigationMenuItem>
 
+              {/* Demo link */}
+              <NavigationMenuItem>
+                <Link to="/demo/exchange">
+                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                    <span className="flex items-center text-blue-400">
+                      Exchange Demo
+                    </span>
+                  </NavigationMenuLink>
+                </Link>
+              </NavigationMenuItem>
+
               {/* Admin link - only visible to admins */}
               {isAdmin && (
                 <NavigationMenuItem>
@@ -164,7 +175,7 @@ export default function Navbar() {
                   {/* Theme Toggle */}
                   <div className="settings-menu-item">
                     <div className="flex items-center space-x-2">
-                      {theme === "dark" ? (
+                      {theme === 'dark' ? (
                         <Moon size={16} className="text-theme-link" />
                       ) : (
                         <Sun size={16} className="text-warning-color" />
@@ -176,9 +187,9 @@ export default function Navbar() {
                     <label className="toggle-switch">
                       <input
                         type="checkbox"
-                        checked={theme === "dark"}
+                        checked={theme === 'dark'}
                         onChange={() =>
-                          setTheme(theme === "dark" ? "light" : "dark")
+                          setTheme(theme === 'dark' ? 'light' : 'dark')
                         }
                       />
                       <span className="toggle-slider"></span>
@@ -218,8 +229,8 @@ export default function Navbar() {
             className="text-theme-secondary hover:text-theme-primary theme-transition"
             title={
               notificationsEnabled
-                ? "Notifications enabled"
-                : "Notifications disabled"
+                ? 'Notifications enabled'
+                : 'Notifications disabled'
             }
           >
             {notificationsEnabled ? <Bell size={20} /> : <BellOff size={20} />}
@@ -231,7 +242,7 @@ export default function Navbar() {
                 <DropdownMenuTrigger asChild>
                   <div className="flex items-center space-x-2 cursor-pointer">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={user.user_metadata?.avatar_url || ""} />
+                      <AvatarImage src={user.user_metadata?.avatar_url || ''} />
                       <AvatarFallback className="bg-primary text-primary-foreground">
                         {getInitials()}
                       </AvatarFallback>
@@ -246,7 +257,7 @@ export default function Navbar() {
                   <div className="flex items-center justify-start gap-2 p-2">
                     <div className="flex flex-col space-y-1 leading-none">
                       <p className="font-medium text-sm text-theme-primary">
-                        {user.user_metadata?.full_name || "User"}
+                        {user.user_metadata?.full_name || 'User'}
                       </p>
                       <p className="w-[200px] truncate text-xs text-theme-secondary">
                         {user.email}
@@ -256,7 +267,7 @@ export default function Navbar() {
                           Role:
                         </span>
                         <span
-                          className={`text-xs px-2 py-0.5 rounded ${userRole === "admin" ? "bg-red-900 text-white" : userRole === "premium" ? "bg-purple-900 text-white" : "bg-gray-700 text-gray-300"}`}
+                          className={`text-xs px-2 py-0.5 rounded ${userRole === 'admin' ? 'bg-red-900 text-white' : userRole === 'premium' ? 'bg-purple-900 text-white' : 'bg-gray-700 text-gray-300'}`}
                         >
                           {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
                         </span>
@@ -265,14 +276,14 @@ export default function Navbar() {
                   </div>
                   <DropdownMenuSeparator className="bg-theme-tertiary" />
                   <DropdownMenuItem
-                    onClick={() => navigate("/profile")}
+                    onClick={() => navigate('/profile')}
                     className="cursor-pointer hover:bg-theme-hover text-theme-secondary theme-transition"
                   >
                     <User className="mr-2 h-4 w-4" />
                     <span>User Profile</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => navigate("/profile/preferences")}
+                    onClick={() => navigate('/profile/preferences')}
                     className="cursor-pointer hover:bg-theme-hover text-theme-secondary theme-transition"
                   >
                     <Settings className="mr-2 h-4 w-4" />
@@ -287,14 +298,14 @@ export default function Navbar() {
                         ADMIN ACCESS
                       </div>
                       <DropdownMenuItem
-                        onClick={() => navigate("/admin")}
+                        onClick={() => navigate('/admin')}
                         className="cursor-pointer hover:bg-red-900 bg-red-950 text-red-300"
                       >
                         <LayoutDashboard className="mr-2 h-4 w-4" />
                         <span>Admin Dashboard</span>
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => navigate("/admin/users-roles")}
+                        onClick={() => navigate('/admin/users-roles')}
                         className="cursor-pointer hover:bg-red-900 bg-red-950 text-red-300"
                       >
                         <Users className="mr-2 h-4 w-4" />
@@ -305,28 +316,28 @@ export default function Navbar() {
 
                   <DropdownMenuSeparator className="bg-theme-tertiary" />
                   <DropdownMenuItem
-                    onClick={() => navigate("/profile/subscription")}
+                    onClick={() => navigate('/profile/subscription')}
                     className="cursor-pointer hover:bg-theme-hover text-theme-secondary theme-transition"
                   >
                     <CreditCard className="mr-2 h-4 w-4" />
                     <span>Plan & Subscription</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => navigate("/profile/change-password")}
+                    onClick={() => navigate('/profile/change-password')}
                     className="cursor-pointer hover:bg-theme-hover text-theme-secondary theme-transition"
                   >
                     <Lock className="mr-2 h-4 w-4" />
                     <span>Change Password</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => navigate("/profile/security")}
+                    onClick={() => navigate('/profile/security')}
                     className="cursor-pointer hover:bg-theme-hover text-theme-secondary theme-transition"
                   >
                     <Shield className="mr-2 h-4 w-4" />
                     <span>Security (2FA)</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => navigate("/profile/accounts")}
+                    onClick={() => navigate('/profile/accounts')}
                     className="cursor-pointer hover:bg-theme-hover text-theme-secondary theme-transition"
                   >
                     <Wallet className="mr-2 h-4 w-4" />
@@ -341,20 +352,20 @@ export default function Navbar() {
                     </p>
                     <div className="flex gap-1">
                       <button
-                        onClick={() => switchRole("user")}
-                        className={`text-xs px-2 py-1 rounded ${userRole === "user" ? "bg-gray-700 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"}`}
+                        onClick={() => switchRole('user')}
+                        className={`text-xs px-2 py-1 rounded ${userRole === 'user' ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}
                       >
                         User
                       </button>
                       <button
-                        onClick={() => switchRole("premium")}
-                        className={`text-xs px-2 py-1 rounded ${userRole === "premium" ? "bg-purple-900 text-white" : "bg-gray-800 text-gray-400 hover:bg-purple-900 hover:text-white"}`}
+                        onClick={() => switchRole('premium')}
+                        className={`text-xs px-2 py-1 rounded ${userRole === 'premium' ? 'bg-purple-900 text-white' : 'bg-gray-800 text-gray-400 hover:bg-purple-900 hover:text-white'}`}
                       >
                         Premium
                       </button>
                       <button
-                        onClick={() => switchRole("admin")}
-                        className={`text-xs px-2 py-1 rounded ${userRole === "admin" ? "bg-red-900 text-white" : "bg-gray-800 text-gray-400 hover:bg-red-900 hover:text-white"}`}
+                        onClick={() => switchRole('admin')}
+                        className={`text-xs px-2 py-1 rounded ${userRole === 'admin' ? 'bg-red-900 text-white' : 'bg-gray-800 text-gray-400 hover:bg-red-900 hover:text-white'}`}
                       >
                         Admin
                       </button>
@@ -376,13 +387,13 @@ export default function Navbar() {
             <>
               <Button
                 variant="ghost"
-                onClick={() => navigate("/auth")}
+                onClick={() => navigate('/auth')}
                 className="text-theme-primary theme-transition"
               >
                 Sign In
               </Button>
               <Button
-                onClick={() => navigate("/auth")}
+                onClick={() => navigate('/auth')}
                 className="btn-theme-primary theme-transition"
               >
                 Sign Up
