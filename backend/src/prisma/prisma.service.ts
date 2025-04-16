@@ -1,9 +1,23 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import * as path from 'path';
 
+const execPromise = promisify(exec);
+
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+export class PrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
+  private readonly logger = new Logger(PrismaService.name);
+
   constructor() {
     // Pass the path to the schema file
     super({
@@ -16,11 +30,40 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   }
 
   async onModuleInit() {
-    await this.$connect();
-    console.log('Prisma connected successfully');
+    try {
+      await this.$connect();
+      this.logger.log('Prisma connected successfully');
+    } catch (error) {
+      if (
+        error.message?.includes('did not initialize yet') ||
+        error.message?.includes('run "prisma generate"')
+      ) {
+        this.logger.warn(
+          'Prisma client not initialized. Running prisma generate...',
+        );
+        try {
+          const { stdout } = await execPromise('npx prisma generate');
+          this.logger.log('Prisma client generated successfully');
+          this.logger.debug(stdout);
+
+          // Try connecting again
+          await this.$connect();
+          this.logger.log('Prisma connected successfully after generation');
+        } catch (genError) {
+          this.logger.error(
+            `Failed to generate Prisma client: ${genError.message}`,
+          );
+          throw genError;
+        }
+      } else {
+        this.logger.error(`Failed to connect to Prisma: ${error.message}`);
+        throw error;
+      }
+    }
   }
 
   async onModuleDestroy() {
     await this.$disconnect();
+    this.logger.log('Prisma disconnected successfully');
   }
 }
