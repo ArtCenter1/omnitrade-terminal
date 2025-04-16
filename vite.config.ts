@@ -11,24 +11,23 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
     proxy: {
-      '/api': {
-        target: 'http://localhost:3000', // Your backend server (default port)
+      "/api": {
+        target: "http://localhost:3000", // Your backend server (default port)
         changeOrigin: true,
       },
-    }
+    },
   },
-  plugins: [
-    react(),
-  ].filter(Boolean),
+  plugins: [react()].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  test: { // Added Vitest config
+  test: {
+    // Added Vitest config
     globals: true,
-    environment: 'jsdom',
-    setupFiles: './src/setupTests.ts', // Path to setup file
+    environment: "jsdom",
+    setupFiles: "./src/setupTests.ts", // Path to setup file
     css: true, // Optional: if you need CSS processing during tests
   },
 }));

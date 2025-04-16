@@ -15,9 +15,19 @@ import { useKlines as useKlinesQuery } from "../services/marketDataApi";
  *   refetch: () => void
  * }} Object containing the klines array and query state.
  */
-export function useKlines(symbol: string, interval: string = "1m", limit: number = 100, options = {}) {
+export function useKlines(
+  symbol: string,
+  interval: string = "1m",
+  limit: number = 100,
+  options = {}
+) {
   // Use the API hook for initial/historical data
-  const { data, isLoading, isError, error, refetch } = useKlinesQuery(symbol, interval, limit, options);
+  const { data, isLoading, isError, error, refetch } = useKlinesQuery(
+    symbol,
+    interval,
+    limit,
+    options
+  );
 
   // No real-time updates for klines
   return {

@@ -1,4 +1,3 @@
-
 import { ArrowDownRight, Cog, ExternalLink, Info, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,14 +10,14 @@ import {
   mockAssets,
   formatCurrency,
   generatePriceChartData,
-  generateAllocationData
+  generateAllocationData,
 } from "@/lib/utils";
 
 export default function Dashboard() {
   const performanceChartData = generatePriceChartData(false);
   const allocationData = generateAllocationData();
 
-return (
+  return (
     <div className="container mx-auto p-6 bg-theme-primary theme-transition">
       {/* Add the new header component here */}
       <DashboardHeader />
@@ -62,7 +61,11 @@ return (
                 Current Allocations
                 <Info size={14} className="ml-1 text-theme-tertiary" />
               </h4>
-              <Button variant="ghost" size="sm" className="text-theme-secondary h-6 w-6 p-0 hover:text-theme-primary theme-transition">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-theme-secondary h-6 w-6 p-0 hover:text-theme-primary theme-transition"
+              >
                 <Cog size={16} />
               </Button>
             </div>
@@ -72,9 +75,7 @@ return (
             </div>
 
             {/* Remove the Earn button and Upgrade promo */}
-            <div className="mt-4">
-              {/* Content removed */}
-            </div>
+            <div className="mt-4">{/* Content removed */}</div>
           </div>
         </div>
       </div>
@@ -82,10 +83,15 @@ return (
       <div className="bg-theme-card rounded-lg overflow-hidden mb-8 shadow-theme-md theme-transition">
         <div className="p-6 pb-0">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-medium text-theme-primary">Portfolio Overview</h2>
+            <h2 className="text-xl font-medium text-theme-primary">
+              Portfolio Overview
+            </h2>
             <div className="flex items-center">
               <div className="relative mr-4">
-                <Search className="text-theme-tertiary absolute left-3 top-1/2 transform -translate-y-1/2" size={16} />
+                <Search
+                  className="text-theme-tertiary absolute left-3 top-1/2 transform -translate-y-1/2"
+                  size={16}
+                />
                 <Input
                   placeholder="Search Assets"
                   className="pl-10 bg-theme-tertiary border-theme-primary text-sm h-9 rounded-full w-60 text-theme-secondary"
@@ -94,7 +100,10 @@ return (
               <Button className="text-xs bg-success-color hover:bg-success-color/90 text-white rounded px-4 theme-transition">
                 DEPOSIT
               </Button>
-              <Button variant="outline" className="ml-2 text-xs border-theme-primary text-theme-secondary hover:bg-theme-hover rounded theme-transition">
+              <Button
+                variant="outline"
+                className="ml-2 text-xs border-theme-primary text-theme-secondary hover:bg-theme-hover rounded theme-transition"
+              >
                 WITHDRAW
               </Button>
             </div>
@@ -133,23 +142,39 @@ return (
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-theme-primary">
-                      <th className="text-left py-4 px-4 text-sm font-medium text-theme-tertiary">Asset</th>
-                      <th className="text-left py-4 px-4 text-sm font-medium text-theme-tertiary">Amount</th>
+                      <th className="text-left py-4 px-4 text-sm font-medium text-theme-tertiary">
+                        Asset
+                      </th>
+                      <th className="text-left py-4 px-4 text-sm font-medium text-theme-tertiary">
+                        Amount
+                      </th>
                       <th className="text-left py-4 px-4 text-sm font-medium text-theme-tertiary">
                         <div className="flex items-center">
                           Value (USD)
-                          <Info size={14} className="ml-1 text-theme-tertiary" />
+                          <Info
+                            size={14}
+                            className="ml-1 text-theme-tertiary"
+                          />
                         </div>
                       </th>
                       <th className="text-left py-4 px-4 text-sm font-medium text-theme-tertiary">
                         <div className="flex items-center">
                           Last Price
-                          <Info size={14} className="ml-1 text-theme-tertiary" />
+                          <Info
+                            size={14}
+                            className="ml-1 text-theme-tertiary"
+                          />
                         </div>
                       </th>
-                      <th className="text-left py-4 px-4 text-sm font-medium text-theme-tertiary">24h Change</th>
-                      <th className="text-left py-4 px-4 text-sm font-medium text-theme-tertiary">7d Chart</th>
-                      <th className="text-left py-4 px-4 text-sm font-medium text-theme-tertiary">Actions</th>
+                      <th className="text-left py-4 px-4 text-sm font-medium text-theme-tertiary">
+                        24h Change
+                      </th>
+                      <th className="text-left py-4 px-4 text-sm font-medium text-theme-tertiary">
+                        7d Chart
+                      </th>
+                      <th className="text-left py-4 px-4 text-sm font-medium text-theme-tertiary">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody>

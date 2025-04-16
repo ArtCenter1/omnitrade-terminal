@@ -46,10 +46,11 @@ The Bot Execution Engine is responsible for managing, executing, and monitoring 
 ## State Management
 
 - **Persistent Storage:**  
-  Use the existing database (PostgreSQL recommended) to store:  
-  - Bot configurations and parameters  
-  - Current positions and balances  
-  - Execution logs and error states  
+  Use the existing database (PostgreSQL recommended) to store:
+
+  - Bot configurations and parameters
+  - Current positions and balances
+  - Execution logs and error states
   - Historical performance metrics
 
 - **In-Memory Cache:**  

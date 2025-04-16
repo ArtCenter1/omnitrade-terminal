@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -8,50 +7,51 @@ import {
   Lock,
   Shield,
   Wallet,
-  LogOut // Added LogOut icon
+  LogOut, // Added LogOut icon
 } from "lucide-react";
-import { useAuth } from '@/hooks/useAuth'; // Added useAuth import
+import { useAuth } from "@/hooks/useAuth"; // Added useAuth import
 
 export function ProfileSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { signOut } = useAuth(); // Get signOut function
 
-  const handleSignOut = async () => { // Define handleSignOut
+  const handleSignOut = async () => {
+    // Define handleSignOut
     await signOut();
-    navigate('/');
+    navigate("/");
   };
 
   const menuItems = [
     {
       name: "User Profile",
       path: "/profile",
-      icon: <User size={16} className="mr-2" />
+      icon: <User size={16} className="mr-2" />,
     },
     {
       name: "Preferences",
       path: "/profile/preferences",
-      icon: <Settings size={16} className="mr-2" />
+      icon: <Settings size={16} className="mr-2" />,
     },
     {
       name: "Plan & Subscription",
       path: "/profile/subscription",
-      icon: <CreditCard size={16} className="mr-2" />
+      icon: <CreditCard size={16} className="mr-2" />,
     },
     {
       name: "Change Password",
       path: "/profile/change-password",
-      icon: <Lock size={16} className="mr-2" />
+      icon: <Lock size={16} className="mr-2" />,
     },
     {
       name: "Security (2FA)",
       path: "/profile/security",
-      icon: <Shield size={16} className="mr-2" />
+      icon: <Shield size={16} className="mr-2" />,
     },
     {
       name: "My Accounts",
       path: "/profile/accounts",
-      icon: <Wallet size={16} className="mr-2" />
+      icon: <Wallet size={16} className="mr-2" />,
     },
   ];
 

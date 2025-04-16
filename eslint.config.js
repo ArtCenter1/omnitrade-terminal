@@ -10,7 +10,8 @@ export default tseslint.config(
   { ignores: ["dist", "node_modules", ".git"] }, // Added node_modules, .git
   js.configs.recommended, // Moved base JS config out
   ...tseslint.configs.recommended, // Spread TS configs
-  { // React specific config object
+  {
+    // React specific config object
     files: ["**/*.{ts,tsx}"],
     plugins: {
       react: reactPlugin, // Use imported plugin
@@ -23,13 +24,15 @@ export default tseslint.config(
         ...globals.browser,
         ...globals.es2020, // Added modern globals
       },
-      parserOptions: { // Added: For JSX
+      parserOptions: {
+        // Added: For JSX
         ecmaFeatures: {
           jsx: true,
         },
       },
     },
-    settings: { // Added: React plugin settings
+    settings: {
+      // Added: React plugin settings
       react: {
         version: "detect", // Automatically detect React version
       },
@@ -42,7 +45,10 @@ export default tseslint.config(
         "warn",
         { allowConstantExport: true },
       ],
-      "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }], // Changed to warn, allow unused args starting with _
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_" },
+      ], // Changed to warn, allow unused args starting with _
       // Add other custom rules here if needed
     },
   },

@@ -12,17 +12,16 @@
 
 # Current Project Phase
 
-The API and WebSocket review for the Market Data integration has been completed. All relevant endpoints, event schemas, and authentication requirements have been analyzed using `market_data_api_openapi.yaml` and `market_data_websocket.md`. This review ensures a clear understanding of the data flow and technical requirements for real-time and RESTful market data features.
+The project is now in the "Frontend-Backend Integration" phase. The primary focus is connecting the core frontend components—User Profile/Settings, Dashboard, and Terminal—to the backend services. This phase aims to enable seamless data flow and user interaction across the application.
+
+Detailed tasks and progress for this phase are tracked in [`frontend_backend_integration_checklist.md`](./frontend_backend_integration_checklist.md).
 
 ---
 
 ## Next Step
 
-**Select and configure state management, data fetching, and WebSocket client libraries**
+**Implement backend API endpoints for user exchange API key management**
 
-The immediate next focus is to:
-- Evaluate and choose libraries for state management (e.g., Zustand), data fetching (e.g., React Query), and WebSocket connectivity (e.g., Reconnecting WebSocket).
-- Install the selected libraries.
-- Begin configuring the project structure to support robust, real-time market data integration.
+The first actionable step is to design and build backend API endpoints for managing user exchange API keys. This includes functionality to add, list, delete, and test connection/credentials for exchange API keys. These endpoints do not currently exist and must be implemented from scratch.
 
-This step will lay the technical foundation for implementing the Market Data API and WebSocket features in the frontend.
+This foundational work will enable secure integration between user accounts and external exchanges, supporting future trading and data features.

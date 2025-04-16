@@ -9,7 +9,9 @@ export default function CommunityPage() {
   return (
     <div className="container mx-auto p-6">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white mb-2">Community Leaderboards</h1>
+        <h1 className="text-2xl font-bold text-white mb-2">
+          Community Leaderboards
+        </h1>
         <p className="text-gray-400">
           Discover top traders, follow their strategies, and climb the ranks.
         </p>
@@ -36,7 +38,7 @@ export default function CommunityPage() {
           >
             Win Rate Leaderboard (30d)
           </TabsTrigger>
-           <TabsTrigger
+          <TabsTrigger
             value="backtest"
             className="data-[state=active]:border-primary border-b-2 border-transparent rounded-none data-[state=active]:shadow-none data-[state=active]:bg-transparent"
           >
@@ -53,18 +55,17 @@ export default function CommunityPage() {
 
         <TabsContent value="winrate" className="mt-0">
           {/* Placeholder for Win Rate Leaderboard - Can reuse Filters/Table with different data/sorting */}
-           <LeaderboardFilters />
-           <div className="p-8 text-center text-gray-400 bg-gray-900 rounded-lg">
-             <p>Win Rate Leaderboard data coming soon.</p>
-           </div>
+          <LeaderboardFilters />
+          <div className="p-8 text-center text-gray-400 bg-gray-900 rounded-lg">
+            <p>Win Rate Leaderboard data coming soon.</p>
+          </div>
         </TabsContent>
 
-         <TabsContent value="backtest" className="mt-0">
+        <TabsContent value="backtest" className="mt-0">
           {/* Community Arena Integration */}
           {/* <LeaderboardFilters />  We might not need the standard filters here, or they might need adjustment */}
           <CommunityArena />
         </TabsContent>
-
       </Tabs>
     </div>
   );

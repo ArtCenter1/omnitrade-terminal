@@ -17,7 +17,13 @@ import marketDataSocket from "../services/marketDataSocket";
  */
 export function useTicker(symbol: string, options = {}) {
   // Fetch initial/historical data
-  const { data: initialData, isLoading, isError, error, refetch } = useTickerQuery(symbol, options);
+  const {
+    data: initialData,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useTickerQuery(symbol, options);
 
   // Subscribe/unsubscribe to real-time updates
   useEffect(() => {
@@ -32,7 +38,10 @@ export function useTicker(symbol: string, options = {}) {
   const realtimeData = useMarketDataStore((state) => state.tickers[symbol]);
 
   // Merge initial and real-time data (prefer real-time if available)
-  const ticker = useMemo(() => realtimeData || initialData, [realtimeData, initialData]);
+  const ticker = useMemo(
+    () => realtimeData || initialData,
+    [realtimeData, initialData]
+  );
 
   return {
     ticker,

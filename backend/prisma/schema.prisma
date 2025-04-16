@@ -1,0 +1,302 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL") // Using SQLite for local development
+}
+
+// --- User Model ---
+model User {
+  user_id        String    @id @default(uuid())
+  email          String    @unique
+  password_hash  String
+  user_name      String    @unique
+  full_name      String?
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+  last_login_at  DateTime?
+  is_active      Boolean   @default(true)
+  email_verified Boolean   @default(false)
+
+  reset_token      String?
+  reset_token_expiry DateTime?
+
+  apiKeys UserApiKey[] // Relation to UserApiKey model
+  bots Bot[] @relation("UserBots")
+  settings UserSetting[] // Relation to UserSetting model
+  notifications Notification[] // Relation to Notification model
+  activityLogs UserActivityLog[] // Relation to UserActivityLog model
+
+  roles UserRole[]
+
+  @@map("users") // Maps to the 'users' table
+}
+
+
+// --- Exchange Model ---
+model Exchange {
+  exchange_id   String @id
+  exchange_name String @unique
+  api_base_url  String?
+  ws_base_url   String?
+  is_active     Boolean @default(true)
+
+  userApiKeys UserApiKey[] // Relation to UserApiKey model
+
+  @@map("exchanges") // Maps to the 'exchanges' table
+}
+
+// --- User API Key Model ---
+model UserApiKey {
+  api_key_id           String    @id @default(uuid())
+  user_id              String
+  exchange_id          String
+  api_key_encrypted    String    // Store encrypted key
+  api_secret_encrypted String    // Store encrypted secret
+  key_nickname         String?
+  permissions          Json?     // Store permissions if available
+  created_at           DateTime  @default(now())
+  updated_at           DateTime  @updatedAt
+  is_valid             Boolean?  // Flag indicating if the key is currently valid
+
+  user     User     @relation(fields: [user_id], references: [user_id], onDelete: Cascade) // Relation to User model
+  exchange Exchange @relation(fields: [exchange_id], references: [exchange_id], onDelete: Restrict) // Relation to Exchange model
+
+  @@unique([user_id, exchange_id, key_nickname]) // Unique constraint
+  @@index([user_id]) // Index for user lookups
+  @@index([user_id, exchange_id]) // Index for user/exchange lookups
+  @@map("user_api_keys") // Maps to the 'user_api_keys' table
+}
+
+model Bot {
+ id          String   @id @default(uuid())
+ userId      String
+ strategyId  String
+ config      Json
+ status      String   // e.g., 'active', 'inactive', 'error'
+ createdAt   DateTime @default(now())
+ consecutiveFailures Int @default(0)
+ isActive    Boolean  @default(true)
+
+ user        User     @relation("UserBots", fields: [userId], references: [user_id])
+ // strategy Strategy @relation(fields: [strategyId], references: [strategy_id])
+ executions  BotExecutionLog[]
+ performance BotPerformance[]
+ backtests   BacktestResult[]
+
+ @@map("trading_bots")
+}
+
+// model BotInstance {
+//   instance_id String   @id @default(uuid())
+//   bot_id      String
+//   exchange_id String
+//   api_key_id  String
+//   status      String   // e.g., 'running', 'stopped', 'error'
+//   started_at  DateTime @default(now())
+//
+//   bot         TradingBot @relation(fields: [bot_id], references: [bot_id])
+//   exchange    Exchange   @relation(fields: [exchange_id], references: [exchange_id])
+//   apiKey      UserApiKey @relation(fields: [api_key_id], references: [api_key_id])
+//
+//   @@map("bot_instances")
+// }
+
+// model Strategy {
+//   strategy_id String @id @default(uuid())
+//   name        String @unique
+//   description String?
+//   parameters  Json?  // Default parameters for the strategy
+//
+//   // bots TradingBot[]
+//
+//   @@map("strategies")
+// }
+
+// model Order {
+//   order_id        String   @id @default(uuid())
+//   user_id         String
+//   exchange_id     String
+//   api_key_id      String
+//   symbol          String
+//   type            String   // e.g., 'limit', 'market'
+//   side            String   // e.g., 'buy', 'sell'
+//   amount          Float    // Using Float for SQLite (consider Decimal for PostgreSQL)
+//   price           Float?   // Nullable for market orders
+//   status          String   // e.g., 'open', 'filled', 'canceled', 'rejected'
+//   created_at      DateTime @default(now())
+//   updated_at      DateTime @updatedAt
+//   exchange_order_id String? @unique // The ID assigned by the exchange
+//
+//   user            User     @relation(fields: [user_id], references: [user_id])
+//   exchange        Exchange @relation(fields: [exchange_id], references: [exchange_id])
+//   apiKey          UserApiKey @relation(fields: [api_key_id], references: [api_key_id])
+//
+//   @@map("orders")
+// }
+
+model UserSetting {
+  setting_id    String @id @default(uuid())
+  user_id       String
+  setting_key   String // e.g., 'notification_prefs', 'security_2fa_enabled'
+  setting_value Json   // Store setting value as JSON
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  user          User   @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@unique([user_id, setting_key])
+  @@index([user_id])
+  @@map("user_settings")
+}
+
+model BotExecutionLog {
+  id           String   @id @default(uuid())
+  executionId  String   @unique
+  botId        String
+  userId       String
+  status       String
+  trigger      String
+  startTime    DateTime
+  endTime      DateTime?
+  durationMs   Int?
+  errorMessage String?
+
+  bot          Bot      @relation(fields: [botId], references: [id])
+
+  @@map("bot_execution_logs")
+}
+
+// --- Notification Model ---
+model Notification {
+  notification_id String   @id @default(uuid())
+  user_id         String
+  type            String   // e.g., 'BOT_EXECUTION_SUCCESS', 'BOT_EXECUTION_FAILURE', 'PROFILE_UPDATE'
+  message         String
+  is_read         Boolean  @default(false)
+  created_at      DateTime @default(now())
+
+  user            User     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@map("notifications")
+}
+
+// --- User Activity Log Model ---
+model UserActivityLog {
+  log_id        String   @id @default(uuid())
+  user_id       String
+  activity_type String   // e.g., 'LOGIN', 'LOGOUT', 'PROFILE_UPDATE', 'BOT_START', 'BOT_STOP', 'API_KEY_CREATE'
+  details       Json?    // Optional details about the activity
+  ip_address    String?
+  user_agent    String?
+  timestamp     DateTime @default(now())
+
+  user          User     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@map("user_activity_logs")
+}
+
+// --- Bot Performance Model ---
+model BotPerformance {
+  performance_id String   @id @default(uuid())
+  bot_id         String
+  timestamp      DateTime @default(now()) // Timestamp of the last update or snapshot
+  roi            Float    @default(0.0) // Return on Investment
+  win_rate       Float    @default(0.0) // Percentage of winning trades
+  max_drawdown   Float    @default(0.0) // Maximum peak-to-trough decline
+  profit_factor  Float    @default(0.0) // Gross profit / Gross loss
+  total_trades   Int      @default(0)   // Total number of trades executed
+  sharpe_ratio   Float?                 // Optional: Risk-adjusted return (e.g., Sharpe Ratio)
+  sortino_ratio  Float?                 // Optional: Downside risk-adjusted return (e.g., Sortino Ratio)
+  equity         Float    @default(0.0) // Current equity value
+  is_live        Boolean                // Flag to distinguish live trading performance
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  bot            Bot      @relation(fields: [bot_id], references: [id], onDelete: Cascade)
+
+  @@index([bot_id])
+  @@index([bot_id, is_live]) // Index for querying live/shared performance
+  @@map("bot_performance")
+}
+
+// --- Backtest Result Model ---
+model BacktestResult {
+  backtest_id     String   @id @default(uuid())
+  bot_id          String
+  strategy_config Json     // Configuration of the bot/strategy used for this backtest
+  start_date      DateTime // Start date of the backtest period
+  end_date        DateTime // End date of the backtest period
+  roi             Float    // Return on Investment for the backtest
+  win_rate        Float    // Win rate during the backtest
+  max_drawdown    Float    // Maximum drawdown during the backtest
+  profit_factor   Float    // Profit factor during the backtest
+  total_trades    Int      // Total trades during the backtest
+  sharpe_ratio    Float?   // Optional: Sharpe Ratio for the backtest
+  sortino_ratio   Float?   // Optional: Sortino Ratio for the backtest
+  equity_curve    Json?    // Optional: Store historical equity points {timestamp, value}[]
+  created_at      DateTime @default(now())
+
+  bot             Bot      @relation(fields: [bot_id], references: [id], onDelete: Cascade)
+
+  @@index([bot_id])
+  @@map("backtest_results")
+}
+model Role {
+  role_id     String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  permissions RolePermission[]
+  users       UserRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  permission_id String   @id @default(uuid())
+  action        String
+  resource      String
+  description   String?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  roles         RolePermission[]
+
+  @@unique([action, resource])
+  @@map("permissions")
+}
+
+model UserRole {
+  user_id     String
+  role_id     String
+  assigned_at DateTime @default(now())
+
+  user        User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  role        Role @relation(fields: [role_id], references: [role_id], onDelete: Cascade)
+
+  @@id([user_id, role_id])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  role_id       String
+  permission_id String
+  assigned_at   DateTime @default(now())
+
+  role        Role       @relation(fields: [role_id], references: [role_id], onDelete: Cascade)
+  permission  Permission @relation(fields: [permission_id], references: [permission_id], onDelete: Cascade)
+
+  @@id([role_id, permission_id])
+  @@map("role_permissions")
+}

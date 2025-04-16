@@ -14,7 +14,9 @@ global.fetch = mockFetch as any;
 
 function wrapper({ children }: { children: React.ReactNode }) {
   const queryClient = new QueryClient();
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
 }
 
 describe("marketDataApi hooks", () => {
@@ -33,7 +35,10 @@ describe("marketDataApi hooks", () => {
     await waitFor(() => !result.current.isLoading);
 
     expect(result.current.symbols).toEqual(symbols);
-    expect(mockFetch).toHaveBeenCalledWith("/api/market-data/symbols", expect.any(Object));
+    expect(mockFetch).toHaveBeenCalledWith(
+      "/api/market-data/symbols",
+      expect.any(Object)
+    );
   });
 
   it("useTicker fetches ticker for a symbol", async () => {
@@ -94,7 +99,9 @@ describe("marketDataApi hooks", () => {
       json: async () => klines,
     });
 
-    const { result } = renderHook(() => useKlines("BTCUSDT", "1m", 1), { wrapper });
+    const { result } = renderHook(() => useKlines("BTCUSDT", "1m", 1), {
+      wrapper,
+    });
     await waitFor(() => result.current.isSuccess);
 
     expect(result.current.data).toEqual(klines);

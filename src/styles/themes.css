@@ -1,55 +1,55 @@
 /* Dark Theme (Default) */
 .dark-theme {
   /* Background colors */
-  --bg-primary: #0f0f11;      /* Main background */
-  --bg-secondary: #1a1a1c;    /* Card background */
-  --bg-tertiary: #2a2a2c;     /* Secondary elements */
-  --bg-card: #1a1a1c;         /* Dashboard cards */
-  --bg-chart: #1a1a1c;        /* Chart background */
-  --bg-popup: #252527;        /* Popup/modal background */
-  --bg-sidebar: #0f0f11;      /* Sidebar background */
-  --bg-navbar: #0f0f11;       /* Navigation bar */
-  --bg-dropdown: #252527;     /* Dropdown menus */
+  --bg-primary: #0f0f11; /* Main background */
+  --bg-secondary: #1a1a1c; /* Card background */
+  --bg-tertiary: #2a2a2c; /* Secondary elements */
+  --bg-card: #1a1a1c; /* Dashboard cards */
+  --bg-chart: #1a1a1c; /* Chart background */
+  --bg-popup: #252527; /* Popup/modal background */
+  --bg-sidebar: #0f0f11; /* Sidebar background */
+  --bg-navbar: #0f0f11; /* Navigation bar */
+  --bg-dropdown: #252527; /* Dropdown menus */
   --bg-hover: rgba(255, 255, 255, 0.05);
   --bg-active: rgba(255, 255, 255, 0.1);
-  --bg-selected: rgba(103, 58, 183, 0.3);  /* Selected tab highlight */
-  --bg-tab-active: #673ab7;   /* Active tab indicator */
+  --bg-selected: rgba(103, 58, 183, 0.3); /* Selected tab highlight */
+  --bg-tab-active: #673ab7; /* Active tab indicator */
 
   /* Text colors */
-  --text-primary: #ffffff;    /* Primary text */
-  --text-secondary: #a0a0a6;  /* Secondary text */
-  --text-tertiary: #6b7280;   /* Less important text */
-  --text-disabled: #4b5563;   /* Disabled text */
-  --text-link: #673ab7;       /* Link text - purple */
+  --text-primary: #ffffff; /* Primary text */
+  --text-secondary: #a0a0a6; /* Secondary text */
+  --text-tertiary: #6b7280; /* Less important text */
+  --text-disabled: #4b5563; /* Disabled text */
+  --text-link: #673ab7; /* Link text - purple */
   --text-link-hover: #7e57c2; /* Link hover */
-  --text-negative: #ff5252;   /* Negative values (red) */
+  --text-negative: #ff5252; /* Negative values (red) */
 
   /* Border colors */
-  --border-primary: #2a2a2c;  /* Primary borders */
+  --border-primary: #2a2a2c; /* Primary borders */
   --border-secondary: #3a3a3c; /* Secondary borders */
-  --border-input: #3a3a3c;    /* Input borders */
-  --border-focus: #673ab7;    /* Focus borders - purple */
+  --border-input: #3a3a3c; /* Input borders */
+  --border-focus: #673ab7; /* Focus borders - purple */
 
   /* Button colors */
-  --button-primary: #673ab7;  /* Primary button - purple */
+  --button-primary: #673ab7; /* Primary button - purple */
   --button-primary-hover: #7e57c2;
   --button-secondary: #2a2a2c;
   --button-secondary-hover: #3a3a3c;
-  --button-danger: #ff5252;   /* Danger/error - red */
+  --button-danger: #ff5252; /* Danger/error - red */
   --button-danger-hover: #ff7675;
-  --button-success: #00c853;  /* Success - green */
+  --button-success: #00c853; /* Success - green */
   --button-success-hover: #00e676;
 
   /* Status colors */
-  --success-color: #00c853;   /* Success - green */
-  --error-color: #ff5252;     /* Error - red */
-  --warning-color: #ffc107;   /* Warning - amber */
-  --info-color: #2196f3;      /* Info - blue */
+  --success-color: #00c853; /* Success - green */
+  --error-color: #ff5252; /* Error - red */
+  --warning-color: #ffc107; /* Warning - amber */
+  --info-color: #2196f3; /* Info - blue */
 
   /* Chart colors */
-  --chart-line: #ff5252;      /* Chart line color - red for negative */
-  --chart-grid: #2a2a2c;      /* Chart grid lines */
-  --chart-text: #a0a0a6;      /* Chart text */
+  --chart-line: #ff5252; /* Chart line color - red for negative */
+  --chart-grid: #2a2a2c; /* Chart grid lines */
+  --chart-text: #a0a0a6; /* Chart text */
 
   /* Shadow */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
@@ -60,55 +60,55 @@
 /* Light Theme */
 .light-theme {
   /* Background colors */
-  --bg-primary: #f5f5fa;      /* Main background - light gray */
-  --bg-secondary: #ffffff;    /* Card background - white */
-  --bg-tertiary: #e8e8f0;     /* Secondary elements */
-  --bg-card: #ffffff;         /* Dashboard cards - white */
-  --bg-chart: #ffffff;        /* Chart background - white */
-  --bg-popup: #ffffff;        /* Popup/modal background */
-  --bg-sidebar: #f5f5fa;      /* Sidebar background */
-  --bg-navbar: #ffffff;       /* Navigation bar */
-  --bg-dropdown: #ffffff;     /* Dropdown menus */
+  --bg-primary: #f5f5fa; /* Main background - light gray */
+  --bg-secondary: #ffffff; /* Card background - white */
+  --bg-tertiary: #e8e8f0; /* Secondary elements */
+  --bg-card: #ffffff; /* Dashboard cards - white */
+  --bg-chart: #ffffff; /* Chart background - white */
+  --bg-popup: #ffffff; /* Popup/modal background */
+  --bg-sidebar: #f5f5fa; /* Sidebar background */
+  --bg-navbar: #ffffff; /* Navigation bar */
+  --bg-dropdown: #ffffff; /* Dropdown menus */
   --bg-hover: rgba(0, 0, 0, 0.05);
   --bg-active: rgba(0, 0, 0, 0.1);
-  --bg-selected: rgba(103, 58, 183, 0.1);  /* Selected tab highlight */
-  --bg-tab-active: #673ab7;   /* Active tab indicator */
+  --bg-selected: rgba(103, 58, 183, 0.1); /* Selected tab highlight */
+  --bg-tab-active: #673ab7; /* Active tab indicator */
 
   /* Text colors */
-  --text-primary: #333333;    /* Primary text - dark gray */
-  --text-secondary: #666666;  /* Secondary text - medium gray */
-  --text-tertiary: #888888;   /* Less important text - light gray */
-  --text-disabled: #aaaaaa;   /* Disabled text */
-  --text-link: #673ab7;       /* Link text - purple */
+  --text-primary: #333333; /* Primary text - dark gray */
+  --text-secondary: #666666; /* Secondary text - medium gray */
+  --text-tertiary: #888888; /* Less important text - light gray */
+  --text-disabled: #aaaaaa; /* Disabled text */
+  --text-link: #673ab7; /* Link text - purple */
   --text-link-hover: #7e57c2; /* Link hover */
-  --text-negative: #ff5252;   /* Negative values (red) */
+  --text-negative: #ff5252; /* Negative values (red) */
 
   /* Border colors */
-  --border-primary: #e8e8f0;  /* Primary borders */
+  --border-primary: #e8e8f0; /* Primary borders */
   --border-secondary: #d8d8e0; /* Secondary borders */
-  --border-input: #d8d8e0;    /* Input borders */
-  --border-focus: #673ab7;    /* Focus borders - purple */
+  --border-input: #d8d8e0; /* Input borders */
+  --border-focus: #673ab7; /* Focus borders - purple */
 
   /* Button colors */
-  --button-primary: #673ab7;  /* Primary button - purple */
+  --button-primary: #673ab7; /* Primary button - purple */
   --button-primary-hover: #7e57c2;
   --button-secondary: #e8e8f0;
   --button-secondary-hover: #d8d8e0;
-  --button-danger: #ff5252;   /* Danger/error - red */
+  --button-danger: #ff5252; /* Danger/error - red */
   --button-danger-hover: #ff7675;
-  --button-success: #00c853;  /* Success - green */
+  --button-success: #00c853; /* Success - green */
   --button-success-hover: #00e676;
 
   /* Status colors */
-  --success-color: #00c853;   /* Success - green */
-  --error-color: #ff5252;     /* Error - red */
-  --warning-color: #ffc107;   /* Warning - amber */
-  --info-color: #2196f3;      /* Info - blue */
+  --success-color: #00c853; /* Success - green */
+  --error-color: #ff5252; /* Error - red */
+  --warning-color: #ffc107; /* Warning - amber */
+  --info-color: #2196f3; /* Info - blue */
 
   /* Chart colors */
-  --chart-line: #ff5252;      /* Chart line color - red for negative */
-  --chart-grid: #e8e8f0;      /* Chart grid lines */
-  --chart-text: #888888;      /* Chart text */
+  --chart-line: #ff5252; /* Chart line color - red for negative */
+  --chart-grid: #e8e8f0; /* Chart grid lines */
+  --chart-text: #888888; /* Chart text */
 
   /* Shadow */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -120,7 +120,9 @@
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
 }
 
 /* Background utility classes */
@@ -455,5 +457,9 @@ body {
 
 /* Transition for smooth theme switching */
 .theme-transition {
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }

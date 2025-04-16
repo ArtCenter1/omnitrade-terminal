@@ -40,28 +40,33 @@ export function ChartSection() {
 
     // Function to create the widget
     const createWidget = () => {
-      if (typeof window.TradingView !== 'undefined' && window.TradingView.widget) {
+      if (
+        typeof window.TradingView !== "undefined" &&
+        window.TradingView.widget
+      ) {
         // Clear previous widget before creating a new one
-        currentContainer.innerHTML = '';
+        currentContainer.innerHTML = "";
         widgetInstanceRef.current = new window.TradingView.widget({
-            autosize: true,
-            symbol: "BINANCE:BTCUSDT",
-            interval: currentTimeframe, // Use state variable
-            timezone: "Etc/UTC",
-            theme: "dark",
-            style: "1",
-            locale: "en",
-            enable_publishing: false,
-            allow_symbol_change: true, // Keep symbol change enabled
-            container_id: currentContainer.id, // Use the container's actual ID
-            hide_side_toolbar: false // Ensure drawing toolbar is visible
+          autosize: true,
+          symbol: "BINANCE:BTCUSDT",
+          interval: currentTimeframe, // Use state variable
+          timezone: "Etc/UTC",
+          theme: "dark",
+          style: "1",
+          locale: "en",
+          enable_publishing: false,
+          allow_symbol_change: true, // Keep symbol change enabled
+          container_id: currentContainer.id, // Use the container's actual ID
+          hide_side_toolbar: false, // Ensure drawing toolbar is visible
         });
       }
     };
 
     // Check if the TradingView script is loaded
-    const scriptId = 'tradingview-widget-script';
-    const existingScript = document.getElementById(scriptId) as HTMLScriptElement | null;
+    const scriptId = "tradingview-widget-script";
+    const existingScript = document.getElementById(
+      scriptId
+    ) as HTMLScriptElement | null;
 
     if (!existingScript) {
       // Create and append the TradingView script if it doesn't exist
@@ -72,19 +77,19 @@ export function ChartSection() {
       script.async = true;
       script.onload = createWidget; // Create widget once script is loaded
       document.body.appendChild(script);
-    } else if (existingScript && typeof window.TradingView !== 'undefined') {
+    } else if (existingScript && typeof window.TradingView !== "undefined") {
       // If script exists and TradingView is loaded, create the widget immediately
       createWidget();
     } else {
       // If script exists but TradingView is not loaded yet, wait for onload
-      existingScript.addEventListener('load', createWidget);
+      existingScript.addEventListener("load", createWidget);
     }
 
     // Cleanup function
     return () => {
       // Remove the event listener if added
       if (existingScript) {
-        existingScript.removeEventListener('load', createWidget);
+        existingScript.removeEventListener("load", createWidget);
       }
       // Optional: Clean up widget instance if TradingView provides an API for it
       // if (widgetInstanceRef.current && typeof widgetInstanceRef.current.remove === 'function') {
@@ -106,7 +111,11 @@ export function ChartSection() {
       <PriceOverview />
 
       {/* TradingView Widget Container - Ensure it has the ID used in options */}
-      <div id="tradingview-widget-container-div" ref={container} className="flex-grow p-0">
+      <div
+        id="tradingview-widget-container-div"
+        ref={container}
+        className="flex-grow p-0"
+      >
         {/* The TradingView widget will be rendered here */}
       </div>
 

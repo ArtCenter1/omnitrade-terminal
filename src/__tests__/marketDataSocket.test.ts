@@ -39,8 +39,14 @@ describe("MarketDataSocket", () => {
     MarketDataSocket.connect();
     expect(ioMock).toHaveBeenCalled();
     expect(mockSocket.on).toHaveBeenCalledWith("connect", expect.any(Function));
-    expect(mockSocket.on).toHaveBeenCalledWith("disconnect", expect.any(Function));
-    expect(mockSocket.on).toHaveBeenCalledWith("connect_error", expect.any(Function));
+    expect(mockSocket.on).toHaveBeenCalledWith(
+      "disconnect",
+      expect.any(Function)
+    );
+    expect(mockSocket.on).toHaveBeenCalledWith(
+      "connect_error",
+      expect.any(Function)
+    );
     expect(mockSocket.on).toHaveBeenCalledWith("message", expect.any(Function));
   });
 
@@ -90,7 +96,10 @@ describe("MarketDataSocket", () => {
   it("calls handlers on valid message events", () => {
     const handler = vi.fn();
     MarketDataSocket.addMessageHandler(handler);
-    const msg = { event: "ticker", data: { symbol: "BTCUSDT", price: "100", timestamp: 1 } };
+    const msg = {
+      event: "ticker",
+      data: { symbol: "BTCUSDT", price: "100", timestamp: 1 },
+    };
     (MarketDataSocket as any).handleMessage(msg);
     expect(handler).toHaveBeenCalledWith(msg);
     MarketDataSocket.removeMessageHandler(handler);

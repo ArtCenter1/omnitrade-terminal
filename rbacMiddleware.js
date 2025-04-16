@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 /**
@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
  */
 async function loadUserPermissions(req, res, next) {
   if (!req.user || !req.user.userId) {
-    return res.status(401).json({ message: 'Unauthorized: No user info' });
+    return res.status(401).json({ message: "Unauthorized: No user info" });
   }
 
   try {
@@ -31,7 +31,7 @@ async function loadUserPermissions(req, res, next) {
     });
 
     if (!userWithRoles) {
-      return res.status(401).json({ message: 'Unauthorized: User not found' });
+      return res.status(401).json({ message: "Unauthorized: User not found" });
     }
 
     const permissionsSet = new Set();
@@ -47,8 +47,8 @@ async function loadUserPermissions(req, res, next) {
     req.user.permissions = permissionsSet;
     next();
   } catch (error) {
-    console.error('Error loading user permissions:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error("Error loading user permissions:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 }
 
@@ -59,7 +59,9 @@ async function loadUserPermissions(req, res, next) {
 function checkPermission(requiredPermission) {
   return (req, res, next) => {
     if (!req.user?.permissions?.has(requiredPermission)) {
-      return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
+      return res
+        .status(403)
+        .json({ message: "Forbidden: Insufficient permissions" });
     }
     next();
   };

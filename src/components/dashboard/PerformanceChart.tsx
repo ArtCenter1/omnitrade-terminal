@@ -1,5 +1,5 @@
-import React from 'react';
-import { Info } from 'lucide-react';
+import React from "react";
+import { Info } from "lucide-react";
 
 interface PerformanceChartProps {
   // In a real implementation, this would include chart data
@@ -14,7 +14,7 @@ const PerformanceChart: React.FC<PerformanceChartProps> = () => {
           <span>Performance</span>
           <Info size={16} className="text-theme-tertiary cursor-help" />
         </div>
-        
+
         <div className="time-period-tabs">
           <button className="time-period-tab">Day</button>
           <button className="time-period-tab active">Week</button>
@@ -23,7 +23,7 @@ const PerformanceChart: React.FC<PerformanceChartProps> = () => {
           <button className="time-period-tab">5 Years</button>
         </div>
       </div>
-      
+
       {/* Chart placeholder - in a real implementation, this would be a chart component */}
       <div className="w-full h-64 bg-theme-chart rounded-md flex items-center justify-center">
         <div className="text-theme-tertiary">

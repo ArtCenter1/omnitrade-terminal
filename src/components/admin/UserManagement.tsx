@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   fetchUsers,
   fetchRoles,
@@ -6,13 +6,15 @@ import {
   removeRoleFromUser,
   User,
   Role,
-} from '../../services/adminApi';
+} from "../../services/adminApi";
 
 interface UserManagementProps {
   hideHeader?: boolean;
 }
 
-const UserManagement: React.FC<UserManagementProps> = ({ hideHeader = false }) => {
+const UserManagement: React.FC<UserManagementProps> = ({
+  hideHeader = false,
+}) => {
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,7 +24,10 @@ const UserManagement: React.FC<UserManagementProps> = ({ hideHeader = false }) =
   const loadData = async () => {
     setLoading(true);
     try {
-      const [usersData, rolesData] = await Promise.all([fetchUsers(), fetchRoles()]);
+      const [usersData, rolesData] = await Promise.all([
+        fetchUsers(),
+        fetchRoles(),
+      ]);
       setUsers(usersData);
       setRoles(rolesData);
     } catch (err: any) {
@@ -39,7 +44,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ hideHeader = false }) =
   const handleAssignRole = async (userId: string, roleId: string) => {
     try {
       await assignRoleToUser(userId, roleId);
-      setMessage('Role assigned successfully');
+      setMessage("Role assigned successfully");
       loadData();
     } catch (err: any) {
       setError(err.message);
@@ -49,7 +54,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ hideHeader = false }) =
   const handleRemoveRole = async (userId: string, roleId: string) => {
     try {
       await removeRoleFromUser(userId, roleId);
-      setMessage('Role removed successfully');
+      setMessage("Role removed successfully");
       loadData();
     } catch (err: any) {
       setError(err.message);
@@ -65,8 +70,19 @@ const UserManagement: React.FC<UserManagementProps> = ({ hideHeader = false }) =
             href="/dashboard"
             className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm flex items-center"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4 mr-2"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M10 19l-7-7m0 0l7-7m-7 7h18"
+              />
             </svg>
             Return to Dashboard
           </a>
@@ -89,13 +105,18 @@ const UserManagement: React.FC<UserManagementProps> = ({ hideHeader = false }) =
             {users.map((user) => (
               <tr key={user.user_id}>
                 <td className="border px-2 py-1">{user.email}</td>
-                <td className="border px-2 py-1">{user.full_name || '-'}</td>
+                <td className="border px-2 py-1">{user.full_name || "-"}</td>
                 <td className="border px-2 py-1">
                   {user.roles.map((role) => (
-                    <span key={role.role_id} className="inline-block bg-gray-200 text-gray-800 rounded px-2 py-1 m-1">
+                    <span
+                      key={role.role_id}
+                      className="inline-block bg-gray-200 text-gray-800 rounded px-2 py-1 m-1"
+                    >
                       {role.name}
                       <button
-                        onClick={() => handleRemoveRole(user.user_id, role.role_id)}
+                        onClick={() =>
+                          handleRemoveRole(user.user_id, role.role_id)
+                        }
                         className="ml-2 text-red-500 hover:text-red-700"
                         title="Remove Role"
                       >
@@ -107,7 +128,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ hideHeader = false }) =
                 <td className="border px-2 py-1">
                   <select
                     data-testid="assign-role-select"
-                    onChange={(e) => handleAssignRole(user.user_id, e.target.value)}
+                    onChange={(e) =>
+                      handleAssignRole(user.user_id, e.target.value)
+                    }
                     defaultValue=""
                     className="border p-1"
                   >
@@ -115,7 +138,10 @@ const UserManagement: React.FC<UserManagementProps> = ({ hideHeader = false }) =
                       Select role
                     </option>
                     {roles
-                      .filter((r) => !user.roles.some((ur) => ur.role_id === r.role_id))
+                      .filter(
+                        (r) =>
+                          !user.roles.some((ur) => ur.role_id === r.role_id)
+                      )
                       .map((role) => (
                         <option key={role.role_id} value={role.role_id}>
                           {role.name}

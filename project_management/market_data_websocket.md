@@ -1,6 +1,7 @@
 # Omnitrade Market Data WebSocket API
 
 ## Overview
+
 The Omnitrade WebSocket API provides real-time market data updates including ticker prices, order book changes, and recent trades.
 
 - **Endpoint:** `wss://api.omnitrade.example.com/ws/v1/market-data`
@@ -11,10 +12,11 @@ The Omnitrade WebSocket API provides real-time market data updates including tic
 ---
 
 ## Connection
+
 Connect using a Socket.IO client:
 
 ```js
-const socket = io('wss://api.omnitrade.example.com/ws/v1/market-data');
+const socket = io("wss://api.omnitrade.example.com/ws/v1/market-data");
 ```
 
 ---
@@ -76,8 +78,14 @@ Event: `orderbookUpdate`
 {
   "event": "orderbookUpdate",
   "data": {
-    "bids": [["50000.00", "1.2"], ["49950.00", "0.5"]],
-    "asks": [["50010.00", "0.8"], ["50020.00", "1.0"]],
+    "bids": [
+      ["50000.00", "1.2"],
+      ["49950.00", "0.5"]
+    ],
+    "asks": [
+      ["50010.00", "0.8"],
+      ["50020.00", "1.0"]
+    ],
     "timestamp": 1617181723000
   }
 }
@@ -101,12 +109,14 @@ Event: `trade`
 ---
 
 ## Error Handling
+
 - Invalid subscription requests will be ignored or may receive an error event (future enhancement).
 - Disconnections may occur; clients should handle reconnection logic.
 
 ---
 
 ## Notes
+
 - Subscribe to multiple streams by sending multiple subscribe messages.
 - Unsubscribe to stop receiving updates.
 - Message formats may evolve; check for updates regularly.

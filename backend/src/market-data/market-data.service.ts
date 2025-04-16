@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config'; // Import ConfigService
 import axios, { AxiosResponse } from 'axios';
-import Redis from 'ioredis';
+import { RedisService } from '../redis/redis.service';
 
 // Interface representing data from CoinGecko /coins/markets
 export interface MarketCoin {
@@ -66,8 +66,6 @@ export interface KlineResponse {
   closeTime: number;
 }
 
-const redis = new Redis(); // Consider configuring Redis connection via ConfigService too
-
 // Removed unused CoinGeckoCoin interface
 
 @Injectable()
@@ -75,7 +73,10 @@ export class MarketDataService {
   private readonly logger = new Logger(MarketDataService.name);
   private readonly coingeckoBaseUrl: string;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private redisService: RedisService,
+  ) {
     // Inject ConfigService
     const baseUrl = this.configService.get<string>('COINGECKO_API_BASE_URL');
     if (!baseUrl) {
@@ -92,16 +93,31 @@ export class MarketDataService {
     ttlSeconds: number,
     fetcher: () => Promise<T>,
   ): Promise<T> {
-    const cached = await redis.get(key);
-    if (cached) {
-      return JSON.parse(cached) as T;
+    try {
+      // Try to get from cache first
+      const cached = await this.redisService.get(key);
+      if (cached) {
+        return JSON.parse(cached) as T;
+      }
+
+      // If not in cache, fetch the data
+      const data = await fetcher();
+
+      // Set cache but don't wait for it to complete
+      this.redisService
+        .set(key, JSON.stringify(data), ttlSeconds)
+        .catch((err: Error) => {
+          this.logger.error(`Failed to set cache key ${key}: ${err.message}`);
+        });
+
+      return data; // Return data immediately
+    } catch (error) {
+      // If Redis fails, just fetch the data directly
+      this.logger.warn(
+        `Cache operation failed for ${key}, fetching directly: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return await fetcher();
     }
-    const data = await fetcher();
-    // Set cache but don't wait for it to complete; log errors if caching fails
-    redis.set(key, JSON.stringify(data), 'EX', ttlSeconds).catch((err) => {
-      this.logger.error(`Failed to set cache key ${key}:`, err);
-    });
-    return data; // Return data immediately
   }
 
   async getMarkets(

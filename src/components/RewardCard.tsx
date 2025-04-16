@@ -1,11 +1,10 @@
-
 import { Button } from "@/components/ui/button";
 
 type RewardCardProps = {
   icon: React.ReactNode;
   title: string;
   description: string;
-}
+};
 
 export function RewardCard({ icon, title, description }: RewardCardProps) {
   return (

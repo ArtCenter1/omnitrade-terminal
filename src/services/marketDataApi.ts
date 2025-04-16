@@ -7,7 +7,8 @@ import {
 } from "../types/marketData"; // Removed unused Symbol, Ticker
 
 // Base URL for the market data API
-const BASE_URL = import.meta.env.VITE_MARKET_DATA_API_URL || "/api/v1/market-data"; // Use env variable, fallback to relative
+const BASE_URL =
+  import.meta.env.VITE_MARKET_DATA_API_URL || "/api/v1/market-data"; // Use env variable, fallback to relative
 
 // Optionally inject API key from environment variable or config
 const API_KEY = import.meta.env.VITE_MARKET_DATA_API_KEY || undefined;
@@ -47,9 +48,7 @@ async function fetcher<T>(url: string): Promise<T> {
     }
     return await res.json();
   } catch (err: any) {
-    throw new Error(
-      `Network or parsing error: ${err?.message || String(err)}`
-    );
+    throw new Error(`Network or parsing error: ${err?.message || String(err)}`);
   }
 }
 
@@ -73,26 +72,32 @@ interface UseMarketsParams {
  * @returns {UseQueryResult<MarketCoin[], Error>} Query result containing the list of market coins.
  */
 export function useMarkets(
-  params: UseMarketsParams = { vs_currency: 'usd', page: 1, per_page: 100 },
+  params: UseMarketsParams = { vs_currency: "usd", page: 1, per_page: 100 },
   options = {}
 ) {
   const queryParams = new URLSearchParams({
-    vs_currency: params.vs_currency || 'usd',
+    vs_currency: params.vs_currency || "usd",
     page: (params.page || 1).toString(),
     per_page: (params.per_page || 100).toString(),
-    order: params.order || 'market_cap_desc',
-    sparkline: params.sparkline ? 'true' : 'false',
+    order: params.order || "market_cap_desc",
+    sparkline: params.sparkline ? "true" : "false",
   }).toString();
 
   return useQuery<MarketCoin[], Error>({
     // Include params in queryKey for proper caching
-    queryKey: ["markets", params.vs_currency, params.page, params.per_page, params.order, params.sparkline],
+    queryKey: [
+      "markets",
+      params.vs_currency,
+      params.page,
+      params.per_page,
+      params.order,
+      params.sparkline,
+    ],
     queryFn: () => fetcher<MarketCoin[]>(`${BASE_URL}/markets?${queryParams}`),
     staleTime: 60 * 1000, // 1 minute (adjust as needed)
     ...options,
   });
 }
-
 
 // --- Existing Hooks (Keep if Orderbook, Trades, Klines are still needed) ---
 
@@ -105,10 +110,14 @@ export function useMarkets(
  * @param {object} [options] - Optional React Query options.
  * @returns {UseQueryResult<Orderbook, Error>} Query result containing the orderbook data.
  */
-export function useOrderbook(coinId: string, options = {}) { // Changed param name for clarity
+export function useOrderbook(coinId: string, options = {}) {
+  // Changed param name for clarity
   return useQuery<Orderbook, Error>({
     queryKey: ["orderbook", coinId],
-    queryFn: () => fetcher<Orderbook>(`${BASE_URL}/orderbook?symbol=${encodeURIComponent(coinId)}`), // Use coinId
+    queryFn: () =>
+      fetcher<Orderbook>(
+        `${BASE_URL}/orderbook?symbol=${encodeURIComponent(coinId)}`
+      ), // Use coinId
     enabled: !!coinId,
     staleTime: 2 * 1000, // 2 seconds
     ...options,
@@ -123,7 +132,8 @@ export function useOrderbook(coinId: string, options = {}) { // Changed param na
  * @param {object} [options] - Optional React Query options.
  * @returns {UseQueryResult<Trade[], Error>} Query result containing the list of trades.
  */
-export function useTrades(coinId: string, limit: number = 50, options = {}) { // Changed param name
+export function useTrades(coinId: string, limit: number = 50, options = {}) {
+  // Changed param name
   return useQuery<Trade[], Error>({
     queryKey: ["trades", coinId, limit],
     queryFn: () =>

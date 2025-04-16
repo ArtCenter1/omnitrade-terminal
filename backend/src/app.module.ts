@@ -4,12 +4,16 @@ import * as path from 'path';
 // Load environment variables from root .env file *before* anything else
 dotenv.config({ path: path.resolve(__dirname, '../../.env') }); // Corrected path: up two levels
 
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common'; // Import NestModule and MiddlewareConsumer
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MarketDataModule } from './market-data/market-data.module';
 import { AuthModule } from './auth/auth.module'; // Assuming this is Firebase Auth
+import { ExchangeApiKeyModule } from './exchange-api-key/exchange-api-key.module';
+import { FirebaseAuthMiddleware } from './middleware/firebase-auth.middleware'; // Corrected import path
+import { PrismaModule } from './prisma/prisma.module';
+import { RedisModule } from './redis/redis.module';
 // Determine which auth module to load based on environment variable
 const authProvider = process.env.VITE_AUTH_PROVIDER;
 const authModules = [];
@@ -34,10 +38,18 @@ if (authProvider === 'firebase') {
       // envFilePath should also use the correct path
       envFilePath: path.resolve(__dirname, '../../.env'),
     }),
+    PrismaModule,
+    RedisModule, // Add Redis module
     MarketDataModule,
     ...authModules, // Spread the conditionally added auth modules here
+    ExchangeApiKeyModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  // Implement NestModule
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(FirebaseAuthMiddleware).forRoutes('*'); // Apply middleware to all routes
+  }
+}

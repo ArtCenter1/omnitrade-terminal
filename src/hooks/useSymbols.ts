@@ -1,4 +1,5 @@
-import { useSymbols as useSymbolsQuery } from "../services/marketDataApi";
+import { useMarkets } from "../services/marketDataApi";
+import { MarketCoin } from "../types/marketData"; // Import MarketCoin type
 
 /**
  * Custom hook to fetch the list of available trading symbols.
@@ -14,11 +15,19 @@ import { useSymbols as useSymbolsQuery } from "../services/marketDataApi";
  */
 export function useSymbols(options = {}) {
   // Use the API hook for initial/historical data
-  const { data, isLoading, isError, error, refetch } = useSymbolsQuery(options);
+  // Use useMarkets - assuming default params are sufficient for fetching symbols
+  const {
+    data: marketData,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useMarkets(undefined, options);
 
   // No real-time updates for symbols
   return {
-    symbols: data,
+    // Extract symbol IDs from the market data
+    symbols: marketData?.map((coin: MarketCoin) => coin.id),
     isLoading,
     isError,
     error,

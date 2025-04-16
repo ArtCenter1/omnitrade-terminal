@@ -1,4 +1,4 @@
-const API_BASE = '/api';
+const API_BASE = "/api";
 
 export interface User {
   user_id: string;
@@ -23,13 +23,13 @@ export interface Permission {
 
 async function fetchJSON(url: string, options: RequestInit = {}) {
   const response = await fetch(url, {
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
     ...options,
   });
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || 'API request failed');
+    throw new Error(error.message || "API request failed");
   }
   return response.json();
 }
@@ -41,14 +41,14 @@ export async function fetchUsers(): Promise<User[]> {
 
 export async function assignRoleToUser(userId: string, roleId: string) {
   return fetchJSON(`${API_BASE}/users/${userId}/roles`, {
-    method: 'POST',
+    method: "POST",
     body: JSON.stringify({ roleId }),
   });
 }
 
 export async function removeRoleFromUser(userId: string, roleId: string) {
   return fetchJSON(`${API_BASE}/users/${userId}/roles/${roleId}`, {
-    method: 'DELETE',
+    method: "DELETE",
   });
 }
 
@@ -59,21 +59,21 @@ export async function fetchRoles(): Promise<Role[]> {
 
 export async function createRole(role: Partial<Role>) {
   return fetchJSON(`${API_BASE}/roles`, {
-    method: 'POST',
+    method: "POST",
     body: JSON.stringify(role),
   });
 }
 
 export async function updateRole(roleId: string, role: Partial<Role>) {
   return fetchJSON(`${API_BASE}/roles/${roleId}`, {
-    method: 'PUT',
+    method: "PUT",
     body: JSON.stringify(role),
   });
 }
 
 export async function deleteRole(roleId: string) {
   return fetchJSON(`${API_BASE}/roles/${roleId}`, {
-    method: 'DELETE',
+    method: "DELETE",
   });
 }
 
@@ -84,34 +84,43 @@ export async function fetchPermissions(): Promise<Permission[]> {
 
 export async function createPermission(permission: Partial<Permission>) {
   return fetchJSON(`${API_BASE}/permissions`, {
-    method: 'POST',
+    method: "POST",
     body: JSON.stringify(permission),
   });
 }
 
-export async function updatePermission(permissionId: string, permission: Partial<Permission>) {
+export async function updatePermission(
+  permissionId: string,
+  permission: Partial<Permission>
+) {
   return fetchJSON(`${API_BASE}/permissions/${permissionId}`, {
-    method: 'PUT',
+    method: "PUT",
     body: JSON.stringify(permission),
   });
 }
 
 export async function deletePermission(permissionId: string) {
   return fetchJSON(`${API_BASE}/permissions/${permissionId}`, {
-    method: 'DELETE',
+    method: "DELETE",
   });
 }
 
 // Role Permissions
-export async function assignPermissionToRole(roleId: string, permissionId: string) {
+export async function assignPermissionToRole(
+  roleId: string,
+  permissionId: string
+) {
   return fetchJSON(`${API_BASE}/roles/${roleId}/permissions`, {
-    method: 'POST',
+    method: "POST",
     body: JSON.stringify({ permissionId }),
   });
 }
 
-export async function removePermissionFromRole(roleId: string, permissionId: string) {
+export async function removePermissionFromRole(
+  roleId: string,
+  permissionId: string
+) {
   return fetchJSON(`${API_BASE}/roles/${roleId}/permissions/${permissionId}`, {
-    method: 'DELETE',
+    method: "DELETE",
   });
 }

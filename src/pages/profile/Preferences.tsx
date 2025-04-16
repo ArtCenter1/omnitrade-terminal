@@ -1,11 +1,16 @@
-
 import React from "react";
 import { ProfileLayout } from "@/components/profile/ProfileLayout";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function Preferences() {
   return (
@@ -13,7 +18,7 @@ export default function Preferences() {
       <div className="space-y-8">
         <div>
           <h2 className="text-xl font-medium mb-4">Email</h2>
-          
+
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
               <Checkbox id="weekly-email" defaultChecked />
@@ -21,14 +26,17 @@ export default function Preferences() {
                 Receive weekly Crypto Snapshot emails
               </label>
             </div>
-            
+
             <div className="flex items-center space-x-2 ml-6">
               <Checkbox id="portfolio-stats" />
-              <label htmlFor="portfolio-stats" className="text-sm text-gray-300">
+              <label
+                htmlFor="portfolio-stats"
+                className="text-sm text-gray-300"
+              >
                 Include my portfolio stats
               </label>
             </div>
-            
+
             <div className="flex items-center space-x-2 ml-6">
               <Checkbox id="bot-summary" />
               <label htmlFor="bot-summary" className="text-sm text-gray-300">
@@ -37,39 +45,53 @@ export default function Preferences() {
             </div>
           </div>
         </div>
-        
+
         <div>
           <h2 className="text-xl font-medium mb-4">Interface</h2>
-          
+
           <div className="space-y-6">
             <div>
               <p className="text-sm text-gray-300 mb-2">Theme</p>
-              <RadioGroup defaultValue="dark" className="flex items-center space-x-4">
+              <RadioGroup
+                defaultValue="dark"
+                className="flex items-center space-x-4"
+              >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="dark" id="dark" />
-                  <Label htmlFor="dark" className="text-gray-300">Dark</Label>
+                  <Label htmlFor="dark" className="text-gray-300">
+                    Dark
+                  </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="light" id="light" />
-                  <Label htmlFor="light" className="text-gray-300">Light</Label>
+                  <Label htmlFor="light" className="text-gray-300">
+                    Light
+                  </Label>
                 </div>
               </RadioGroup>
             </div>
-            
+
             <div>
               <p className="text-sm text-gray-300 mb-2">Order Notifications</p>
-              <RadioGroup defaultValue="on" className="flex items-center space-x-4">
+              <RadioGroup
+                defaultValue="on"
+                className="flex items-center space-x-4"
+              >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="on" id="notify-on" />
-                  <Label htmlFor="notify-on" className="text-gray-300">On</Label>
+                  <Label htmlFor="notify-on" className="text-gray-300">
+                    On
+                  </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="off" id="notify-off" />
-                  <Label htmlFor="notify-off" className="text-gray-300">Off</Label>
+                  <Label htmlFor="notify-off" className="text-gray-300">
+                    Off
+                  </Label>
                 </div>
               </RadioGroup>
             </div>
-            
+
             <div>
               <p className="text-sm text-gray-300 mb-2">Display Currency</p>
               <Select defaultValue="usd">
@@ -83,9 +105,11 @@ export default function Preferences() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div>
-              <p className="text-sm text-gray-300 mb-2">Default Chart Timeframe</p>
+              <p className="text-sm text-gray-300 mb-2">
+                Default Chart Timeframe
+              </p>
               <Select defaultValue="1h">
                 <SelectTrigger className="w-32 bg-gray-800 border-gray-700 text-white">
                   <SelectValue placeholder="Select" />
@@ -99,9 +123,11 @@ export default function Preferences() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div>
-              <p className="text-sm text-gray-300 mb-2">Hide Small Balances Under</p>
+              <p className="text-sm text-gray-300 mb-2">
+                Hide Small Balances Under
+              </p>
               <div className="flex items-center">
                 <Input
                   type="number"

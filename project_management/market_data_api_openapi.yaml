@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Omnitrade Market Data REST API
-  version: '1.0'
+  version: "1.0"
   description: API for accessing market data including symbols, ticker, orderbook, trades, and klines.
 servers:
   - url: https://api.omnitrade.example.com/api/v1/market-data
@@ -54,7 +54,7 @@ paths:
     get:
       summary: List all supported trading symbols
       responses:
-        '200':
+        "200":
           description: List of symbols
           content:
             application/json:
@@ -63,16 +63,16 @@ paths:
                 items:
                   type: string
               example: ["BTCUSDT", "ETHUSDT"]
-        '500':
+        "500":
           description: Server error
       security: []
   /ticker:
     get:
       summary: Get latest ticker price for a symbol
       parameters:
-        - $ref: '#/components/parameters/SymbolParam'
+        - $ref: "#/components/parameters/SymbolParam"
       responses:
-        '200':
+        "200":
           description: Ticker data
           content:
             application/json:
@@ -86,18 +86,18 @@ paths:
               example:
                 symbol: BTCUSDT
                 price: "50000.00"
-        '400':
+        "400":
           description: Invalid request parameters
-        '500':
+        "500":
           description: Server error
   /orderbook:
     get:
       summary: Get current order book snapshot
       parameters:
-        - $ref: '#/components/parameters/SymbolParam'
-        - $ref: '#/components/parameters/LimitParam'
+        - $ref: "#/components/parameters/SymbolParam"
+        - $ref: "#/components/parameters/LimitParam"
       responses:
-        '200':
+        "200":
           description: Order book data
           content:
             application/json:
@@ -119,18 +119,18 @@ paths:
               example:
                 bids: [["50000.00", "1.2"], ["49950.00", "0.5"]]
                 asks: [["50010.00", "0.8"], ["50020.00", "1.0"]]
-        '400':
+        "400":
           description: Invalid request parameters
-        '500':
+        "500":
           description: Server error
   /trades:
     get:
       summary: Get recent trades
       parameters:
-        - $ref: '#/components/parameters/SymbolParam'
-        - $ref: '#/components/parameters/LimitParam'
+        - $ref: "#/components/parameters/SymbolParam"
+        - $ref: "#/components/parameters/LimitParam"
       responses:
-        '200':
+        "200":
           description: List of recent trades
           content:
             application/json:
@@ -152,21 +152,21 @@ paths:
                 - price: "50010.00"
                   quantity: "0.2"
                   timestamp: 1617181724000
-        '400':
+        "400":
           description: Invalid request parameters
-        '500':
+        "500":
           description: Server error
   /klines:
     get:
       summary: Get historical candlestick data
       parameters:
-        - $ref: '#/components/parameters/SymbolParam'
-        - $ref: '#/components/parameters/IntervalParam'
-        - $ref: '#/components/parameters/StartTimeParam'
-        - $ref: '#/components/parameters/EndTimeParam'
-        - $ref: '#/components/parameters/LimitParam'
+        - $ref: "#/components/parameters/SymbolParam"
+        - $ref: "#/components/parameters/IntervalParam"
+        - $ref: "#/components/parameters/StartTimeParam"
+        - $ref: "#/components/parameters/EndTimeParam"
+        - $ref: "#/components/parameters/LimitParam"
       responses:
-        '200':
+        "200":
           description: List of candlesticks
           content:
             application/json:
@@ -179,9 +179,23 @@ paths:
                       - type: integer
                       - type: string
               example:
-                - [1617181723000, "50000.00", "50100.00", "49900.00", "50050.00", "100.0"]
-                - [1617181783000, "50050.00", "50200.00", "50000.00", "50150.00", "150.0"]
-        '400':
+                - [
+                    1617181723000,
+                    "50000.00",
+                    "50100.00",
+                    "49900.00",
+                    "50050.00",
+                    "100.0",
+                  ]
+                - [
+                    1617181783000,
+                    "50050.00",
+                    "50200.00",
+                    "50000.00",
+                    "50150.00",
+                    "150.0",
+                  ]
+        "400":
           description: Invalid request parameters
-        '500':
+        "500":
           description: Server error

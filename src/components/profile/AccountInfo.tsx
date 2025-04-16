@@ -1,27 +1,26 @@
-
 import React from "react";
 import { useAuth } from "@/hooks/useAuth";
 
 export function AccountInfo() {
   const { user } = useAuth();
-  
+
   // Get user display name from Firebase
-  const displayName = user?.displayName || user?.email?.split('@')[0] || 'User';
-  
+  const displayName = user?.displayName || user?.email?.split("@")[0] || "User";
+
   // Format current date for display
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      year: 'numeric'
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      year: "numeric",
     }).format(date);
   };
-  
+
   const currentDate = new Date();
-  
+
   return (
     <div className="bg-gray-900 rounded-lg p-4 w-full mb-6">
       <h3 className="text-lg font-medium text-white mb-4">My Account</h3>
-      
+
       <div className="space-y-2 mb-4">
         <div className="flex justify-between">
           <span className="text-gray-400 text-sm">Name:</span>
@@ -29,7 +28,11 @@ export function AccountInfo() {
         </div>
         <div className="flex justify-between">
           <span className="text-gray-400 text-sm">Registered:</span>
-          <span className="text-white text-sm">{user?.metadata?.creationTime ? formatDate(new Date(user.metadata.creationTime)) : 'Jun, 2019'}</span>
+          <span className="text-white text-sm">
+            {user?.metadata?.creationTime
+              ? formatDate(new Date(user.metadata.creationTime))
+              : "Jun, 2019"}
+          </span>
         </div>
         <div className="flex justify-between">
           <span className="text-gray-400 text-sm">Current Plan:</span>
@@ -42,7 +45,7 @@ export function AccountInfo() {
       </div>
 
       <h3 className="text-lg font-medium text-white mb-4">Last Login</h3>
-      
+
       <div className="space-y-2 mb-2">
         <div className="flex justify-between">
           <span className="text-gray-400 text-sm">Date/Time:</span>

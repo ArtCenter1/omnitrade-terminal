@@ -9,21 +9,32 @@ interface PortfolioIndicatorProps {
   isPositive?: boolean;
 }
 
-const PortfolioIndicator = ({ title, value, change, isPercentage = false, isPositive = false }: PortfolioIndicatorProps) => {
+const PortfolioIndicator = ({
+  title,
+  value,
+  change,
+  isPercentage = false,
+  isPositive = false,
+}: PortfolioIndicatorProps) => {
   return (
     <div className="flex flex-col">
       <div className="text-xs text-gray-400 uppercase mb-1">{title}</div>
       <div className="text-xl font-bold text-white">{value}</div>
-      <div className={cn(
-        "flex items-center text-sm mt-1",
-        isPositive ? "text-crypto-green" : "text-crypto-red"
-      )}>
+      <div
+        className={cn(
+          "flex items-center text-sm mt-1",
+          isPositive ? "text-crypto-green" : "text-crypto-red"
+        )}
+      >
         {isPositive ? (
           <ArrowUpRight size={14} className="mr-1" />
         ) : (
           <ArrowDownRight size={14} className="mr-1" />
         )}
-        <span>{change}{isPercentage && "%"}</span>
+        <span>
+          {change}
+          {isPercentage && "%"}
+        </span>
       </div>
     </div>
   );
