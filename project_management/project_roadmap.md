@@ -65,6 +65,15 @@
 - Implement sentiment analysis (LLM feature)
 - Test and optimize AI/LLM performance
 
+## Redis Cloud Setup
+
+Before proceeding to Phase 6, the platform needs a proper Redis cloud setup for production and live testing environments. Currently, Redis runs locally and requires manual startup after system restart, which is not suitable for production use.
+
+Refer to [Redis Cloud Roadmap](redis_cloud_roadmap.md) for detailed implementation steps, timeline, and cost considerations. This setup is critical for ensuring reliable:
+- Market data caching
+- API rate limiting
+- Job queuing for trading bots
+
 ## Phase 6: Blockchain Integration
 
 - Design tokenomics

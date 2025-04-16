@@ -13,6 +13,7 @@ import { AuthModule } from './auth/auth.module'; // Assuming this is Firebase Au
 import { ExchangeApiKeyModule } from './exchange-api-key/exchange-api-key.module';
 import { FirebaseAuthMiddleware } from './middleware/firebase-auth.middleware'; // Corrected import path
 import { PrismaModule } from './prisma/prisma.module';
+import { RedisModule } from './redis/redis.module';
 // Determine which auth module to load based on environment variable
 const authProvider = process.env.VITE_AUTH_PROVIDER;
 const authModules = [];
@@ -38,6 +39,7 @@ if (authProvider === 'firebase') {
       envFilePath: path.resolve(__dirname, '../../.env'),
     }),
     PrismaModule,
+    RedisModule, // Add Redis module
     MarketDataModule,
     ...authModules, // Spread the conditionally added auth modules here
     ExchangeApiKeyModule,
