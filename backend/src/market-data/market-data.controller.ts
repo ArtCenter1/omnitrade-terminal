@@ -85,7 +85,7 @@ export class MarketsDto {
   sparkline?: string = 'false'; // Default to false as string
 }
 
-@Controller('/api/v1/market-data')
+@Controller('/v1/market-data')
 export class MarketDataController {
   constructor(private readonly marketDataService: MarketDataService) {}
 

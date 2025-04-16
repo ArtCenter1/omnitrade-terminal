@@ -10,6 +10,7 @@ import {
 import { ExchangeApiKeyService } from './exchange-api-key.service';
 import { CreateExchangeApiKeyDto } from './dto/create-exchange-api-key.dto';
 import { Request as ExpressRequest } from 'express';
+import { UserApiKey } from '../types/prisma.types';
 /**
  * Controller for managing user exchange API keys.
  * Endpoints:
@@ -26,14 +27,14 @@ export class ExchangeApiKeyController {
   async addApiKey(
     @Request() req: ExpressRequest & { user: { user_id: string } },
     @Body() dto: CreateExchangeApiKeyDto,
-  ) {
+  ): Promise<Partial<UserApiKey>> {
     return this.apiKeyService.addApiKey(req.user.user_id, dto);
   }
 
   @Get()
   async listApiKeys(
     @Request() req: ExpressRequest & { user: { user_id: string } },
-  ) {
+  ): Promise<Partial<UserApiKey>[]> {
     return this.apiKeyService.listApiKeys(req.user.user_id);
   }
 
@@ -41,7 +42,7 @@ export class ExchangeApiKeyController {
   async deleteApiKey(
     @Request() req: ExpressRequest & { user: { user_id: string } },
     @Param('id') id: string,
-  ) {
+  ): Promise<{ message: string }> {
     return this.apiKeyService.deleteApiKey(req.user.user_id, id);
   }
 
@@ -49,7 +50,7 @@ export class ExchangeApiKeyController {
   async testApiKey(
     @Request() req: ExpressRequest & { user: { user_id: string } },
     @Param('id') id: string,
-  ) {
+  ): Promise<{ success: boolean; message: string }> {
     return this.apiKeyService.testApiKey(req.user.user_id, id);
   }
 }
