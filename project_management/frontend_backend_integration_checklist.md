@@ -4,15 +4,25 @@ This checklist tracks the prioritized integration of the core frontend component
 
 ---
 
+## Phase 0: Mock Data & Exchange Adapter System (Completed)
+
+- [x] Define exchange interfaces and data types
+- [x] Implement mock data generation service
+- [x] Create exchange adapter pattern with mock implementations
+- [x] Implement configuration system for switching between mock/sandbox/live modes
+- [x] Update exchange API key service to integrate with adapters
+
+---
+
 ## Phase 1: Exchange Connection & Basic Data Retrieval
 
-- [ ] Implement secure backend API endpoints for:
-  - [ ] Add new API key (with encryption)
-  - [ ] List connected exchanges/keys for the user
-  - [ ] Delete an API key
-  - [ ] Test connection/credentials with the exchange
+- [x] Implement secure backend API endpoints for:
+  - [x] Add new API key (with encryption)
+  - [x] List connected exchanges/keys for the user
+  - [x] Delete an API key
+  - [x] Test connection/credentials with the exchange
 - [ ] Connect frontend API key management UI to backend endpoints:
-  - [ ] Add key form submission
+  - [x] Add key form submission
   - [ ] Display list of connected exchanges/keys
   - [ ] Delete key functionality
   - [ ] User feedback on connection status
@@ -21,6 +31,7 @@ This checklist tracks the prioritized integration of the core frontend component
 
 ## Phase 2: Portfolio Display
 
+- [x] Implement mock portfolio data generation
 - [ ] Implement backend API endpoint to fetch and aggregate user portfolio data from all connected exchanges
 - [ ] Connect Dashboard page and components to portfolio endpoint:
   - [ ] Fetch and display portfolio data
@@ -31,6 +42,8 @@ This checklist tracks the prioritized integration of the core frontend component
 
 ## Phase 3: Trading Terminal Integration
 
+- [x] Implement mock trading data (pairs, orderbooks, klines)
+- [x] Implement mock order management (place, cancel, history)
 - [ ] Implement backend endpoints/WebSocket for:
   - [ ] Fetching available trading pairs per exchange
   - [ ] Streaming live market data for selected pair/exchange
