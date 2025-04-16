@@ -25,3 +25,6 @@ dist-ssr
 
 # Firebase Admin SDK service account key
 omnitrade-firebase-adminsdk.json
+
+# Temporary directories
+temp/
