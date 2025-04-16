@@ -87,10 +87,20 @@ See the `.env` file for detailed placeholders and instructions.
 
 ## Environment Variables
 
-All configuration is managed via the `.env` file in the project root.
+The project uses two separate `.env` files for configuration:
 
-- Only Firebase variables are required.
-- See `.env` for detailed instructions.
+1. **Root `.env`**: Contains frontend-specific variables (prefixed with `VITE_`)
+   - Authentication configuration (Firebase)
+   - Frontend API endpoints
+   - UI configuration
+
+2. **Backend `.env`** (in the `backend/` directory): Contains backend-specific variables
+   - Database connection string
+   - API keys for external services
+   - Security settings (session secrets, encryption keys)
+   - Backend-only configuration
+
+This separation helps maintain a clear distinction between frontend and backend environments.
 
 ## Migration Notes
 
