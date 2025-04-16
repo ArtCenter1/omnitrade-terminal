@@ -1,0 +1,20 @@
+# Build outputs
+dist
+build
+coverage
+
+# Node modules
+node_modules
+
+# Generated files
+*.generated.*
+*.min.*
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Misc
+.git
+.DS_Store

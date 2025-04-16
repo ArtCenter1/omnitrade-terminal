@@ -75,7 +75,7 @@ export class MarketDataService {
 
   constructor(
     private configService: ConfigService,
-    private redisService: RedisService
+    private redisService: RedisService,
   ) {
     // Inject ConfigService
     const baseUrl = this.configService.get<string>('COINGECKO_API_BASE_URL');
@@ -104,14 +104,18 @@ export class MarketDataService {
       const data = await fetcher();
 
       // Set cache but don't wait for it to complete
-      this.redisService.set(key, JSON.stringify(data), ttlSeconds).catch((err: Error) => {
-        this.logger.error(`Failed to set cache key ${key}: ${err.message}`);
-      });
+      this.redisService
+        .set(key, JSON.stringify(data), ttlSeconds)
+        .catch((err: Error) => {
+          this.logger.error(`Failed to set cache key ${key}: ${err.message}`);
+        });
 
       return data; // Return data immediately
     } catch (error) {
       // If Redis fails, just fetch the data directly
-      this.logger.warn(`Cache operation failed for ${key}, fetching directly: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.warn(
+        `Cache operation failed for ${key}, fetching directly: ${error instanceof Error ? error.message : String(error)}`,
+      );
       return await fetcher();
     }
   }

@@ -4,10 +4,8 @@
   "printWidth": 80,
   "singleQuote": true,
   "trailingComma": "all",
-  "jsxSingleQuote": false,
   "bracketSpacing": true,
   "bracketSameLine": false,
   "arrowParens": "always",
-  "endOfLine": "auto",
-  "plugins": []
+  "endOfLine": "auto"
 }

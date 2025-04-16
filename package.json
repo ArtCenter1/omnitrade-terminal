@@ -10,7 +10,11 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --ext ts,tsx --fix",
+    "lint:backend": "cd backend && eslint . --ext ts --report-unused-disable-directives --max-warnings 0",
+    "lint:backend:fix": "cd backend && eslint . --ext ts --fix",
     "format": "prettier --write .",
+    "format:backend": "prettier --write ./backend",
+    "format:all": "npm run format && npm run format:backend",
     "check-format": "prettier --check .",
     "test": "vitest",
     "test:ui": "vitest --ui",
@@ -20,7 +24,8 @@
     "db:seed": "node scripts/db.js seed",
     "db:studio": "node scripts/db.js studio",
     "db:status": "node scripts/db.js status",
-    "db:create": "node scripts/db.js create"
+    "db:create": "node scripts/db.js create",
+    "prepare": "husky install"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -106,7 +111,9 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.9",
     "globals": "^15.9.0",
+    "husky": "^9.0.11",
     "jsdom": "^26.0.0",
+    "lint-staged": "^15.2.2",
     "postcss": "^8.4.47",
     "prettier": "^3.5.3",
     "prisma": "^6.5.0",
