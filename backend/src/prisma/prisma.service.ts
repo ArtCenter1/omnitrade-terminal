@@ -7,7 +7,6 @@ import {
 import { PrismaClient } from '@prisma/client';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import * as path from 'path';
 
 const execPromise = promisify(exec);
 
@@ -33,10 +32,10 @@ export class PrismaService
     try {
       await this.$connect();
       this.logger.log('Prisma connected successfully');
-    } catch (error) {
+    } catch (error: any) {
       if (
-        error.message?.includes('did not initialize yet') ||
-        error.message?.includes('run "prisma generate"')
+        (error.message && error.message.includes('did not initialize yet')) ||
+        (error.message && error.message.includes('run "prisma generate"'))
       ) {
         this.logger.warn(
           'Prisma client not initialized. Running prisma generate...',
@@ -49,7 +48,7 @@ export class PrismaService
           // Try connecting again
           await this.$connect();
           this.logger.log('Prisma connected successfully after generation');
-        } catch (genError) {
+        } catch (genError: any) {
           this.logger.error(
             `Failed to generate Prisma client: ${genError.message}`,
           );

@@ -1,9 +1,6 @@
 {
-  "*.{js,jsx,ts,tsx}": [
-    "prettier --write",
-    "eslint --fix"
-  ],
-  "*.{json,md,html,css}": [
-    "prettier --write"
-  ]
+  "*.{js,jsx,tsx}": ["prettier --write", "eslint --fix"],
+  "src/**/*.ts": ["prettier --write", "eslint --fix"],
+  "backend/**/*.ts": ["prettier --write"],
+  "*.{json,md,html,css}": ["prettier --write"]
 }
