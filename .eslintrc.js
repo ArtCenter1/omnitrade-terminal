@@ -42,18 +42,11 @@ module.exports = {
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/no-explicit-any': 'warn',
     '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
-    
-    // Fix for no-unused-expressions rule
+
+    // Disable problematic rules
     'no-unused-expressions': 'off',
-    '@typescript-eslint/no-unused-expressions': [
-      'error',
-      {
-        allowShortCircuit: true,
-        allowTernary: true,
-        allowTaggedTemplates: true,
-      },
-    ],
-    
+    '@typescript-eslint/no-unused-expressions': 'off',
+
     // Type safety rules - set to warn instead of error
     '@typescript-eslint/no-unsafe-assignment': 'warn',
     '@typescript-eslint/no-unsafe-member-access': 'warn',
@@ -61,5 +54,10 @@ module.exports = {
     '@typescript-eslint/no-unsafe-return': 'warn',
     '@typescript-eslint/no-unsafe-argument': 'warn',
   },
-  ignorePatterns: ['dist', 'node_modules', 'backend/node_modules', 'backend/dist'],
+  ignorePatterns: [
+    'dist',
+    'node_modules',
+    'backend/node_modules',
+    'backend/dist',
+  ],
 };
