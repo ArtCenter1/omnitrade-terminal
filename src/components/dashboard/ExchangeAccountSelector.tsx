@@ -151,8 +151,15 @@ export function ExchangeAccountSelector() {
                     <span className="text-white text-sm">
                       {selectedAccount.name}
                     </span>
-                    <span className="text-xs text-gray-400">
-                      {selectedAccount.value} | {selectedAccount.change}
+                    <span className="text-xs">
+                      <span className="text-gray-400">
+                        {selectedAccount.value}
+                      </span>
+                      <span
+                        className={`ml-1 ${!selectedAccount.change.includes('-') ? 'text-crypto-green' : 'text-crypto-red'}`}
+                      >
+                        {selectedAccount.change}
+                      </span>
                     </span>
                   </div>
                 </div>
@@ -189,8 +196,13 @@ export function ExchangeAccountSelector() {
                         <span className="text-white text-sm">
                           {account.name}
                         </span>
-                        <span className="text-xs text-gray-400">
-                          {account.value} | {account.change}
+                        <span className="text-xs">
+                          <span className="text-gray-400">{account.value}</span>
+                          <span
+                            className={`ml-1 ${!account.change.includes('-') ? 'text-crypto-green' : 'text-crypto-red'}`}
+                          >
+                            {account.change}
+                          </span>
                         </span>
                       </div>
                     </div>

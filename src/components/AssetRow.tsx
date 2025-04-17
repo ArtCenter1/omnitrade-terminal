@@ -43,10 +43,8 @@ export function AssetRow({ asset }: AssetRowProps) {
           {asset.change}
         </span>
       </td>
-      <td className="py-4 px-4" style={{ minWidth: '120px', height: '50px' }}>
-        <div style={{ width: '100px', height: '40px', position: 'relative' }}>
-          <AssetChart data={chartData} isPositive={isPositive} />
-        </div>
+      <td className="py-4 px-4 min-w-[120px] h-[50px]">
+        <AssetChart data={chartData} isPositive={isPositive} />
       </td>
       <td className="py-4 px-4">
         <Button

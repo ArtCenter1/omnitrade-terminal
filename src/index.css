@@ -55,10 +55,7 @@
   background: #555;
 }
 
-.chart-container {
-  height: 40px;
-  width: 100px;
-}
+/* Chart container styles moved to asset-chart.css */
 
 .pie-chart-container {
   height: 200px;
