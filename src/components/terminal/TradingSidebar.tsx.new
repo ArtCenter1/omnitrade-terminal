@@ -12,12 +12,11 @@ interface TradingSidebarProps {
 
 export function TradingSidebar({ selectedPair }: TradingSidebarProps = {}) {
   return (
-    <div className="h-full px-2 overflow-y-auto">
+    <div className="h-full p-2 overflow-y-auto">
       <ExchangeSelector />
       <AccountSelector />
       <AvailableBalances selectedPair={selectedPair} />
       <TradingForm selectedPair={selectedPair} />
-      {/* Removed AccountTabs */}
     </div>
   );
 }

@@ -5,10 +5,9 @@ import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 
 interface OrderBookProps {
   selectedPair?: TradingPair;
-  className?: string;
 }
 
-export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
+export function OrderBook({ selectedPair }: OrderBookProps = {}) {
   // Get selected account for exchange-specific data
   const { selectedAccount } = useSelectedAccount();
   const exchangeName = selectedAccount?.exchange || 'Binance';
@@ -49,7 +48,7 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
   // Show loading state
   if (isLoading) {
     return (
-      <div className={`${className || ''} w-full h-full`}>
+      <div className="h-full">
         <div className="p-3 border-b border-gray-800">
           <h3 className="text-white font-medium">Order Book</h3>
         </div>
@@ -63,7 +62,7 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
   // Show error state
   if (isError || !orderbook) {
     return (
-      <div className={`${className || ''} w-full h-full`}>
+      <div className="h-full">
         <div className="p-3 border-b border-gray-800">
           <h3 className="text-white font-medium">Order Book</h3>
         </div>
@@ -85,7 +84,7 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
       : 0;
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-full flex flex-col">
       <div className="p-3 border-b border-gray-800">
         <h3 className="text-white font-medium">
           Order Book{' '}
@@ -99,7 +98,7 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
         <div>Total</div>
       </div>
 
-      <div className="px-3 py-2">
+      <div className="px-3 py-2 h-[40%] overflow-y-auto">
         <div className="space-y-1">
           {orderbook.asks
             ?.slice(0, 10)
@@ -146,7 +145,7 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
           <div>Time</div>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2 flex-grow overflow-y-auto">
           {[...Array(10)].map((_, i) => {
             // Generate random trade data based on the current pair
             const quantity = (Math.random() * 0.01).toFixed(8);

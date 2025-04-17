@@ -148,8 +148,8 @@ export function ChartSection({
   };
 
   return (
-    <div className={`${className || ''} flex flex-col h-full w-full`}>
-      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-800">
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between px-4 border-b border-gray-800">
         <TradingPairSelector onPairSelect={handlePairSelect} />
         <PriceOverview selectedPair={currentPair} />
       </div>

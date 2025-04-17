@@ -99,7 +99,7 @@ export function TerminalTabs({ selectedPair }: TerminalTabsProps = {}) {
   }
 
   return (
-    <div className="h-full overflow-auto">
+    <div className="h-full">
       <div className="h-full">
         <div className="flex justify-between items-center px-4 py-2">
           <Tabs
@@ -145,7 +145,10 @@ export function TerminalTabs({ selectedPair }: TerminalTabsProps = {}) {
           </div>
         </div>
 
-        <div className="p-4">
+        <div
+          className="p-4 overflow-auto"
+          style={{ height: 'calc(100% - 80px)' }}
+        >
           {activeTab === 'Balances' && (
             <div className="overflow-x-auto">
               <table className="w-full">
