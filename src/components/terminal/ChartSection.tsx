@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'; // Added useState
 import { PriceOverview } from './PriceOverview';
 import { TimeframeSelector } from './TimeframeSelector';
 import { TradingPairSelector, TradingPair } from './TradingPairSelector';
+import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 
 // Define an interface for the TradingView widget options
 interface TradingViewWidgetOptions {
@@ -28,18 +29,31 @@ declare global {
   }
 }
 
-export function ChartSection() {
+interface ChartSectionProps {
+  selectedPair?: TradingPair;
+  onPairSelect?: (pair: TradingPair) => void;
+}
+
+export function ChartSection({
+  selectedPair,
+  onPairSelect,
+}: ChartSectionProps = {}) {
   const container = useRef<HTMLDivElement>(null);
   const [currentTimeframe, setCurrentTimeframe] = useState<string>('D'); // Default to Daily
-  const [currentPair, setCurrentPair] = useState<TradingPair>({
-    symbol: 'BTC/USDT',
-    baseAsset: 'BTC',
-    quoteAsset: 'USDT',
-    price: '84,316.58',
-    change24h: '+0.92%',
-    volume24h: '1.62b',
-    isFavorite: true,
-  });
+  const { selectedAccount } = useSelectedAccount();
+
+  // Use the provided selectedPair or a default
+  const [currentPair, setCurrentPair] = useState<TradingPair>(
+    selectedPair || {
+      symbol: 'BTC/USDT',
+      baseAsset: 'BTC',
+      quoteAsset: 'USDT',
+      price: '84,316.58',
+      change24h: '+0.92%',
+      volume24h: '1.62b',
+      isFavorite: true,
+    },
+  );
   const widgetInstanceRef = useRef<unknown | null>(null); // To potentially hold widget instance if needed, though direct update is tricky here
 
   useEffect(() => {
@@ -58,7 +72,7 @@ export function ChartSection() {
         currentContainer.innerHTML = '';
         widgetInstanceRef.current = new window.TradingView.widget({
           autosize: true,
-          symbol: `BINANCE:${currentPair.baseAsset}${currentPair.quoteAsset}`,
+          symbol: `${selectedAccount?.exchange?.toUpperCase() || 'BINANCE'}:${currentPair.baseAsset}${currentPair.quoteAsset}`,
           interval: currentTimeframe, // Use state variable
           timezone: 'Etc/UTC',
           theme: 'dark',
@@ -109,8 +123,15 @@ export function ChartSection() {
         // currentContainer.innerHTML = ''; // Clear container on unmount/re-render
       }
     };
-    // Re-run effect when currentTimeframe or currentPair changes
-  }, [currentTimeframe, currentPair]);
+    // Re-run effect when currentTimeframe, currentPair, or selectedAccount changes
+  }, [currentTimeframe, currentPair, selectedAccount]);
+
+  // Update currentPair when selectedPair changes
+  useEffect(() => {
+    if (selectedPair) {
+      setCurrentPair(selectedPair);
+    }
+  }, [selectedPair]);
 
   const handleTimeframeSelect = (timeframe: string) => {
     setCurrentTimeframe(timeframe);
@@ -118,6 +139,10 @@ export function ChartSection() {
 
   const handlePairSelect = (pair: TradingPair) => {
     setCurrentPair(pair);
+    // Call the parent's onPairSelect if provided
+    if (onPairSelect) {
+      onPairSelect(pair);
+    }
   };
 
   return (

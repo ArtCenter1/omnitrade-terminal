@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import { getMockPortfolioData } from '@/mocks/mockPortfolio';
 import { PortfolioAsset } from '@/types/exchange';
+import { TradingPair } from './TradingPairSelector';
 
 interface BalanceItemProps {
   icon: string;
@@ -32,10 +33,39 @@ function BalanceItem({ icon, name, amount }: BalanceItemProps) {
   );
 }
 
-export function AvailableBalances() {
+interface AvailableBalancesProps {
+  selectedPair?: TradingPair;
+}
+
+export function AvailableBalances({
+  selectedPair,
+}: AvailableBalancesProps = {}) {
   const { selectedAccount } = useSelectedAccount();
   const [assets, setAssets] = useState<PortfolioAsset[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Get crypto icons from CoinGecko or use placeholders
+  const getIconUrl = (symbol: string) => {
+    return `/crypto-icons/${symbol.toLowerCase()}.svg`;
+  };
+
+  // Filter assets to only show the base and quote assets from the selected pair
+  const filteredAssets = useMemo(() => {
+    if (!selectedPair || assets.length === 0) return [];
+
+    const baseAsset = selectedPair.baseAsset;
+    const quoteAsset = selectedPair.quoteAsset;
+
+    return assets
+      .filter(
+        (asset) => asset.asset === baseAsset || asset.asset === quoteAsset,
+      )
+      .sort((a, b) => {
+        if (a.asset === baseAsset && b.asset !== baseAsset) return -1;
+        if (a.asset !== baseAsset && b.asset === baseAsset) return 1;
+        return 0; // Base asset first, quote asset second
+      });
+  }, [assets, selectedPair]);
 
   useEffect(() => {
     if (selectedAccount) {
@@ -78,16 +108,22 @@ export function AvailableBalances() {
     );
   }
 
-  // Get crypto icons from CoinGecko or use placeholders
-  const getIconUrl = (symbol: string) => {
-    return `/crypto-icons/${symbol.toLowerCase()}.svg`;
-  };
+  if (!selectedPair || filteredAssets.length === 0) {
+    return (
+      <div className="mb-6">
+        <div className="text-gray-400 mb-2 text-xs">Available Balances</div>
+        <div className="text-gray-400 text-sm text-center py-2">
+          No balances for selected pair
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mb-6">
       <div className="text-gray-400 mb-2 text-xs">Available Balances</div>
       <div className="space-y-3 max-h-40 overflow-y-auto pr-1">
-        {assets.map((asset) => (
+        {filteredAssets.map((asset) => (
           <BalanceItem
             key={asset.asset}
             icon={getIconUrl(asset.asset)}

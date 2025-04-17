@@ -15,7 +15,7 @@ import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import {
   getTradingPairs,
-  quoteAssets,
+  getQuoteAssets,
   toggleFavoritePair,
 } from '@/services/tradingPairService';
 
@@ -53,6 +53,24 @@ export function TradingPairSelector({
   const [isLoading, setIsLoading] = useState(false);
   const { selectedAccount } = useSelectedAccount();
 
+  // Get available quote assets for the selected exchange
+  const [availableQuoteAssets, setAvailableQuoteAssets] = useState<string[]>(
+    [],
+  );
+
+  // Update available quote assets when the selected account changes
+  useEffect(() => {
+    const exchangeId = selectedAccount?.exchange || 'binance';
+    const assets = getQuoteAssets(exchangeId);
+    setAvailableQuoteAssets(assets);
+
+    // If the current active quote asset is not available for this exchange,
+    // switch to the first available one
+    if (!assets.includes(activeQuoteAsset)) {
+      setActiveQuoteAsset(assets[0] || 'USDT');
+    }
+  }, [selectedAccount, activeQuoteAsset]);
+
   // Fetch trading pairs when the component mounts or when the active quote asset changes
   useEffect(() => {
     const fetchTradingPairs = async () => {
@@ -82,7 +100,7 @@ export function TradingPairSelector({
         const exchangeId = selectedAccount?.exchange || 'binance';
         // Get all pairs from all quote assets for searching
         const allPairs = [];
-        for (const asset of quoteAssets) {
+        for (const asset of availableQuoteAssets) {
           const pairs = await getTradingPairs(exchangeId, asset);
           allPairs.push(...pairs);
         }
@@ -200,7 +218,7 @@ export function TradingPairSelector({
                     >
                       All
                     </TabsTrigger>
-                    {quoteAssets.map((asset) => (
+                    {availableQuoteAssets.map((asset) => (
                       <TabsTrigger
                         key={asset}
                         value={asset}

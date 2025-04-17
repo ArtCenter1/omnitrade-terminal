@@ -22,9 +22,26 @@ import { ChartSection } from '@/components/terminal/ChartSection';
 import { OrderBook } from '@/components/terminal/OrderBook';
 import { AssetsTable } from '@/components/terminal/AssetsTable';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
+import { TradingPair } from '@/components/terminal/TradingPairSelector';
 
 export default function Terminal() {
+  // State for the selected trading pair
+  const [selectedPair, setSelectedPair] = useState<TradingPair>({
+    symbol: 'BTC/USDT',
+    baseAsset: 'BTC',
+    quoteAsset: 'USDT',
+    price: '84,316.58',
+    change24h: '+0.92%',
+    volume24h: '1.62b',
+    isFavorite: true,
+  });
+
+  // Handler for when a trading pair is selected
+  const handlePairSelect = (pair: TradingPair) => {
+    setSelectedPair(pair);
+  };
+
   return (
     <div className="bg-black min-h-screen">
       <ErrorBoundary
@@ -46,7 +63,7 @@ export default function Terminal() {
       >
         <div className="grid grid-cols-12 gap-0">
           <ErrorBoundary>
-            <TradingSidebar />
+            <TradingSidebar selectedPair={selectedPair} />
           </ErrorBoundary>
 
           <div className="col-span-9">
@@ -70,17 +87,20 @@ export default function Terminal() {
                     <div className="col-span-9 h-96 bg-gray-900 animate-pulse"></div>
                   }
                 >
-                  <ChartSection />
+                  <ChartSection
+                    selectedPair={selectedPair}
+                    onPairSelect={handlePairSelect}
+                  />
                 </Suspense>
               </ErrorBoundary>
 
               <ErrorBoundary>
-                <OrderBook />
+                <OrderBook selectedPair={selectedPair} />
               </ErrorBoundary>
             </div>
 
             <ErrorBoundary>
-              <AssetsTable />
+              <AssetsTable selectedPair={selectedPair} />
             </ErrorBoundary>
           </div>
         </div>

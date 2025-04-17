@@ -1,9 +1,21 @@
 import { Loader2 } from 'lucide-react';
 import { getMockOrderbookData } from '@/mocks/mockOrderbook';
+import { TradingPair } from './TradingPairSelector';
+import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 
-export function OrderBook() {
-  // Use mock orderbook data directly
-  const symbol = 'BTC/USDT';
+interface OrderBookProps {
+  selectedPair?: TradingPair;
+}
+
+export function OrderBook({ selectedPair }: OrderBookProps = {}) {
+  const { selectedAccount } = useSelectedAccount();
+
+  // Use the selected pair or default to BTC/USDT
+  const symbol = selectedPair?.symbol || 'BTC/USDT';
+  const baseAsset = selectedPair?.baseAsset || 'BTC';
+  const quoteAsset = selectedPair?.quoteAsset || 'USDT';
+
+  // Get mock orderbook data for the selected pair
   const { orderbook, isLoading, isError } = getMockOrderbookData(symbol);
 
   // Format price with appropriate precision
@@ -76,8 +88,8 @@ export function OrderBook() {
       </div>
 
       <div className="px-3 py-2 flex justify-between text-xs text-gray-400">
-        <div>Amount (BTC)</div>
-        <div>Price (USDT)</div>
+        <div>Amount ({baseAsset})</div>
+        <div>Price ({quoteAsset})</div>
         <div>Total</div>
       </div>
 
@@ -123,19 +135,40 @@ export function OrderBook() {
         <h3 className="text-white font-medium mb-2">Recent Trades</h3>
 
         <div className="grid grid-cols-3 text-xs text-gray-400 mb-2">
-          <div>Amount (BTC)</div>
-          <div>Price (USDT)</div>
+          <div>Amount ({baseAsset})</div>
+          <div>Price ({quoteAsset})</div>
           <div>Time</div>
         </div>
 
         <div className="space-y-2 h-60 overflow-y-auto">
-          {[...Array(10)].map((_, i) => (
-            <div key={`trade-${i}`} className="grid grid-cols-3 text-xs">
-              <div className="text-white">0.00240000</div>
-              <div className="text-crypto-green">83855.34000000</div>
-              <div className="text-gray-400">19:34:56</div>
-            </div>
-          ))}
+          {[...Array(10)].map((_, i) => {
+            // Generate random trade data based on the current pair
+            const quantity = (Math.random() * 0.01).toFixed(8);
+            const price = parseFloat(orderbook.bids[0]?.[0] || '0');
+            const priceWithVariation = (
+              price *
+              (1 + (Math.random() * 0.002 - 0.001))
+            ).toFixed(2);
+            const now = new Date();
+            const minutes = now.getMinutes() - i;
+            const seconds = Math.floor(Math.random() * 60);
+            const timeString = `${now.getHours()}:${minutes < 10 ? '0' + minutes : minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
+
+            // Randomly determine if it's a buy or sell
+            const isBuy = Math.random() > 0.5;
+
+            return (
+              <div key={`trade-${i}`} className="grid grid-cols-3 text-xs">
+                <div className="text-white">{quantity}</div>
+                <div
+                  className={isBuy ? 'text-crypto-green' : 'text-crypto-red'}
+                >
+                  {priceWithVariation}
+                </div>
+                <div className="text-gray-400">{timeString}</div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
