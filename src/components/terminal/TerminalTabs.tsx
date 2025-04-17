@@ -247,39 +247,39 @@ export function TerminalTabs({ selectedPair }: TerminalTabsProps = {}) {
                 <thead>
                   <tr className="border-b border-gray-800">
                     <th
-                      className="text-left py-2 px-4 text-sm font-medium text-gray-400 cursor-pointer hover:text-white"
+                      className="text-left py-2 px-2 text-sm font-medium text-gray-400 cursor-pointer hover:text-white"
                       onClick={() => handleSort('asset')}
                     >
                       Asset {renderSortIndicator('asset')}
                     </th>
                     <th
-                      className="text-left py-2 px-4 text-sm font-medium text-gray-400 cursor-pointer hover:text-white"
+                      className="text-left py-2 px-2 text-sm font-medium text-gray-400 cursor-pointer hover:text-white"
                       onClick={() => handleSort('amount')}
                     >
                       Available Amount {renderSortIndicator('amount')}
                     </th>
                     <th
-                      className="text-left py-2 px-4 text-sm font-medium text-gray-400 cursor-pointer hover:text-white"
+                      className="text-left py-2 px-2 text-sm font-medium text-gray-400 cursor-pointer hover:text-white"
                       onClick={() => handleSort('value')}
                     >
                       Value (USD) {renderSortIndicator('value')}
                     </th>
                     <th
-                      className="text-left py-2 px-4 text-sm font-medium text-gray-400 cursor-pointer hover:text-white"
+                      className="text-left py-2 px-2 text-sm font-medium text-gray-400 cursor-pointer hover:text-white"
                       onClick={() => handleSort('price')}
                     >
                       Last Price {renderSortIndicator('price')}
                     </th>
                     <th
-                      className="text-left py-2 px-4 text-sm font-medium text-gray-400 cursor-pointer hover:text-white"
+                      className="text-left py-2 px-2 text-sm font-medium text-gray-400 cursor-pointer hover:text-white"
                       onClick={() => handleSort('change')}
                     >
                       24h Change {renderSortIndicator('change')}
                     </th>
-                    <th className="text-left py-2 px-4 text-sm font-medium text-gray-400">
+                    <th className="text-left py-2 px-2 text-sm font-medium text-gray-400">
                       7d Chart
                     </th>
-                    <th className="text-center py-2 px-4 text-sm font-medium text-gray-400">
+                    <th className="text-center py-2 px-2 text-sm font-medium text-gray-400">
                       Actions
                     </th>
                   </tr>

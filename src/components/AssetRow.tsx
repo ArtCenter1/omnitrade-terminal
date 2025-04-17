@@ -122,7 +122,7 @@ export function AssetRow({ asset }: AssetRowProps) {
 
   return (
     <tr className="border-b border-gray-800">
-      <td className="py-4 px-4 flex items-center space-x-2">
+      <td className="py-3 px-2 flex items-center space-x-2">
         <div className="w-6 h-6 rounded-full overflow-hidden">
           <img
             src={iconUrl}
@@ -138,7 +138,7 @@ export function AssetRow({ asset }: AssetRowProps) {
           <div className="text-xs text-gray-400">{asset.symbol || '---'}</div>
         </div>
       </td>
-      <td className="py-4 px-4 text-gray-300">
+      <td className="py-3 px-2 text-gray-300">
         <div className="font-medium text-white">
           {isNewAssetType
             ? (asset as Asset).amount !== undefined
@@ -155,17 +155,17 @@ export function AssetRow({ asset }: AssetRowProps) {
             : '0.00'}
         </div>
       </td>
-      <td className="py-4 px-4 text-gray-300">
+      <td className="py-3 px-2 text-gray-300">
         {isNewAssetType && (asset as Asset).value !== undefined
           ? `$${(asset as Asset).value.toFixed(2)}`
           : asset.value || '$0.00'}
       </td>
-      <td className="py-4 px-4 text-gray-300">
+      <td className="py-3 px-2 text-gray-300">
         {isNewAssetType && (asset as Asset).price !== undefined
           ? `$${(asset as Asset).price.toFixed(2)}`
           : asset.price || '$0.00'}
       </td>
-      <td className="py-4 px-4">
+      <td className="py-3 px-2">
         <span
           className={`text-sm ${isPositive ? 'text-crypto-green' : 'text-crypto-red'}`}
         >
@@ -174,10 +174,10 @@ export function AssetRow({ asset }: AssetRowProps) {
             : asset.change || '0.00%'}
         </span>
       </td>
-      <td className="py-4 px-4 min-w-[120px] h-[50px]">
+      <td className="py-3 px-2 min-w-[120px] h-[50px]">
         <AssetChart data={chartData} isPositive={isPositive} />
       </td>
-      <td className="py-4 px-4">
+      <td className="py-3 px-2">
         <Button
           variant="outline"
           className="border-gray-600 hover:bg-gray-800 text-xs rounded"
