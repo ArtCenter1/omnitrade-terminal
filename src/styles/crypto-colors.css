@@ -1,0 +1,21 @@
+/* Crypto-specific colors */
+:root {
+  --crypto-green: #00c853;
+  --crypto-red: #ff3d71;
+}
+
+.text-crypto-green {
+  color: var(--crypto-green);
+}
+
+.text-crypto-red {
+  color: var(--crypto-red);
+}
+
+.bg-crypto-green {
+  background-color: var(--crypto-green);
+}
+
+.bg-crypto-red {
+  background-color: var(--crypto-red);
+}
