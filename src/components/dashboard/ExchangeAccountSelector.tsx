@@ -161,7 +161,7 @@ export function ExchangeAccountSelector() {
             </DropdownMenuTrigger>
             <DropdownMenuPortal>
               <DropdownMenuContent
-                className="w-[300px] bg-[#1a1a1c] border-gray-800"
+                className="w-[300px] bg-[#1a1a1c]"
                 sideOffset={5}
               >
                 {localAccounts.map((account) => (

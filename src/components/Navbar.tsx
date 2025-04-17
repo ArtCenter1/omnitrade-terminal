@@ -44,6 +44,9 @@ export default function Navbar() {
   const { theme, setTheme } = useTheme();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
+  // Get current location to determine active page
+  const location = window.location.pathname;
+
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
@@ -64,7 +67,7 @@ export default function Navbar() {
   };
 
   return (
-    <div className="border-b border-theme-primary bg-theme-navbar sticky top-0 z-50 theme-transition">
+    <div className="bg-[#131722] sticky top-0 z-50 theme-transition">
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center">
           <Link to="/" className="flex items-center cursor-pointer">
@@ -75,7 +78,7 @@ export default function Navbar() {
                 className="h-6 w-6"
               />
             </div>
-            <span className="font-bold text-xl ml-2">OMNITRADE</span>
+            <span className="font-bold text-xl ml-2 text-white">OMNITRADE</span>
           </Link>
         </div>
 
@@ -86,7 +89,7 @@ export default function Navbar() {
                 <NavigationMenuLink asChild>
                   <Link
                     to="/dashboard"
-                    className={navigationMenuTriggerStyle()}
+                    className={`${navigationMenuTriggerStyle()} text-white hover:text-white ${location.startsWith('/dashboard') ? 'bg-[#1e2230] font-bold border-b-2 border-blue-500' : ''}`}
                   >
                     Dashboard
                   </Link>
@@ -94,28 +97,40 @@ export default function Navbar() {
               </NavigationMenuItem>
               <NavigationMenuItem>
                 <NavigationMenuLink asChild>
-                  <Link to="/terminal" className={navigationMenuTriggerStyle()}>
+                  <Link
+                    to="/terminal"
+                    className={`${navigationMenuTriggerStyle()} text-white hover:text-white ${location.startsWith('/terminal') ? 'bg-[#1e2230] font-bold border-b-2 border-blue-500' : ''}`}
+                  >
                     Terminal
                   </Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
                 <NavigationMenuLink asChild>
-                  <Link to="/bots" className={navigationMenuTriggerStyle()}>
+                  <Link
+                    to="/bots"
+                    className={`${navigationMenuTriggerStyle()} text-white hover:text-white ${location.startsWith('/bots') ? 'bg-[#1e2230] font-bold border-b-2 border-blue-500' : ''}`}
+                  >
                     Bots
                   </Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
                 <NavigationMenuLink asChild>
-                  <Link to="/markets" className={navigationMenuTriggerStyle()}>
+                  <Link
+                    to="/markets"
+                    className={`${navigationMenuTriggerStyle()} text-white hover:text-white ${location.startsWith('/markets') ? 'bg-[#1e2230] font-bold border-b-2 border-blue-500' : ''}`}
+                  >
                     Markets
                   </Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
                 <NavigationMenuLink asChild>
-                  <Link to="/earn" className={navigationMenuTriggerStyle()}>
+                  <Link
+                    to="/earn"
+                    className={`${navigationMenuTriggerStyle()} text-white hover:text-white ${location.startsWith('/earn') ? 'bg-[#1e2230] font-bold border-b-2 border-blue-500' : ''}`}
+                  >
                     Earn
                   </Link>
                 </NavigationMenuLink>
@@ -124,7 +139,7 @@ export default function Navbar() {
                 <NavigationMenuLink asChild>
                   <Link
                     to="/community"
-                    className={navigationMenuTriggerStyle()}
+                    className={`${navigationMenuTriggerStyle()} text-white hover:text-white ${location.startsWith('/community') ? 'bg-[#1e2230] font-bold border-b-2 border-blue-500' : ''}`}
                   >
                     Community
                   </Link>
@@ -136,9 +151,9 @@ export default function Navbar() {
                 <NavigationMenuLink asChild>
                   <Link
                     to="/demo/exchange"
-                    className={navigationMenuTriggerStyle()}
+                    className={`${navigationMenuTriggerStyle()} hover:text-white ${location.startsWith('/demo/exchange') ? 'bg-[#1e2230] font-bold border-b-2 border-blue-500' : ''}`}
                   >
-                    <span className="flex items-center text-blue-400">
+                    <span className="flex items-center text-blue-400 hover:text-blue-300">
                       Exchange Demo
                     </span>
                   </Link>
@@ -149,7 +164,10 @@ export default function Navbar() {
               {isAdmin && (
                 <NavigationMenuItem>
                   <NavigationMenuLink asChild>
-                    <Link to="/admin" className={navigationMenuTriggerStyle()}>
+                    <Link
+                      to="/admin"
+                      className={`${navigationMenuTriggerStyle()} ${location.startsWith('/admin') ? 'bg-[#1e2230] font-bold border-b-2 border-red-500' : ''}`}
+                    >
                       <span className="flex items-center text-red-400">
                         <LayoutDashboard className="h-4 w-4 mr-1" />
                         Admin
@@ -172,7 +190,7 @@ export default function Navbar() {
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
-              className="w-56 border-theme-primary shadow-theme-md theme-transition bg-[#1a1a1c]"
+              className="w-56 shadow-theme-md theme-transition bg-[#1a1a1c]"
             >
               <div className="p-2">
                 <h3 className="font-medium text-sm mb-2 text-theme-secondary">
@@ -259,7 +277,7 @@ export default function Navbar() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
-                  className="w-56 border-theme-primary shadow-theme-md theme-transition bg-[#1a1a1c]"
+                  className="w-56 shadow-theme-md theme-transition bg-[#1a1a1c]"
                 >
                   <div className="flex items-center justify-start gap-2 p-2">
                     <div className="flex flex-col space-y-1 leading-none">

@@ -1,0 +1,55 @@
+/* Styles for the allocation chart */
+
+.pie-chart-container {
+  outline: none !important;
+  border: none !important;
+}
+
+/* Remove outlines and borders from Recharts elements */
+.recharts-wrapper,
+.recharts-surface,
+.recharts-pie,
+.recharts-pie-sector,
+.recharts-sector {
+  outline: none !important;
+  stroke: none !important;
+  border: none !important;
+}
+
+/* Remove focus outlines */
+.recharts-wrapper:focus,
+.recharts-surface:focus,
+.recharts-pie:focus,
+.recharts-pie-sector:focus,
+.recharts-sector:focus {
+  outline: none !important;
+  stroke: none !important;
+  border: none !important;
+}
+
+/* Ensure no white borders on hover or active states */
+.recharts-sector:hover,
+.recharts-sector:active,
+.recharts-pie-sector:hover,
+.recharts-pie-sector:active {
+  stroke: none !important;
+  outline: none !important;
+  border: none !important;
+}
+
+/* Target the SVG elements directly */
+svg {
+  outline: none !important;
+}
+
+/* Target all path elements in the chart */
+.recharts-pie path {
+  stroke: none !important;
+  outline: none !important;
+}
+
+/* Override any Recharts default styles */
+.recharts-pie .recharts-pie-sector path {
+  stroke-width: 0 !important;
+  stroke: none !important;
+}

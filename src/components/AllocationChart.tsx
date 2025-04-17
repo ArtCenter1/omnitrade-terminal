@@ -1,4 +1,5 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import '../styles/allocation-chart.css';
 
 type AllocationChartProps = {
   data: Array<{
@@ -11,6 +12,8 @@ type AllocationChartProps = {
     amount?: string;
     symbol?: string;
     displayName?: string;
+    // Total portfolio value (only on the first item)
+    totalPortfolioValue?: string;
   }>;
   className?: string;
 };
@@ -134,10 +137,19 @@ export function AllocationChart({
         )
       : null;
 
+  // Log the top asset for debugging
+  console.log('Top asset in allocation chart:', topAsset);
+
+  // Add a style to remove any outlines or borders
+  const containerStyle = {
+    outline: 'none',
+    border: 'none',
+  };
+
   return (
-    <div className={className}>
+    <div className={className} style={containerStyle}>
       <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
+        <PieChart style={{ outline: 'none' }} onClick={undefined}>
           <Pie
             data={data}
             cx="50%"
@@ -146,9 +158,17 @@ export function AllocationChart({
             outerRadius={80}
             paddingAngle={2}
             dataKey="value"
+            stroke="none" // Remove the white border around segments
+            onClick={undefined} // Disable click behavior to prevent selection border
+            style={{ outline: 'none', stroke: 'none' }} // Additional styling to remove borders
+            isAnimationActive={false} // Disable animations which can cause flickering
           >
             {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.color} />
+              <Cell
+                key={`cell-${index}`}
+                fill={entry.color}
+                stroke="none" // Remove the white border for each cell
+              />
             ))}
           </Pie>
           <Tooltip
@@ -157,37 +177,41 @@ export function AllocationChart({
             isAnimationActive={false} // Disable animation for better performance
           />
 
-          {/* Center label showing top asset */}
-          {topAsset && (
-            <text
-              x="50%"
-              y="50%"
-              textAnchor="middle"
-              dominantBaseline="middle"
-              style={{
-                fontSize: '12px',
-                fontWeight: 'bold',
-                fill: topAsset.color,
-              }}
-            >
-              {topAsset.symbol || topAsset.name}
-            </text>
-          )}
+          {/* Center label showing total portfolio value */}
+          {data.length > 0 && data[0].totalPortfolioValue && (
+            <g>
+              {/* Total label */}
+              <text
+                x="50%"
+                y="45%"
+                textAnchor="middle"
+                dominantBaseline="middle"
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 'normal',
+                  fill: '#999',
+                  letterSpacing: '1px',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Total
+              </text>
 
-          {/* Percentage below */}
-          {topAsset && (
-            <text
-              x="50%"
-              y="58%"
-              textAnchor="middle"
-              dominantBaseline="middle"
-              style={{
-                fontSize: '11px',
-                fill: '#fff',
-              }}
-            >
-              {`${topAsset.value.toFixed(0)}%`}
-            </text>
+              {/* Total value */}
+              <text
+                x="50%"
+                y="60%"
+                textAnchor="middle"
+                dominantBaseline="middle"
+                style={{
+                  fontSize: '15px',
+                  fontWeight: 'bold',
+                  fill: '#fff',
+                }}
+              >
+                {`$${Number(data[0].totalPortfolioValue).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+              </text>
+            </g>
           )}
         </PieChart>
       </ResponsiveContainer>

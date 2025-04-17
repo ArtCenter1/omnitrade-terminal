@@ -10,6 +10,8 @@ import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import {
   generatePerformanceData,
   generateAllocationData,
+  generatePortfolioTableData,
+  PortfolioTableAsset,
 } from '@/utils/portfolioDataUtils';
 // Import the ExchangeAdapterExample component with React.lazy for code splitting
 const ExchangeAdapterExample = React.lazy(
@@ -89,16 +91,26 @@ const Dashboard: React.FC = () => {
   // Generate dynamic chart data based on the selected account
   const [performanceData, setPerformanceData] = useState(mockPerformanceData);
   const [allocationData, setAllocationData] = useState(mockAllocationData);
+  const [portfolioAssets, setPortfolioAssets] =
+    useState<PortfolioTableAsset[]>(mockAssets);
   const [isPositive, setIsPositive] = useState(true);
 
-  // Update chart data when selected account changes
+  // Update chart data when selected account or time range changes
   useEffect(() => {
     if (selectedAccount) {
-      console.log('Updating chart data for account:', selectedAccount.name);
+      console.log(
+        'Updating chart data for account:',
+        selectedAccount.name,
+        'with time range:',
+        activeRange,
+      );
 
       try {
-        // Generate new performance data based on the selected account
-        const newPerformanceData = generatePerformanceData(selectedAccount);
+        // Generate new performance data based on the selected account and time range
+        const newPerformanceData = generatePerformanceData(
+          selectedAccount,
+          activeRange,
+        );
 
         // Only update if we got valid data
         if (newPerformanceData && newPerformanceData.length > 0) {
@@ -123,6 +135,19 @@ const Dashboard: React.FC = () => {
           );
         }
 
+        // Generate new portfolio table data based on the selected account
+        const newPortfolioAssets = generatePortfolioTableData(selectedAccount);
+
+        // Only update if we got valid data
+        if (newPortfolioAssets && newPortfolioAssets.length > 0) {
+          setPortfolioAssets(newPortfolioAssets);
+        } else {
+          console.warn(
+            'Using default portfolio assets for account:',
+            selectedAccount.name,
+          );
+        }
+
         // Determine if the change is positive based on the account's change value
         const accountIsPositive = !selectedAccount.change.includes('-');
         setIsPositive(accountIsPositive);
@@ -130,7 +155,7 @@ const Dashboard: React.FC = () => {
         console.error('Error updating chart data:', error);
       }
     }
-  }, [selectedAccount]);
+  }, [selectedAccount, activeRange]);
 
   // Error boundary effect
   useEffect(() => {
@@ -325,7 +350,7 @@ const Dashboard: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {mockAssets.map((asset, idx) => (
+                    {portfolioAssets.map((asset, idx) => (
                       <AssetRow key={asset.symbol + idx} asset={asset} />
                     ))}
                   </tbody>
