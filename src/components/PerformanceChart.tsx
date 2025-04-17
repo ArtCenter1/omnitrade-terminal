@@ -17,7 +17,7 @@ type PerformanceChartProps = {
 export function PerformanceChart({
   data = [],
   isPositive,
-  className = 'performance-chart-container',
+  className = 'performance-chart-container h-full',
 }: PerformanceChartProps) {
   // Ensure we have valid data before rendering the chart
   if (!data || data.length === 0) {
@@ -29,7 +29,7 @@ export function PerformanceChart({
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
           data={data}
-          margin={{ top: 5, right: 0, left: 0, bottom: 5 }}
+          margin={{ top: 5, right: 0, left: 0, bottom: 0 }}
         >
           <defs>
             <linearGradient id="colorPerformance" x1="0" y1="0" x2="0" y2="1">
@@ -49,16 +49,21 @@ export function PerformanceChart({
             dataKey="date"
             axisLine={false}
             tickLine={false}
-            tick={{ fill: '#666', fontSize: 8 }}
+            tick={{ fill: '#666', fontSize: 10 }}
             tickFormatter={(value) => value.split('\n')[0]} // Show only MM-DD part
-            interval={Math.floor(data.length / 5)} // Show only 5 ticks
+            interval={Math.floor(data.length / 6)} // Show 6 ticks to match reference
           />
           <YAxis
             axisLine={false}
             tickLine={false}
             tick={{ fill: '#666', fontSize: 10 }}
             orientation="right"
-            domain={['dataMin - 1000', 'dataMax + 1000']} // Add some padding
+            // Use a simpler approach with a fixed minimum value
+            domain={[
+              (dataMin: number) => Math.floor(dataMin * 0.95),
+              (dataMax: number) => Math.ceil(dataMax * 1.05),
+            ]} // Set domain with 5% padding for more realistic view
+            tickCount={5} // Show 5 price levels on Y-axis to match reference
             tickFormatter={(value) =>
               `$${value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`
             } // Format as currency with commas

@@ -93,7 +93,7 @@ const Dashboard: React.FC = () => {
   const [allocationData, setAllocationData] = useState(mockAllocationData);
   const [portfolioAssets, setPortfolioAssets] =
     useState<PortfolioTableAsset[]>(mockAssets);
-  const [isPositive, setIsPositive] = useState(true);
+  const [isPositive, setIsPositive] = useState(false); // Default to negative to match reference
 
   // Update chart data when selected account or time range changes
   useEffect(() => {
@@ -218,10 +218,10 @@ const Dashboard: React.FC = () => {
         {/* Performance Chart and Allocation Chart */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div
-            className="lg:col-span-2 dashboard-card p-5"
-            style={{ background: tradingViewBg }}
+            className="lg:col-span-2 dashboard-card p-0 overflow-hidden"
+            style={{ background: tradingViewBg, aspectRatio: '2/1' }}
           >
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between p-4 pb-0">
               <h2 className="text-lg font-semibold text-theme-primary">
                 Performance
               </h2>
@@ -238,26 +238,28 @@ const Dashboard: React.FC = () => {
                 ))}
               </div>
             </div>
-            <ErrorBoundary
-              fallback={
-                <div className="h-64 flex items-center justify-center">
-                  <p className="text-gray-400">
-                    Unable to load performance chart
-                  </p>
-                </div>
-              }
-            >
-              <PerformanceChart
-                data={performanceData}
-                isPositive={isPositive}
-              />
-            </ErrorBoundary>
+            <div className="h-[calc(100%-60px)] w-full">
+              <ErrorBoundary
+                fallback={
+                  <div className="h-full flex items-center justify-center">
+                    <p className="text-gray-400">
+                      Unable to load performance chart
+                    </p>
+                  </div>
+                }
+              >
+                <PerformanceChart
+                  data={performanceData}
+                  isPositive={isPositive}
+                />
+              </ErrorBoundary>
+            </div>
           </div>
           <div
-            className="dashboard-card p-5 flex flex-col items-center justify-center"
-            style={{ background: tradingViewBg }}
+            className="dashboard-card p-0 flex flex-col items-center justify-center overflow-hidden"
+            style={{ background: tradingViewBg, aspectRatio: '1/1' }}
           >
-            <h2 className="text-lg font-semibold text-theme-primary mb-4 text-center w-full">
+            <h2 className="text-lg font-semibold text-theme-primary mb-2 mt-4 text-center w-full">
               Current Allocations
             </h2>
             <div className="flex items-center justify-center w-full h-full">

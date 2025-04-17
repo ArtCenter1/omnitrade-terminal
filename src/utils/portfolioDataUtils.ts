@@ -143,8 +143,8 @@ export function generatePerformanceData(
     const startValue = baseValue * 0.95; // Start 5% below current value
     const endValue = baseValue * (1 + dataPoints.trend); // End with the trend percentage
 
-    // Generate many more data points to match the reference image
-    const numPoints = 300; // Use a very high number of points for detailed chart
+    // Use a constant sample rate for consistent appearance
+    const numPoints = 100; // High resolution for all time ranges
     const priceData = [];
 
     // Use random walk algorithm with higher volatility for jagged appearance
@@ -154,9 +154,29 @@ export function generatePerformanceData(
     const rawPricePoints = [];
 
     for (let i = 0; i < numPoints; i++) {
-      // Random walk with increased volatility for jagged appearance
-      const volatilityFactor = dataPoints.volatility * baseValue * 2.5; // Increase volatility by 150%
-      const randomWalk = (Math.random() - 0.5) * volatilityFactor * 4; // More extreme moves
+      // Random walk with volatility adjusted for time range
+      let volatilityMultiplier;
+      switch (timeRange) {
+        case 'Day':
+          volatilityMultiplier = 2.5; // Lower volatility for day view (more realistic intraday movements)
+          break;
+        case 'Week':
+          volatilityMultiplier = 3.0; // Medium volatility for week view
+          break;
+        case 'Month':
+          volatilityMultiplier = 3.5; // Higher volatility for month view
+          break;
+        case 'Year':
+        case '5 Years':
+          volatilityMultiplier = 4.0; // Highest volatility for year and 5-year views
+          break;
+        default:
+          volatilityMultiplier = 3.0;
+      }
+
+      const volatilityFactor =
+        dataPoints.volatility * baseValue * volatilityMultiplier;
+      const randomWalk = (Math.random() - 0.5) * volatilityFactor * 4.0; // Consistent multiplier
 
       // Add trend bias
       const trendBias = (dataPoints.trend / numPoints) * baseValue;
@@ -164,11 +184,40 @@ export function generatePerformanceData(
       // Update current value with random walk and trend
       currentValue += randomWalk + trendBias;
 
-      // Add frequent larger moves (spikes and dips) to simulate market events
-      if (Math.random() < 0.15) {
-        // 15% chance of a larger move for more natural jaggedness
+      // Add larger moves (spikes and dips) with frequency based on time range
+      let spikeChance;
+      let spikeMultiplier;
+
+      switch (timeRange) {
+        case 'Day':
+          spikeChance = 0.08; // Fewer spikes for day view (8%)
+          spikeMultiplier = 3.0; // Smaller spikes for day view
+          break;
+        case 'Week':
+          spikeChance = 0.12; // Medium spike frequency for week view (12%)
+          spikeMultiplier = 4.0; // Medium spike magnitude
+          break;
+        case 'Month':
+          spikeChance = 0.15; // Higher spike frequency for month view (15%)
+          spikeMultiplier = 5.0; // Larger spikes
+          break;
+        case 'Year':
+          spikeChance = 0.18; // Even higher spike frequency for year view (18%)
+          spikeMultiplier = 6.0; // Even larger spikes
+          break;
+        case '5 Years':
+          spikeChance = 0.2; // Highest spike frequency for 5-year view (20%)
+          spikeMultiplier = 7.0; // Largest spikes
+          break;
+        default:
+          spikeChance = 0.15;
+          spikeMultiplier = 5.0;
+      }
+
+      if (Math.random() < spikeChance) {
         const spikeDirection = Math.random() > 0.5 ? 1 : -1;
-        const spikeMagnitude = volatilityFactor * 5 * Math.random(); // Up to 5x normal volatility
+        const spikeMagnitude =
+          volatilityFactor * spikeMultiplier * Math.random();
         currentValue += spikeDirection * spikeMagnitude;
       }
 
@@ -180,27 +229,30 @@ export function generatePerformanceData(
 
     // Generate date labels for each data point to match reference image format
     const today = new Date();
-    const startDate = new Date(today);
+    // End date is yesterday to avoid including current day (which might cause abrupt drop)
+    const endDate = new Date(today);
+    endDate.setDate(today.getDate() - 1);
+    const startDate = new Date(endDate);
 
     // Set start date based on time range
     switch (timeRange) {
       case 'Day':
-        startDate.setDate(today.getDate() - 1);
+        startDate.setDate(endDate.getDate() - 1);
         break;
       case 'Week':
-        startDate.setDate(today.getDate() - 7);
+        startDate.setDate(endDate.getDate() - 7);
         break;
       case 'Month':
-        startDate.setMonth(today.getMonth() - 1);
+        startDate.setMonth(endDate.getMonth() - 1);
         break;
       case 'Year':
-        startDate.setFullYear(today.getFullYear() - 1);
+        startDate.setFullYear(endDate.getFullYear() - 1);
         break;
       case '5 Years':
-        startDate.setFullYear(today.getFullYear() - 5);
+        startDate.setFullYear(endDate.getFullYear() - 5);
         break;
       default:
-        startDate.setDate(today.getDate() - 7); // Default to week
+        startDate.setDate(endDate.getDate() - 7); // Default to week
     }
 
     // Map all raw price points to the chart with proper dates
@@ -208,7 +260,7 @@ export function generatePerformanceData(
       // Calculate date for this point
       const pointDate = new Date(startDate);
       const timeIncrement =
-        (today.getTime() - startDate.getTime()) / (rawPricePoints.length - 1);
+        (endDate.getTime() - startDate.getTime()) / (rawPricePoints.length - 1);
       pointDate.setTime(startDate.getTime() + timeIncrement * i);
 
       // Format date as MM-DD YYYY to match reference image
@@ -223,8 +275,31 @@ export function generatePerformanceData(
       });
     }
 
-    // Ensure the last point is close to our target end value
+    // Ensure the values are in a reasonable range and the last point is close to our target end value
     if (priceData.length > 0) {
+      // Find min and max values
+      const values = priceData.map((point) => point.value);
+      const minValue = Math.min(...values);
+      const maxValue = Math.max(...values);
+
+      // If the range is too small, scale it up
+      if (maxValue - minValue < baseValue * 0.05) {
+        // Scale up to at least 5% range
+        const targetRange = baseValue * 0.05;
+        const currentRange = maxValue - minValue;
+        const scaleFactor = targetRange / currentRange;
+
+        // Apply scaling to all points
+        for (let i = 0; i < priceData.length; i++) {
+          const normalizedValue =
+            (priceData[i].value - minValue) / currentRange;
+          priceData[i].value = Math.round(
+            minValue + normalizedValue * targetRange,
+          );
+        }
+      }
+
+      // Set the last point to the target end value
       priceData[priceData.length - 1].value = Math.round(endValue);
     }
 
@@ -261,23 +336,23 @@ export function generateAllocationData(
     return [];
   }
 
-  // Define colors for common assets
+  // Define colors for common assets to match reference image
   const assetColors: Record<string, string> = {
-    BTC: '#f7931a',
-    ETH: '#627eea',
-    SOL: '#00ffb9',
-    AVAX: '#e84142',
-    LINK: '#2a5ada',
-    DOT: '#e6007a',
-    ADA: '#0033ad',
-    MATIC: '#8247e5',
-    USDT: '#26a17b',
-    USDC: '#2775ca',
-    XMR: '#ff6600', // Monero orange
-    DASH: '#008ce7', // Dash blue
-    ZEC: '#ecb244', // Zcash yellow
-    XTZ: '#2c7df7', // Tezos blue
-    EOS: '#000000', // EOS black
+    BTC: '#ff9900', // Orange for Bitcoin
+    ETH: '#627eea', // Blue for Ethereum
+    SOL: '#00ffb9', // Teal for Solana
+    AVAX: '#e84142', // Red for Avalanche
+    LINK: '#2a5ada', // Blue for Chainlink
+    DOT: '#e6007a', // Pink for Polkadot
+    ADA: '#0033ad', // Blue for Cardano
+    MATIC: '#8247e5', // Purple for Polygon
+    USDT: '#26a17b', // Green for Tether
+    USDC: '#2775ca', // Blue for USD Coin
+    XMR: '#ff6600', // Orange for Monero
+    DASH: '#008ce7', // Blue for Dash
+    ZEC: '#ecb244', // Yellow for Zcash
+    XTZ: '#2c7df7', // Blue for Tezos
+    EOS: '#000000', // Black for EOS
   };
 
   try {

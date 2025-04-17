@@ -154,9 +154,9 @@ export function AllocationChart({
             data={data}
             cx="50%"
             cy="50%"
-            innerRadius={60}
-            outerRadius={80}
-            paddingAngle={2}
+            innerRadius={65}
+            outerRadius={90}
+            paddingAngle={1}
             dataKey="value"
             stroke="none" // Remove the white border around segments
             onClick={undefined} // Disable click behavior to prevent selection border
@@ -187,7 +187,7 @@ export function AllocationChart({
                 textAnchor="middle"
                 dominantBaseline="middle"
                 style={{
-                  fontSize: '11px',
+                  fontSize: '12px',
                   fontWeight: 'normal',
                   fill: '#999',
                   letterSpacing: '1px',
@@ -204,7 +204,7 @@ export function AllocationChart({
                 textAnchor="middle"
                 dominantBaseline="middle"
                 style={{
-                  fontSize: '15px',
+                  fontSize: '18px',
                   fontWeight: 'bold',
                   fill: '#fff',
                 }}

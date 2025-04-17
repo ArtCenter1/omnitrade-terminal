@@ -1,4 +1,4 @@
-import { AreaChart, Area, ResponsiveContainer } from "recharts";
+import { LineChart, Line, Area, ResponsiveContainer } from 'recharts';
 
 type AssetChartProps = {
   data: Array<{ value: number }>;
@@ -9,7 +9,7 @@ type AssetChartProps = {
 export function AssetChart({
   data = [],
   isPositive,
-  className = "chart-container",
+  className = 'chart-container',
 }: AssetChartProps) {
   // Ensure we have valid data before rendering the chart
   if (!data || data.length === 0) {
@@ -19,7 +19,7 @@ export function AssetChart({
   return (
     <div className={className}>
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart
+        <LineChart
           data={data}
           margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
         >
@@ -33,14 +33,24 @@ export function AssetChart({
               <stop offset="95%" stopColor="#ea384d" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <Area
-            type="monotone"
+          <Line
+            type="natural"
             dataKey="value"
-            stroke={isPositive ? "#05c48a" : "#ea384d"}
-            fillOpacity={1}
-            fill={isPositive ? "url(#colorPositive)" : "url(#colorNegative)"}
+            stroke={isPositive ? '#05c48a' : '#ea384d'}
+            strokeWidth={1.2}
+            dot={false}
+            activeDot={false}
+            connectNulls={false}
+            isAnimationActive={false}
           />
-        </AreaChart>
+          <Area
+            type="natural"
+            dataKey="value"
+            stroke="none"
+            fillOpacity={0.15}
+            fill={isPositive ? 'url(#colorPositive)' : 'url(#colorNegative)'}
+          />
+        </LineChart>
       </ResponsiveContainer>
     </div>
   );
