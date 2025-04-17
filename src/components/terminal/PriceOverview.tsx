@@ -30,7 +30,11 @@ export function PriceOverview({ selectedPair }: PriceOverviewProps = {}) {
         <div>
           <div className="text-sm text-gray-400">{pair.symbol}</div>
           <div className="flex items-baseline space-x-4">
-            <div className="text-xl font-bold text-white">${pair.price}</div>
+            <div
+              className={`text-xl font-bold ${isPositiveChange ? 'text-crypto-green' : 'text-crypto-red'}`}
+            >
+              ${pair.price}
+            </div>
             <div
               className={`text-sm ${isPositiveChange ? 'text-crypto-green' : 'text-crypto-red'}`}
             >

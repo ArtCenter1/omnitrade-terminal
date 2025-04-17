@@ -167,6 +167,16 @@ export function TradingPairSelector({
     );
   };
 
+  // Format price with color based on change direction
+  const formatPrice = (price: string, change: string) => {
+    const isPositive = !change.includes('-');
+    return (
+      <span className={isPositive ? 'text-crypto-green' : 'text-crypto-red'}>
+        {price}
+      </span>
+    );
+  };
+
   return (
     <div className="relative">
       <ErrorBoundary>
@@ -285,8 +295,8 @@ export function TradingPairSelector({
                               <span className="text-white">{pair.symbol}</span>
                             </div>
                           </td>
-                          <td className="py-2 px-4 text-right text-white">
-                            {pair.price}
+                          <td className="py-2 px-4 text-right">
+                            {formatPrice(pair.price, pair.change24h)}
                           </td>
                           <td className="py-2 px-4 text-right">
                             {formatPriceChange(pair.change24h)}

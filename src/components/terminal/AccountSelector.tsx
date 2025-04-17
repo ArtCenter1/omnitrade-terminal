@@ -80,22 +80,17 @@ export function AccountSelector() {
               className="w-full bg-gray-900 border-gray-800 hover:bg-gray-800 justify-between"
             >
               <div className="flex items-center">
-                <div className="w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center mr-2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-black"
-                  >
-                    <path d="M5 17H4a2 2 0 01-2-2V5a2 2 0 012-2h16a2 2 0 012 2v10a2 2 0 01-2 2h-1" />
-                    <polygon points="12 15 17 21 7 21 12 15" />
-                  </svg>
+                <div className="w-5 h-5 rounded-full overflow-hidden mr-2">
+                  <img
+                    src={selectedAccount.logo}
+                    alt={selectedAccount.exchange}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // Fallback to placeholder if image fails to load
+                      e.currentTarget.src = '/placeholder.svg';
+                      e.currentTarget.onerror = null; // Prevent infinite loop
+                    }}
+                  />
                 </div>
                 <span className="text-white">{selectedAccount.name}</span>
               </div>
@@ -118,22 +113,17 @@ export function AccountSelector() {
                   className="py-2 cursor-pointer hover:bg-gray-800"
                 >
                   <div className="flex items-center w-full">
-                    <div className="w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center mr-2">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="10"
-                        height="10"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="text-black"
-                      >
-                        <path d="M5 17H4a2 2 0 01-2-2V5a2 2 0 012-2h16a2 2 0 012 2v10a2 2 0 01-2 2h-1" />
-                        <polygon points="12 15 17 21 7 21 12 15" />
-                      </svg>
+                    <div className="w-5 h-5 rounded-full overflow-hidden mr-2">
+                      <img
+                        src={account.logo}
+                        alt={account.exchange}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // Fallback to placeholder if image fails to load
+                          e.currentTarget.src = '/placeholder.svg';
+                          e.currentTarget.onerror = null; // Prevent infinite loop
+                        }}
+                      />
                     </div>
                     <span className="text-white text-sm">{account.name}</span>
                   </div>
