@@ -54,6 +54,11 @@ svg {
   outline: none !important;
 }
 
+/* Ensure the allocation pie is properly positioned */
+.allocation-pie {
+  transform: translateY(0) !important;
+}
+
 /* Override any Recharts default styles */
 .recharts-pie .recharts-pie-sector path {
   stroke-width: 0 !important;

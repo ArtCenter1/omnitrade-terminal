@@ -165,6 +165,7 @@ export function AllocationChart({
             onClick={undefined} // Disable click behavior to prevent selection border
             style={{ outline: 'none', stroke: 'none' }} // Additional styling to remove borders
             isAnimationActive={false} // Disable animations which can cause flickering
+            className="allocation-pie"
           >
             {data.map((entry, index) => (
               <Cell

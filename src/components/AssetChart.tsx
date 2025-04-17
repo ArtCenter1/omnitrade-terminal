@@ -1,4 +1,5 @@
 import { LineChart, Line, Area, ResponsiveContainer } from 'recharts';
+import '../styles/asset-chart.css';
 
 type AssetChartProps = {
   data: Array<{ value: number }>;
@@ -17,7 +18,10 @@ export function AssetChart({
   }
 
   return (
-    <div className={className}>
+    <div
+      className={className}
+      style={{ width: '100px', height: '40px', position: 'relative' }}
+    >
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
           data={data}

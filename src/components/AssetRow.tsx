@@ -1,6 +1,6 @@
-import { Button } from "@/components/ui/button";
-import { AssetChart } from "./AssetChart";
-import { generateChartData } from "@/lib/utils";
+import { Button } from '@/components/ui/button';
+import { AssetChart } from './AssetChart';
+import { generateChartData } from '@/lib/utils';
 
 type AssetRowProps = {
   asset: {
@@ -15,7 +15,7 @@ type AssetRowProps = {
 };
 
 export function AssetRow({ asset }: AssetRowProps) {
-  const isPositive = !asset.change.includes("-");
+  const isPositive = !asset.change.includes('-');
   const chartData = generateChartData(isPositive);
 
   return (
@@ -23,7 +23,7 @@ export function AssetRow({ asset }: AssetRowProps) {
       <td className="py-4 px-4 flex items-center space-x-2">
         <div className="w-6 h-6 rounded-full overflow-hidden">
           <img
-            src={asset.icon || "/placeholder.svg"}
+            src={asset.icon || '/placeholder.svg'}
             alt={asset.name}
             className="w-full h-full object-cover"
           />
@@ -38,13 +38,15 @@ export function AssetRow({ asset }: AssetRowProps) {
       <td className="py-4 px-4 text-gray-300">{asset.price}</td>
       <td className="py-4 px-4">
         <span
-          className={`text-sm ${isPositive ? "text-crypto-green" : "text-crypto-red"}`}
+          className={`text-sm ${isPositive ? 'text-crypto-green' : 'text-crypto-red'}`}
         >
           {asset.change}
         </span>
       </td>
-      <td className="py-4 px-4">
-        <AssetChart data={chartData} isPositive={isPositive} />
+      <td className="py-4 px-4" style={{ minWidth: '120px', height: '50px' }}>
+        <div style={{ width: '100px', height: '40px', position: 'relative' }}>
+          <AssetChart data={chartData} isPositive={isPositive} />
+        </div>
       </td>
       <td className="py-4 px-4">
         <Button
