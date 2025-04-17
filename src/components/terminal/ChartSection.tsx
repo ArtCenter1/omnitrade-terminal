@@ -32,11 +32,13 @@ declare global {
 interface ChartSectionProps {
   selectedPair?: TradingPair;
   onPairSelect?: (pair: TradingPair) => void;
+  className?: string;
 }
 
 export function ChartSection({
   selectedPair,
   onPairSelect,
+  className,
 }: ChartSectionProps = {}) {
   const container = useRef<HTMLDivElement>(null);
   const [currentTimeframe, setCurrentTimeframe] = useState<string>('D'); // Default to Daily
@@ -146,7 +148,7 @@ export function ChartSection({
   };
 
   return (
-    <div className="col-span-9 border-r border-gray-800 flex flex-col h-full">
+    <div className={`${className || ''} flex flex-col h-full w-full`}>
       <div className="flex items-center justify-between px-4 py-2 border-b border-gray-800">
         <TradingPairSelector onPairSelect={handlePairSelect} />
         <PriceOverview selectedPair={currentPair} />

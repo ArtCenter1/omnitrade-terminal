@@ -20,7 +20,7 @@ import { TradingSidebar } from '@/components/terminal/TradingSidebar';
 import { ChartHeader } from '@/components/terminal/ChartHeader';
 import { ChartSection } from '@/components/terminal/ChartSection';
 import { OrderBook } from '@/components/terminal/OrderBook';
-import { AssetsTable } from '@/components/terminal/AssetsTable';
+import { TerminalTabs } from '@/components/terminal/TerminalTabs';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { Suspense, useState } from 'react';
 import { TradingPair } from '@/components/terminal/TradingPairSelector';
@@ -61,48 +61,57 @@ export default function Terminal() {
           </div>
         }
       >
-        <div className="grid grid-cols-12 gap-0">
-          <ErrorBoundary>
-            <TradingSidebar selectedPair={selectedPair} />
-          </ErrorBoundary>
+        <div className="flex flex-col h-screen">
+          {/* Top Section - Larger */}
+          <div className="flex h-[65%]">
+            {/* Trading Sidebar */}
+            <ErrorBoundary>
+              <TradingSidebar selectedPair={selectedPair} />
+            </ErrorBoundary>
 
-          <div className="col-span-9">
-            <div className="grid grid-cols-12 gap-0">
-              <ErrorBoundary
+            {/* Chart Section */}
+            <ErrorBoundary
+              fallback={
+                <div className="flex-grow border-r border-gray-800 flex flex-col items-center justify-center p-8">
+                  <AlertTriangle className="w-10 h-10 text-yellow-500 mb-4" />
+                  <h3 className="text-lg font-medium mb-2 text-white">
+                    Chart unavailable
+                  </h3>
+                  <p className="text-gray-400 text-sm text-center">
+                    There was an error loading the chart. Please try again
+                    later.
+                  </p>
+                </div>
+              }
+            >
+              <Suspense
                 fallback={
-                  <div className="col-span-9 border-r border-gray-800 flex flex-col items-center justify-center p-8">
-                    <AlertTriangle className="w-10 h-10 text-yellow-500 mb-4" />
-                    <h3 className="text-lg font-medium mb-2 text-white">
-                      Chart unavailable
-                    </h3>
-                    <p className="text-gray-400 text-sm text-center">
-                      There was an error loading the chart. Please try again
-                      later.
-                    </p>
-                  </div>
+                  <div className="flex-grow h-full bg-gray-900 animate-pulse"></div>
                 }
               >
-                <Suspense
-                  fallback={
-                    <div className="col-span-9 h-96 bg-gray-900 animate-pulse"></div>
-                  }
-                >
+                <div className="flex-grow border-r border-gray-800">
                   <ChartSection
                     selectedPair={selectedPair}
                     onPairSelect={handlePairSelect}
                   />
-                </Suspense>
-              </ErrorBoundary>
+                </div>
+              </Suspense>
+            </ErrorBoundary>
 
-              <ErrorBoundary>
-                <OrderBook selectedPair={selectedPair} />
-              </ErrorBoundary>
-            </div>
-
+            {/* Order Book */}
             <ErrorBoundary>
-              <AssetsTable selectedPair={selectedPair} />
+              <div className="w-[350px]">
+                <OrderBook selectedPair={selectedPair} />
+              </div>
             </ErrorBoundary>
           </div>
+
+          {/* Bottom Section - Smaller */}
+          <ErrorBoundary>
+            <div className="h-[35%] border-t border-gray-800">
+              <TerminalTabs selectedPair={selectedPair} />
+            </div>
+          </ErrorBoundary>
         </div>
       </ErrorBoundary>
     </div>

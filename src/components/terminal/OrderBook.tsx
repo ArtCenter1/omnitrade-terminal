@@ -5,10 +5,13 @@ import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 
 interface OrderBookProps {
   selectedPair?: TradingPair;
+  className?: string;
 }
 
-export function OrderBook({ selectedPair }: OrderBookProps = {}) {
+export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
+  // Get selected account for exchange-specific data
   const { selectedAccount } = useSelectedAccount();
+  const exchangeName = selectedAccount?.exchange || 'Binance';
 
   // Use the selected pair or default to BTC/USDT
   const symbol = selectedPair?.symbol || 'BTC/USDT';
@@ -46,7 +49,7 @@ export function OrderBook({ selectedPair }: OrderBookProps = {}) {
   // Show loading state
   if (isLoading) {
     return (
-      <div className="col-span-3">
+      <div className={`${className || ''} w-full h-full`}>
         <div className="p-3 border-b border-gray-800">
           <h3 className="text-white font-medium">Order Book</h3>
         </div>
@@ -60,7 +63,7 @@ export function OrderBook({ selectedPair }: OrderBookProps = {}) {
   // Show error state
   if (isError || !orderbook) {
     return (
-      <div className="col-span-3">
+      <div className={`${className || ''} w-full h-full`}>
         <div className="p-3 border-b border-gray-800">
           <h3 className="text-white font-medium">Order Book</h3>
         </div>
@@ -82,9 +85,12 @@ export function OrderBook({ selectedPair }: OrderBookProps = {}) {
       : 0;
 
   return (
-    <div className="col-span-3">
+    <div className={`${className || ''} w-full h-full`}>
       <div className="p-3 border-b border-gray-800">
-        <h3 className="text-white font-medium">Order Book</h3>
+        <h3 className="text-white font-medium">
+          Order Book{' '}
+          <span className="text-xs text-gray-400">({exchangeName})</span>
+        </h3>
       </div>
 
       <div className="px-3 py-2 flex justify-between text-xs text-gray-400">

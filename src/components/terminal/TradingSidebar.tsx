@@ -12,7 +12,15 @@ interface TradingSidebarProps {
 
 export function TradingSidebar({ selectedPair }: TradingSidebarProps = {}) {
   return (
-    <div className="col-span-3 border-r border-gray-800 p-4">
+    <div
+      className="border-r border-gray-800 p-2"
+      style={{
+        width: '220px',
+        minWidth: '220px',
+        height: '100%',
+        overflowY: 'auto',
+      }}
+    >
       <ExchangeSelector />
       <AccountSelector />
       <AvailableBalances selectedPair={selectedPair} />
