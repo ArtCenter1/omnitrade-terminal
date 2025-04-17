@@ -87,7 +87,7 @@ export function generateMockExchangeAccounts(
 export const DEFAULT_MOCK_ACCOUNTS: ExchangeAccount[] = [
   {
     id: 'mock-key-1',
-    name: 'kraken', // Match the exact label from the account list
+    name: 'Kraken Main', // Match the exact label from the account list
     exchange: 'Kraken',
     exchangeId: 'kraken',
     value: '$23,579.83',
@@ -97,7 +97,7 @@ export const DEFAULT_MOCK_ACCOUNTS: ExchangeAccount[] = [
   },
   {
     id: 'mock-key-2',
-    name: 'binance artcenter1', // Match the exact label from the account list
+    name: 'Binance Artcenter1', // Match the exact label from the account list
     exchange: 'Binance',
     exchangeId: 'binance',
     value: '$8,784.14',
@@ -107,7 +107,76 @@ export const DEFAULT_MOCK_ACCOUNTS: ExchangeAccount[] = [
   },
   {
     id: 'mock-key-3',
-    name: 'Coinbase 123', // Match the exact label from the account list
+    name: 'Coinbase Pro', // Match the exact label from the account list
+    exchange: 'Coinbase',
+    exchangeId: 'coinbase',
+    value: '$12,345.67',
+    change: '+2.15%',
+    logo: '/exchanges/coinbase.svg',
+    apiKeyId: 'mock-key-3',
+  },
+];
+
+// Additional accounts for the same exchanges to demonstrate account switching
+export const exchangeAccounts: ExchangeAccount[] = [
+  ...DEFAULT_MOCK_ACCOUNTS,
+  {
+    id: 'mock-key-4',
+    name: 'Kraken Trading', // Second Kraken account
+    exchange: 'Kraken',
+    exchangeId: 'kraken',
+    value: '$5,432.10',
+    change: '+1.23%',
+    logo: '/exchanges/kraken.svg',
+    apiKeyId: 'mock-key-4',
+  },
+  {
+    id: 'mock-key-5',
+    name: 'Binance Spot', // Second Binance account
+    exchange: 'Binance',
+    exchangeId: 'binance',
+    value: '$3,456.78',
+    change: '-0.45%',
+    logo: '/exchanges/binance.svg',
+    apiKeyId: 'mock-key-5',
+  },
+  {
+    id: 'mock-key-6',
+    name: 'Coinbase Personal', // Second Coinbase account
+    exchange: 'Coinbase',
+    exchangeId: 'coinbase',
+    value: '$7,890.12',
+    change: '+3.21%',
+    logo: '/exchanges/coinbase.svg',
+    apiKeyId: 'mock-key-6',
+  },
+];
+
+// For backward compatibility
+const _DEFAULT_MOCK_ACCOUNTS: ExchangeAccount[] = [
+  {
+    id: 'mock-key-1',
+    name: 'Kraken Main',
+    exchange: 'Kraken',
+    exchangeId: 'kraken',
+    value: '$23,579.83',
+    change: '-3.06%',
+    logo: '/exchanges/kraken.svg',
+    apiKeyId: 'mock-key-1',
+  },
+  {
+    id: 'mock-key-2',
+    name: 'Binance Artcenter1',
+    exchange: 'Binance',
+    exchangeId: 'binance',
+    value: '$8,784.14',
+    change: '+1.94%',
+    logo: '/exchanges/binance.svg',
+    apiKeyId: 'mock-key-2',
+  },
+  {
+    id: 'mock-key-3',
+    name: 'Coinbase Pro',
     exchange: 'Coinbase',
     exchangeId: 'coinbase',
     value: '$12,345.67',

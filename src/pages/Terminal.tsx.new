@@ -62,18 +62,18 @@ export default function Terminal() {
         }
       >
         {/* Main Layout */}
-        <div className="flex flex-col h-screen">
-          {/* Top Section */}
-          <div className="flex h-[65%]">
-            {/* Left Trading Sidebar - Fixed Width */}
-            <ErrorBoundary>
-              <div className="w-[250px] border-r border-gray-800">
-                <TradingSidebar selectedPair={selectedPair} />
-              </div>
-            </ErrorBoundary>
+        <div className="flex h-screen">
+          {/* Left Trading Sidebar - Fixed Width */}
+          <ErrorBoundary>
+            <div className="w-[180px] border-r border-gray-800">
+              <TradingSidebar selectedPair={selectedPair} />
+            </div>
+          </ErrorBoundary>
 
+          {/* Center and Bottom Sections */}
+          <div className="flex flex-col flex-1">
             {/* Chart Section */}
-            <div className="flex-1">
+            <div className="h-[65%]">
               <ErrorBoundary
                 fallback={
                   <div className="h-full flex items-center justify-center">
@@ -97,23 +97,20 @@ export default function Terminal() {
               </ErrorBoundary>
             </div>
 
-            {/* Right Order Book - Fixed Width */}
-            <ErrorBoundary>
-              <div className="w-[300px] border-l border-gray-800 h-screen">
-                <OrderBook selectedPair={selectedPair} />
-              </div>
-            </ErrorBoundary>
+            {/* Assets Section */}
+            <div className="h-[35%] border-t border-gray-800">
+              <ErrorBoundary>
+                <TerminalTabs selectedPair={selectedPair} />
+              </ErrorBoundary>
+            </div>
           </div>
 
-          {/* Bottom Section - Assets (Width limited to not overlap with order book) */}
-          <div
-            className="h-[35%] border-t border-gray-800"
-            style={{ width: 'calc(100% - 300px)' }}
-          >
-            <ErrorBoundary>
-              <TerminalTabs selectedPair={selectedPair} />
-            </ErrorBoundary>
-          </div>
+          {/* Right Order Book - Fixed Width */}
+          <ErrorBoundary>
+            <div className="w-[300px] border-l border-gray-800">
+              <OrderBook selectedPair={selectedPair} />
+            </div>
+          </ErrorBoundary>
         </div>
       </ErrorBoundary>
     </div>

@@ -1,9 +1,26 @@
-import React from "react";
-import { Info } from "lucide-react";
-import { AssetRow } from "@/components/AssetRow";
-import { mockAssets } from "@/lib/utils";
+import React, { useMemo } from 'react';
+import { Info } from 'lucide-react';
+import { AssetRow } from '@/components/AssetRow';
+import { TradingPair } from './TradingPairSelector';
+import { useSelectedAccount } from '@/hooks/useSelectedAccount';
+import { getAssetsForTradingPair } from '@/services/exchangeAssetsService';
 
-export function AssetsTable() {
+interface AssetsTableProps {
+  selectedPair?: TradingPair;
+}
+
+export function AssetsTable({ selectedPair }: AssetsTableProps = {}) {
+  const { selectedAccount } = useSelectedAccount();
+
+  // Get exchange-specific assets and prioritize the base and quote assets from the selected pair
+  const exchangeAssets = useMemo(() => {
+    const exchangeId = selectedAccount?.exchangeId || 'binance';
+    const baseAsset = selectedPair?.baseAsset || 'BTC';
+    const quoteAsset = selectedPair?.quoteAsset || 'USDT';
+
+    // Get assets specific to the selected exchange and trading pair
+    return getAssetsForTradingPair(exchangeId, baseAsset, quoteAsset);
+  }, [selectedPair, selectedAccount]);
   return (
     <div className="p-4 border-t border-theme-primary theme-transition">
       <h3 className="text-theme-primary font-medium mb-4">Assets</h3>
@@ -45,7 +62,7 @@ export function AssetsTable() {
             </tr>
           </thead>
           <tbody>
-            {mockAssets.slice(0, 5).map((asset, index) => (
+            {exchangeAssets.map((asset, index) => (
               <AssetRow key={index} asset={asset} />
             ))}
           </tbody>

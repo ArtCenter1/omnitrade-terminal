@@ -15,6 +15,7 @@ export type PortfolioTableAsset = {
   value: string;
   price: string;
   change: string;
+  chart?: Array<{ value: number }>;
 };
 
 // Generate performance chart data based on the selected account and time range
@@ -457,6 +458,46 @@ export function generateAllocationData(
 // Import the CoinGecko service
 import { getCoinsBySymbols, getTopCoins } from '@/services/coinGeckoService';
 
+// Generate chart data for an asset
+function generateAssetChartData(isPositive: boolean): Array<{ value: number }> {
+  const trend = isPositive ? 1 : -1;
+  const volatility = 1.2; // Increased volatility
+  const startValue = 10;
+  const numPoints = 50; // More data points for jagged appearance
+
+  // Use random walk algorithm with higher volatility for jagged appearance
+  let currentValue = startValue;
+  const data = [];
+
+  for (let i = 0; i < numPoints; i++) {
+    // Random walk with increased volatility
+    const volatilityFactor = volatility * (Math.random() * 0.5 + 0.75); // Variable volatility
+    const randomWalk = (Math.random() - 0.5) * volatilityFactor * 2;
+
+    // Add trend bias
+    const trendBias = (trend / numPoints) * 5;
+
+    // Update current value with random walk and trend
+    currentValue += randomWalk + trendBias;
+
+    // Add occasional larger moves (spikes and dips)
+    if (Math.random() < 0.15) {
+      const spikeDirection = Math.random() > 0.5 ? 1 : -1;
+      const spikeMagnitude = volatilityFactor * 3 * Math.random();
+      currentValue += spikeDirection * spikeMagnitude;
+    }
+
+    // Ensure we don't go too low
+    currentValue = Math.max(currentValue, startValue * 0.5);
+
+    data.push({
+      value: currentValue,
+    });
+  }
+
+  return data;
+}
+
 // Generate portfolio table data based on the selected account
 export async function generatePortfolioTableData(
   selectedAccount: ExchangeAccount | null,
@@ -542,6 +583,10 @@ export async function generatePortfolioTableData(
       // Get the price from the asset data or calculate it
       const price = asset.price || asset.usdValue / asset.total || 0;
 
+      // Generate chart data for this asset
+      const isPositive = parseFloat(changeValue) >= 0;
+      const chartData = generateAssetChartData(isPositive);
+
       // Format the asset data for the table
       return {
         icon: iconUrl || '/placeholder.svg', // Use CoinGecko icon or fallback
@@ -551,6 +596,7 @@ export async function generatePortfolioTableData(
         value: `$${asset.usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
         price: `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
         change: `${changePrefix}${changeValue}%`,
+        chart: chartData,
       };
     });
 

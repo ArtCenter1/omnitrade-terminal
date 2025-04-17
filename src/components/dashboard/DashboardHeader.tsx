@@ -53,7 +53,10 @@ export function DashboardHeader() {
     // Using flex layout for responsiveness, items centered vertically
     // Added gap for spacing between elements
     <ErrorBoundary>
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
+      <div
+        className="flex flex-col md:flex-row justify-between items-center gap-4 mb-2
+      "
+      >
         {/* Left: Account Selector - Allow shrinking but not growing beyond content size */}
         <div className="flex-shrink-0 w-full md:w-auto">
           <ExchangeAccountSelector />

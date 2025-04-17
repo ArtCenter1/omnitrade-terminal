@@ -15,8 +15,49 @@ const randomQuantity = (max: number = 2): string => {
 // Generate mock orderbook data
 export function generateMockOrderbook(
   symbol: string,
-  basePrice: number = 83000,
+  basePrice?: number,
 ): Orderbook {
+  // Extract base and quote assets from symbol
+  const [baseAsset, quoteAsset] = symbol.split('/');
+
+  // Set a default base price based on the trading pair
+  if (!basePrice) {
+    switch (baseAsset) {
+      case 'BTC':
+        basePrice = 84000 + Math.random() * 1000;
+        break;
+      case 'ETH':
+        basePrice = 1590 + Math.random() * 20;
+        break;
+      case 'SOL':
+        basePrice = 130 + Math.random() * 5;
+        break;
+      case 'AVAX':
+        basePrice = 25 + Math.random() * 2;
+        break;
+      case 'MATIC':
+        basePrice = 0.54 + Math.random() * 0.02;
+        break;
+      case 'DOT':
+        basePrice = 5.8 + Math.random() * 0.2;
+        break;
+      case 'ADA':
+        basePrice = 0.38 + Math.random() * 0.02;
+        break;
+      case 'LINK':
+        basePrice = 15 + Math.random() * 0.5;
+        break;
+      case 'XRP':
+        basePrice = 2.05 + Math.random() * 0.1;
+        break;
+      case 'USDC':
+        basePrice = 1;
+        break;
+      default:
+        basePrice = 100 + Math.random() * 10;
+        break;
+    }
+  }
   const bids: [string, string][] = [];
   const asks: [string, string][] = [];
 

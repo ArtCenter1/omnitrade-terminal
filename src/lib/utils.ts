@@ -102,6 +102,17 @@ export function generateAllocationData() {
   ];
 }
 
+export interface Asset {
+  name: string;
+  symbol: string;
+  price: number;
+  change: number;
+  amount: number;
+  value: number;
+  chart: number[];
+}
+
+// Legacy mock assets - kept for backward compatibility
 export const mockAssets = [
   {
     icon: '/placeholder.svg',
