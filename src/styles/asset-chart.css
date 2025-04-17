@@ -1,0 +1,27 @@
+/* Styles for the asset mini charts */
+
+.chart-container {
+  height: 40px !important;
+  width: 100px !important;
+  position: relative !important;
+  overflow: visible !important;
+}
+
+/* Remove outlines and borders from Recharts elements */
+.chart-container .recharts-wrapper,
+.chart-container .recharts-surface,
+.chart-container .recharts-line,
+.chart-container .recharts-area {
+  outline: none !important;
+  stroke-width: 1.2px !important;
+  overflow: visible !important;
+}
+
+/* Ensure the chart is visible */
+.chart-container .recharts-wrapper {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}

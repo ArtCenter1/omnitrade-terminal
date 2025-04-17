@@ -1,6 +1,74 @@
-import React from "react";
+import { Loader2 } from 'lucide-react';
+import { getMockOrderbookData } from '@/mocks/mockOrderbook';
 
 export function OrderBook() {
+  // Use mock orderbook data directly
+  const symbol = 'BTC/USDT';
+  const { orderbook, isLoading, isError } = getMockOrderbookData(symbol);
+
+  // Format price with appropriate precision
+  const formatPrice = (price: string | number) => {
+    return typeof price === 'number'
+      ? price.toFixed(2)
+      : parseFloat(price).toFixed(2);
+  };
+
+  // Format quantity with appropriate precision
+  const formatQuantity = (quantity: string | number) => {
+    return typeof quantity === 'number'
+      ? quantity.toFixed(8)
+      : parseFloat(quantity).toFixed(8);
+  };
+
+  // Calculate total (price * quantity)
+  const calculateTotal = (
+    price: string | number,
+    quantity: string | number,
+  ) => {
+    const priceNum = typeof price === 'number' ? price : parseFloat(price);
+    const quantityNum =
+      typeof quantity === 'number' ? quantity : parseFloat(quantity);
+    return (priceNum * quantityNum).toFixed(5);
+  };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="col-span-3">
+        <div className="p-3 border-b border-gray-800">
+          <h3 className="text-white font-medium">Order Book</h3>
+        </div>
+        <div className="flex justify-center items-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (isError || !orderbook) {
+    return (
+      <div className="col-span-3">
+        <div className="p-3 border-b border-gray-800">
+          <h3 className="text-white font-medium">Order Book</h3>
+        </div>
+        <div className="flex justify-center items-center py-12 text-red-500">
+          Error loading order book
+        </div>
+      </div>
+    );
+  }
+
+  // Get the current price (middle of the book)
+  const currentPrice =
+    orderbook.bids &&
+    orderbook.asks &&
+    orderbook.bids.length > 0 &&
+    orderbook.asks.length > 0
+      ? (parseFloat(orderbook.bids[0][0]) + parseFloat(orderbook.asks[0][0])) /
+        2
+      : 0;
+
   return (
     <div className="col-span-3">
       <div className="p-3 border-b border-gray-800">
@@ -15,28 +83,37 @@ export function OrderBook() {
 
       <div className="px-3 py-2 h-80 overflow-y-auto">
         <div className="space-y-1">
-          {[...Array(10)].map((_, i) => (
-            <div key={`sell-${i}`} className="flex justify-between text-xs">
-              <div className="text-white">0.00076000</div>
-              <div className="text-crypto-red">83860.01000000</div>
-              <div className="text-white">5.81412</div>
-            </div>
-          ))}
+          {orderbook.asks
+            ?.slice(0, 10)
+            .reverse()
+            .map((ask, i) => (
+              <div key={`sell-${i}`} className="flex justify-between text-xs">
+                <div className="text-white">{formatQuantity(ask[1])}</div>
+                <div className="text-crypto-red">{formatPrice(ask[0])}</div>
+                <div className="text-white">
+                  {calculateTotal(ask[0], ask[1])}
+                </div>
+              </div>
+            ))}
         </div>
 
         <div className="my-2 py-2 border-y border-gray-800">
           <div className="flex justify-between text-sm">
-            <div className="font-medium text-white">83,055.34</div>
-            <div className="font-medium text-white">$83,055.34</div>
+            <div className="font-medium text-white">
+              {currentPrice.toFixed(2)}
+            </div>
+            <div className="font-medium text-white">
+              ${currentPrice.toFixed(2)}
+            </div>
           </div>
         </div>
 
         <div className="space-y-1">
-          {[...Array(10)].map((_, i) => (
+          {orderbook.bids?.slice(0, 10).map((bid, i) => (
             <div key={`buy-${i}`} className="flex justify-between text-xs">
-              <div className="text-white">0.00072000</div>
-              <div className="text-crypto-green">83854.30000000</div>
-              <div className="text-white">5.81413</div>
+              <div className="text-white">{formatQuantity(bid[1])}</div>
+              <div className="text-crypto-green">{formatPrice(bid[0])}</div>
+              <div className="text-white">{calculateTotal(bid[0], bid[1])}</div>
             </div>
           ))}
         </div>

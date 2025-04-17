@@ -8,7 +8,7 @@
   --bg-chart: #1a1a1c; /* Chart background */
   --bg-popup: #252527; /* Popup/modal background */
   --bg-sidebar: #0f0f11; /* Sidebar background */
-  --bg-navbar: #0f0f11; /* Navigation bar */
+  --bg-navbar: #131722; /* Navigation bar */
   --bg-dropdown: #252527; /* Dropdown menus */
   --bg-hover: rgba(255, 255, 255, 0.05);
   --bg-active: rgba(255, 255, 255, 0.1);
@@ -67,7 +67,7 @@
   --bg-chart: #ffffff; /* Chart background - white */
   --bg-popup: #ffffff; /* Popup/modal background */
   --bg-sidebar: #f5f5fa; /* Sidebar background */
-  --bg-navbar: #ffffff; /* Navigation bar */
+  --bg-navbar: #131722; /* Navigation bar - same as dark theme */
   --bg-dropdown: #ffffff; /* Dropdown menus */
   --bg-hover: rgba(0, 0, 0, 0.05);
   --bg-active: rgba(0, 0, 0, 0.1);
@@ -155,7 +155,7 @@ body {
 }
 
 .bg-theme-dropdown {
-  background-color: var(--bg-dropdown);
+  background-color: var(--bg-dropdown) !important;
 }
 
 .bg-theme-hover {

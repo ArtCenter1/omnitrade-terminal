@@ -1,20 +1,20 @@
-import { ChevronDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { ChevronDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
 
 export function LandingNavbar() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
   return (
-    <div className="flex items-center justify-between p-4 bg-black text-white border-b border-gray-800 sticky top-0 z-50">
+    <div className="flex items-center justify-between p-4 bg-black text-white sticky top-0 z-50">
       <div className="flex items-center space-x-8">
         {/* Logo - Fixed the link to point to root "/" instead of "/home" */}
         <Link to="/" className="flex items-center cursor-pointer">
@@ -35,7 +35,7 @@ export function LandingNavbar() {
           <Button
             variant="link"
             className="font-medium text-gray-300 hover:text-white p-0 h-auto"
-            onClick={() => navigate("/ai-driven")}
+            onClick={() => navigate('/ai-driven')}
           >
             AI-Driven
           </Button>
@@ -43,7 +43,7 @@ export function LandingNavbar() {
           <Button
             variant="link"
             className="font-medium text-gray-300 hover:text-white p-0 h-auto"
-            onClick={() => navigate("/trading-bots")}
+            onClick={() => navigate('/trading-bots')}
           >
             Trading Bots
           </Button>
@@ -52,7 +52,7 @@ export function LandingNavbar() {
           <Button
             variant="link"
             className="font-medium text-gray-300 hover:text-white p-0 h-auto"
-            onClick={() => navigate("/blog")}
+            onClick={() => navigate('/blog')}
           >
             Community
           </Button>
@@ -61,7 +61,7 @@ export function LandingNavbar() {
           <Button
             variant="link"
             className="font-medium text-gray-300 hover:text-white p-0 h-auto"
-            onClick={() => navigate("/omni-token")}
+            onClick={() => navigate('/omni-token')}
           >
             Omni Token
           </Button>
@@ -69,7 +69,7 @@ export function LandingNavbar() {
           <Button
             variant="link"
             className="font-medium text-gray-300 hover:text-white p-0 h-auto"
-            onClick={() => navigate("/pricing")}
+            onClick={() => navigate('/pricing')}
           >
             Pricing
           </Button>
@@ -81,9 +81,9 @@ export function LandingNavbar() {
         <Button
           variant="outline"
           className="font-medium text-white border-purple-500 hover:bg-purple-500 hover:text-black"
-          onClick={() => navigate(user ? "/dashboard" : "/auth")}
+          onClick={() => navigate(user ? '/dashboard' : '/auth')}
         >
-          {user ? "Dashboard" : "Sign In"}{" "}
+          {user ? 'Dashboard' : 'Sign In'}{' '}
           <span aria-hidden="true" className="ml-1">
             →
           </span>
