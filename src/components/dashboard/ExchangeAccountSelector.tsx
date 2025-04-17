@@ -175,8 +175,15 @@ export function ExchangeAccountSelector() {
                   <DropdownMenuItem
                     key={account.id}
                     onClick={() => {
-                      console.log('Selecting account:', account.name);
-                      setSelectedAccount(account);
+                      console.log(
+                        'Selecting account:',
+                        account.name,
+                        'with API key ID:',
+                        account.apiKeyId,
+                      );
+                      // Force a refresh by setting to null first, then to the new account
+                      setSelectedAccount(null);
+                      setTimeout(() => setSelectedAccount(account), 10);
                     }}
                     className="py-3 cursor-pointer hover:bg-gray-800"
                   >

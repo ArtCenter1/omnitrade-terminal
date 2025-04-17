@@ -97,64 +97,77 @@ const Dashboard: React.FC = () => {
 
   // Update chart data when selected account or time range changes
   useEffect(() => {
-    if (selectedAccount) {
-      console.log(
-        'Updating chart data for account:',
-        selectedAccount.name,
-        'with time range:',
-        activeRange,
-      );
-
-      try {
-        // Generate new performance data based on the selected account and time range
-        const newPerformanceData = generatePerformanceData(
-          selectedAccount,
+    const updateData = async () => {
+      if (selectedAccount) {
+        console.log(
+          'Updating chart data for account:',
+          selectedAccount.name,
+          'with time range:',
           activeRange,
+          'Exchange ID:',
+          selectedAccount.exchangeId,
+          'API Key ID:',
+          selectedAccount.apiKeyId,
         );
 
-        // Only update if we got valid data
-        if (newPerformanceData && newPerformanceData.length > 0) {
-          setPerformanceData(newPerformanceData);
-        } else {
-          console.warn(
-            'Using default performance data for account:',
-            selectedAccount.name,
+        try {
+          // Generate new performance data based on the selected account and time range
+          const newPerformanceData = generatePerformanceData(
+            selectedAccount,
+            activeRange,
           );
+
+          // Only update if we got valid data
+          if (newPerformanceData && newPerformanceData.length > 0) {
+            setPerformanceData(newPerformanceData);
+          } else {
+            console.warn(
+              'Using default performance data for account:',
+              selectedAccount.name,
+            );
+          }
+
+          // Generate new allocation data based on the selected account
+          const newAllocationData = generateAllocationData(selectedAccount);
+
+          // Only update if we got valid data
+          if (newAllocationData && newAllocationData.length > 0) {
+            setAllocationData(newAllocationData);
+          } else {
+            console.warn(
+              'Using default allocation data for account:',
+              selectedAccount.name,
+            );
+          }
+
+          // Generate new portfolio table data based on the selected account
+          try {
+            const newPortfolioAssets =
+              await generatePortfolioTableData(selectedAccount);
+
+            // Only update if we got valid data
+            if (newPortfolioAssets && newPortfolioAssets.length > 0) {
+              setPortfolioAssets(newPortfolioAssets);
+            } else {
+              console.warn(
+                'Using default portfolio assets for account:',
+                selectedAccount.name,
+              );
+            }
+          } catch (error) {
+            console.error('Error fetching portfolio assets:', error);
+          }
+
+          // Determine if the change is positive based on the account's change value
+          const accountIsPositive = !selectedAccount.change.includes('-');
+          setIsPositive(accountIsPositive);
+        } catch (error) {
+          console.error('Error updating chart data:', error);
         }
-
-        // Generate new allocation data based on the selected account
-        const newAllocationData = generateAllocationData(selectedAccount);
-
-        // Only update if we got valid data
-        if (newAllocationData && newAllocationData.length > 0) {
-          setAllocationData(newAllocationData);
-        } else {
-          console.warn(
-            'Using default allocation data for account:',
-            selectedAccount.name,
-          );
-        }
-
-        // Generate new portfolio table data based on the selected account
-        const newPortfolioAssets = generatePortfolioTableData(selectedAccount);
-
-        // Only update if we got valid data
-        if (newPortfolioAssets && newPortfolioAssets.length > 0) {
-          setPortfolioAssets(newPortfolioAssets);
-        } else {
-          console.warn(
-            'Using default portfolio assets for account:',
-            selectedAccount.name,
-          );
-        }
-
-        // Determine if the change is positive based on the account's change value
-        const accountIsPositive = !selectedAccount.change.includes('-');
-        setIsPositive(accountIsPositive);
-      } catch (error) {
-        console.error('Error updating chart data:', error);
       }
-    }
+    };
+
+    updateData();
   }, [selectedAccount, activeRange]);
 
   // Error boundary effect

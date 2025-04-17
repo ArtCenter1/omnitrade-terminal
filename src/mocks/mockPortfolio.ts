@@ -263,6 +263,7 @@ export function getMockPortfolioData(apiKeyId?: string): {
 } {
   // If no API key is provided, return undefined data
   if (!apiKeyId) {
+    console.warn('No API key provided to getMockPortfolioData');
     return {
       data: undefined,
       isLoading: false,
@@ -270,6 +271,8 @@ export function getMockPortfolioData(apiKeyId?: string): {
       error: null,
     };
   }
+
+  console.log('Getting mock portfolio data for API key ID:', apiKeyId);
 
   // Try to determine the exchange from the API key ID
   // In a real app, you'd look this up from the API key data

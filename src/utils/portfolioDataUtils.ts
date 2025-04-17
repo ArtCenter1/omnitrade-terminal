@@ -454,15 +454,24 @@ export function generateAllocationData(
   }
 }
 
+// Import the CoinGecko service
+import { getCoinsBySymbols, getTopCoins } from '@/services/coinGeckoService';
+
 // Generate portfolio table data based on the selected account
-export function generatePortfolioTableData(
+export async function generatePortfolioTableData(
   selectedAccount: ExchangeAccount | null,
-): PortfolioTableAsset[] {
+): Promise<PortfolioTableAsset[]> {
   if (!selectedAccount) {
     return [];
   }
 
   // Get the portfolio data for this account
+  console.log(
+    'Generating portfolio data for account:',
+    selectedAccount.name,
+    'with API key ID:',
+    selectedAccount.apiKeyId,
+  );
   const portfolioData = getMockPortfolioData(selectedAccount.apiKeyId);
   const portfolio = portfolioData.data;
 
@@ -474,6 +483,8 @@ export function generatePortfolioTableData(
     return [];
   }
 
+  console.log('Portfolio data for', selectedAccount.name, ':', portfolio);
+
   try {
     // Make sure we have assets to work with
     if (!portfolio.assets || portfolio.assets.length === 0) {
@@ -484,24 +495,62 @@ export function generatePortfolioTableData(
       return [];
     }
 
+    // Fetch top coins from CoinGecko to get icons and price data
+    const topCoins = await getTopCoins(100);
+
+    // Create a map of symbol to coin data for quick lookup
+    const coinMap: Record<string, any> = {};
+    topCoins.forEach((coin) => {
+      coinMap[coin.symbol.toUpperCase()] = coin;
+    });
+
+    console.log(
+      'Using account:',
+      selectedAccount.name,
+      'with exchange:',
+      selectedAccount.exchangeId,
+    );
+
+    // Log the portfolio assets for debugging
+    console.log(
+      'Portfolio assets for',
+      selectedAccount.name,
+      ':',
+      portfolio.assets.map((a) => a.asset).join(', '),
+    );
+
     // Convert portfolio assets to table format
     const result = portfolio.assets.map((asset) => {
-      // Calculate a random 24h change between -5% and +5%
-      const randomChange = (Math.random() * 10 - 5).toFixed(2);
-      const changePrefix = parseFloat(randomChange) >= 0 ? '+' : '';
+      // Look up the coin data from CoinGecko
+      const coin = coinMap[asset.asset];
+
+      // Use CoinGecko data if available, otherwise use fallbacks
+      let changeValue, changePrefix, iconUrl;
+
+      if (coin) {
+        // Use real price change data from CoinGecko
+        changeValue = coin.price_change_percentage_24h.toFixed(2);
+        changePrefix = coin.price_change_percentage_24h >= 0 ? '+' : '';
+        iconUrl = coin.image;
+      } else {
+        // Fallback to random change if coin not found
+        changeValue = (Math.random() * 10 - 5).toFixed(2);
+        changePrefix = parseFloat(changeValue) >= 0 ? '+' : '';
+        iconUrl = `/crypto-icons/${asset.asset.toLowerCase()}.svg`;
+      }
 
       // Get the price from the asset data or calculate it
       const price = asset.price || asset.usdValue / asset.total || 0;
 
       // Format the asset data for the table
       return {
-        icon: '/placeholder.svg', // Placeholder icon
-        name: getDisplayName(asset.asset),
+        icon: iconUrl || '/placeholder.svg', // Use CoinGecko icon or fallback
+        name: coin?.name || getDisplayName(asset.asset), // Use CoinGecko name if available
         symbol: asset.asset,
         amount: `${asset.total.toFixed(4)} ${asset.asset}`,
         value: `$${asset.usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
         price: `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-        change: `${changePrefix}${randomChange}%`,
+        change: `${changePrefix}${changeValue}%`,
       };
     });
 
