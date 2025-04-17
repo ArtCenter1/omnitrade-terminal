@@ -238,7 +238,7 @@ const Dashboard: React.FC = () => {
                 ))}
               </div>
             </div>
-            <div className="h-[calc(100%-60px)] w-full">
+            <div className="h-[calc(100%-60px)] w-full relative">
               <ErrorBoundary
                 fallback={
                   <div className="h-full flex items-center justify-center">
@@ -262,7 +262,7 @@ const Dashboard: React.FC = () => {
             <h2 className="text-lg font-semibold text-theme-primary mb-2 mt-4 text-center w-full">
               Current Allocations
             </h2>
-            <div className="flex items-center justify-center w-full h-full">
+            <div className="flex items-center justify-center w-full h-[calc(100%-60px)]">
               <ErrorBoundary
                 fallback={
                   <div className="h-64 flex items-center justify-center">
@@ -272,7 +272,9 @@ const Dashboard: React.FC = () => {
                   </div>
                 }
               >
-                <AllocationChart data={allocationData} />
+                <div className="w-full h-full relative">
+                  <AllocationChart data={allocationData} />
+                </div>
               </ErrorBoundary>
             </div>
           </div>

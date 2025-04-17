@@ -144,6 +144,9 @@ export function AllocationChart({
   const containerStyle = {
     outline: 'none',
     border: 'none',
+    position: 'relative' as 'relative',
+    width: '100%',
+    height: '100%',
   };
 
   return (

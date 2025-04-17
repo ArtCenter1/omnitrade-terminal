@@ -3,6 +3,12 @@
 .pie-chart-container {
   outline: none !important;
   border: none !important;
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 /* Remove outlines and borders from Recharts elements */

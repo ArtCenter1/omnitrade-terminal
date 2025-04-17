@@ -1,0 +1,26 @@
+.performance-chart {
+  height: 100% !important;
+  width: 100% !important;
+  overflow: visible !important;
+}
+
+.performance-chart-container {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+}
+
+/* Ensure the chart touches the bottom */
+.recharts-wrapper {
+  position: absolute !important;
+  bottom: 0 !important;
+  right: 0 !important;
+  left: 0 !important;
+  height: 100% !important;
+}
+
+.recharts-surface {
+  overflow: visible;
+}
