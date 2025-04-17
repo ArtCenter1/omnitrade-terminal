@@ -21,7 +21,7 @@ export function generateMockOrderbook(
   const [baseAsset, quoteAsset] = symbol.split('/');
 
   // Set a default base price based on the trading pair
-  if (!basePrice) {
+  if (basePrice === undefined) {
     switch (baseAsset) {
       case 'BTC':
         basePrice = 84000 + Math.random() * 1000;

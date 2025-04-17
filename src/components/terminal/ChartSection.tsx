@@ -117,12 +117,16 @@ export function ChartSection({
       if (existingScript) {
         existingScript.removeEventListener('load', createWidget);
       }
-      // Optional: Clean up widget instance if TradingView provides an API for it
-      // if (widgetInstanceRef.current && typeof widgetInstanceRef.current.remove === 'function') {
-      //   widgetInstanceRef.current.remove();
-      // }
+      // Clean up widget instance if TradingView provides an API for it
+      if (
+        widgetInstanceRef.current &&
+        typeof (widgetInstanceRef.current as any).remove === 'function'
+      ) {
+        (widgetInstanceRef.current as any).remove();
+        widgetInstanceRef.current = null;
+      }
       if (currentContainer) {
-        // currentContainer.innerHTML = ''; // Clear container on unmount/re-render
+        currentContainer.innerHTML = ''; // Clear container on unmount/re-render
       }
     };
     // Re-run effect when currentTimeframe, currentPair, or selectedAccount changes

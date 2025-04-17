@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import { AssetChart } from './AssetChart';
 import { Asset } from '@/lib/utils';
 import { generateChartData } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 // Map of common cryptocurrency symbols to their CoinGecko IDs
 const COINGECKO_ICON_MAP: Record<string, string> = {
