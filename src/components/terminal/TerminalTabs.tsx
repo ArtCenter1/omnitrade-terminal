@@ -1,15 +1,21 @@
 import React, { useState } from 'react';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs } from '@/components/ui/tabs';
+import { TerminalTabsList, TerminalTabsTrigger } from './TerminalTabsList';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { AssetRow } from '@/components/AssetRow';
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import { TradingPair } from './TradingPairSelector';
 import { getMockPortfolioData } from '@/mocks/mockPortfolio';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 interface TerminalTabsProps {
   selectedPair?: TradingPair;
 }
+
+// Define sorting types
+type SortField = 'asset' | 'amount' | 'value' | 'price' | 'change';
+type SortDirection = 'asc' | 'desc';
 
 export function TerminalTabs({ selectedPair }: TerminalTabsProps = {}) {
   const [activeTab, setActiveTab] = useState('Balances');
@@ -17,12 +23,16 @@ export function TerminalTabs({ selectedPair }: TerminalTabsProps = {}) {
   const [showCurrentPairOnly, setShowCurrentPairOnly] = useState(false);
   const { selectedAccount } = useSelectedAccount();
 
+  // Add sorting state
+  const [sortField, setSortField] = useState<SortField>('value');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
   // Get portfolio data for the selected account
   const portfolioData = selectedAccount
     ? getMockPortfolioData(selectedAccount.apiKeyId).data
     : null;
 
-  // Filter assets based on checkboxes
+  // Filter and sort assets based on checkboxes and sort state
   const filteredAssets = React.useMemo(() => {
     if (!portfolioData || !portfolioData.assets) return [];
 
@@ -38,21 +48,63 @@ export function TerminalTabs({ selectedPair }: TerminalTabsProps = {}) {
     }
 
     // Convert to format expected by AssetRow
-    return assets.map((asset) => ({
-      icon: `/crypto-icons/${asset.asset.toLowerCase()}.svg`,
-      name: getAssetName(asset.asset),
-      symbol: asset.asset,
-      amount: asset.free.toFixed(8),
-      value: `$${asset.usdValue.toFixed(2)}`,
-      price: `$${(asset.usdValue / asset.total).toFixed(2)}`,
-      change: getRandomChange(asset.asset),
-      chart: generateChartData(asset.asset),
-    }));
+    const formattedAssets = assets.map((asset) => {
+      // Calculate price from value and total
+      const price = asset.total > 0 ? asset.usdValue / asset.total : 0;
+
+      return {
+        icon: `/crypto-icons/${asset.asset.toLowerCase()}.svg`,
+        name: getAssetName(asset.asset),
+        symbol: asset.asset,
+        amount: asset.free.toFixed(8),
+        value: `$${asset.usdValue.toFixed(2)}`,
+        price: `$${price.toFixed(2)}`,
+        change: getRandomChange(asset.asset),
+        chart: generateChartData(asset.asset),
+        // Store raw values for sorting
+        _rawAmount: asset.free,
+        _rawValue: asset.usdValue,
+        _rawPrice: price,
+        _rawChange: parseFloat(getRandomChange(asset.asset).replace('%', '')),
+      };
+    });
+
+    // Sort the assets based on the current sort field and direction
+    const sortedAssets = [...formattedAssets].sort((a, b) => {
+      let comparison = 0;
+
+      switch (sortField) {
+        case 'asset':
+          comparison = a.symbol.localeCompare(b.symbol);
+          break;
+        case 'amount':
+          comparison = a._rawAmount - b._rawAmount;
+          break;
+        case 'value':
+          comparison = a._rawValue - b._rawValue;
+          break;
+        case 'price':
+          comparison = a._rawPrice - b._rawPrice;
+          break;
+        case 'change':
+          comparison = a._rawChange - b._rawChange;
+          break;
+        default:
+          comparison = a._rawValue - b._rawValue;
+      }
+
+      // Reverse the comparison if sorting in descending order
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+
+    return sortedAssets;
   }, [
     portfolioData,
     selectedPair,
     showCurrentExchangeOnly,
     showCurrentPairOnly,
+    sortField,
+    sortDirection,
   ]);
 
   // Helper function to get asset name
@@ -98,6 +150,29 @@ export function TerminalTabs({ selectedPair }: TerminalTabsProps = {}) {
     });
   }
 
+  // Handle sorting when a column header is clicked
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      // If already sorting by this field, toggle direction
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Otherwise, sort by the new field in descending order by default
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+
+  // Render sort indicator for column headers
+  const renderSortIndicator = (field: SortField) => {
+    if (sortField !== field) return null;
+
+    return sortDirection === 'asc' ? (
+      <ChevronUp className="inline ml-1" size={14} />
+    ) : (
+      <ChevronDown className="inline ml-1" size={14} />
+    );
+  };
+
   return (
     <div className="h-full">
       <div className="h-full">
@@ -108,14 +183,26 @@ export function TerminalTabs({ selectedPair }: TerminalTabsProps = {}) {
               onValueChange={setActiveTab}
               className="w-full"
             >
-              <TabsList className="bg-gray-900 grid grid-cols-6">
-                <TabsTrigger value="Balances">Balances</TabsTrigger>
-                <TabsTrigger value="OpenOrders">Open Orders</TabsTrigger>
-                <TabsTrigger value="OrderHistory">Order History</TabsTrigger>
-                <TabsTrigger value="Positions">Positions</TabsTrigger>
-                <TabsTrigger value="Transfers">Transfers</TabsTrigger>
-                <TabsTrigger value="Trades">Recent Trades</TabsTrigger>
-              </TabsList>
+              <TerminalTabsList className="grid grid-cols-6">
+                <TerminalTabsTrigger value="Balances">
+                  Balances
+                </TerminalTabsTrigger>
+                <TerminalTabsTrigger value="OpenOrders">
+                  Open Orders
+                </TerminalTabsTrigger>
+                <TerminalTabsTrigger value="OrderHistory">
+                  Order History
+                </TerminalTabsTrigger>
+                <TerminalTabsTrigger value="Positions">
+                  Positions
+                </TerminalTabsTrigger>
+                <TerminalTabsTrigger value="Transfers">
+                  Transfers
+                </TerminalTabsTrigger>
+                <TerminalTabsTrigger value="Trades">
+                  Recent Trades
+                </TerminalTabsTrigger>
+              </TerminalTabsList>
             </Tabs>
           </div>
 
@@ -159,20 +246,35 @@ export function TerminalTabs({ selectedPair }: TerminalTabsProps = {}) {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-800">
-                    <th className="text-left py-2 px-4 text-sm font-medium text-gray-400">
-                      Asset
+                    <th
+                      className="text-left py-2 px-4 text-sm font-medium text-gray-400 cursor-pointer hover:text-white"
+                      onClick={() => handleSort('asset')}
+                    >
+                      Asset {renderSortIndicator('asset')}
                     </th>
-                    <th className="text-left py-2 px-4 text-sm font-medium text-gray-400">
-                      Available
+                    <th
+                      className="text-left py-2 px-4 text-sm font-medium text-gray-400 cursor-pointer hover:text-white"
+                      onClick={() => handleSort('amount')}
+                    >
+                      Available Amount {renderSortIndicator('amount')}
                     </th>
-                    <th className="text-left py-2 px-4 text-sm font-medium text-gray-400">
-                      Value (USD)
+                    <th
+                      className="text-left py-2 px-4 text-sm font-medium text-gray-400 cursor-pointer hover:text-white"
+                      onClick={() => handleSort('value')}
+                    >
+                      Value (USD) {renderSortIndicator('value')}
                     </th>
-                    <th className="text-left py-2 px-4 text-sm font-medium text-gray-400">
-                      Last Price
+                    <th
+                      className="text-left py-2 px-4 text-sm font-medium text-gray-400 cursor-pointer hover:text-white"
+                      onClick={() => handleSort('price')}
+                    >
+                      Last Price {renderSortIndicator('price')}
                     </th>
-                    <th className="text-left py-2 px-4 text-sm font-medium text-gray-400">
-                      24h Change
+                    <th
+                      className="text-left py-2 px-4 text-sm font-medium text-gray-400 cursor-pointer hover:text-white"
+                      onClick={() => handleSort('change')}
+                    >
+                      24h Change {renderSortIndicator('change')}
                     </th>
                     <th className="text-left py-2 px-4 text-sm font-medium text-gray-400">
                       7d Chart

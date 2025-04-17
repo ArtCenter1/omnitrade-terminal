@@ -138,27 +138,28 @@ export function ExchangeAccountSelector() {
                 <div className="flex items-center">
                   <div className="w-6 h-6 rounded-full overflow-hidden mr-2">
                     <img
-                      src={selectedAccount.logo}
-                      alt={selectedAccount.exchange}
+                      src={selectedAccount?.logo || '/placeholder.svg'}
+                      alt={selectedAccount?.exchange || 'Exchange'}
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         // Fallback to placeholder if image fails to load
                         e.currentTarget.src = '/placeholder.svg';
+                        e.currentTarget.onerror = null; // Prevent infinite loop
                       }}
                     />
                   </div>
                   <div className="flex flex-col items-start">
                     <span className="text-white text-sm">
-                      {selectedAccount.name}
+                      {selectedAccount?.name || 'Unknown Account'}
                     </span>
                     <span className="text-xs">
                       <span className="text-gray-400">
-                        {selectedAccount.value}
+                        {selectedAccount?.value || '$0.00'}
                       </span>
                       <span
-                        className={`ml-1 ${!selectedAccount.change.includes('-') ? 'text-crypto-green' : 'text-crypto-red'}`}
+                        className={`ml-1 ${selectedAccount?.change && !selectedAccount.change.includes('-') ? 'text-crypto-green' : 'text-crypto-red'}`}
                       >
-                        {selectedAccount.change}
+                        {selectedAccount?.change || '0.00%'}
                       </span>
                     </span>
                   </div>
@@ -190,25 +191,28 @@ export function ExchangeAccountSelector() {
                     <div className="flex items-center w-full">
                       <div className="w-6 h-6 rounded-full overflow-hidden mr-2">
                         <img
-                          src={account.logo}
-                          alt={account.exchange}
+                          src={account?.logo || '/placeholder.svg'}
+                          alt={account?.exchange || 'Exchange'}
                           className="w-full h-full object-cover"
                           onError={(e) => {
                             // Fallback to placeholder if image fails to load
                             e.currentTarget.src = '/placeholder.svg';
+                            e.currentTarget.onerror = null; // Prevent infinite loop
                           }}
                         />
                       </div>
                       <div className="flex flex-col flex-1">
                         <span className="text-white text-sm">
-                          {account.name}
+                          {account?.name || 'Unknown Account'}
                         </span>
                         <span className="text-xs">
-                          <span className="text-gray-400">{account.value}</span>
+                          <span className="text-gray-400">
+                            {account?.value || '$0.00'}
+                          </span>
                           <span
-                            className={`ml-1 ${!account.change.includes('-') ? 'text-crypto-green' : 'text-crypto-red'}`}
+                            className={`ml-1 ${account?.change && !account.change.includes('-') ? 'text-crypto-green' : 'text-crypto-red'}`}
                           >
-                            {account.change}
+                            {account?.change || '0.00%'}
                           </span>
                         </span>
                       </div>

@@ -64,7 +64,10 @@ export function PortfolioIndicators() {
   // Load portfolio data when the selected account changes
   useEffect(() => {
     // Skip if no account is selected
-    if (!selectedAccount) return;
+    if (!selectedAccount) {
+      console.log('No account selected, using default portfolio data');
+      return;
+    }
 
     // Skip if the apiKeyId hasn't changed
     if (previousApiKeyIdRef.current === selectedAccount.apiKeyId) return;
@@ -88,10 +91,11 @@ export function PortfolioIndicators() {
         }).format(data.totalUsdValue);
 
         // Extract the change percentage from the account
+        // Add safety checks for null/undefined values
         const changePercentStr = selectedAccount.change
-          .replace('%', '')
-          .replace('+', '');
-        const changePercent = parseFloat(changePercentStr);
+          ? selectedAccount.change.replace('%', '').replace('+', '')
+          : '0';
+        const changePercent = parseFloat(changePercentStr) || 0;
 
         // Calculate the change amount based on the percentage
         const changeAmount = data.totalUsdValue * (changePercent / 100);
@@ -103,7 +107,9 @@ export function PortfolioIndicators() {
         }).format(Math.abs(changeAmount));
 
         // Determine if the change is positive
-        const isPositive = !selectedAccount.change.includes('-');
+        const isPositive = selectedAccount.change
+          ? !selectedAccount.change.includes('-')
+          : true;
 
         // Create the new portfolio data
         const newData = {
