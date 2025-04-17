@@ -101,53 +101,58 @@ export function TerminalTabs({ selectedPair }: TerminalTabsProps = {}) {
   return (
     <div className="h-full">
       <div className="h-full">
-        <div className="flex justify-between items-center px-4 py-2">
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="w-full"
-          >
-            <TabsList className="bg-gray-900 grid grid-cols-6">
-              <TabsTrigger value="Balances">Balances</TabsTrigger>
-              <TabsTrigger value="OpenOrders">Open Orders</TabsTrigger>
-              <TabsTrigger value="OrderHistory">Order History</TabsTrigger>
-              <TabsTrigger value="Positions">Positions</TabsTrigger>
-              <TabsTrigger value="Transfers">Transfers</TabsTrigger>
-              <TabsTrigger value="Trades">Recent Trades</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-
-        <div className="flex items-center gap-6 px-4 py-2 border-t border-b border-gray-800">
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="currentExchange"
-              checked={showCurrentExchangeOnly}
-              onCheckedChange={(checked) =>
-                setShowCurrentExchangeOnly(checked as boolean)
-              }
-            />
-            <Label htmlFor="currentExchange" className="text-gray-400 text-sm">
-              {selectedAccount?.exchange || 'Binance'} Only
-            </Label>
+        <div className="flex items-center justify-between px-4 py-2 border-b border-gray-800">
+          <div className="flex-1">
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="w-full"
+            >
+              <TabsList className="bg-gray-900 grid grid-cols-6">
+                <TabsTrigger value="Balances">Balances</TabsTrigger>
+                <TabsTrigger value="OpenOrders">Open Orders</TabsTrigger>
+                <TabsTrigger value="OrderHistory">Order History</TabsTrigger>
+                <TabsTrigger value="Positions">Positions</TabsTrigger>
+                <TabsTrigger value="Transfers">Transfers</TabsTrigger>
+                <TabsTrigger value="Trades">Recent Trades</TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="currentPair"
-              checked={showCurrentPairOnly}
-              onCheckedChange={(checked) =>
-                setShowCurrentPairOnly(checked as boolean)
-              }
-            />
-            <Label htmlFor="currentPair" className="text-gray-400 text-sm">
-              {selectedPair?.symbol || 'BTC/USDT'} Only
-            </Label>
+
+          <div className="flex items-center gap-4 ml-4">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="currentExchange"
+                checked={showCurrentExchangeOnly}
+                onCheckedChange={(checked) =>
+                  setShowCurrentExchangeOnly(checked as boolean)
+                }
+              />
+              <Label
+                htmlFor="currentExchange"
+                className="text-gray-400 text-sm"
+              >
+                {selectedAccount?.exchange || 'Binance'} Only
+              </Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="currentPair"
+                checked={showCurrentPairOnly}
+                onCheckedChange={(checked) =>
+                  setShowCurrentPairOnly(checked as boolean)
+                }
+              />
+              <Label htmlFor="currentPair" className="text-gray-400 text-sm">
+                {selectedPair?.symbol || 'BTC/USDT'} Only
+              </Label>
+            </div>
           </div>
         </div>
 
         <div
           className="p-4 overflow-auto"
-          style={{ height: 'calc(100% - 80px)' }}
+          style={{ height: 'calc(100% - 45px)' }}
         >
           {activeTab === 'Balances' && (
             <div className="overflow-x-auto">

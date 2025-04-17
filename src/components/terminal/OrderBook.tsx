@@ -93,10 +93,10 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
         </h3>
       </div>
 
-      <div className="px-3 py-2 flex justify-between text-xs text-gray-400">
+      <div className="px-3 py-2 grid grid-cols-3 gap-x-[2px] text-xs text-gray-400">
         <div>Amount ({baseAsset})</div>
-        <div>Price ({quoteAsset})</div>
-        <div>Total</div>
+        <div className="text-center">Price ({quoteAsset})</div>
+        <div className="text-right">Total</div>
       </div>
 
       <div className="px-3 py-2">
@@ -105,10 +105,15 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
             ?.slice(0, 10)
             .reverse()
             .map((ask, i) => (
-              <div key={`sell-${i}`} className="flex justify-between text-xs">
+              <div
+                key={`sell-${i}`}
+                className="grid grid-cols-3 gap-x-[2px] text-xs"
+              >
                 <div className="text-white">{formatQuantity(ask[1])}</div>
-                <div className="text-crypto-red">{formatPrice(ask[0])}</div>
-                <div className="text-white">
+                <div className="text-crypto-red text-center">
+                  {formatPrice(ask[0])}
+                </div>
+                <div className="text-white text-right">
                   {calculateTotal(ask[0], ask[1])}
                 </div>
               </div>
@@ -116,11 +121,11 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
         </div>
 
         <div className="my-2 py-2 border-y border-gray-800">
-          <div className="flex justify-between text-sm">
+          <div className="grid grid-cols-2 gap-x-[2px] text-sm">
             <div className="font-medium text-white">
               {currentPrice.toFixed(2)}
             </div>
-            <div className="font-medium text-white">
+            <div className="font-medium text-white text-right">
               ${currentPrice.toFixed(2)}
             </div>
           </div>
@@ -128,10 +133,17 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
 
         <div className="space-y-1">
           {orderbook.bids?.slice(0, 10).map((bid, i) => (
-            <div key={`buy-${i}`} className="flex justify-between text-xs">
+            <div
+              key={`buy-${i}`}
+              className="grid grid-cols-3 gap-x-[2px] text-xs"
+            >
               <div className="text-white">{formatQuantity(bid[1])}</div>
-              <div className="text-crypto-green">{formatPrice(bid[0])}</div>
-              <div className="text-white">{calculateTotal(bid[0], bid[1])}</div>
+              <div className="text-crypto-green text-center">
+                {formatPrice(bid[0])}
+              </div>
+              <div className="text-white text-right">
+                {calculateTotal(bid[0], bid[1])}
+              </div>
             </div>
           ))}
         </div>
@@ -140,10 +152,10 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
       <div className="p-3 border-t border-gray-800">
         <h3 className="text-white font-medium mb-2">Recent Trades</h3>
 
-        <div className="grid grid-cols-3 text-xs text-gray-400 mb-2">
+        <div className="grid grid-cols-3 gap-x-[2px] text-xs text-gray-400 mb-2">
           <div>Amount ({baseAsset})</div>
-          <div>Price ({quoteAsset})</div>
-          <div>Time</div>
+          <div className="text-center">Price ({quoteAsset})</div>
+          <div className="text-right">Time</div>
         </div>
 
         <div className="space-y-2">
@@ -164,14 +176,17 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
             const isBuy = Math.random() > 0.5;
 
             return (
-              <div key={`trade-${i}`} className="grid grid-cols-3 text-xs">
+              <div
+                key={`trade-${i}`}
+                className="grid grid-cols-3 gap-x-[2px] text-xs"
+              >
                 <div className="text-white">{quantity}</div>
                 <div
-                  className={isBuy ? 'text-crypto-green' : 'text-crypto-red'}
+                  className={`${isBuy ? 'text-crypto-green' : 'text-crypto-red'} text-center`}
                 >
                   {priceWithVariation}
                 </div>
-                <div className="text-gray-400">{timeString}</div>
+                <div className="text-gray-400 text-right">{timeString}</div>
               </div>
             );
           })}
