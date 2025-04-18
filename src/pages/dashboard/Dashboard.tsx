@@ -2,7 +2,9 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { PerformanceChart } from '@/components/PerformanceChart';
 import { AllocationChart } from '@/components/AllocationChart';
-import { AssetRow } from '@/components/AssetRow';
+import { PortfolioTable } from '@/components/dashboard/PortfolioTable';
+import { DashboardOrdersTable } from '@/components/dashboard/DashboardOrdersTable';
+import { TransfersTable } from '@/components/dashboard/TransfersTable';
 import { Button } from '@/components/ui/button';
 import { Search, Loader2 } from 'lucide-react';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -418,60 +420,19 @@ const Dashboard: React.FC = () => {
             }
           >
             {activeTab === 'Balances' && (
-              <div className="overflow-x-auto">
-                {isLoadingPortfolio ? (
-                  <div className="flex justify-center items-center py-8">
-                    <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
-                    <span className="ml-2 text-gray-400">
-                      Loading portfolio data...
-                    </span>
-                  </div>
-                ) : portfolioError ? (
-                  <div className="text-center py-8">
-                    <p className="text-red-500 mb-2">
-                      Error loading portfolio data
-                    </p>
-                    <p className="text-gray-400">{portfolioError.toString()}</p>
-                  </div>
-                ) : (
-                  <table className="portfolio-table w-full">
-                    <thead>
-                      <tr>
-                        <th>Asset</th>
-                        <th>Amount</th>
-                        <th>Value (USD)</th>
-                        <th>Last Price</th>
-                        <th>24h Change</th>
-                        <th>7d Chart</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {portfolioAssets.length > 0 ? (
-                        portfolioAssets.map((asset, idx) => (
-                          <AssetRow key={asset.symbol + idx} asset={asset} />
-                        ))
-                      ) : (
-                        <tr>
-                          <td
-                            colSpan={7}
-                            className="text-center py-8 text-gray-400"
-                          >
-                            No assets found. Connect an exchange to see your
-                            portfolio.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                )}
-              </div>
+              <PortfolioTable
+                assets={portfolioAssets}
+                isLoading={isLoadingPortfolio}
+                error={portfolioError}
+              />
             )}
-            {activeTab !== 'Balances' && (
-              <div className="text-gray-400 text-center py-8">
-                No data for this tab yet.
-              </div>
+            {activeTab === 'Open Orders' && (
+              <DashboardOrdersTable type="open" />
             )}
+            {activeTab === 'Order History' && (
+              <DashboardOrdersTable type="history" />
+            )}
+            {activeTab === 'Transfers' && <TransfersTable />}
           </ErrorBoundary>
         </div>
 
