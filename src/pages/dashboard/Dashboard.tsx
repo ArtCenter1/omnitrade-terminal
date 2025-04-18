@@ -290,10 +290,10 @@ const Dashboard: React.FC = () => {
         </ErrorBoundary>
 
         {/* Performance Chart and Allocation Chart */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
           <div
             className="lg:col-span-2 dashboard-card p-0 overflow-hidden"
-            style={{ background: tradingViewBg, aspectRatio: '2/1' }}
+            style={{ background: tradingViewBg, height: '300px' }}
           >
             <div className="flex items-center justify-between p-4 pb-0">
               <h2 className="text-lg font-semibold text-theme-primary">
@@ -331,7 +331,7 @@ const Dashboard: React.FC = () => {
           </div>
           <div
             className="dashboard-card p-0 flex flex-col items-center justify-center overflow-hidden"
-            style={{ background: tradingViewBg, aspectRatio: '1/1' }}
+            style={{ background: tradingViewBg, height: '300px' }}
           >
             <h2 className="text-lg font-semibold text-theme-primary mb-1 mt-2 text-center w-full">
               Current Allocations
@@ -356,7 +356,7 @@ const Dashboard: React.FC = () => {
 
         {/* Assets Table with Tabs */}
         <div
-          className="dashboard-card p-5"
+          className="dashboard-card p-5 mb-4"
           style={{ background: tradingViewBg }}
         >
           <div className="flex items-center justify-between mb-4">
@@ -473,7 +473,7 @@ const Dashboard: React.FC = () => {
 
         {/* Exchange Adapter Example */}
         <div
-          className="dashboard-card p-5"
+          className="dashboard-card p-5 mb-4"
           style={{ background: tradingViewBg }}
         >
           <div className="flex items-center justify-between mb-4">

@@ -157,8 +157,8 @@ export function AllocationChart({
             data={data}
             cx="50%"
             cy="50%"
-            innerRadius="40%"
-            outerRadius="80%"
+            innerRadius="35%"
+            outerRadius="70%"
             paddingAngle={1}
             dataKey="value"
             stroke="none" // Remove the white border around segments
