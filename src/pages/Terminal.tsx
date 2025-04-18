@@ -75,9 +75,9 @@ export default function Terminal() {
           {/* Left Section - Trading Sidebar and Main Content */}
           <div className="flex flex-col flex-1">
             {/* Top Section - Trading Sidebar and Chart */}
-            <div className="flex h-[65%]">
+            <div className="flex h-[70%]">
               <ErrorBoundary>
-                <div className="w-[250px] border-r border-gray-800">
+                <div className="w-[280px] border-r border-gray-800">
                   <TradingSidebar
                     selectedPair={selectedPair}
                     onOrderPlaced={handleOrderPlaced}
@@ -112,7 +112,7 @@ export default function Terminal() {
             </div>
 
             {/* Bottom Section - Assets */}
-            <div className="h-[35%] border-t border-gray-800">
+            <div className="h-[30%] border-t border-gray-800">
               <ErrorBoundary>
                 <TerminalTabs
                   selectedPair={selectedPair}
@@ -124,7 +124,7 @@ export default function Terminal() {
 
           {/* Right Order Book - Fixed Width */}
           <ErrorBoundary>
-            <div className="w-[300px] border-l border-gray-800">
+            <div className="w-[240px] border-l border-gray-800">
               <OrderBook selectedPair={selectedPair} />
             </div>
           </ErrorBoundary>

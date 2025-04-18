@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ExchangeSelector } from './ExchangeSelector';
 import { AccountSelector } from './AccountSelector';
 import { AvailableBalances } from './AvailableBalances';
-import { OrderForm } from './OrderForm';
+import { TradingTabs } from './TradingTabs';
 import { TradingPair } from './TradingPairSelector';
 
 interface TradingSidebarProps {
@@ -28,14 +28,14 @@ export function TradingSidebar({
   };
 
   return (
-    <div className="h-full px-2 overflow-y-auto">
+    <div className="h-full px-1 overflow-y-auto">
       <ExchangeSelector />
       <AccountSelector />
       <AvailableBalances
         selectedPair={selectedPair}
         refreshTrigger={refreshTrigger}
       />
-      <OrderForm
+      <TradingTabs
         selectedPair={selectedPair}
         onOrderPlaced={handleOrderPlaced}
       />
