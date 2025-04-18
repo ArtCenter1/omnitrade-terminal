@@ -312,6 +312,8 @@ export function TerminalTabs({
             <OrdersTable
               selectedSymbol={selectedPair?.symbol}
               refreshTrigger={refreshTrigger}
+              initialTab={activeTab === 'OpenOrders' ? 'open' : 'history'}
+              showTabs={false}
             />
           )}
 

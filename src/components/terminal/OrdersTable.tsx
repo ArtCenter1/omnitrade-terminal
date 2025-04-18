@@ -9,18 +9,27 @@ import { Loader2, X } from 'lucide-react';
 interface OrdersTableProps {
   selectedSymbol?: string;
   refreshTrigger?: number;
+  initialTab?: 'open' | 'history';
+  showTabs?: boolean;
 }
 
 export function OrdersTable({
   selectedSymbol,
   refreshTrigger = 0,
+  initialTab = 'open',
+  showTabs = true,
 }: OrdersTableProps) {
-  const [activeTab, setActiveTab] = useState('open');
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isCancelling, setIsCancelling] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
   const { selectedAccount } = useSelectedAccount();
+
+  // Update activeTab when initialTab changes
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   // Fetch orders when component mounts, account changes, or refresh is triggered
   useEffect(() => {
@@ -105,31 +114,37 @@ export function OrdersTable({
   };
 
   return (
-    <div className="bg-[#1a1a1c] border border-gray-800 rounded-md">
+    <div
+      className={
+        showTabs ? 'bg-[#1a1a1c] border border-gray-800 rounded-md' : ''
+      }
+    >
       <Tabs defaultValue="open" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full bg-gray-900 border-b border-gray-800 rounded-none">
-          <TabsTrigger
-            value="open"
-            className="flex-1 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-purple-500 rounded-none"
-          >
-            Open Orders
-          </TabsTrigger>
-          <TabsTrigger
-            value="history"
-            className="flex-1 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-purple-500 rounded-none"
-          >
-            Order History
-          </TabsTrigger>
-        </TabsList>
+        {showTabs && (
+          <TabsList className="w-full bg-gray-900 border-b border-gray-800 rounded-none">
+            <TabsTrigger
+              value="open"
+              className="flex-1 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-purple-500 rounded-none"
+            >
+              Open Orders
+            </TabsTrigger>
+            <TabsTrigger
+              value="history"
+              className="flex-1 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-purple-500 rounded-none"
+            >
+              Order History
+            </TabsTrigger>
+          </TabsList>
+        )}
 
         <TabsContent value="open" className="p-0">
           {isLoading ? (
-            <div className="flex items-center justify-center p-8">
-              <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
-              <span className="ml-2 text-gray-400">Loading orders...</span>
+            <div className="text-center py-8 text-gray-400">
+              <Loader2 className="h-8 w-8 animate-spin text-purple-500 mx-auto mb-2" />
+              <p>Loading orders...</p>
             </div>
           ) : orders.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-8 text-gray-400">
+            <div className="text-center py-8 text-gray-400">
               <p>No open orders</p>
               {selectedSymbol && (
                 <p className="text-sm mt-2">for {selectedSymbol}</p>
@@ -211,14 +226,12 @@ export function OrdersTable({
 
         <TabsContent value="history" className="p-0">
           {isLoading ? (
-            <div className="flex items-center justify-center p-8">
-              <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
-              <span className="ml-2 text-gray-400">
-                Loading order history...
-              </span>
+            <div className="text-center py-8 text-gray-400">
+              <Loader2 className="h-8 w-8 animate-spin text-purple-500 mx-auto mb-2" />
+              <p>Loading order history...</p>
             </div>
           ) : orders.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-8 text-gray-400">
+            <div className="text-center py-8 text-gray-400">
               <p>No order history</p>
               {selectedSymbol && (
                 <p className="text-sm mt-2">for {selectedSymbol}</p>
