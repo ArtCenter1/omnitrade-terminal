@@ -24,7 +24,7 @@ export const TerminalTabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      'inline-flex items-center justify-center whitespace-nowrap px-4 py-1 text-sm font-medium transition-all focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 border-b-2 border-transparent data-[state=active]:border-purple-500 data-[state=active]:text-white',
+      'inline-flex items-center justify-center whitespace-nowrap px-2 py-1 text-sm font-medium transition-all focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 border-b-2 border-transparent data-[state=active]:border-purple-500 data-[state=active]:text-white text-center',
       className,
     )}
     {...props}

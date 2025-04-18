@@ -181,63 +181,70 @@ export function TerminalTabs({
   return (
     <div className="h-full">
       <div className="h-full">
-        <div className="flex items-center justify-between px-4 py-2 border-b border-gray-800">
-          <div className="flex-1">
-            <Tabs
-              value={activeTab}
-              onValueChange={setActiveTab}
-              className="w-full"
-            >
-              <TerminalTabsList className="grid grid-cols-6">
-                <TerminalTabsTrigger value="Balances">
-                  Balances
-                </TerminalTabsTrigger>
-                <TerminalTabsTrigger value="OpenOrders">
-                  Open Orders
-                </TerminalTabsTrigger>
-                <TerminalTabsTrigger value="OrderHistory">
-                  Order History
-                </TerminalTabsTrigger>
-                <TerminalTabsTrigger value="Positions">
-                  Positions
-                </TerminalTabsTrigger>
-                <TerminalTabsTrigger value="Transfers">
-                  Transfers
-                </TerminalTabsTrigger>
-                <TerminalTabsTrigger value="Trades">
-                  Recent Trades
-                </TerminalTabsTrigger>
-              </TerminalTabsList>
-            </Tabs>
-          </div>
-
-          <div className="flex items-center gap-4 ml-4">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="currentExchange"
-                checked={showCurrentExchangeOnly}
-                onCheckedChange={(checked) =>
-                  setShowCurrentExchangeOnly(checked as boolean)
-                }
-              />
-              <Label
-                htmlFor="currentExchange"
-                className="text-gray-400 text-sm"
+        <div className="px-4 py-2 border-b border-gray-800">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <Tabs
+                value={activeTab}
+                onValueChange={setActiveTab}
+                className="w-full"
               >
-                {selectedAccount?.exchange || 'Binance'} Only
-              </Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="currentPair"
-                checked={showCurrentPairOnly}
-                onCheckedChange={(checked) =>
-                  setShowCurrentPairOnly(checked as boolean)
-                }
-              />
-              <Label htmlFor="currentPair" className="text-gray-400 text-sm">
-                {selectedPair?.symbol || 'BTC/USDT'} Only
-              </Label>
+                <div className="flex items-center justify-between w-full">
+                  <TerminalTabsList className="flex">
+                    <TerminalTabsTrigger value="Balances">
+                      Balances
+                    </TerminalTabsTrigger>
+                    <TerminalTabsTrigger value="OpenOrders">
+                      Open Orders
+                    </TerminalTabsTrigger>
+                    <TerminalTabsTrigger value="OrderHistory">
+                      Order History
+                    </TerminalTabsTrigger>
+                    <TerminalTabsTrigger value="Positions">
+                      Positions
+                    </TerminalTabsTrigger>
+                    <TerminalTabsTrigger value="Transfers">
+                      Transfers
+                    </TerminalTabsTrigger>
+                    <TerminalTabsTrigger value="Trades">
+                      Recent Trades
+                    </TerminalTabsTrigger>
+                  </TerminalTabsList>
+
+                  <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="currentExchange"
+                        checked={showCurrentExchangeOnly}
+                        onCheckedChange={(checked) =>
+                          setShowCurrentExchangeOnly(checked as boolean)
+                        }
+                      />
+                      <Label
+                        htmlFor="currentExchange"
+                        className="text-gray-400 text-sm"
+                      >
+                        {selectedAccount?.exchange || 'Binance'} Only
+                      </Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="currentPair"
+                        checked={showCurrentPairOnly}
+                        onCheckedChange={(checked) =>
+                          setShowCurrentPairOnly(checked as boolean)
+                        }
+                      />
+                      <Label
+                        htmlFor="currentPair"
+                        className="text-gray-400 text-sm"
+                      >
+                        {selectedPair?.symbol || 'BTC/USDT'} Only
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+              </Tabs>
             </div>
           </div>
         </div>
