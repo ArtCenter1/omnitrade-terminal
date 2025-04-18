@@ -136,14 +136,14 @@ export function AssetRow({ asset }: AssetRowProps) {
           />
         </div>
         <div>
-          <div className="font-medium text-white">
+          <div className="font-medium text-gray-300">
             {asset.name || 'Unknown'}
           </div>
           <div className="text-xs text-gray-400">{asset.symbol || '---'}</div>
         </div>
       </td>
       <td className="py-3 px-2 text-gray-300">
-        <div className="font-medium text-white">
+        <div className="font-medium text-gray-300">
           {isNewAssetType
             ? (asset as Asset).amount !== undefined
               ? (asset as Asset).amount.toFixed(2)

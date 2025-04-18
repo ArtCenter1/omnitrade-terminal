@@ -331,7 +331,7 @@ const Dashboard: React.FC = () => {
                   <Button
                     key={range}
                     variant={activeRange === range ? 'default' : 'outline'}
-                    className={`text-xs px-3 py-1 rounded-full ${activeRange === range ? 'bg-purple-600 text-white' : 'bg-transparent text-gray-400 border-gray-700'}`}
+                    className={`text-xs px-3 py-1 rounded-full ${activeRange === range ? 'bg-purple-600 text-gray-300' : 'bg-transparent text-gray-400 border-gray-700'}`}
                     onClick={() => setActiveRange(range)}
                   >
                     {range}
@@ -398,14 +398,14 @@ const Dashboard: React.FC = () => {
                 <input
                   type="text"
                   placeholder="Search Assets"
-                  className="search-input rounded-full bg-gray-900 border border-gray-700 text-white px-10 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                  className="search-input rounded-full bg-gray-900 border border-gray-700 text-gray-300 px-10 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
                   style={{ minWidth: 180 }}
                 />
               </div>
-              <Button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-xs">
+              <Button className="bg-green-600 hover:bg-green-700 text-gray-300 px-4 py-2 rounded-lg text-xs">
                 DEPOSIT
               </Button>
-              <Button className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-xs">
+              <Button className="bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2 rounded-lg text-xs">
                 WITHDRAW
               </Button>
             </div>
@@ -417,8 +417,8 @@ const Dashboard: React.FC = () => {
                 key={tab.label}
                 className={`pb-2 px-2 text-sm font-medium focus:outline-none border-b-2 transition-colors ${
                   activeTab === tab.label
-                    ? `border-purple-500 text-white`
-                    : `border-transparent text-gray-400 hover:text-white`
+                    ? `border-purple-500 text-gray-300`
+                    : `border-transparent text-gray-400 hover:text-gray-300`
                 }`}
                 onClick={() => setActiveTab(tab.label)}
               >
