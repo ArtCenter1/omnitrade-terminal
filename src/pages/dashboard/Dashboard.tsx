@@ -201,19 +201,40 @@ const Dashboard: React.FC = () => {
             }
           }
 
+          // Helper function to generate random change percentage based on symbol
+          function getRandomChange(symbol: string): string {
+            // Use the symbol to generate a consistent random value
+            const hash = symbol
+              .split('')
+              .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+            const random = Math.sin(hash) * 10;
+            const change = random.toFixed(2);
+            return parseFloat(change) >= 0 ? `+${change}%` : `${change}%`;
+          }
+
           // Use portfolio data from the backend if available
           if (portfolioData && portfolioData.assets.length > 0) {
             // Convert portfolio assets to the format expected by the table
             const newPortfolioAssets: PortfolioTableAsset[] =
-              portfolioData.assets.map((asset) => ({
-                name: asset.asset,
-                symbol: asset.asset,
-                amount: asset.total,
-                value: asset.usdValue,
-                price: asset.usdValue / asset.total,
-                change: selectedAccount?.change || '+0.00%', // Use account change as a placeholder (as string)
-                chartData: generate7DayChartData(asset.asset, isPositive),
-              }));
+              portfolioData.assets.map((asset) => {
+                // Generate a unique change value for each asset based on its symbol
+                const changeValue = getRandomChange(asset.asset);
+                // Determine if this asset has a positive change
+                const assetIsPositive = !changeValue.includes('-');
+
+                return {
+                  name: asset.asset,
+                  symbol: asset.asset,
+                  amount: asset.total,
+                  value: asset.usdValue,
+                  price: asset.usdValue / asset.total,
+                  change: changeValue, // Use unique change for each asset
+                  chartData: generate7DayChartData(
+                    asset.asset,
+                    assetIsPositive,
+                  ), // Match chart direction with change
+                };
+              });
 
             setPortfolioAssets(newPortfolioAssets);
           } else if (!isLoadingPortfolio) {
