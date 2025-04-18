@@ -46,10 +46,12 @@ function BalanceItem({ icon, name, amount, usdValue }: BalanceItemProps) {
 
 interface AvailableBalancesProps {
   selectedPair?: TradingPair;
+  refreshTrigger?: number;
 }
 
 export function AvailableBalances({
   selectedPair,
+  refreshTrigger = 0,
 }: AvailableBalancesProps = {}) {
   const { selectedAccount } = useSelectedAccount();
   const [assets, setAssets] = useState<PortfolioAsset[]>([]);
@@ -120,7 +122,7 @@ export function AvailableBalances({
       }
       setIsLoading(false);
     }
-  }, [selectedAccount]);
+  }, [selectedAccount, refreshTrigger]);
 
   if (isLoading) {
     return (

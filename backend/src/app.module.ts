@@ -16,6 +16,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { PortfolioModule } from './portfolio/portfolio.module';
 import { TradingPairsModule } from './trading-pairs/trading-pairs.module';
+import { OrdersModule } from './orders/orders.module';
 // Determine which auth module to load based on environment variable
 const authProvider = process.env.VITE_AUTH_PROVIDER;
 const authModules = [];
@@ -47,6 +48,7 @@ if (authProvider === 'firebase') {
     ExchangeApiKeyModule,
     PortfolioModule,
     TradingPairsModule,
+    OrdersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -22,7 +22,7 @@ import { ChartSection } from '@/components/terminal/ChartSection';
 import { OrderBook } from '@/components/terminal/OrderBook';
 import { TerminalTabs } from '@/components/terminal/TerminalTabs';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useRef } from 'react';
 import { TradingPair } from '@/components/terminal/TradingPairSelector';
 
 export default function Terminal() {
@@ -37,9 +37,18 @@ export default function Terminal() {
     isFavorite: true,
   });
 
+  // Refresh trigger for components that need to refresh when orders are placed
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
   // Handler for when a trading pair is selected
   const handlePairSelect = (pair: TradingPair) => {
     setSelectedPair(pair);
+  };
+
+  // Handler for when an order is placed
+  const handleOrderPlaced = () => {
+    // Increment the refresh trigger to cause a refresh of components that depend on it
+    setRefreshTrigger((prev) => prev + 1);
   };
 
   return (
@@ -68,7 +77,10 @@ export default function Terminal() {
             {/* Left Trading Sidebar - Fixed Width */}
             <ErrorBoundary>
               <div className="w-[250px] border-r border-gray-800">
-                <TradingSidebar selectedPair={selectedPair} />
+                <TradingSidebar
+                  selectedPair={selectedPair}
+                  onOrderPlaced={handleOrderPlaced}
+                />
               </div>
             </ErrorBoundary>
 
@@ -111,7 +123,10 @@ export default function Terminal() {
             style={{ width: 'calc(100% - 300px)' }}
           >
             <ErrorBoundary>
-              <TerminalTabs selectedPair={selectedPair} />
+              <TerminalTabs
+                selectedPair={selectedPair}
+                refreshTrigger={refreshTrigger}
+              />
             </ErrorBoundary>
           </div>
         </div>

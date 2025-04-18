@@ -333,20 +333,20 @@ const Dashboard: React.FC = () => {
             className="dashboard-card p-0 flex flex-col items-center justify-center overflow-hidden"
             style={{ background: tradingViewBg, aspectRatio: '1/1' }}
           >
-            <h2 className="text-lg font-semibold text-theme-primary mb-2 mt-4 text-center w-full">
+            <h2 className="text-lg font-semibold text-theme-primary mb-1 mt-2 text-center w-full">
               Current Allocations
             </h2>
-            <div className="flex items-center justify-center w-full h-[calc(100%-60px)]">
+            <div className="flex items-center justify-center w-full h-[calc(100%-40px)]">
               <ErrorBoundary
                 fallback={
-                  <div className="h-64 flex items-center justify-center">
+                  <div className="h-full w-full flex items-center justify-center">
                     <p className="text-gray-400">
                       Unable to load allocation chart
                     </p>
                   </div>
                 }
               >
-                <div className="w-full h-full relative">
+                <div className="w-full h-full">
                   <AllocationChart data={allocationData} />
                 </div>
               </ErrorBoundary>

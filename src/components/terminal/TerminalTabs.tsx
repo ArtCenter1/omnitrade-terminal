@@ -8,16 +8,21 @@ import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import { TradingPair } from './TradingPairSelector';
 import { getMockPortfolioData } from '@/mocks/mockPortfolio';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { OrdersTable } from './OrdersTable';
 
 interface TerminalTabsProps {
   selectedPair?: TradingPair;
+  refreshTrigger?: number;
 }
 
 // Define sorting types
 type SortField = 'asset' | 'amount' | 'value' | 'price' | 'change';
 type SortDirection = 'asc' | 'desc';
 
-export function TerminalTabs({ selectedPair }: TerminalTabsProps = {}) {
+export function TerminalTabs({
+  selectedPair,
+  refreshTrigger = 0,
+}: TerminalTabsProps = {}) {
   const [activeTab, setActiveTab] = useState('Balances');
   const [showCurrentExchangeOnly, setShowCurrentExchangeOnly] = useState(true);
   const [showCurrentPairOnly, setShowCurrentPairOnly] = useState(false);
@@ -303,14 +308,11 @@ export function TerminalTabs({ selectedPair }: TerminalTabsProps = {}) {
             </div>
           )}
 
-          {activeTab === 'OpenOrders' && (
-            <div className="text-center py-8 text-gray-400">No open orders</div>
-          )}
-
-          {activeTab === 'OrderHistory' && (
-            <div className="text-center py-8 text-gray-400">
-              No order history
-            </div>
+          {(activeTab === 'OpenOrders' || activeTab === 'OrderHistory') && (
+            <OrdersTable
+              selectedSymbol={selectedPair?.symbol}
+              refreshTrigger={refreshTrigger}
+            />
           )}
 
           {activeTab === 'Positions' && (

@@ -157,8 +157,8 @@ export function AllocationChart({
             data={data}
             cx="50%"
             cy="50%"
-            innerRadius={65}
-            outerRadius={90}
+            innerRadius="40%"
+            outerRadius="80%"
             paddingAngle={1}
             dataKey="value"
             stroke="none" // Remove the white border around segments
@@ -191,7 +191,7 @@ export function AllocationChart({
                 textAnchor="middle"
                 dominantBaseline="middle"
                 style={{
-                  fontSize: '12px',
+                  fontSize: '0.8rem',
                   fontWeight: 'normal',
                   fill: '#999',
                   letterSpacing: '1px',
@@ -208,7 +208,7 @@ export function AllocationChart({
                 textAnchor="middle"
                 dominantBaseline="middle"
                 style={{
-                  fontSize: '18px',
+                  fontSize: '1.2rem',
                   fontWeight: 'bold',
                   fill: '#fff',
                 }}

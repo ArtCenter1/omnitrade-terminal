@@ -22,11 +22,11 @@ const PortfolioIndicator = ({
 }: PortfolioIndicatorProps) => {
   return (
     <div className="flex flex-col">
-      <div className="text-xs text-gray-400 uppercase mb-1">{title}</div>
+      <div className="text-xs text-gray-400 uppercase mb-0">{title}</div>
       <div className="text-xl font-bold text-white">{value}</div>
       <div
         className={cn(
-          'flex items-center text-sm mt-1',
+          'flex items-center text-sm mt-0',
           isPositive ? 'text-crypto-green' : 'text-crypto-red',
         )}
       >
@@ -139,7 +139,7 @@ export function PortfolioIndicators() {
       // Create the new portfolio data
       const newData = {
         value: formattedValue,
-        change: isPositive ? `+${change}` : `-${change}`,
+        change: change, // Just use the formatted change without adding +/- prefix
         changePercent: Math.abs(changePercent).toFixed(2),
         isPositive,
       };
@@ -184,15 +184,13 @@ export function PortfolioIndicators() {
 
   return (
     <ErrorBoundary>
-      <div className="flex justify-between items-center mb-6 px-1">
+      <div className="flex justify-between items-center mb-2 px-1">
         <PortfolioIndicator
           title="Portfolio Value (USD)"
-          value={displayData.value}
-          change={
-            displayData.isPositive
-              ? `+${displayData.change}`
-              : `-${displayData.change}`
+          value={
+            displayData.isPositive ? `+${displayData.value}` : displayData.value
           }
+          change={displayData.change}
           isPositive={displayData.isPositive}
         />
 
@@ -200,14 +198,10 @@ export function PortfolioIndicators() {
           title="24h Change (USD)"
           value={
             displayData.isPositive
-              ? `+${displayData.change}`
-              : `-${displayData.change}`
+              ? `+$${displayData.change.replace('$', '')}`
+              : `-$${displayData.change.replace('$', '')}`
           }
-          change={
-            displayData.isPositive
-              ? `+${displayData.change}`
-              : `-${displayData.change}`
-          }
+          change={displayData.change}
           isPositive={displayData.isPositive}
         />
 
