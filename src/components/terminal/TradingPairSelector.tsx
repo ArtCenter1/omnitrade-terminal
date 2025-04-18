@@ -15,9 +15,9 @@ import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import {
   getTradingPairs,
-  getQuoteAssets,
-  toggleFavoritePair,
-} from '@/services/tradingPairService';
+  subscribeToPriceUpdates,
+  TradingPair as BackendTradingPair,
+} from '../../services/tradingPairsService';
 
 // Define the trading pair interface
 export interface TradingPair {
@@ -28,6 +28,7 @@ export interface TradingPair {
   change24h: string;
   volume24h: string;
   isFavorite?: boolean;
+  exchangeId?: string;
 }
 
 interface TradingPairSelectorProps {
@@ -53,18 +54,22 @@ export function TradingPairSelector({
   const [isLoading, setIsLoading] = useState(false);
   const { selectedAccount } = useSelectedAccount();
 
-  // Get available quote assets for the selected exchange
-  const [availableQuoteAssets, setAvailableQuoteAssets] = useState<string[]>(
-    [],
-  );
+  // Available quote assets
+  const [availableQuoteAssets, setAvailableQuoteAssets] = useState<string[]>([
+    'USDT',
+    'USD',
+    'BTC',
+    'ETH',
+  ]);
 
   // Update available quote assets when the selected account changes
   useEffect(() => {
-    const exchangeId = selectedAccount?.exchange || 'binance';
-    const assets = getQuoteAssets(exchangeId);
+    // For now, we'll use a static list of quote assets
+    // In the future, we could fetch this from the backend
+    const assets = ['USDT', 'USD', 'BTC', 'ETH'];
     setAvailableQuoteAssets(assets);
 
-    // If the current active quote asset is not available for this exchange,
+    // If the current active quote asset is not available,
     // switch to the first available one
     if (!assets.includes(activeQuoteAsset)) {
       setActiveQuoteAsset(assets[0] || 'USDT');
@@ -77,8 +82,26 @@ export function TradingPairSelector({
       setIsLoading(true);
       try {
         const exchangeId = selectedAccount?.exchange || 'binance';
-        const pairs = await getTradingPairs(exchangeId, activeQuoteAsset);
-        setFilteredPairs(pairs);
+        const backendPairs = await getTradingPairs(exchangeId);
+
+        // Filter pairs by the active quote asset
+        const filteredByQuote = backendPairs.filter(
+          (pair) => pair.quoteAsset === activeQuoteAsset,
+        );
+
+        // Convert backend pairs to frontend format
+        const frontendPairs: TradingPair[] = filteredByQuote.map((pair) => ({
+          symbol: pair.symbol,
+          baseAsset: pair.baseAsset,
+          quoteAsset: pair.quoteAsset,
+          price: pair.price?.toString() || '0.00',
+          change24h: '+0.00%', // We'll update this with real data later
+          volume24h: '0', // We'll update this with real data later
+          isFavorite: false,
+          exchangeId: pair.exchangeId,
+        }));
+
+        setFilteredPairs(frontendPairs);
       } catch (error) {
         console.error('Error fetching trading pairs:', error);
         setFilteredPairs([]);
@@ -92,37 +115,23 @@ export function TradingPairSelector({
 
   // Filter pairs based on search query
   useEffect(() => {
-    const fetchAndFilterPairs = async () => {
-      if (!searchQuery) return; // Skip if no search query
+    if (!searchQuery) return; // Skip if no search query
 
-      setIsLoading(true);
-      try {
-        const exchangeId = selectedAccount?.exchange || 'binance';
-        // Get all pairs from all quote assets for searching
-        const allPairs = [];
-        for (const asset of availableQuoteAssets) {
-          const pairs = await getTradingPairs(exchangeId, asset);
-          allPairs.push(...pairs);
-        }
-
-        const query = searchQuery.toLowerCase();
-        const filtered = allPairs.filter(
-          (pair) =>
-            pair.symbol.toLowerCase().includes(query) ||
-            pair.baseAsset.toLowerCase().includes(query),
-        );
-        setFilteredPairs(filtered);
-      } catch (error) {
-        console.error('Error filtering trading pairs:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (searchQuery) {
-      fetchAndFilterPairs();
+    setIsLoading(true);
+    try {
+      const query = searchQuery.toLowerCase();
+      const filtered = filteredPairs.filter(
+        (pair) =>
+          pair.symbol.toLowerCase().includes(query) ||
+          pair.baseAsset.toLowerCase().includes(query),
+      );
+      setFilteredPairs(filtered);
+    } catch (error) {
+      console.error('Error filtering trading pairs:', error);
+    } finally {
+      setIsLoading(false);
     }
-  }, [searchQuery, selectedAccount]);
+  }, [searchQuery]);
 
   // Handle pair selection
   const handlePairSelect = (pair: TradingPair) => {
@@ -138,8 +147,8 @@ export function TradingPairSelector({
   ) => {
     event.stopPropagation();
     try {
-      const exchangeId = selectedAccount?.exchange || 'binance';
-      const isFavorite = await toggleFavoritePair(exchangeId, pair.symbol);
+      // Toggle the favorite status locally
+      const isFavorite = !pair.isFavorite;
 
       // Update the pair in the filtered list
       setFilteredPairs((prevPairs) =>
@@ -152,6 +161,9 @@ export function TradingPairSelector({
       if (selectedPair.symbol === pair.symbol) {
         setSelectedPair((prev) => ({ ...prev, isFavorite }));
       }
+
+      // In a real implementation, we would save this to the backend
+      // For now, we'll just update the local state
     } catch (error) {
       console.error('Error toggling favorite:', error);
     }

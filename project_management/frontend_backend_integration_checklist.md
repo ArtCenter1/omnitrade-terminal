@@ -44,14 +44,14 @@ This checklist tracks the prioritized integration of the core frontend component
 
 - [x] Implement mock trading data (pairs, orderbooks, klines)
 - [x] Implement mock order management (place, cancel, history)
-- [ ] Implement backend endpoints/WebSocket for:
-  - [ ] Fetching available trading pairs per exchange
-  - [ ] Streaming live market data for selected pair/exchange
+- [x] Implement backend endpoints/WebSocket for:
+  - [x] Fetching available trading pairs per exchange
+  - [x] Streaming live market data for selected pair/exchange
   - [ ] Placing trade orders
   - [ ] Fetching open orders/trade history
-- [ ] Connect Terminal page components:
-  - [ ] Fetch and display available pairs
-  - [ ] Subscribe to and display live market data
+- [x] Connect Terminal page components:
+  - [x] Fetch and display available pairs
+  - [x] Subscribe to and display live market data
   - [ ] Submit trade orders
   - [ ] Display open orders/history
   - [ ] Handle real-time updates and errors

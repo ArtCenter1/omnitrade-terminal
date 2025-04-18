@@ -1,0 +1,185 @@
+import axios from 'axios';
+import { io, Socket } from 'socket.io-client';
+
+// Create an axios instance with default config
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Define the TradingPair interface
+export interface TradingPair {
+  symbol: string;
+  baseAsset: string;
+  quoteAsset: string;
+  exchangeId: string;
+  priceDecimals: number;
+  quantityDecimals: number;
+  minQuantity?: number;
+  maxQuantity?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  minNotional?: number;
+  price?: string;
+  change24h?: string;
+  volume24h?: string;
+  isFavorite?: boolean;
+}
+
+// Cache for trading pairs
+const tradingPairsCache = new Map<string, TradingPair[]>();
+
+// Socket.io connection for real-time price updates
+let socket: Socket | null = null;
+const priceUpdateCallbacks = new Map<string, Set<(price: string) => void>>();
+
+/**
+ * Initialize the Socket.io connection
+ */
+export const initializeTradingSocket = (): Socket => {
+  if (socket) return socket;
+
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  socket = io(`${apiUrl}/trading`, {
+    transports: ['websocket'],
+    autoConnect: true,
+  });
+
+  socket.on('connect', () => {
+    console.log('Connected to trading socket');
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Disconnected from trading socket');
+  });
+
+  socket.on('connect_error', (error) => {
+    console.error('Socket connection error:', error);
+  });
+
+  // Set up listeners for price updates
+  socket.onAny((event, data) => {
+    if (event.startsWith('price:')) {
+      const key = event.substring(6); // Remove 'price:' prefix
+      const callbacks = priceUpdateCallbacks.get(key);
+      if (callbacks) {
+        callbacks.forEach((callback) => callback(data.price));
+      }
+    }
+  });
+
+  return socket;
+};
+
+/**
+ * Subscribe to price updates for a trading pair
+ */
+export const subscribeToPriceUpdates = (
+  exchangeId: string,
+  symbol: string,
+  callback: (price: string) => void,
+): (() => void) => {
+  const key = `${exchangeId}:${symbol}`;
+
+  // Initialize socket if not already done
+  const socketInstance = initializeTradingSocket();
+
+  // Add callback to the set
+  if (!priceUpdateCallbacks.has(key)) {
+    priceUpdateCallbacks.set(key, new Set());
+  }
+  priceUpdateCallbacks.get(key)?.add(callback);
+
+  // Subscribe to updates
+  socketInstance.emit('subscribe', { exchangeId, symbol });
+
+  // Return unsubscribe function
+  return () => {
+    const callbacks = priceUpdateCallbacks.get(key);
+    if (callbacks) {
+      callbacks.delete(callback);
+      if (callbacks.size === 0) {
+        priceUpdateCallbacks.delete(key);
+        socketInstance.emit('unsubscribe', { exchangeId, symbol });
+      }
+    }
+  };
+};
+
+/**
+ * Get all trading pairs for a specific exchange
+ */
+export const getTradingPairs = async (
+  exchangeId: string,
+): Promise<TradingPair[]> => {
+  try {
+    // Check cache first
+    if (tradingPairsCache.has(exchangeId)) {
+      return tradingPairsCache.get(exchangeId) || [];
+    }
+
+    // Fetch from API
+    const response = await api.get<TradingPair[]>(
+      `/trading-pairs/${exchangeId}`,
+    );
+    const pairs = response.data;
+
+    // Update cache
+    tradingPairsCache.set(exchangeId, pairs);
+
+    return pairs;
+  } catch (error) {
+    console.error('Error fetching trading pairs:', error);
+    return [];
+  }
+};
+
+/**
+ * Get a specific trading pair by symbol and exchange
+ */
+export const getTradingPair = async (
+  exchangeId: string,
+  symbol: string,
+): Promise<TradingPair | null> => {
+  try {
+    // Check cache first
+    const cachedPairs = tradingPairsCache.get(exchangeId);
+    if (cachedPairs) {
+      const cachedPair = cachedPairs.find((pair) => pair.symbol === symbol);
+      if (cachedPair) return cachedPair;
+    }
+
+    // Fetch from API
+    const response = await api.get<TradingPair>(
+      `/trading-pairs/${exchangeId}/${symbol}`,
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching trading pair:', error);
+    return null;
+  }
+};
+
+/**
+ * Get all trading pairs for all exchanges
+ */
+export const getAllTradingPairs = async (): Promise<
+  Record<string, TradingPair[]>
+> => {
+  try {
+    const response =
+      await api.get<Record<string, TradingPair[]>>('/trading-pairs');
+
+    // Update cache for each exchange
+    Object.entries(response.data).forEach(([exchangeId, pairs]) => {
+      tradingPairsCache.set(exchangeId, pairs);
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching all trading pairs:', error);
+    return {};
+  }
+};
