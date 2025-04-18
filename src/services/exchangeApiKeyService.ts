@@ -20,6 +20,10 @@ export interface ExchangeApiKey {
   is_valid?: boolean;
 }
 
+export interface UpdateExchangeApiKeyDto {
+  key_nickname: string;
+}
+
 export interface TestApiKeyResponse {
   success: boolean;
   message: string;
@@ -170,6 +174,75 @@ export async function listExchangeApiKeys(): Promise<ExchangeApiKey[]> {
     }
   } catch (error) {
     console.error('Error in listExchangeApiKeys:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update an exchange API key
+ */
+export async function updateExchangeApiKey(
+  apiKeyId: string,
+  dto: UpdateExchangeApiKeyDto,
+): Promise<ExchangeApiKey> {
+  try {
+    // In development mode, bypass authentication
+    let headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // In production, add authentication
+    if (import.meta.env.PROD) {
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('User not authenticated.');
+      }
+      const token = await user.getIdToken();
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    console.log(
+      `Updating exchange API key ${apiKeyId} with nickname ${dto.key_nickname}`,
+    );
+
+    // Use a timeout to prevent hanging requests
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+    try {
+      // Send PATCH request to update the API key
+      const response = await fetch(`/api/exchange-api-keys/${apiKeyId}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify(dto),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      console.log('Update response status:', response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Error response:', errorData);
+        throw new Error(
+          errorData.message || 'Failed to update exchange API key',
+        );
+      }
+
+      const data = await response.json();
+      console.log('Updated API key:', data);
+      return data;
+    } catch (fetchError) {
+      if (fetchError.name === 'AbortError') {
+        throw new Error('Request timed out after 10 seconds');
+      }
+      throw fetchError;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  } catch (error) {
+    console.error('Error in updateExchangeApiKey:', error);
     throw error;
   }
 }

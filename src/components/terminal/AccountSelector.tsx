@@ -14,7 +14,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import {
   ExchangeAccount,
-  exchangeAccounts,
+  getExchangeAccounts,
 } from '@/mocks/mockExchangeAccounts';
 
 export function AccountSelector() {
@@ -39,8 +39,11 @@ export function AccountSelector() {
         return;
       }
 
+      // Get the latest accounts using the function to ensure we have the latest data
+      const allAccounts = getExchangeAccounts();
+
       // Filter accounts for the current exchange
-      const accounts = exchangeAccounts.filter(
+      const accounts = allAccounts.filter(
         (account) =>
           account.exchangeId?.toLowerCase() ===
           selectedAccount.exchangeId?.toLowerCase(),
@@ -53,6 +56,40 @@ export function AccountSelector() {
       );
       setAccountsForExchange(accounts);
     }
+  }, [selectedAccount]);
+
+  // Listen for API key updates to refresh the account list
+  useEffect(() => {
+    const handleApiKeyUpdated = (e: CustomEvent) => {
+      console.log(
+        'API key updated event received, refreshing account selector data',
+      );
+      if (selectedAccount) {
+        // Get the latest accounts
+        const allAccounts = getExchangeAccounts();
+
+        // Filter accounts for the current exchange
+        const accounts = allAccounts.filter(
+          (account) =>
+            account.exchangeId?.toLowerCase() ===
+            selectedAccount.exchangeId?.toLowerCase(),
+        );
+
+        setAccountsForExchange(accounts);
+      }
+    };
+
+    window.addEventListener(
+      'apiKeyUpdated',
+      handleApiKeyUpdated as EventListener,
+    );
+
+    return () => {
+      window.removeEventListener(
+        'apiKeyUpdated',
+        handleApiKeyUpdated as EventListener,
+      );
+    };
   }, [selectedAccount]);
 
   // If no account is selected, show empty state

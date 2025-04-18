@@ -279,44 +279,47 @@ export function getMockPortfolioData(apiKeyId?: string): {
   let exchangeId = 'binance'; // Default
 
   try {
-    // First try to get the exchange API keys from the mock data in handlers.ts
-    // This is stored in memory and is the most up-to-date
-    const mockApiKeys = [
-      {
-        api_key_id: 'mock-key-1',
-        exchange_id: 'kraken',
-        key_nickname: 'kraken',
-      },
-      {
-        api_key_id: 'mock-key-2',
-        exchange_id: 'binance',
-        key_nickname: 'binance artcenter1',
-      },
-      {
-        api_key_id: 'mock-key-3',
-        exchange_id: 'coinbase',
-        key_nickname: 'Coinbase 123',
-      },
-    ];
+    // Always try to get the exchange API keys from localStorage first
+    // This is the most up-to-date source
+    const savedKeys = localStorage.getItem('exchange_api_keys');
+    if (savedKeys) {
+      const apiKeys = JSON.parse(savedKeys);
+      const apiKey = apiKeys.find((key: any) => key.api_key_id === apiKeyId);
+      if (apiKey) {
+        exchangeId = apiKey.exchange_id;
+        console.log(
+          `Found exchange ID ${exchangeId} for API key ${apiKeyId} in localStorage`,
+        );
+      }
+    }
 
-    const mockApiKey = mockApiKeys.find((key) => key.api_key_id === apiKeyId);
-    if (mockApiKey) {
-      exchangeId = mockApiKey.exchange_id;
-      console.log(
-        `Found exchange ID ${exchangeId} for API key ${apiKeyId} in mock data`,
-      );
-    } else {
-      // If not found in mock data, try localStorage as a fallback
-      const savedKeys = localStorage.getItem('exchange_api_keys');
-      if (savedKeys) {
-        const apiKeys = JSON.parse(savedKeys);
-        const apiKey = apiKeys.find((key: any) => key.api_key_id === apiKeyId);
-        if (apiKey) {
-          exchangeId = apiKey.exchange_id;
-          console.log(
-            `Found exchange ID ${exchangeId} for API key ${apiKeyId} in localStorage`,
-          );
-        }
+    // If not found in localStorage, fall back to default mock data
+    if (exchangeId === 'binance') {
+      // Default mock data as fallback
+      const mockApiKeys = [
+        {
+          api_key_id: 'mock-key-1',
+          exchange_id: 'kraken',
+          key_nickname: 'Kraken Main',
+        },
+        {
+          api_key_id: 'mock-key-2',
+          exchange_id: 'binance',
+          key_nickname: 'Binance Artcenter1',
+        },
+        {
+          api_key_id: 'mock-key-3',
+          exchange_id: 'coinbase',
+          key_nickname: 'Coinbase Pro',
+        },
+      ];
+
+      const mockApiKey = mockApiKeys.find((key) => key.api_key_id === apiKeyId);
+      if (mockApiKey) {
+        exchangeId = mockApiKey.exchange_id;
+        console.log(
+          `Found exchange ID ${exchangeId} for API key ${apiKeyId} in default mock data`,
+        );
       }
     }
   } catch (error) {

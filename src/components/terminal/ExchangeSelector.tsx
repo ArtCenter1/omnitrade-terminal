@@ -31,7 +31,11 @@ export function ExchangeSelector() {
   const { selectedAccount, setSelectedAccount } = useSelectedAccount();
 
   // Fetch the user's exchange API keys
-  const { data: apiKeys, isLoading } = useQuery({
+  const {
+    data: apiKeys,
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ['exchangeApiKeys'],
     queryFn: listExchangeApiKeys,
     onSuccess: (data) => {
@@ -60,6 +64,41 @@ export function ExchangeSelector() {
     },
   });
 
+  // Listen for localStorage changes and API key updates to refresh data
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      console.log(
+        `Storage changed (${e.key}), refreshing exchange selector data`,
+      );
+      // Only refresh if the exchange_api_keys were updated
+      if (e.key === 'exchange_api_keys' || e.key === null) {
+        refetch();
+      }
+    };
+
+    // Handle API key updates
+    const handleApiKeyUpdated = (e: CustomEvent) => {
+      console.log(
+        'API key updated event received, refreshing exchange selector data',
+      );
+      refetch();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener(
+      'apiKeyUpdated',
+      handleApiKeyUpdated as EventListener,
+    );
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener(
+        'apiKeyUpdated',
+        handleApiKeyUpdated as EventListener,
+      );
+    };
+  }, [refetch]);
+
   // Initialize the selected account only once
   useEffect(() => {
     // Only run this effect when localAccounts changes and we haven't initialized yet
@@ -76,6 +115,8 @@ export function ExchangeSelector() {
       setInitialized(true);
     }
   }, [initialized, localAccounts, selectedAccount, setSelectedAccount]);
+
+  // We already have a storage event listener above
 
   // Handle Portfolio Overview case
   useEffect(() => {

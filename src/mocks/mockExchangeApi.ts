@@ -9,7 +9,7 @@ let mockApiKeys = [
   {
     api_key_id: 'mock-key-1',
     exchange_id: 'kraken',
-    key_nickname: 'kraken', // Match the exact label from the account list
+    key_nickname: 'Kraken Main', // Match the exact label from the account list
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     is_valid: true,
@@ -17,7 +17,7 @@ let mockApiKeys = [
   {
     api_key_id: 'mock-key-2',
     exchange_id: 'binance',
-    key_nickname: 'binance artcenter1', // Match the exact label from the account list
+    key_nickname: 'Binance Artcenter1', // Match the exact label from the account list
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     is_valid: true,
@@ -25,7 +25,7 @@ let mockApiKeys = [
   {
     api_key_id: 'mock-key-3',
     exchange_id: 'coinbase',
-    key_nickname: 'Coinbase 123', // Match the exact label from the account list
+    key_nickname: 'Coinbase Pro', // Match the exact label from the account list
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     is_valid: true,
