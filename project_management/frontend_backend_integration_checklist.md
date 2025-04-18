@@ -32,11 +32,11 @@ This checklist tracks the prioritized integration of the core frontend component
 ## Phase 2: Portfolio Display
 
 - [x] Implement mock portfolio data generation
-- [ ] Implement backend API endpoint to fetch and aggregate user portfolio data from all connected exchanges
-- [ ] Connect Dashboard page and components to portfolio endpoint:
-  - [ ] Fetch and display portfolio data
-  - [ ] Display asset breakdown and charts
-  - [ ] Handle loading and error states
+- [x] Implement backend API endpoint to fetch and aggregate user portfolio data from all connected exchanges
+- [x] Connect Dashboard page and components to portfolio endpoint:
+  - [x] Fetch and display portfolio data
+  - [x] Display asset breakdown and charts
+  - [x] Handle loading and error states
 
 ---
 

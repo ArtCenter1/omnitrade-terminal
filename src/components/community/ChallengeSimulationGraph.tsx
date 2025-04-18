@@ -1,12 +1,12 @@
-import React from "react";
+import React from 'react';
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import {
   LineChart,
   Line,
@@ -16,7 +16,8 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-} from "recharts";
+} from 'recharts';
+import '@/styles/community-charts.css';
 
 // Placeholder state for simulation results
 interface ChallengeResult {
@@ -46,7 +47,7 @@ export function ChallengeSimulationGraph() {
   let opponentCumulativePnl = 0;
 
   const simulationData = [
-    { month: "Start", userPnl: 0, opponentPnl: 0 }, // Start point
+    { month: 'Start', userPnl: 0, opponentPnl: 0 }, // Start point
     ...userMonthlyPnl.map((pnl, index) => {
       userCumulativePnl += pnl;
       opponentCumulativePnl += opponentMonthlyPnl[index];
@@ -59,22 +60,26 @@ export function ChallengeSimulationGraph() {
   ];
 
   return (
-    <Card>
+    <Card className="community-card">
       <CardHeader>
         <CardTitle>Head-to-Head Challenge</CardTitle>
         <CardDescription>
           {challengeResult
             ? `Simulation vs ${challengeResult.opponentName}`
-            : "Challenge a user from the leaderboard."}
+            : 'Challenge a user from the leaderboard.'}
         </CardDescription>
       </CardHeader>
-      <CardContent className="h-64 flex flex-col justify-between items-center overflow-hidden">
-        {" "}
+      <CardContent className="h-64 flex flex-col justify-between items-center overflow-hidden community-chart-container">
+        {' '}
         {/* Adjust height & layout, center items */}
         {challengeResult ? (
           <div className="flex-grow w-full flex items-center justify-center">
             {/* Recharts Graph */}
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
+              className="community-bar-chart"
+            >
               <LineChart
                 data={simulationData} // Use the new simulation data
                 margin={{
@@ -88,15 +93,15 @@ export function ChallengeSimulationGraph() {
                 <XAxis dataKey="month" /> {/* X-axis is now month */}
                 <YAxis
                   label={{
-                    value: "Cumulative PnL (USDT)",
+                    value: 'Cumulative PnL (USDT)',
                     angle: -90,
-                    position: "insideLeft",
+                    position: 'insideLeft',
                   }}
-                />{" "}
+                />{' '}
                 {/* Y-axis is PnL */}
                 <Tooltip
                   formatter={(value: number) => `${value.toFixed(2)} USDT`}
-                />{" "}
+                />{' '}
                 {/* Format tooltip */}
                 <Legend />
                 {/* Use userPnl and opponentPnl data keys */}
@@ -111,7 +116,7 @@ export function ChallengeSimulationGraph() {
                   type="monotone"
                   dataKey="opponentPnl"
                   stroke="#82ca9d"
-                  name={`${challengeResult?.opponentName || "Opponent"} PnL`}
+                  name={`${challengeResult?.opponentName || 'Opponent'} PnL`}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -126,7 +131,7 @@ export function ChallengeSimulationGraph() {
           variant="outline"
           size="sm"
           className="mt-2"
-          onClick={() => simulateChallenge("CryptoKing")}
+          onClick={() => simulateChallenge('CryptoKing')}
         >
           Test Simulate vs CryptoKing
         </Button>

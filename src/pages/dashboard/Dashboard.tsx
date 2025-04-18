@@ -4,15 +4,16 @@ import { PerformanceChart } from '@/components/PerformanceChart';
 import { AllocationChart } from '@/components/AllocationChart';
 import { AssetRow } from '@/components/AssetRow';
 import { Button } from '@/components/ui/button';
-import { Search } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
+import { usePortfolioData } from '@/hooks/usePortfolioData';
 import {
   generatePerformanceData,
   generateAllocationData,
-  generatePortfolioTableData,
   PortfolioTableAsset,
 } from '@/utils/portfolioDataUtils';
+import { generatePriceChartData } from '@/lib/utils';
 // Import the ExchangeAdapterExample component with React.lazy for code splitting
 const ExchangeAdapterExample = React.lazy(
   () => import('@/components/examples/ExchangeAdapterExample'),
@@ -95,6 +96,13 @@ const Dashboard: React.FC = () => {
     useState<PortfolioTableAsset[]>(mockAssets);
   const [isPositive, setIsPositive] = useState(false); // Default to negative to match reference
 
+  // Fetch portfolio data from the backend
+  const {
+    data: portfolioData,
+    isLoading: isLoadingPortfolio,
+    error: portfolioError,
+  } = usePortfolioData(selectedAccount?.exchangeId, selectedAccount?.apiKeyId);
+
   // Update chart data when selected account or time range changes
   useEffect(() => {
     const updateData = async () => {
@@ -127,35 +135,88 @@ const Dashboard: React.FC = () => {
             );
           }
 
-          // Generate new allocation data based on the selected account
-          const newAllocationData = generateAllocationData(selectedAccount);
+          // Generate new allocation data based on the portfolio data if available
+          if (portfolioData && portfolioData.assets.length > 0) {
+            // Convert portfolio assets to allocation data format
+            const newAllocationData = portfolioData.assets.map(
+              (asset, index) => {
+                // Calculate percentage of total portfolio
+                const percentage =
+                  (asset.usdValue / portfolioData.totalUsdValue) * 100;
+                // Format USD value for display
+                const formattedValue = new Intl.NumberFormat('en-US', {
+                  style: 'currency',
+                  currency: 'USD',
+                }).format(asset.usdValue);
 
-          // Only update if we got valid data
-          if (newAllocationData && newAllocationData.length > 0) {
+                // Get a color based on the asset symbol
+                const colors = [
+                  '#8884d8',
+                  '#82ca9d',
+                  '#ffc658',
+                  '#ff8042',
+                  '#a4de6c',
+                  '#d0ed57',
+                ];
+                const color = colors[index % colors.length];
+
+                return {
+                  name: asset.asset,
+                  value: Math.round(percentage),
+                  color: color,
+                  usdValue: formattedValue,
+                  price: (asset.usdValue / asset.total).toFixed(2),
+                  amount: asset.total.toFixed(8),
+                  symbol: asset.asset,
+                  displayName: asset.asset,
+                };
+              },
+            );
+
+            // Sort by value (largest first)
+            newAllocationData.sort((a, b) => b.value - a.value);
+
+            // Add total portfolio value to the first item for display in the center
+            if (newAllocationData.length > 0) {
+              newAllocationData[0].totalPortfolioValue =
+                portfolioData.totalUsdValue.toFixed(2);
+            }
+
             setAllocationData(newAllocationData);
           } else {
-            console.warn(
-              'Using default allocation data for account:',
-              selectedAccount.name,
-            );
-          }
+            // Use generated allocation data as fallback
+            const newAllocationData = generateAllocationData(selectedAccount);
 
-          // Generate new portfolio table data based on the selected account
-          try {
-            const newPortfolioAssets =
-              await generatePortfolioTableData(selectedAccount);
-
-            // Only update if we got valid data
-            if (newPortfolioAssets && newPortfolioAssets.length > 0) {
-              setPortfolioAssets(newPortfolioAssets);
+            if (newAllocationData && newAllocationData.length > 0) {
+              setAllocationData(newAllocationData);
             } else {
               console.warn(
-                'Using default portfolio assets for account:',
+                'Using default allocation data for account:',
                 selectedAccount.name,
               );
             }
-          } catch (error) {
-            console.error('Error fetching portfolio assets:', error);
+          }
+
+          // Use portfolio data from the backend if available
+          if (portfolioData && portfolioData.assets.length > 0) {
+            // Convert portfolio assets to the format expected by the table
+            const newPortfolioAssets: PortfolioTableAsset[] =
+              portfolioData.assets.map((asset) => ({
+                name: asset.asset,
+                symbol: asset.asset,
+                amount: asset.total,
+                value: asset.usdValue,
+                price: asset.usdValue / asset.total,
+                change: selectedAccount?.change || '+0.00%', // Use account change as a placeholder (as string)
+                chartData: generatePriceChartData(asset.asset, isPositive),
+              }));
+
+            setPortfolioAssets(newPortfolioAssets);
+          } else if (!isLoadingPortfolio) {
+            console.warn(
+              'Using default portfolio assets for account:',
+              selectedAccount.name,
+            );
           }
 
           // Determine if the change is positive based on the account's change value
@@ -168,7 +229,7 @@ const Dashboard: React.FC = () => {
     };
 
     updateData();
-  }, [selectedAccount, activeRange]);
+  }, [selectedAccount, activeRange, portfolioData, isLoadingPortfolio]);
 
   // Error boundary effect
   useEffect(() => {
@@ -354,24 +415,52 @@ const Dashboard: React.FC = () => {
           >
             {activeTab === 'Balances' && (
               <div className="overflow-x-auto">
-                <table className="portfolio-table w-full">
-                  <thead>
-                    <tr>
-                      <th>Asset</th>
-                      <th>Amount</th>
-                      <th>Value (USD)</th>
-                      <th>Last Price</th>
-                      <th>24h Change</th>
-                      <th>7d Chart</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {portfolioAssets.map((asset, idx) => (
-                      <AssetRow key={asset.symbol + idx} asset={asset} />
-                    ))}
-                  </tbody>
-                </table>
+                {isLoadingPortfolio ? (
+                  <div className="flex justify-center items-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+                    <span className="ml-2 text-gray-400">
+                      Loading portfolio data...
+                    </span>
+                  </div>
+                ) : portfolioError ? (
+                  <div className="text-center py-8">
+                    <p className="text-red-500 mb-2">
+                      Error loading portfolio data
+                    </p>
+                    <p className="text-gray-400">{portfolioError.toString()}</p>
+                  </div>
+                ) : (
+                  <table className="portfolio-table w-full">
+                    <thead>
+                      <tr>
+                        <th>Asset</th>
+                        <th>Amount</th>
+                        <th>Value (USD)</th>
+                        <th>Last Price</th>
+                        <th>24h Change</th>
+                        <th>7d Chart</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {portfolioAssets.length > 0 ? (
+                        portfolioAssets.map((asset, idx) => (
+                          <AssetRow key={asset.symbol + idx} asset={asset} />
+                        ))
+                      ) : (
+                        <tr>
+                          <td
+                            colSpan={7}
+                            className="text-center py-8 text-gray-400"
+                          >
+                            No assets found. Connect an exchange to see your
+                            portfolio.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                )}
               </div>
             )}
             {activeTab !== 'Balances' && (

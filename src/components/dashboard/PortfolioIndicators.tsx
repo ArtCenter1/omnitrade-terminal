@@ -2,7 +2,7 @@ import { ArrowDownRight, ArrowUpRight, Loader2 } from 'lucide-react';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { cn } from '@/lib/utils';
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
-import { getMockPortfolioData } from '@/mocks/mockPortfolio';
+import { usePortfolioData } from '@/hooks/usePortfolioData';
 import { useEffect, useState, useRef } from 'react';
 
 interface PortfolioIndicatorProps {
@@ -47,9 +47,22 @@ const PortfolioIndicator = ({
 export function PortfolioIndicators() {
   // Get the selected account
   const { selectedAccount } = useSelectedAccount();
-  const previousApiKeyIdRef = useRef<string | null>(null);
 
-  const [portfolioData, setPortfolioData] = useState<{
+  // Fetch portfolio data from the backend
+  const {
+    data: portfolioData,
+    isLoading,
+    error,
+  } = usePortfolioData(selectedAccount?.exchangeId, selectedAccount?.apiKeyId);
+
+  // Log any errors for debugging
+  useEffect(() => {
+    if (error) {
+      console.error('Portfolio data fetch error:', error);
+    }
+  }, [error]);
+
+  const [displayData, setDisplayData] = useState<{
     value: string;
     change: string;
     changePercent: string;
@@ -61,78 +74,110 @@ export function PortfolioIndicators() {
     isPositive: false,
   });
 
-  // Load portfolio data when the selected account changes
+  // Update display data when portfolio data changes
   useEffect(() => {
     // Skip if no account is selected
     if (!selectedAccount) {
-      console.log('No account selected, using default portfolio data');
       return;
     }
 
-    // Skip if the apiKeyId hasn't changed
-    if (previousApiKeyIdRef.current === selectedAccount.apiKeyId) return;
-
-    // Update the ref to the current apiKeyId
-    previousApiKeyIdRef.current = selectedAccount.apiKeyId;
-
-    console.log('Loading portfolio data for account:', selectedAccount.name);
+    console.log(
+      'Updating portfolio indicators for account:',
+      selectedAccount.name,
+      'Portfolio data available:',
+      !!portfolioData,
+    );
 
     try {
-      // Get mock portfolio data for the selected account
-      const { data } = getMockPortfolioData(selectedAccount.apiKeyId);
-
-      if (data) {
-        // Format the portfolio value
-        const value = new Intl.NumberFormat('en-US', {
+      // If we have portfolio data, use it for the value
+      // Otherwise, use the value from the selected account
+      let formattedValue;
+      if (portfolioData && typeof portfolioData.totalUsdValue === 'number') {
+        formattedValue = new Intl.NumberFormat('en-US', {
           style: 'currency',
           currency: 'USD',
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,
-        }).format(data.totalUsdValue);
-
-        // Extract the change percentage from the account
-        // Add safety checks for null/undefined values
-        const changePercentStr = selectedAccount.change
-          ? selectedAccount.change.replace('%', '').replace('+', '')
-          : '0';
-        const changePercent = parseFloat(changePercentStr) || 0;
-
-        // Calculate the change amount based on the percentage
-        const changeAmount = data.totalUsdValue * (changePercent / 100);
-        const change = new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'USD',
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        }).format(Math.abs(changeAmount));
-
-        // Determine if the change is positive
-        const isPositive = selectedAccount.change
-          ? !selectedAccount.change.includes('-')
-          : true;
-
-        // Create the new portfolio data
-        const newData = {
-          value,
-          change: isPositive ? `+${change}` : `-${change}`,
-          changePercent: Math.abs(changePercent).toFixed(2),
-          isPositive,
-        };
-
-        // Update state with the new data
-        setPortfolioData(newData);
-        console.log('Portfolio data updated:', newData);
+        }).format(portfolioData.totalUsdValue);
+      } else {
+        // Fallback to the account value if portfolio data is not available
+        formattedValue = selectedAccount.value || '$0.00';
       }
-    } catch (error) {
-      console.error('Error loading portfolio data:', error);
-    }
-  }, [selectedAccount]); // Depend on the entire selectedAccount object, but use ref to prevent unnecessary updates
 
-  // Show loading state if no account is selected
-  if (!selectedAccount) {
+      // Extract the change percentage from the account
+      // Add safety checks for null/undefined values
+      const changePercentStr = selectedAccount.change
+        ? selectedAccount.change.replace('%', '').replace('+', '')
+        : '0';
+      const changePercent = parseFloat(changePercentStr) || 0;
+
+      // Calculate the change amount
+      let changeAmount;
+      if (portfolioData && typeof portfolioData.totalUsdValue === 'number') {
+        changeAmount = portfolioData.totalUsdValue * (changePercent / 100);
+      } else {
+        // Fallback calculation if portfolio data is not available
+        // Parse the account value to get a number
+        const accountValue = parseFloat(
+          selectedAccount.value?.replace(/[^0-9.-]+/g, '') || '0',
+        );
+        changeAmount = accountValue * (changePercent / 100);
+      }
+
+      const change = new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(Math.abs(changeAmount));
+
+      // Determine if the change is positive
+      const isPositive = selectedAccount.change
+        ? !selectedAccount.change.includes('-')
+        : true;
+
+      // Create the new portfolio data
+      const newData = {
+        value: formattedValue,
+        change: isPositive ? `+${change}` : `-${change}`,
+        changePercent: Math.abs(changePercent).toFixed(2),
+        isPositive,
+      };
+
+      // Update state with the new data
+      setDisplayData(newData);
+      console.log('Portfolio indicators updated:', newData);
+    } catch (error) {
+      console.error('Error updating portfolio indicators:', error);
+
+      // Set fallback data from the account
+      const isPositive = selectedAccount.change
+        ? !selectedAccount.change.includes('-')
+        : true;
+
+      setDisplayData({
+        value: selectedAccount.value || '$0.00',
+        change: selectedAccount.change || '0.00%',
+        changePercent:
+          selectedAccount.change
+            ?.replace('%', '')
+            .replace('+', '')
+            .replace('-', '') || '0.00',
+        isPositive,
+      });
+    }
+  }, [selectedAccount, portfolioData]); // Depend on both selectedAccount and portfolioData
+
+  // Show loading state if no account is selected or portfolio data is loading (but not if there's an error)
+  if (!selectedAccount || (isLoading && !error)) {
     return (
       <div className="flex justify-center items-center mb-6 px-1 py-4">
         <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+        <span className="ml-2 text-gray-400">
+          {!selectedAccount
+            ? 'No account selected'
+            : 'Loading portfolio data...'}
+        </span>
       </div>
     );
   }
@@ -142,36 +187,36 @@ export function PortfolioIndicators() {
       <div className="flex justify-between items-center mb-6 px-1">
         <PortfolioIndicator
           title="Portfolio Value (USD)"
-          value={portfolioData.value}
+          value={displayData.value}
           change={
-            portfolioData.isPositive
-              ? `+${portfolioData.change}`
-              : `-${portfolioData.change}`
+            displayData.isPositive
+              ? `+${displayData.change}`
+              : `-${displayData.change}`
           }
-          isPositive={portfolioData.isPositive}
+          isPositive={displayData.isPositive}
         />
 
         <PortfolioIndicator
           title="24h Change (USD)"
           value={
-            portfolioData.isPositive
-              ? `+${portfolioData.change}`
-              : `-${portfolioData.change}`
+            displayData.isPositive
+              ? `+${displayData.change}`
+              : `-${displayData.change}`
           }
           change={
-            portfolioData.isPositive
-              ? `+${portfolioData.change}`
-              : `-${portfolioData.change}`
+            displayData.isPositive
+              ? `+${displayData.change}`
+              : `-${displayData.change}`
           }
-          isPositive={portfolioData.isPositive}
+          isPositive={displayData.isPositive}
         />
 
         <PortfolioIndicator
           title="24h Change (%)"
-          value={`${portfolioData.isPositive ? '+' : '-'}${portfolioData.changePercent}%`}
-          change={portfolioData.changePercent}
+          value={`${displayData.isPositive ? '+' : '-'}${displayData.changePercent}%`}
+          change={displayData.changePercent}
           isPercentage={true}
-          isPositive={portfolioData.isPositive}
+          isPositive={displayData.isPositive}
         />
       </div>
     </ErrorBoundary>

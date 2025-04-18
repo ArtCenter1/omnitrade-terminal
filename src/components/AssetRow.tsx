@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import { AssetChart } from './AssetChart';
 import { Asset } from '@/lib/utils';
 import { generateChartData } from '@/lib/utils';
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 
 // Map of common cryptocurrency symbols to their CoinGecko IDs
 const COINGECKO_ICON_MAP: Record<string, string> = {
@@ -170,7 +170,11 @@ export function AssetRow({ asset }: AssetRowProps) {
           className={`text-sm ${isPositive ? 'text-crypto-green' : 'text-crypto-red'}`}
         >
           {isNewAssetType && (asset as Asset).change !== undefined
-            ? `${isPositive ? '+' : ''}${(asset as Asset).change.toFixed(2)}%`
+            ? `${isPositive ? '+' : ''}${
+                typeof (asset as Asset).change === 'number'
+                  ? (asset as Asset).change.toFixed(2)
+                  : (asset as Asset).change
+              }%`
             : asset.change || '0.00%'}
         </span>
       </td>
