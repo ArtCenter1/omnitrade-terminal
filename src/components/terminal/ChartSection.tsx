@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'; // Added useState
+import { useEffect, useRef, useState } from 'react'; // Removed React import
 import { PriceOverview } from './PriceOverview';
 import { TimeframeSelector } from './TimeframeSelector';
 import { TradingPairSelector, TradingPair } from './TradingPairSelector';
@@ -32,13 +32,11 @@ declare global {
 interface ChartSectionProps {
   selectedPair?: TradingPair;
   onPairSelect?: (pair: TradingPair) => void;
-  className?: string;
 }
 
 export function ChartSection({
   selectedPair,
   onPairSelect,
-  className,
 }: ChartSectionProps = {}) {
   const container = useRef<HTMLDivElement>(null);
   const [currentTimeframe, setCurrentTimeframe] = useState<string>('D'); // Default to Daily
@@ -117,17 +115,15 @@ export function ChartSection({
       if (existingScript) {
         existingScript.removeEventListener('load', createWidget);
       }
-      // Clean up widget instance if TradingView provides an API for it
-      if (
-        widgetInstanceRef.current &&
-        typeof (widgetInstanceRef.current as any).remove === 'function'
-      ) {
-        (widgetInstanceRef.current as any).remove();
-        widgetInstanceRef.current = null;
-      }
+
+      // Just clear the container instead of trying to remove the widget
+      // This avoids the "Cannot read properties of null" error
       if (currentContainer) {
         currentContainer.innerHTML = ''; // Clear container on unmount/re-render
       }
+
+      // Reset the widget instance reference
+      widgetInstanceRef.current = null;
     };
     // Re-run effect when currentTimeframe, currentPair, or selectedAccount changes
   }, [currentTimeframe, currentPair, selectedAccount]);
