@@ -71,64 +71,63 @@ export default function Terminal() {
         }
       >
         {/* Main Layout */}
-        <div className="flex flex-col h-screen">
-          {/* Top Section */}
-          <div className="flex h-[65%]">
-            {/* Left Trading Sidebar - Fixed Width */}
-            <ErrorBoundary>
-              <div className="w-[250px] border-r border-gray-800">
-                <TradingSidebar
-                  selectedPair={selectedPair}
-                  onOrderPlaced={handleOrderPlaced}
-                />
-              </div>
-            </ErrorBoundary>
+        <div className="flex h-screen overflow-hidden">
+          {/* Left Section - Trading Sidebar and Main Content */}
+          <div className="flex flex-col flex-1">
+            {/* Top Section - Trading Sidebar and Chart */}
+            <div className="flex h-[65%]">
+              <ErrorBoundary>
+                <div className="w-[250px] border-r border-gray-800">
+                  <TradingSidebar
+                    selectedPair={selectedPair}
+                    onOrderPlaced={handleOrderPlaced}
+                  />
+                </div>
+              </ErrorBoundary>
 
-            {/* Chart Section */}
-            <div className="flex-1">
-              <ErrorBoundary
-                fallback={
-                  <div className="h-full flex items-center justify-center">
-                    <AlertTriangle className="w-10 h-10 text-yellow-500 mb-4" />
-                    <h3 className="text-lg font-medium mb-2 text-white">
-                      Chart unavailable
-                    </h3>
-                  </div>
-                }
-              >
-                <Suspense
+              {/* Chart Section */}
+              <div className="flex-1">
+                <ErrorBoundary
                   fallback={
-                    <div className="h-full bg-gray-900 animate-pulse"></div>
+                    <div className="h-full flex items-center justify-center">
+                      <AlertTriangle className="w-10 h-10 text-yellow-500 mb-4" />
+                      <h3 className="text-lg font-medium mb-2 text-white">
+                        Chart unavailable
+                      </h3>
+                    </div>
                   }
                 >
-                  <ChartSection
-                    selectedPair={selectedPair}
-                    onPairSelect={handlePairSelect}
-                  />
-                </Suspense>
-              </ErrorBoundary>
+                  <Suspense
+                    fallback={
+                      <div className="h-full bg-gray-900 animate-pulse"></div>
+                    }
+                  >
+                    <ChartSection
+                      selectedPair={selectedPair}
+                      onPairSelect={handlePairSelect}
+                    />
+                  </Suspense>
+                </ErrorBoundary>
+              </div>
             </div>
 
-            {/* Right Order Book - Fixed Width */}
-            <ErrorBoundary>
-              <div className="w-[300px] border-l border-gray-800 h-screen">
-                <OrderBook selectedPair={selectedPair} />
-              </div>
-            </ErrorBoundary>
+            {/* Bottom Section - Assets */}
+            <div className="h-[35%] border-t border-gray-800">
+              <ErrorBoundary>
+                <TerminalTabs
+                  selectedPair={selectedPair}
+                  refreshTrigger={refreshTrigger}
+                />
+              </ErrorBoundary>
+            </div>
           </div>
 
-          {/* Bottom Section - Assets (Width limited to not overlap with order book) */}
-          <div
-            className="h-[35%] border-t border-gray-800"
-            style={{ width: 'calc(100% - 300px)' }}
-          >
-            <ErrorBoundary>
-              <TerminalTabs
-                selectedPair={selectedPair}
-                refreshTrigger={refreshTrigger}
-              />
-            </ErrorBoundary>
-          </div>
+          {/* Right Order Book - Fixed Width */}
+          <ErrorBoundary>
+            <div className="w-[300px] border-l border-gray-800">
+              <OrderBook selectedPair={selectedPair} />
+            </div>
+          </ErrorBoundary>
         </div>
       </ErrorBoundary>
     </div>

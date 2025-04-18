@@ -100,6 +100,7 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
 
   return (
     <div className="h-screen flex flex-col">
+      {/* Order Book Header */}
       <div className="p-3 border-b border-gray-800">
         <h3 className="text-white font-medium">
           Order Book{' '}
@@ -107,48 +108,54 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
         </h3>
       </div>
 
+      {/* Order Book Column Headers */}
       <div className="px-3 py-2 grid grid-cols-3 gap-x-0 text-xs text-gray-400">
         <div>Amount ({baseAsset})</div>
         <div className="text-center">Price ({quoteAsset})</div>
         <div className="text-right">Total</div>
       </div>
 
-      <div className="px-3 py-2">
-        <div className="space-y-1">
-          {orderbook.asks
-            ?.slice(0, 10)
-            .reverse()
-            .map((ask, i) => {
-              // Calculate volume percentage for the bar width
-              const volume = parseFloat(ask[1]);
-              const volumePercentage = (volume / maxAskVolume) * 100;
+      {/* Order Book Content - Scrollable */}
+      <div className="px-3 py-2 flex-1 overflow-hidden flex flex-col">
+        {/* Asks (Sell Orders) */}
+        <div className="flex-1 overflow-y-auto scrollbar-thin">
+          <div className="space-y-1">
+            {orderbook.asks
+              ?.slice(0, 10)
+              .reverse()
+              .map((ask, i) => {
+                // Calculate volume percentage for the bar width
+                const volume = parseFloat(ask[1]);
+                const volumePercentage = (volume / maxAskVolume) * 100;
 
-              return (
-                <div
-                  key={`sell-${i}`}
-                  className="grid grid-cols-3 gap-x-0 text-xs relative py-0.5"
-                >
-                  {/* Volume bar - positioned absolutely behind the text */}
+                return (
                   <div
-                    className="absolute top-0 right-0 h-full bg-crypto-red opacity-30"
-                    style={{ width: `${volumePercentage}%`, maxWidth: '95%' }}
-                  />
-                  {/* Content - positioned on top of the volume bar */}
-                  <div className="text-white relative z-10">
-                    {formatQuantity(ask[1])}
+                    key={`sell-${i}`}
+                    className="grid grid-cols-3 gap-x-0 text-xs relative py-0.5"
+                  >
+                    {/* Volume bar - positioned absolutely behind the text */}
+                    <div
+                      className="absolute top-0 right-0 h-full bg-crypto-red opacity-30"
+                      style={{ width: `${volumePercentage}%`, maxWidth: '95%' }}
+                    />
+                    {/* Content - positioned on top of the volume bar */}
+                    <div className="text-white relative z-10">
+                      {formatQuantity(ask[1])}
+                    </div>
+                    <div className="text-crypto-red text-center relative z-10">
+                      {formatPrice(ask[0])}
+                    </div>
+                    <div className="text-white text-right relative z-10">
+                      {calculateTotal(ask[0], ask[1])}
+                    </div>
                   </div>
-                  <div className="text-crypto-red text-center relative z-10">
-                    {formatPrice(ask[0])}
-                  </div>
-                  <div className="text-white text-right relative z-10">
-                    {calculateTotal(ask[0], ask[1])}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+          </div>
         </div>
 
-        <div className="my-2 py-2 border-y border-gray-800">
+        {/* Current Price */}
+        <div className="py-2 border-y border-gray-800">
           <div className="grid grid-cols-2 gap-x-0 text-sm">
             <div
               className={`font-medium ${isPriceUp ? 'text-crypto-green' : 'text-crypto-red'}`}
@@ -163,39 +170,43 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
           </div>
         </div>
 
-        <div className="space-y-1">
-          {orderbook.bids?.slice(0, 10).map((bid, i) => {
-            // Calculate volume percentage for the bar width
-            const volume = parseFloat(bid[1]);
-            const volumePercentage = (volume / maxBidVolume) * 100;
+        {/* Bids (Buy Orders) */}
+        <div className="flex-1 overflow-y-auto scrollbar-thin">
+          <div className="space-y-1">
+            {orderbook.bids?.slice(0, 10).map((bid, i) => {
+              // Calculate volume percentage for the bar width
+              const volume = parseFloat(bid[1]);
+              const volumePercentage = (volume / maxBidVolume) * 100;
 
-            return (
-              <div
-                key={`buy-${i}`}
-                className="grid grid-cols-3 gap-x-0 text-xs relative py-0.5"
-              >
-                {/* Volume bar - positioned absolutely behind the text */}
+              return (
                 <div
-                  className="absolute top-0 left-0 h-full bg-crypto-green opacity-30"
-                  style={{ width: `${volumePercentage}%`, maxWidth: '95%' }}
-                />
-                {/* Content - positioned on top of the volume bar */}
-                <div className="text-white relative z-10">
-                  {formatQuantity(bid[1])}
+                  key={`buy-${i}`}
+                  className="grid grid-cols-3 gap-x-0 text-xs relative py-0.5"
+                >
+                  {/* Volume bar - positioned absolutely behind the text */}
+                  <div
+                    className="absolute top-0 left-0 h-full bg-crypto-green opacity-30"
+                    style={{ width: `${volumePercentage}%`, maxWidth: '95%' }}
+                  />
+                  {/* Content - positioned on top of the volume bar */}
+                  <div className="text-white relative z-10">
+                    {formatQuantity(bid[1])}
+                  </div>
+                  <div className="text-crypto-green text-center relative z-10">
+                    {formatPrice(bid[0])}
+                  </div>
+                  <div className="text-white text-right relative z-10">
+                    {calculateTotal(bid[0], bid[1])}
+                  </div>
                 </div>
-                <div className="text-crypto-green text-center relative z-10">
-                  {formatPrice(bid[0])}
-                </div>
-                <div className="text-white text-right relative z-10">
-                  {calculateTotal(bid[0], bid[1])}
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      <div className="p-3 border-t border-gray-800">
+      {/* Recent Trades Section */}
+      <div className="p-3 border-t border-gray-800 h-[35%] overflow-hidden flex flex-col">
         <h3 className="text-white font-medium mb-2">Recent Trades</h3>
 
         <div className="grid grid-cols-3 gap-x-0 text-xs text-gray-400 mb-2">
@@ -204,7 +215,7 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
           <div className="text-right">Time</div>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2 overflow-y-auto flex-1 scrollbar-thin">
           {[...Array(10)].map((_, i) => {
             // Generate random trade data based on the current pair
             const quantity = (Math.random() * 0.01).toFixed(8);
