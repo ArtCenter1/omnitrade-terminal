@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { ChevronDown, Plus, Loader2 } from 'lucide-react';
+import { ChevronDown, Plus, Loader2, PieChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import {
@@ -19,6 +19,11 @@ import {
 } from '@/mocks/mockExchangeAccounts';
 import { useNavigate } from 'react-router-dom';
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
+import {
+  combinePortfolioData,
+  formatUsdValue,
+  calculatePercentageChange,
+} from '@/utils/portfolioUtils';
 
 export function ExchangeAccountSelector() {
   const dropdownRef = useRef(null);
@@ -30,6 +35,19 @@ export function ExchangeAccountSelector() {
 
   // Use the shared selected account state
   const { selectedAccount, setSelectedAccount } = useSelectedAccount();
+
+  // State for the portfolio overview option
+  const [portfolioOverview, setPortfolioOverview] = useState<ExchangeAccount>({
+    id: 'portfolio-overview',
+    name: 'Portfolio Overview',
+    exchange: 'all',
+    exchangeId: 'all',
+    apiKeyId: 'portfolio-overview',
+    logo: '/placeholder.svg',
+    value: '$56,019.96', // Default value
+    change: '+1.96%', // Default change
+    isPortfolioOverview: true,
+  });
 
   // Fetch the user's exchange API keys
   const { data: apiKeys, isLoading } = useQuery({
@@ -54,30 +72,79 @@ export function ExchangeAccountSelector() {
       });
 
       setLocalAccounts(accounts);
+
+      // Create the portfolio overview option
+      // Always create a Portfolio Overview option, even if there are no accounts
+      const combinedPortfolio =
+        accounts.length > 0
+          ? combinePortfolioData(accounts)
+          : { totalUsdValue: 0, assets: [] };
+
+      const totalValue = combinedPortfolio.totalUsdValue;
+
+      // Calculate a change percentage (mock data for now)
+      const previousValue = totalValue * 0.95; // Assume 5% growth for demo
+      const changePercent =
+        accounts.length > 0
+          ? calculatePercentageChange(totalValue, previousValue)
+          : '+0.00%';
+
+      setPortfolioOverview({
+        id: 'portfolio-overview',
+        name: 'Portfolio Overview',
+        exchange: 'all',
+        exchangeId: 'all',
+        apiKeyId: 'portfolio-overview',
+        logo: '/placeholder.svg',
+        value: formatUsdValue(totalValue),
+        change: changePercent,
+        isPortfolioOverview: true, // Special flag to identify this option
+      });
     },
     onError: (error) => {
       console.error('Error loading API keys:', error);
       // Fall back to default accounts
       setLocalAccounts(DEFAULT_MOCK_ACCOUNTS);
+
+      // Create a Portfolio Overview option with the default accounts
+      const combinedPortfolio = combinePortfolioData(DEFAULT_MOCK_ACCOUNTS);
+      const totalValue = combinedPortfolio.totalUsdValue;
+
+      // Calculate a change percentage (mock data for now)
+      const previousValue = totalValue * 0.95; // Assume 5% growth for demo
+      const changePercent = calculatePercentageChange(
+        totalValue,
+        previousValue,
+      );
+
+      setPortfolioOverview({
+        id: 'portfolio-overview',
+        name: 'Portfolio Overview',
+        exchange: 'all',
+        exchangeId: 'all',
+        apiKeyId: 'portfolio-overview',
+        logo: '/placeholder.svg',
+        value: formatUsdValue(totalValue),
+        change: changePercent,
+        isPortfolioOverview: true, // Special flag to identify this option
+      });
     },
   });
 
   // Initialize the selected account only once
   useEffect(() => {
-    // Only run this effect when localAccounts changes and we haven't initialized yet
-    if (!initialized && localAccounts.length > 0) {
+    // Only initialize if not already initialized
+    if (!initialized) {
       // Only set the selected account if it's not already set
       if (!selectedAccount) {
-        console.log(
-          'Initializing selected account with:',
-          localAccounts[0].name,
-        );
-        setSelectedAccount(localAccounts[0]);
+        // Always prefer Portfolio Overview
+        console.log('Initializing with Portfolio Overview');
+        setSelectedAccount(portfolioOverview);
       }
-      // Mark as initialized regardless of whether we set an account
+      // Mark as initialized
       setInitialized(true);
     }
-  }, [initialized, localAccounts]); // Remove selectedAccount from dependencies
+  }, [initialized, portfolioOverview, selectedAccount]);
 
   // Render loading state
   const renderLoading = () => (
@@ -136,18 +203,24 @@ export function ExchangeAccountSelector() {
                 className="w-full bg-gray-900 border-gray-800 hover:bg-gray-800 justify-between"
               >
                 <div className="flex items-center">
-                  <div className="w-6 h-6 rounded-full overflow-hidden mr-2">
-                    <img
-                      src={selectedAccount?.logo || '/placeholder.svg'}
-                      alt={selectedAccount?.exchange || 'Exchange'}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        // Fallback to placeholder if image fails to load
-                        e.currentTarget.src = '/placeholder.svg';
-                        e.currentTarget.onerror = null; // Prevent infinite loop
-                      }}
-                    />
-                  </div>
+                  {selectedAccount?.isPortfolioOverview ? (
+                    <div className="w-6 h-6 rounded-full overflow-hidden mr-2 flex items-center justify-center bg-purple-700">
+                      <PieChart size={16} className="text-white" />
+                    </div>
+                  ) : (
+                    <div className="w-6 h-6 rounded-full overflow-hidden mr-2">
+                      <img
+                        src={selectedAccount?.logo || '/placeholder.svg'}
+                        alt={selectedAccount?.exchange || 'Exchange'}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // Fallback to placeholder if image fails to load
+                          e.currentTarget.src = '/placeholder.svg';
+                          e.currentTarget.onerror = null; // Prevent infinite loop
+                        }}
+                      />
+                    </div>
+                  )}
                   <div className="flex flex-col items-start">
                     <span className="text-white text-sm">
                       {selectedAccount?.name || 'Unknown Account'}
@@ -172,6 +245,49 @@ export function ExchangeAccountSelector() {
                 className="w-[300px] bg-[#1a1a1c]"
                 sideOffset={5}
               >
+                {/* Portfolio Overview Option */}
+                {portfolioOverview && (
+                  <DropdownMenuItem
+                    key="portfolio-overview"
+                    onClick={() => {
+                      console.log('Selecting Portfolio Overview');
+                      // Force a refresh by setting to null first, then to the new account
+                      setSelectedAccount(null);
+                      setTimeout(
+                        () => setSelectedAccount(portfolioOverview),
+                        10,
+                      );
+                    }}
+                    className="py-3 cursor-pointer hover:bg-gray-800 bg-gray-800/50"
+                  >
+                    <div className="flex items-center w-full">
+                      <div className="w-6 h-6 rounded-full overflow-hidden mr-2 flex items-center justify-center bg-purple-700">
+                        <PieChart size={16} className="text-white" />
+                      </div>
+                      <div className="flex flex-col flex-1">
+                        <span className="text-white text-sm">
+                          Portfolio Overview
+                        </span>
+                        <span className="text-xs">
+                          <span className="text-gray-400">
+                            {portfolioOverview.value}
+                          </span>
+                          <span
+                            className={`ml-1 ${!portfolioOverview.change.includes('-') ? 'text-crypto-green' : 'text-crypto-red'}`}
+                          >
+                            {portfolioOverview.change}
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                  </DropdownMenuItem>
+                )}
+
+                {portfolioOverview && (
+                  <DropdownMenuSeparator className="bg-gray-800" />
+                )}
+
+                {/* Individual Accounts */}
                 {localAccounts.map((account) => (
                   <DropdownMenuItem
                     key={account.id}
@@ -238,6 +354,11 @@ export function ExchangeAccountSelector() {
       </div>
     );
   };
+
+  // Debug log for portfolioOverview
+  useEffect(() => {
+    console.log('Portfolio Overview state:', portfolioOverview);
+  }, [portfolioOverview]);
 
   // Main render logic
   if (isLoading) return renderLoading();

@@ -10,6 +10,7 @@ export interface ExchangeAccount {
   change: string;
   logo: string;
   apiKeyId: string;
+  isPortfolioOverview?: boolean; // Flag to identify the Portfolio Overview option
 }
 
 // Generate mock exchange accounts based on the API keys

@@ -49,7 +49,12 @@ export function usePortfolioData(exchangeId?: string, apiKeyId?: string) {
 
         return response.json();
       } catch (error) {
-        console.error('Error fetching portfolio data:', error);
+        // Handle API errors more gracefully
+        if (error instanceof Error) {
+          console.warn(`Error fetching portfolio data: ${error.message}`);
+        } else {
+          console.error('Error fetching portfolio data:', error);
+        }
 
         // Fall back to mock data if available
         if (apiKeyId) {
@@ -58,6 +63,16 @@ export function usePortfolioData(exchangeId?: string, apiKeyId?: string) {
             apiKeyId,
           );
           return getMockPortfolioData(apiKeyId).data;
+        }
+
+        // For development, always return empty portfolio rather than throwing
+        if (process.env.NODE_ENV === 'development') {
+          console.info('Returning empty portfolio data for development');
+          return {
+            totalUsdValue: 0,
+            assets: [],
+            lastUpdated: new Date(),
+          };
         }
 
         // Re-throw the error if we can't provide mock data

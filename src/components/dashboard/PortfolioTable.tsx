@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { AssetRow } from '@/components/AssetRow';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Asset } from '@/lib/utils';
+import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 
 // Define the sort fields and directions
 type SortField = 'asset' | 'amount' | 'value' | 'price' | 'change';
@@ -21,6 +22,10 @@ export function PortfolioTable({
   // Add sorting state
   const [sortField, setSortField] = useState<SortField>('value');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
+  // Get the selected account to check if we're in Portfolio Overview mode
+  const { selectedAccount } = useSelectedAccount();
+  const isPortfolioOverview = selectedAccount?.isPortfolioOverview === true;
 
   // Handle sorting
   const handleSort = (field: SortField) => {
@@ -148,6 +153,11 @@ export function PortfolioTable({
             >
               Asset {renderSortIndicator('asset')}
             </th>
+            {isPortfolioOverview && (
+              <th className="text-left py-2 px-2 text-sm font-medium text-gray-400">
+                Exchange
+              </th>
+            )}
             <th
               className="text-left py-2 px-2 text-sm font-medium text-gray-400 cursor-pointer hover:text-gray-300"
               onClick={() => handleSort('amount')}

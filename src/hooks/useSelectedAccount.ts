@@ -4,6 +4,19 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { ExchangeAccount } from '@/mocks/mockExchangeAccounts';
 import { DEFAULT_MOCK_ACCOUNTS } from '@/mocks/mockExchangeAccounts';
 
+// Default Portfolio Overview account
+const DEFAULT_PORTFOLIO_OVERVIEW: ExchangeAccount = {
+  id: 'portfolio-overview',
+  name: 'Portfolio Overview',
+  exchange: 'all',
+  exchangeId: 'all',
+  apiKeyId: 'portfolio-overview',
+  logo: '/placeholder.svg',
+  value: '$56,019.96', // Default value
+  change: '+1.96%', // Default change
+  isPortfolioOverview: true,
+};
+
 interface SelectedAccountState {
   selectedAccount: ExchangeAccount | null;
   setSelectedAccount: (account: ExchangeAccount | null) => void;
@@ -15,7 +28,7 @@ interface SelectedAccountState {
 export const useSelectedAccountStore = create<SelectedAccountState>(
   persist(
     (set) => ({
-      selectedAccount: DEFAULT_MOCK_ACCOUNTS[1], // Default to Binance account
+      selectedAccount: DEFAULT_PORTFOLIO_OVERVIEW, // Default to Portfolio Overview
       setSelectedAccount: (account) => {
         console.log('Setting selected account:', account?.name || 'null');
         console.log(
@@ -40,7 +53,7 @@ export const useSelectedAccountStore = create<SelectedAccountState>(
           if (error || !rehydratedState?.selectedAccount) {
             console.warn('Error rehydrating selected account state:', error);
             // Set default account if there's an error or no selected account
-            set({ selectedAccount: DEFAULT_MOCK_ACCOUNTS[1] });
+            set({ selectedAccount: DEFAULT_PORTFOLIO_OVERVIEW });
           } else {
             console.log('Successfully rehydrated selected account state');
           }

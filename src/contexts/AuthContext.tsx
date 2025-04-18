@@ -27,6 +27,7 @@ type AuthContextType = {
   resetPassword: (
     email: string,
   ) => Promise<{ error: any | null; success: boolean }>;
+  getAuthToken: () => Promise<string | null>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -163,6 +164,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const getAuthToken = async (): Promise<string | null> => {
+    try {
+      // Check if we're using a mock user
+      if (
+        process.env.NODE_ENV === 'development' &&
+        localStorage.getItem('useMockUser') === 'true'
+      ) {
+        console.log('Returning mock auth token');
+        return 'mock-auth-token';
+      }
+
+      // Get token from Firebase user
+      if (!user) {
+        console.warn('No authenticated user found when requesting token');
+        return null;
+      }
+
+      const token = await user.getIdToken();
+      return token;
+    } catch (error) {
+      console.error('Error getting auth token:', error);
+      return null;
+    }
+  };
+
   const value = {
     user,
     isLoading,
@@ -170,6 +196,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     signUp,
     signOut,
     resetPassword,
+    getAuthToken,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

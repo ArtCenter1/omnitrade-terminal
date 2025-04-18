@@ -15,6 +15,14 @@ import {
   generateAllocationData,
   PortfolioTableAsset,
 } from '@/utils/portfolioDataUtils';
+import { combinePortfolioData } from '@/utils/portfolioUtils';
+import {
+  DEFAULT_MOCK_ACCOUNTS,
+  ExchangeAccount,
+} from '@/mocks/mockExchangeAccounts';
+import { useQuery } from '@tanstack/react-query';
+import { listExchangeApiKeys } from '@/services/exchangeApiKeyService';
+import { getMockPortfolioData } from '@/mocks/mockPortfolio';
 import { generatePriceChartData } from '@/lib/utils';
 import { generate7DayChartData } from '@/utils/chartUtils';
 import { DashboardAssetChart } from '@/components/DashboardAssetChart';
@@ -92,6 +100,9 @@ const Dashboard: React.FC = () => {
   const [activeRange, setActiveRange] = useState('Week');
   const [hasError, setHasError] = useState(false);
   const { selectedAccount } = useSelectedAccount();
+  const [localAccounts, setLocalAccounts] = useState<ExchangeAccount[]>(
+    DEFAULT_MOCK_ACCOUNTS,
+  );
 
   // Generate dynamic chart data based on the selected account
   const [performanceData, setPerformanceData] = useState(mockPerformanceData);
@@ -99,6 +110,68 @@ const Dashboard: React.FC = () => {
   const [portfolioAssets, setPortfolioAssets] =
     useState<PortfolioTableAsset[]>(mockAssets);
   const [isPositive, setIsPositive] = useState(false); // Default to negative to match reference
+
+  // Fetch the user's exchange API keys
+  const { data: apiKeys } = useQuery({
+    queryKey: ['exchangeApiKeys'],
+    queryFn: listExchangeApiKeys,
+    onSuccess: (data) => {
+      if (data && data.length > 0) {
+        // Generate accounts based on API keys
+        const accounts = data.map((key: any, index: number) => {
+          // Generate a portfolio for this API key to get the total value
+          const portfolio = getMockPortfolioData(key.api_key_id).data;
+
+          // Format the portfolio value
+          const value = new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }).format(portfolio.totalUsdValue);
+
+          // Generate a random change percentage
+          const changeValue = (Math.random() * 10 - 5).toFixed(2);
+          const change = `${changeValue.startsWith('-') ? '' : '+'}${changeValue}%`;
+
+          // Get the exchange logo
+          const exchangeLogos: Record<string, string> = {
+            binance: '/exchanges/binance.svg',
+            coinbase: '/exchanges/coinbase.svg',
+            kucoin: '/exchanges/kucoin.svg',
+            kraken: '/exchanges/kraken.svg',
+            bybit: '/exchanges/bybit.svg',
+            okx: '/exchanges/okx.svg',
+          };
+          const logo =
+            exchangeLogos[key.exchange_id.toLowerCase()] || '/placeholder.svg';
+
+          return {
+            id: key.api_key_id,
+            name:
+              key.key_nickname ||
+              `${key.exchange_id.charAt(0).toUpperCase() + key.exchange_id.slice(1)} Account`,
+            exchange:
+              key.exchange_id.charAt(0).toUpperCase() +
+              key.exchange_id.slice(1),
+            exchangeId: key.exchange_id,
+            value,
+            change,
+            logo,
+            apiKeyId: key.api_key_id,
+          };
+        });
+
+        setLocalAccounts(
+          accounts.length > 0 ? accounts : DEFAULT_MOCK_ACCOUNTS,
+        );
+      }
+    },
+    onError: () => {
+      // Fall back to default accounts
+      setLocalAccounts(DEFAULT_MOCK_ACCOUNTS);
+    },
+  });
 
   // Fetch portfolio data from the backend
   const {
@@ -123,138 +196,256 @@ const Dashboard: React.FC = () => {
         );
 
         try {
-          // Generate new performance data based on the selected account and time range
-          const newPerformanceData = generatePerformanceData(
-            selectedAccount,
-            activeRange,
-          );
+          // Check if this is the Portfolio Overview option
+          const isPortfolioOverview = selectedAccount.isPortfolioOverview;
 
-          // Only update if we got valid data
-          if (newPerformanceData && newPerformanceData.length > 0) {
-            setPerformanceData(newPerformanceData);
-          } else {
-            console.warn(
-              'Using default performance data for account:',
-              selectedAccount.name,
-            );
-          }
-
-          // Generate new allocation data based on the portfolio data if available
-          if (portfolioData && portfolioData.assets.length > 0) {
-            // Convert portfolio assets to allocation data format
-            const newAllocationData = portfolioData.assets.map(
-              (asset, index) => {
-                // Calculate percentage of total portfolio
-                const percentage =
-                  (asset.usdValue / portfolioData.totalUsdValue) * 100;
-                // Format USD value for display
-                const formattedValue = new Intl.NumberFormat('en-US', {
-                  style: 'currency',
-                  currency: 'USD',
-                }).format(asset.usdValue);
-
-                // Get a color based on the asset symbol
-                const colors = [
-                  '#8884d8',
-                  '#82ca9d',
-                  '#ffc658',
-                  '#ff8042',
-                  '#a4de6c',
-                  '#d0ed57',
-                ];
-                const color = colors[index % colors.length];
-
-                return {
-                  name: asset.asset,
-                  value: Math.round(percentage),
-                  color: color,
-                  usdValue: formattedValue,
-                  price: (asset.usdValue / asset.total).toFixed(2),
-                  amount: asset.total.toFixed(8),
-                  symbol: asset.asset,
-                  displayName: asset.asset,
-                };
-              },
+          if (isPortfolioOverview) {
+            // For Portfolio Overview, combine data from all accounts
+            console.log(
+              'Generating combined portfolio data for Portfolio Overview',
             );
 
-            // Sort by value (largest first)
-            newAllocationData.sort((a, b) => b.value - a.value);
+            // Get all accounts - use all available accounts, not just the default ones
+            // This ensures we include any accounts the user has added
+            const allAccounts = localAccounts || DEFAULT_MOCK_ACCOUNTS;
+            console.log(
+              'Combining portfolio data from accounts:',
+              allAccounts.length,
+            );
 
-            // Add total portfolio value to the first item for display in the center
-            if (newAllocationData.length > 0) {
-              newAllocationData[0].totalPortfolioValue =
-                portfolioData.totalUsdValue.toFixed(2);
+            const combinedPortfolio = combinePortfolioData(allAccounts);
+
+            // Generate performance data for the combined portfolio
+            // For now, we'll use a simple approach with mock data
+            const combinedPerformanceData = mockPerformanceData.map((item) => ({
+              ...item,
+              // Increase values by 20% to show the combined portfolio is larger
+              value: item.value * 1.2,
+            }));
+
+            setPerformanceData(combinedPerformanceData);
+
+            // Generate allocation data from the combined portfolio
+            if (combinedPortfolio && combinedPortfolio.assets.length > 0) {
+              // Convert portfolio assets to allocation data format
+              const newAllocationData = combinedPortfolio.assets.map(
+                (asset, index) => {
+                  // Calculate percentage of total portfolio
+                  const percentage =
+                    (asset.usdValue / combinedPortfolio.totalUsdValue) * 100;
+                  // Format USD value for display
+                  const formattedValue = new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                  }).format(asset.usdValue);
+
+                  // Get a color based on the asset symbol
+                  const colors = [
+                    '#8884d8',
+                    '#82ca9d',
+                    '#ffc658',
+                    '#ff8042',
+                    '#a4de6c',
+                    '#d0ed57',
+                  ];
+                  const color = colors[index % colors.length];
+
+                  return {
+                    name: asset.asset,
+                    value: Math.round(percentage),
+                    color: color,
+                    usdValue: formattedValue,
+                    price: (asset.usdValue / asset.total).toFixed(2),
+                    amount: asset.total.toFixed(8),
+                    symbol: asset.asset,
+                    displayName: asset.asset,
+                    // Include exchange info for Portfolio Overview
+                    exchangeInfo: asset.exchangeId,
+                  };
+                },
+              );
+
+              // Sort by value (largest first)
+              newAllocationData.sort((a, b) => b.value - a.value);
+
+              // Add total portfolio value to the first item for display in the center
+              if (newAllocationData.length > 0) {
+                newAllocationData[0].totalPortfolioValue =
+                  combinedPortfolio.totalUsdValue.toFixed(2);
+              }
+
+              setAllocationData(newAllocationData);
+
+              // Convert portfolio assets to the format expected by the table
+              const newPortfolioAssets: PortfolioTableAsset[] =
+                combinedPortfolio.assets.map((asset) => {
+                  // Generate a unique change value for each asset based on its symbol
+                  const changeValue = getRandomChange(asset.asset);
+                  // Determine if this asset has a positive change
+                  const assetIsPositive = !changeValue.includes('-');
+
+                  return {
+                    name: asset.asset,
+                    symbol: asset.asset,
+                    amount: asset.total,
+                    value: asset.usdValue,
+                    price: asset.usdValue / asset.total,
+                    change: changeValue, // Use unique change for each asset
+                    chartData: generate7DayChartData(
+                      asset.asset,
+                      assetIsPositive,
+                    ), // Match chart direction with change
+                    // Add exchange info for Portfolio Overview
+                    exchangeInfo: asset.exchangeId,
+                  };
+                });
+
+              setPortfolioAssets(newPortfolioAssets);
             }
 
-            setAllocationData(newAllocationData);
+            // Assume positive change for Portfolio Overview
+            setIsPositive(true);
           } else {
-            // Use generated allocation data as fallback
-            const newAllocationData = generateAllocationData(selectedAccount);
+            // Regular single account view
+            // Generate new performance data based on the selected account and time range
+            const newPerformanceData = generatePerformanceData(
+              selectedAccount,
+              activeRange,
+            );
 
-            if (newAllocationData && newAllocationData.length > 0) {
-              setAllocationData(newAllocationData);
+            // Only update if we got valid data
+            if (newPerformanceData && newPerformanceData.length > 0) {
+              setPerformanceData(newPerformanceData);
             } else {
               console.warn(
-                'Using default allocation data for account:',
+                'Using default performance data for account:',
                 selectedAccount.name,
               );
             }
+
+            // Generate new allocation data based on the portfolio data if available
+            if (portfolioData && portfolioData.assets.length > 0) {
+              // Convert portfolio assets to allocation data format
+              const newAllocationData = portfolioData.assets.map(
+                (asset, index) => {
+                  // Calculate percentage of total portfolio
+                  const percentage =
+                    (asset.usdValue / portfolioData.totalUsdValue) * 100;
+                  // Format USD value for display
+                  const formattedValue = new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                  }).format(asset.usdValue);
+
+                  // Get a color based on the asset symbol
+                  const colors = [
+                    '#8884d8',
+                    '#82ca9d',
+                    '#ffc658',
+                    '#ff8042',
+                    '#a4de6c',
+                    '#d0ed57',
+                  ];
+                  const color = colors[index % colors.length];
+
+                  return {
+                    name: asset.asset,
+                    value: Math.round(percentage),
+                    color: color,
+                    usdValue: formattedValue,
+                    price: (asset.usdValue / asset.total).toFixed(2),
+                    amount: asset.total.toFixed(8),
+                    symbol: asset.asset,
+                    displayName: asset.asset,
+                  };
+                },
+              );
+
+              // Sort by value (largest first)
+              newAllocationData.sort((a, b) => b.value - a.value);
+
+              // Add total portfolio value to the first item for display in the center
+              if (newAllocationData.length > 0) {
+                newAllocationData[0].totalPortfolioValue =
+                  portfolioData.totalUsdValue.toFixed(2);
+              }
+
+              setAllocationData(newAllocationData);
+            } else {
+              // Use generated allocation data as fallback
+              const newAllocationData = generateAllocationData(selectedAccount);
+
+              if (newAllocationData && newAllocationData.length > 0) {
+                setAllocationData(newAllocationData);
+              } else {
+                console.warn(
+                  'Using default allocation data for account:',
+                  selectedAccount.name,
+                );
+              }
+            }
+
+            // Use portfolio data from the backend if available
+            if (portfolioData && portfolioData.assets.length > 0) {
+              // Convert portfolio assets to the format expected by the table
+              const newPortfolioAssets: PortfolioTableAsset[] =
+                portfolioData.assets.map((asset) => {
+                  // Generate a unique change value for each asset based on its symbol
+                  const changeValue = getRandomChange(asset.asset);
+                  // Determine if this asset has a positive change
+                  const assetIsPositive = !changeValue.includes('-');
+
+                  return {
+                    name: asset.asset,
+                    symbol: asset.asset,
+                    amount: asset.total,
+                    value: asset.usdValue,
+                    price: asset.usdValue / asset.total,
+                    change: changeValue, // Use unique change for each asset
+                    chartData: generate7DayChartData(
+                      asset.asset,
+                      assetIsPositive,
+                    ), // Match chart direction with change
+                  };
+                });
+
+              setPortfolioAssets(newPortfolioAssets);
+            } else if (!isLoadingPortfolio) {
+              console.warn(
+                'Using default portfolio assets for account:',
+                selectedAccount.name,
+              );
+            }
+
+            // Determine if the change is positive based on the account's change value
+            const accountIsPositive = !selectedAccount.change.includes('-');
+            setIsPositive(accountIsPositive);
           }
-
-          // Helper function to generate random change percentage based on symbol
-          function getRandomChange(symbol: string): string {
-            // Use the symbol to generate a consistent random value
-            const hash = symbol
-              .split('')
-              .reduce((acc, char) => acc + char.charCodeAt(0), 0);
-            const random = Math.sin(hash) * 10;
-            const change = random.toFixed(2);
-            return parseFloat(change) >= 0 ? `+${change}%` : `${change}%`;
-          }
-
-          // Use portfolio data from the backend if available
-          if (portfolioData && portfolioData.assets.length > 0) {
-            // Convert portfolio assets to the format expected by the table
-            const newPortfolioAssets: PortfolioTableAsset[] =
-              portfolioData.assets.map((asset) => {
-                // Generate a unique change value for each asset based on its symbol
-                const changeValue = getRandomChange(asset.asset);
-                // Determine if this asset has a positive change
-                const assetIsPositive = !changeValue.includes('-');
-
-                return {
-                  name: asset.asset,
-                  symbol: asset.asset,
-                  amount: asset.total,
-                  value: asset.usdValue,
-                  price: asset.usdValue / asset.total,
-                  change: changeValue, // Use unique change for each asset
-                  chartData: generate7DayChartData(
-                    asset.asset,
-                    assetIsPositive,
-                  ), // Match chart direction with change
-                };
-              });
-
-            setPortfolioAssets(newPortfolioAssets);
-          } else if (!isLoadingPortfolio) {
-            console.warn(
-              'Using default portfolio assets for account:',
-              selectedAccount.name,
-            );
-          }
-
-          // Determine if the change is positive based on the account's change value
-          const accountIsPositive = !selectedAccount.change.includes('-');
-          setIsPositive(accountIsPositive);
         } catch (error) {
           console.error('Error updating chart data:', error);
         }
       }
     };
 
+    // Helper function to generate random change percentage based on symbol
+    function getRandomChange(symbol: string): string {
+      // Use the symbol to generate a consistent random value
+      const hash = symbol
+        .split('')
+        .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const random = Math.sin(hash) * 10;
+      const change = random.toFixed(2);
+      return parseFloat(change) >= 0 ? `+${change}%` : `${change}%`;
+    }
+
     updateData();
-  }, [selectedAccount, activeRange, portfolioData, isLoadingPortfolio]);
+  }, [
+    selectedAccount,
+    activeRange,
+    portfolioData,
+    isLoadingPortfolio,
+    localAccounts,
+  ]);
 
   // Error boundary effect
   useEffect(() => {
