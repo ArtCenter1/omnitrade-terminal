@@ -8,13 +8,14 @@ import { UserApiKey } from '../types/prisma.types';
 class MockDataService {
   generatePortfolio(exchangeId: string, seed?: number): Portfolio {
     // Use a consistent seed for reproducible results if provided
-    const random = seed
-      ? () => {
-          // Simple deterministic random function using the seed
-          seed = (seed * 9301 + 49297) % 233280;
-          return seed / 233280;
-        }
-      : Math.random;
+    const random =
+      seed !== undefined
+        ? () => {
+            // Simple deterministic random function using the seed
+            seed = (seed! * 9301 + 49297) % 233280;
+            return seed / 233280;
+          }
+        : Math.random;
 
     // Generate between 5 and 15 assets
     const assetCount = Math.floor(random() * 10) + 5;
