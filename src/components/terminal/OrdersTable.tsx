@@ -123,181 +123,175 @@ export function OrdersTable({
         </TabsList>
 
         <TabsContent value="open" className="p-0">
-          <div className="max-h-[400px] overflow-y-auto">
-            {isLoading ? (
-              <div className="flex items-center justify-center p-8">
-                <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
-                <span className="ml-2 text-gray-400">Loading orders...</span>
-              </div>
-            ) : orders.length === 0 ? (
-              <div className="flex flex-col items-center justify-center p-8 text-gray-400">
-                <p>No open orders</p>
-                {selectedSymbol && (
-                  <p className="text-sm mt-2">for {selectedSymbol}</p>
-                )}
-              </div>
-            ) : (
-              <table className="w-full">
-                <thead className="bg-gray-900">
-                  <tr className="text-xs text-gray-400">
-                    <th className="text-left py-2 px-4 font-medium">Date</th>
-                    <th className="text-left py-2 px-4 font-medium">Pair</th>
-                    <th className="text-left py-2 px-4 font-medium">Type</th>
-                    <th className="text-left py-2 px-4 font-medium">Side</th>
-                    <th className="text-right py-2 px-4 font-medium">Price</th>
-                    <th className="text-right py-2 px-4 font-medium">Amount</th>
-                    <th className="text-right py-2 px-4 font-medium">Filled</th>
-                    <th className="text-right py-2 px-4 font-medium">Status</th>
-                    <th className="text-right py-2 px-4 font-medium">Action</th>
+          {isLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+              <span className="ml-2 text-gray-400">Loading orders...</span>
+            </div>
+          ) : orders.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-8 text-gray-400">
+              <p>No open orders</p>
+              {selectedSymbol && (
+                <p className="text-sm mt-2">for {selectedSymbol}</p>
+              )}
+            </div>
+          ) : (
+            <table className="w-full">
+              <thead className="bg-gray-900">
+                <tr className="text-xs text-gray-400">
+                  <th className="text-left py-2 px-4 font-medium">Date</th>
+                  <th className="text-left py-2 px-4 font-medium">Pair</th>
+                  <th className="text-left py-2 px-4 font-medium">Type</th>
+                  <th className="text-left py-2 px-4 font-medium">Side</th>
+                  <th className="text-right py-2 px-4 font-medium">Price</th>
+                  <th className="text-right py-2 px-4 font-medium">Amount</th>
+                  <th className="text-right py-2 px-4 font-medium">Filled</th>
+                  <th className="text-right py-2 px-4 font-medium">Status</th>
+                  <th className="text-right py-2 px-4 font-medium">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map((order) => (
+                  <tr key={order.id} className="border-b border-gray-800">
+                    <td className="py-2 px-4 text-sm text-gray-300">
+                      {formatDate(order.createdAt)}
+                    </td>
+                    <td className="py-2 px-4 text-sm text-white">
+                      {order.symbol}
+                    </td>
+                    <td className="py-2 px-4 text-sm text-gray-300">
+                      {order.type.charAt(0).toUpperCase() + order.type.slice(1)}
+                    </td>
+                    <td className="py-2 px-4 text-sm">
+                      <span
+                        className={
+                          order.side === 'buy'
+                            ? 'text-crypto-green'
+                            : 'text-crypto-red'
+                        }
+                      >
+                        {order.side.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="py-2 px-4 text-sm text-right text-gray-300">
+                      {formatPrice(order.price)}
+                    </td>
+                    <td className="py-2 px-4 text-sm text-right text-gray-300">
+                      {order.quantity.toFixed(8)}
+                    </td>
+                    <td className="py-2 px-4 text-sm text-right text-gray-300">
+                      {order.filledQuantity.toFixed(8)}
+                    </td>
+                    <td className="py-2 px-4 text-sm text-right">
+                      <span className="px-2 py-1 rounded-full text-xs bg-gray-800 text-gray-300">
+                        {order.status.replace('_', ' ').toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="py-2 px-4 text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleCancelOrder(order.id)}
+                        disabled={isCancelling[order.id]}
+                        className="h-8 w-8 p-0"
+                      >
+                        {isCancelling[order.id] ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <X className="h-4 w-4 text-gray-400" />
+                        )}
+                      </Button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {orders.map((order) => (
-                    <tr key={order.id} className="border-b border-gray-800">
-                      <td className="py-2 px-4 text-sm text-gray-300">
-                        {formatDate(order.createdAt)}
-                      </td>
-                      <td className="py-2 px-4 text-sm text-white">
-                        {order.symbol}
-                      </td>
-                      <td className="py-2 px-4 text-sm text-gray-300">
-                        {order.type.charAt(0).toUpperCase() +
-                          order.type.slice(1)}
-                      </td>
-                      <td className="py-2 px-4 text-sm">
-                        <span
-                          className={
-                            order.side === 'buy'
-                              ? 'text-crypto-green'
-                              : 'text-crypto-red'
-                          }
-                        >
-                          {order.side.toUpperCase()}
-                        </span>
-                      </td>
-                      <td className="py-2 px-4 text-sm text-right text-gray-300">
-                        {formatPrice(order.price)}
-                      </td>
-                      <td className="py-2 px-4 text-sm text-right text-gray-300">
-                        {order.quantity.toFixed(8)}
-                      </td>
-                      <td className="py-2 px-4 text-sm text-right text-gray-300">
-                        {order.filledQuantity.toFixed(8)}
-                      </td>
-                      <td className="py-2 px-4 text-sm text-right">
-                        <span className="px-2 py-1 rounded-full text-xs bg-gray-800 text-gray-300">
-                          {order.status.replace('_', ' ').toUpperCase()}
-                        </span>
-                      </td>
-                      <td className="py-2 px-4 text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleCancelOrder(order.id)}
-                          disabled={isCancelling[order.id]}
-                          className="h-8 w-8 p-0"
-                        >
-                          {isCancelling[order.id] ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <X className="h-4 w-4 text-gray-400" />
-                          )}
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+                ))}
+              </tbody>
+            </table>
+          )}
         </TabsContent>
 
         <TabsContent value="history" className="p-0">
-          <div className="max-h-[400px] overflow-y-auto">
-            {isLoading ? (
-              <div className="flex items-center justify-center p-8">
-                <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
-                <span className="ml-2 text-gray-400">
-                  Loading order history...
-                </span>
-              </div>
-            ) : orders.length === 0 ? (
-              <div className="flex flex-col items-center justify-center p-8 text-gray-400">
-                <p>No order history</p>
-                {selectedSymbol && (
-                  <p className="text-sm mt-2">for {selectedSymbol}</p>
-                )}
-              </div>
-            ) : (
-              <table className="w-full">
-                <thead className="bg-gray-900">
-                  <tr className="text-xs text-gray-400">
-                    <th className="text-left py-2 px-4 font-medium">Date</th>
-                    <th className="text-left py-2 px-4 font-medium">Pair</th>
-                    <th className="text-left py-2 px-4 font-medium">Type</th>
-                    <th className="text-left py-2 px-4 font-medium">Side</th>
-                    <th className="text-right py-2 px-4 font-medium">Price</th>
-                    <th className="text-right py-2 px-4 font-medium">Amount</th>
-                    <th className="text-right py-2 px-4 font-medium">Filled</th>
-                    <th className="text-right py-2 px-4 font-medium">Status</th>
+          {isLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+              <span className="ml-2 text-gray-400">
+                Loading order history...
+              </span>
+            </div>
+          ) : orders.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-8 text-gray-400">
+              <p>No order history</p>
+              {selectedSymbol && (
+                <p className="text-sm mt-2">for {selectedSymbol}</p>
+              )}
+            </div>
+          ) : (
+            <table className="w-full">
+              <thead className="bg-gray-900">
+                <tr className="text-xs text-gray-400">
+                  <th className="text-left py-2 px-4 font-medium">Date</th>
+                  <th className="text-left py-2 px-4 font-medium">Pair</th>
+                  <th className="text-left py-2 px-4 font-medium">Type</th>
+                  <th className="text-left py-2 px-4 font-medium">Side</th>
+                  <th className="text-right py-2 px-4 font-medium">Price</th>
+                  <th className="text-right py-2 px-4 font-medium">Amount</th>
+                  <th className="text-right py-2 px-4 font-medium">Filled</th>
+                  <th className="text-right py-2 px-4 font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map((order) => (
+                  <tr key={order.id} className="border-b border-gray-800">
+                    <td className="py-2 px-4 text-sm text-gray-300">
+                      {formatDate(order.createdAt)}
+                    </td>
+                    <td className="py-2 px-4 text-sm text-white">
+                      {order.symbol}
+                    </td>
+                    <td className="py-2 px-4 text-sm text-gray-300">
+                      {order.type.charAt(0).toUpperCase() + order.type.slice(1)}
+                    </td>
+                    <td className="py-2 px-4 text-sm">
+                      <span
+                        className={
+                          order.side === 'buy'
+                            ? 'text-crypto-green'
+                            : 'text-crypto-red'
+                        }
+                      >
+                        {order.side.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="py-2 px-4 text-sm text-right text-gray-300">
+                      {order.avgFillPrice
+                        ? order.avgFillPrice.toFixed(2)
+                        : formatPrice(order.price)}
+                    </td>
+                    <td className="py-2 px-4 text-sm text-right text-gray-300">
+                      {order.quantity.toFixed(8)}
+                    </td>
+                    <td className="py-2 px-4 text-sm text-right text-gray-300">
+                      {order.filledQuantity.toFixed(8)}
+                    </td>
+                    <td className="py-2 px-4 text-sm text-right">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs ${
+                          order.status === 'filled'
+                            ? 'bg-crypto-green/20 text-crypto-green'
+                            : order.status === 'canceled'
+                              ? 'bg-gray-800 text-gray-300'
+                              : order.status === 'rejected'
+                                ? 'bg-crypto-red/20 text-crypto-red'
+                                : 'bg-gray-800 text-gray-300'
+                        }`}
+                      >
+                        {order.status.replace('_', ' ').toUpperCase()}
+                      </span>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {orders.map((order) => (
-                    <tr key={order.id} className="border-b border-gray-800">
-                      <td className="py-2 px-4 text-sm text-gray-300">
-                        {formatDate(order.createdAt)}
-                      </td>
-                      <td className="py-2 px-4 text-sm text-white">
-                        {order.symbol}
-                      </td>
-                      <td className="py-2 px-4 text-sm text-gray-300">
-                        {order.type.charAt(0).toUpperCase() +
-                          order.type.slice(1)}
-                      </td>
-                      <td className="py-2 px-4 text-sm">
-                        <span
-                          className={
-                            order.side === 'buy'
-                              ? 'text-crypto-green'
-                              : 'text-crypto-red'
-                          }
-                        >
-                          {order.side.toUpperCase()}
-                        </span>
-                      </td>
-                      <td className="py-2 px-4 text-sm text-right text-gray-300">
-                        {order.avgFillPrice
-                          ? order.avgFillPrice.toFixed(2)
-                          : formatPrice(order.price)}
-                      </td>
-                      <td className="py-2 px-4 text-sm text-right text-gray-300">
-                        {order.quantity.toFixed(8)}
-                      </td>
-                      <td className="py-2 px-4 text-sm text-right text-gray-300">
-                        {order.filledQuantity.toFixed(8)}
-                      </td>
-                      <td className="py-2 px-4 text-sm text-right">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs ${
-                            order.status === 'filled'
-                              ? 'bg-crypto-green/20 text-crypto-green'
-                              : order.status === 'canceled'
-                                ? 'bg-gray-800 text-gray-300'
-                                : order.status === 'rejected'
-                                  ? 'bg-crypto-red/20 text-crypto-red'
-                                  : 'bg-gray-800 text-gray-300'
-                          }`}
-                        >
-                          {order.status.replace('_', ' ').toUpperCase()}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+                ))}
+              </tbody>
+            </table>
+          )}
         </TabsContent>
       </Tabs>
     </div>

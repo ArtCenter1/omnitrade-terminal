@@ -247,7 +247,7 @@ export function TerminalTabs({
           style={{ height: 'calc(100% - 45px)' }}
         >
           {activeTab === 'Balances' && (
-            <div className="overflow-x-auto">
+            <div>
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-800">
