@@ -77,6 +77,29 @@ export function ExchangeSelector() {
     }
   }, [initialized, localAccounts, selectedAccount, setSelectedAccount]);
 
+  // Handle Portfolio Overview case
+  useEffect(() => {
+    // Check if the selected account is the Portfolio Overview (exchangeId: 'all')
+    if (selectedAccount && selectedAccount.exchangeId === 'all') {
+      console.log(
+        'Portfolio Overview detected in terminal, switching to default exchange',
+      );
+
+      // Find the first available account that's not Portfolio Overview
+      const defaultAccount = localAccounts.find(
+        (account) => account.exchangeId !== 'all',
+      );
+
+      if (defaultAccount) {
+        console.log(
+          'Switching to default exchange account:',
+          defaultAccount.name,
+        );
+        setSelectedAccount(defaultAccount);
+      }
+    }
+  }, [selectedAccount, localAccounts, setSelectedAccount]);
+
   // Render loading state
   const renderLoading = () => (
     <div className="mb-6">

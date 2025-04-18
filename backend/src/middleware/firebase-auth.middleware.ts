@@ -3,12 +3,34 @@ import { Request, Response, NextFunction } from 'express';
 import * as admin from 'firebase-admin';
 
 // Adjust the path to your service account key JSON file
-import * as serviceAccount from '../../../omnitrade-firebase-adminsdk.json'; // Corrected path (3 levels up)
+import * as path from 'path';
+import * as fs from 'fs';
+
+// Read the service account file
+const serviceAccountPath = path.resolve(
+  process.cwd(),
+  'omnitrade-firebase-adminsdk.json',
+);
+let serviceAccount: admin.ServiceAccount;
+
+try {
+  const rawData = fs.readFileSync(serviceAccountPath, 'utf8');
+  serviceAccount = JSON.parse(rawData) as admin.ServiceAccount;
+  console.log(
+    'Firebase service account loaded successfully from:',
+    serviceAccountPath,
+  );
+} catch (error) {
+  console.error('Error loading Firebase service account:', error);
+  throw new Error(
+    'Failed to load Firebase service account. Please check the file exists and has correct permissions.',
+  );
+}
 
 // Initialize Firebase Admin SDK only once
 if (!admin.apps.length) {
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount as admin.ServiceAccount), // Cast to satisfy type checking
+    credential: admin.credential.cert(serviceAccount), // Cast to satisfy type checking
   });
 }
 
@@ -16,7 +38,7 @@ if (!admin.apps.length) {
 export class FirebaseAuthMiddleware implements NestMiddleware {
   async use(
     req: Request & { user?: { user_id: string } },
-    res: Response,
+    _res: Response, // Prefix with underscore to indicate it's not used
     next: NextFunction,
   ) {
     const token = req.headers.authorization?.split('Bearer ')[1];

@@ -28,6 +28,17 @@ export function AccountSelector() {
   // Get accounts for the current exchange
   useEffect(() => {
     if (selectedAccount) {
+      // Skip Portfolio Overview (exchangeId: 'all')
+      if (
+        selectedAccount.exchangeId === 'all' ||
+        selectedAccount.isPortfolioOverview
+      ) {
+        console.log(
+          'Portfolio Overview detected in AccountSelector, skipping account filtering',
+        );
+        return;
+      }
+
       // Filter accounts for the current exchange
       const accounts = exchangeAccounts.filter(
         (account) =>

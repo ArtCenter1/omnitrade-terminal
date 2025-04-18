@@ -2,13 +2,17 @@ import axios from 'axios';
 import { io, Socket } from 'socket.io-client';
 import { getRandomChange } from '@/lib/utils';
 
-// Create an axios instance with default config
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+// Import the shared API instance from lib/api
+import { api } from '@/lib/api';
+
+// Define API endpoints
+const API_ENDPOINTS = {
+  ALL_TRADING_PAIRS: '/trading-pairs',
+  EXCHANGE_TRADING_PAIRS: (exchangeId: string) =>
+    `/trading-pairs/${exchangeId}`,
+  SPECIFIC_TRADING_PAIR: (exchangeId: string, symbol: string) =>
+    `/trading-pairs/${exchangeId}/${symbol}`,
+};
 
 // Define the TradingPair interface
 export interface TradingPair {
@@ -123,7 +127,7 @@ export const getTradingPairs = async (
 
     // Fetch from API
     const response = await api.get<TradingPair[]>(
-      `/trading-pairs/${exchangeId}`,
+      API_ENDPOINTS.EXCHANGE_TRADING_PAIRS(exchangeId),
     );
     const pairs = response.data;
 
@@ -132,10 +136,20 @@ export const getTradingPairs = async (
 
     return pairs;
   } catch (error) {
-    console.error('Error fetching trading pairs:', error);
+    // Log detailed error information
+    if (axios.isAxiosError(error)) {
+      console.error(`Error fetching trading pairs for ${exchangeId}:`, {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        url: error.config?.url,
+      });
+    } else {
+      console.error('Error fetching trading pairs:', error);
+    }
 
     // Fallback to mock data if API call fails
-    console.log('Using mock trading pairs data as fallback');
+    console.log(`Using mock trading pairs data as fallback for ${exchangeId}`);
     return generateMockTradingPairs(exchangeId.toLowerCase());
   }
 };
@@ -157,11 +171,24 @@ export const getTradingPair = async (
 
     // Fetch from API
     const response = await api.get<TradingPair>(
-      `/trading-pairs/${exchangeId}/${symbol}`,
+      API_ENDPOINTS.SPECIFIC_TRADING_PAIR(exchangeId, symbol),
     );
     return response.data;
   } catch (error) {
-    console.error('Error fetching trading pair:', error);
+    // Log detailed error information
+    if (axios.isAxiosError(error)) {
+      console.error(
+        `Error fetching trading pair ${symbol} for ${exchangeId}:`,
+        {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+          url: error.config?.url,
+        },
+      );
+    } else {
+      console.error('Error fetching trading pair:', error);
+    }
 
     // Generate mock pairs and find the requested one
     const mockPairs = generateMockTradingPairs(exchangeId.toLowerCase());
@@ -270,8 +297,9 @@ export const getAllTradingPairs = async (): Promise<
   Record<string, TradingPair[]>
 > => {
   try {
-    const response =
-      await api.get<Record<string, TradingPair[]>>('/trading-pairs');
+    const response = await api.get<Record<string, TradingPair[]>>(
+      API_ENDPOINTS.ALL_TRADING_PAIRS,
+    );
 
     // Update cache for each exchange
     Object.entries(response.data).forEach(([exchangeId, pairs]) => {
@@ -280,9 +308,20 @@ export const getAllTradingPairs = async (): Promise<
 
     return response.data;
   } catch (error) {
-    console.error('Error fetching all trading pairs:', error);
+    // Log detailed error information
+    if (axios.isAxiosError(error)) {
+      console.error('Error fetching all trading pairs:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        url: error.config?.url,
+      });
+    } else {
+      console.error('Error fetching all trading pairs:', error);
+    }
 
     // Fallback to mock data
+    console.log('Using mock trading pairs data as fallback for all exchanges');
     const mockData: Record<string, TradingPair[]> = {
       binance: generateMockTradingPairs('binance'),
       coinbase: generateMockTradingPairs('coinbase'),
