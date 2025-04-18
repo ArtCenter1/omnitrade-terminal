@@ -109,14 +109,14 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
       </div>
 
       {/* Order Book Column Headers */}
-      <div className="px-3 py-2 grid grid-cols-3 gap-x-0 text-xs text-gray-400">
+      <div className="px-2 py-2 grid grid-cols-3 gap-x-0 text-xs text-gray-400">
         <div>Amount ({baseAsset})</div>
         <div className="text-center">Price ({quoteAsset})</div>
         <div className="text-right">Total</div>
       </div>
 
       {/* Order Book Content - Scrollable */}
-      <div className="px-3 py-2 flex-1 overflow-hidden flex flex-col">
+      <div className="px-2 py-2 flex-1 overflow-hidden flex flex-col">
         {/* Asks (Sell Orders) */}
         <div className="flex-1 overflow-y-auto scrollbar-thin">
           <div className="space-y-1">
@@ -206,7 +206,7 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
       </div>
 
       {/* Recent Trades Section */}
-      <div className="p-3 border-t border-gray-800 h-[35%] overflow-hidden flex flex-col">
+      <div className="p-2 border-t border-gray-800 h-[35%] overflow-hidden flex flex-col">
         <h3 className="text-white font-medium mb-2">Recent Trades</h3>
 
         <div className="grid grid-cols-3 gap-x-0 text-xs text-gray-400 mb-2">

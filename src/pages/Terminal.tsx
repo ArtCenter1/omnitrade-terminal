@@ -22,7 +22,8 @@ import { ChartSection } from '@/components/terminal/ChartSection';
 import { OrderBook } from '@/components/terminal/OrderBook';
 import { TerminalTabs } from '@/components/terminal/TerminalTabs';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import { Suspense, useState, useRef } from 'react';
+import { Suspense, useState, useRef, useEffect } from 'react';
+import { ResizableSplitter } from '@/components/ui/resizable-splitter';
 import { TradingPair } from '@/components/terminal/TradingPairSelector';
 
 export default function Terminal() {
@@ -74,57 +75,62 @@ export default function Terminal() {
         <div className="flex h-screen overflow-hidden">
           {/* Left Section - Trading Sidebar and Main Content */}
           <div className="flex flex-col flex-1">
-            {/* Top Section - Trading Sidebar and Chart */}
-            <div className="flex h-[70%]">
-              <ErrorBoundary>
-                <div className="w-[280px] border-r border-gray-800">
-                  <TradingSidebar
-                    selectedPair={selectedPair}
-                    onOrderPlaced={handleOrderPlaced}
-                  />
-                </div>
-              </ErrorBoundary>
+            <ResizableSplitter
+              direction="horizontal"
+              initialSizes={[70, 30]}
+              minSizes={[30, 15]}
+              className="h-full"
+            >
+              {/* Top Section - Trading Sidebar and Chart */}
+              <div className="flex h-full">
+                <ErrorBoundary>
+                  <div className="w-[280px] border-r border-gray-800 h-full">
+                    <TradingSidebar
+                      selectedPair={selectedPair}
+                      onOrderPlaced={handleOrderPlaced}
+                    />
+                  </div>
+                </ErrorBoundary>
 
-              {/* Chart Section */}
-              <div className="flex-1">
-                <ErrorBoundary
-                  fallback={
-                    <div className="h-full flex items-center justify-center">
-                      <AlertTriangle className="w-10 h-10 text-yellow-500 mb-4" />
-                      <h3 className="text-lg font-medium mb-2 text-white">
-                        Chart unavailable
-                      </h3>
-                    </div>
-                  }
-                >
-                  <Suspense
+                {/* Chart Section */}
+                <div className="flex-1 h-full">
+                  <ErrorBoundary
                     fallback={
-                      <div className="h-full bg-gray-900 animate-pulse"></div>
+                      <div className="h-full flex items-center justify-center">
+                        <AlertTriangle className="w-10 h-10 text-yellow-500 mb-4" />
+                        <h3 className="text-lg font-medium mb-2 text-white">
+                          Chart unavailable
+                        </h3>
+                      </div>
                     }
                   >
-                    <ChartSection
-                      selectedPair={selectedPair}
-                      onPairSelect={handlePairSelect}
-                    />
-                  </Suspense>
-                </ErrorBoundary>
+                    <Suspense
+                      fallback={
+                        <div className="h-full bg-gray-900 animate-pulse"></div>
+                      }
+                    >
+                      <ChartSection
+                        selectedPair={selectedPair}
+                        onPairSelect={handlePairSelect}
+                      />
+                    </Suspense>
+                  </ErrorBoundary>
+                </div>
               </div>
-            </div>
 
-            {/* Bottom Section - Assets */}
-            <div className="h-[30%] border-t border-gray-800">
+              {/* Bottom Section - Assets */}
               <ErrorBoundary>
                 <TerminalTabs
                   selectedPair={selectedPair}
                   refreshTrigger={refreshTrigger}
                 />
               </ErrorBoundary>
-            </div>
+            </ResizableSplitter>
           </div>
 
           {/* Right Order Book - Fixed Width */}
           <ErrorBoundary>
-            <div className="w-[240px] border-l border-gray-800">
+            <div className="w-[242px] border-l border-gray-800">
               <OrderBook selectedPair={selectedPair} />
             </div>
           </ErrorBoundary>

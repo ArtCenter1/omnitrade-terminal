@@ -33,6 +33,13 @@ export function OrdersTable({
 
   // Fetch orders when component mounts, account changes, or refresh is triggered
   useEffect(() => {
+    console.log('OrdersTable useEffect triggered:', {
+      selectedAccount,
+      activeTab,
+      selectedSymbol,
+      refreshTrigger,
+    });
+
     if (selectedAccount) {
       fetchOrders();
     }
@@ -43,11 +50,19 @@ export function OrdersTable({
     setIsLoading(true);
     try {
       const status = activeTab === 'open' ? 'new,partially_filled' : undefined;
+      console.log('Fetching orders with params:', {
+        exchange: selectedAccount?.exchange,
+        symbol: selectedSymbol,
+        status,
+      });
+
       const orders = await getOrders(
         selectedAccount?.exchange,
         selectedSymbol,
         status,
       );
+
+      console.log('Orders received:', orders);
 
       // Sort orders by creation date (newest first)
       const sortedOrders = [...orders].sort(

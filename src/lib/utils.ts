@@ -170,6 +170,15 @@ export const mockAssets = [
   },
 ];
 
+/**
+ * Generate a random price change percentage string (e.g., "+1.23%" or "-2.45%")
+ */
+export function getRandomChange(): string {
+  const isPositive = Math.random() > 0.5;
+  const changeValue = (Math.random() * 5).toFixed(2); // Random change between 0% and 5%
+  return `${isPositive ? '+' : '-'}${changeValue}%`;
+}
+
 export const mockBots = [
   {
     title: 'Accumulator',
