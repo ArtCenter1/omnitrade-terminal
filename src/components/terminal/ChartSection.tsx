@@ -154,7 +154,10 @@ export function ChartSection({
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-4 border-b border-gray-800">
-        <TradingPairSelector onPairSelect={handlePairSelect} />
+        <div className="flex items-center">
+          <TradingPairSelector onPairSelect={handlePairSelect} />
+          <PriceOverview selectedPair={currentPair} showPriceOnly={true} />
+        </div>
         <PriceOverview selectedPair={currentPair} />
       </div>
 
