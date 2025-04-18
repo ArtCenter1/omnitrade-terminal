@@ -266,7 +266,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="container mx-auto p-4 theme-transition">
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 gap-4">
         {/* Portfolio Overview - DashboardHeader */}
         <ErrorBoundary
           fallback={
@@ -286,7 +286,9 @@ const Dashboard: React.FC = () => {
             </div>
           }
         >
-          <DashboardHeader />
+          <div className="mb-4">
+            <DashboardHeader />
+          </div>
         </ErrorBoundary>
 
         {/* Performance Chart and Allocation Chart */}
