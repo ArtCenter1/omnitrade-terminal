@@ -1,20 +1,28 @@
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
-import '../styles/asset-chart.css';
+import '../styles/dashboard-chart.css';
 
-type AssetChartProps = {
+type DashboardAssetChartProps = {
   data: number[] | Array<{ value: number }>;
   isPositive: boolean;
   className?: string;
 };
 
-export function AssetChart({
+/**
+ * A specialized chart component for the dashboard assets
+ * This is separate from the main AssetChart to avoid affecting the terminal page
+ */
+export function DashboardAssetChart({
   data = [],
   isPositive,
-  className = 'chart-container',
-}: AssetChartProps) {
+  className = 'dashboard-chart-container',
+}: DashboardAssetChartProps) {
   // Ensure we have valid data before rendering the chart
   if (!data || data.length === 0) {
-    return <div className="w-[100px] h-[40px] bg-gray-800">No data</div>;
+    return (
+      <div className="w-full h-full min-w-[140px] min-h-[60px] bg-gray-800 flex items-center justify-center text-xs text-gray-500">
+        No data
+      </div>
+    );
   }
 
   // Determine if the data is an array of numbers or an array of objects
@@ -26,17 +34,19 @@ export function AssetChart({
     : (data as Array<{ value: number }>);
 
   return (
-    <div className="w-[100px] h-[40px] relative">
+    <div
+      className={`w-full h-full min-w-[140px] min-h-[60px] relative ${className}`}
+    >
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
           data={chartData}
-          margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+          margin={{ top: 5, right: 5, bottom: 5, left: 5 }}
         >
           <Line
-            type="monotone"
+            type="natural"
             dataKey="value"
             stroke={isPositive ? '#05c48a' : '#ea384d'}
-            strokeWidth={1.2}
+            strokeWidth={3}
             dot={false}
             isAnimationActive={false}
           />

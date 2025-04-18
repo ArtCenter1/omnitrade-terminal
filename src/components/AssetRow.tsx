@@ -78,9 +78,13 @@ export function AssetRow({ asset }: AssetRowProps) {
   // Get chart data - either from the asset or generate it (with null safety)
   let chartData = [];
   try {
-    chartData = isNewAssetType
-      ? (asset as Asset).chart || []
-      : generateChartData(isPositive);
+    if (isNewAssetType) {
+      // For new asset type, use chart or chartData property
+      chartData = (asset as Asset).chart || (asset as any).chartData || [];
+    } else {
+      // For legacy asset type, use chart property or generate data
+      chartData = (asset as any).chart || generateChartData(isPositive);
+    }
   } catch (e) {
     console.error('Error generating chart data:', e);
   }

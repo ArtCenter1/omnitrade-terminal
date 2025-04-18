@@ -14,6 +14,8 @@ import {
   PortfolioTableAsset,
 } from '@/utils/portfolioDataUtils';
 import { generatePriceChartData } from '@/lib/utils';
+import { generate7DayChartData } from '@/utils/chartUtils';
+import { DashboardAssetChart } from '@/components/DashboardAssetChart';
 // Import the ExchangeAdapterExample component with React.lazy for code splitting
 const ExchangeAdapterExample = React.lazy(
   () => import('@/components/examples/ExchangeAdapterExample'),
@@ -208,7 +210,7 @@ const Dashboard: React.FC = () => {
                 value: asset.usdValue,
                 price: asset.usdValue / asset.total,
                 change: selectedAccount?.change || '+0.00%', // Use account change as a placeholder (as string)
-                chartData: generatePriceChartData(asset.asset, isPositive),
+                chartData: generate7DayChartData(asset.asset, isPositive),
               }));
 
             setPortfolioAssets(newPortfolioAssets);
