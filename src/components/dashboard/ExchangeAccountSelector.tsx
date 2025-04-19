@@ -36,10 +36,10 @@ export function ExchangeAccountSelector() {
   // Use the shared selected account state
   const { selectedAccount, setSelectedAccount } = useSelectedAccount();
 
-  // State for the portfolio overview option
+  // State for the portfolio total option
   const [portfolioOverview, setPortfolioOverview] = useState<ExchangeAccount>({
     id: 'portfolio-overview',
-    name: 'Portfolio Overview',
+    name: 'Portfolio Total',
     exchange: 'all',
     exchangeId: 'all',
     apiKeyId: 'portfolio-overview',
@@ -95,7 +95,7 @@ export function ExchangeAccountSelector() {
 
       setPortfolioOverview({
         id: 'portfolio-overview',
-        name: 'Portfolio Overview',
+        name: 'Portfolio Total',
         exchange: 'all',
         exchangeId: 'all',
         apiKeyId: 'portfolio-overview',
@@ -197,8 +197,8 @@ export function ExchangeAccountSelector() {
     if (!initialized) {
       // Only set the selected account if it's not already set
       if (!selectedAccount) {
-        // Always prefer Portfolio Overview
-        console.log('Initializing with Portfolio Overview');
+        // Always prefer Portfolio Total
+        console.log('Initializing with Portfolio Total');
         setSelectedAccount(portfolioOverview);
       }
       // Mark as initialized
@@ -310,7 +310,7 @@ export function ExchangeAccountSelector() {
                   <DropdownMenuItem
                     key="portfolio-overview"
                     onClick={() => {
-                      console.log('Selecting Portfolio Overview');
+                      console.log('Selecting Portfolio Total');
                       // Force a refresh by setting to null first, then to the new account
                       setSelectedAccount(null);
                       setTimeout(
@@ -326,7 +326,7 @@ export function ExchangeAccountSelector() {
                       </div>
                       <div className="flex flex-col flex-1">
                         <span className="text-white text-sm">
-                          Portfolio Overview
+                          Portfolio Total
                         </span>
                         <span className="text-xs">
                           <span className="text-gray-400">
@@ -417,7 +417,7 @@ export function ExchangeAccountSelector() {
 
   // Debug log for portfolioOverview
   useEffect(() => {
-    console.log('Portfolio Overview state:', portfolioOverview);
+    console.log('Portfolio Total state:', portfolioOverview);
   }, [portfolioOverview]);
 
   // Main render logic

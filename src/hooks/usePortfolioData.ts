@@ -28,7 +28,7 @@ export function usePortfolioData(exchangeId?: string, apiKeyId?: string) {
         }
 
         // Build URL with optional exchange filter
-        // Handle special case for 'all' exchange ID (Portfolio Overview)
+        // Handle special case for 'all' exchange ID (Portfolio Total)
         let url = '/api/portfolio';
         if (exchangeId && exchangeId !== 'all') {
           url = `/api/portfolio?exchange_id=${encodeURIComponent(exchangeId)}`;
@@ -67,7 +67,7 @@ export function usePortfolioData(exchangeId?: string, apiKeyId?: string) {
           return getMockPortfolioData(apiKeyId).data;
         }
 
-        // Special handling for Portfolio Overview (all exchanges)
+        // Special handling for Portfolio Total (all exchanges)
         if (exchangeId === 'all') {
           console.log('Generating combined portfolio data for all exchanges');
           // In a real app, we would fetch data for all exchanges and combine it

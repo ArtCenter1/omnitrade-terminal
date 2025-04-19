@@ -5,10 +5,10 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { ExchangeAccount } from '@/mocks/mockExchangeAccounts';
 import { DEFAULT_MOCK_ACCOUNTS } from '@/mocks/mockExchangeAccounts';
 
-// Default Portfolio Overview account
+// Default Portfolio Total account
 const DEFAULT_PORTFOLIO_OVERVIEW: ExchangeAccount = {
   id: 'portfolio-overview',
-  name: 'Portfolio Overview',
+  name: 'Portfolio Total',
   exchange: 'all',
   exchangeId: 'all',
   apiKeyId: 'portfolio-overview',
@@ -29,7 +29,7 @@ interface SelectedAccountState {
 export const useSelectedAccountStore = create<SelectedAccountState>(
   persist(
     (set) => ({
-      selectedAccount: DEFAULT_PORTFOLIO_OVERVIEW, // Default to Portfolio Overview
+      selectedAccount: DEFAULT_PORTFOLIO_OVERVIEW, // Default to Portfolio Total
       setSelectedAccount: (account) => {
         console.log(
           '[useSelectedAccount] Setting selected account:',

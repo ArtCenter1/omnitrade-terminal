@@ -139,15 +139,15 @@ export function ExchangeSelector() {
 
   // We already have a storage event listener above
 
-  // Handle Portfolio Overview case
+  // Handle Portfolio Total case
   useEffect(() => {
-    // Check if the selected account is the Portfolio Overview (exchangeId: 'all')
+    // Check if the selected account is the Portfolio Total (exchangeId: 'all')
     if (selectedAccount && selectedAccount.exchangeId === 'all') {
       console.log(
-        'Portfolio Overview detected in terminal, switching to default exchange',
+        'Portfolio Total detected in terminal, switching to default exchange',
       );
 
-      // Find the first available account that's not Portfolio Overview
+      // Find the first available account that's not Portfolio Total
       const defaultAccount = localAccounts.find(
         (account) => account.exchangeId !== 'all',
       );

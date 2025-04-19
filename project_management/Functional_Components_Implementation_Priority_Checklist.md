@@ -7,7 +7,7 @@ This checklist outlines the components that should be prioritized for functional
 ### Account Selection and Management
 
 - [ ] **ExchangeAccountSelector** (Dashboard)
-  - [ ] Switch between different exchange accounts
+  - [x] Switch between different exchange accounts
   - [ ] Display correct account names and values
   - [ ] Show portfolio overview option
 - [ ] **ExchangeSelector** (Terminal)

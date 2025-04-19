@@ -28,13 +28,13 @@ export function AccountSelector() {
   // Get accounts for the current exchange
   useEffect(() => {
     if (selectedAccount) {
-      // Skip Portfolio Overview (exchangeId: 'all')
+      // Skip Portfolio Total (exchangeId: 'all')
       if (
         selectedAccount.exchangeId === 'all' ||
         selectedAccount.isPortfolioOverview
       ) {
         console.log(
-          'Portfolio Overview detected in AccountSelector, skipping account filtering',
+          'Portfolio Total detected in AccountSelector, skipping account filtering',
         );
         return;
       }

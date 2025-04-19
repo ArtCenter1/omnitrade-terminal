@@ -216,14 +216,56 @@ const Dashboard: React.FC = () => {
             const combinedPortfolio = combinePortfolioData(allAccounts);
 
             // Generate performance data for the combined portfolio
-            // For now, we'll use a simple approach with mock data
-            const combinedPerformanceData = mockPerformanceData.map((item) => ({
-              ...item,
-              // Increase values by 20% to show the combined portfolio is larger
-              value: item.value * 1.2,
-            }));
+            // Create a synthetic account object to pass to generatePerformanceData
+            const syntheticAccount: ExchangeAccount = {
+              id: 'portfolio-total',
+              name: 'Portfolio Total',
+              exchange: 'all',
+              exchangeId: 'all',
+              apiKeyId: 'portfolio-total',
+              logo: '/placeholder.svg',
+              value: `$${combinedPortfolio.totalUsdValue.toFixed(2)}`,
+              change: selectedAccount.change, // Use the change from the Portfolio Total account
+              isPortfolioOverview: true,
+            };
 
-            setPerformanceData(combinedPerformanceData);
+            // Generate dynamic performance data using the same function as individual accounts
+            const combinedPerformanceData = generatePerformanceData(
+              syntheticAccount,
+              activeRange,
+            );
+
+            // Only update if we got valid data
+            if (combinedPerformanceData && combinedPerformanceData.length > 0) {
+              setPerformanceData(combinedPerformanceData);
+            } else {
+              console.warn(
+                'Falling back to default performance data for Portfolio Total',
+              );
+              // Use more dynamic fallback data
+              const baseValue = combinedPortfolio.totalUsdValue;
+              const fallbackData =
+                TIME_RANGES[
+                  TIME_RANGES.indexOf(activeRange) || 1
+                ].toLowerCase() === 'day'
+                  ? ['12am', '4am', '8am', '12pm', '4pm', '8pm'].map(
+                      (hour, i) => ({
+                        date: hour,
+                        value: Math.round(
+                          baseValue * (0.97 + i * 0.01 + Math.random() * 0.02),
+                        ),
+                      }),
+                    )
+                  : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(
+                      (day, i) => ({
+                        date: day,
+                        value: Math.round(
+                          baseValue * (0.95 + i * 0.01 + Math.random() * 0.02),
+                        ),
+                      }),
+                    );
+              setPerformanceData(fallbackData);
+            }
 
             // Generate allocation data from the combined portfolio
             if (combinedPortfolio && combinedPortfolio.assets.length > 0) {
@@ -303,8 +345,9 @@ const Dashboard: React.FC = () => {
               setPortfolioAssets(newPortfolioAssets);
             }
 
-            // Assume positive change for Portfolio Overview
-            setIsPositive(true);
+            // Determine if the change is positive based on the Portfolio Total account's change value
+            const totalIsPositive = !selectedAccount.change.includes('-');
+            setIsPositive(totalIsPositive);
           } else {
             // Regular single account view
             // Generate new performance data based on the selected account and time range
