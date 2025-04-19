@@ -46,12 +46,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // Check if we should use a mock user (you can toggle this in localStorage)
       const useMockUser = localStorage.getItem('useMockUser') === 'true';
       if (useMockUser) {
-        console.log('Using mock user for development');
+        console.log(
+          '%c MOCK USER ACTIVE ',
+          'background: #f59e0b; color: #000; font-weight: bold; padding: 4px;',
+        );
+        console.log(
+          '%c API calls will be intercepted with mock data ',
+          'background: #78350f; color: #fff; padding: 2px;',
+        );
+
+        // Get the stored email or use default
+        const storedEmail =
+          localStorage.getItem('userEmail') || 'dev@example.com';
+
         // Create a mock Firebase user
         const mockUser = {
           uid: 'mock-user-id',
-          email: 'dev@example.com',
-          displayName: 'Dev User',
+          email: storedEmail,
+          displayName: storedEmail.split('@')[0],
           emailVerified: true,
           isAnonymous: false,
           metadata: {
@@ -146,10 +158,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const signOut = async () => {
     try {
+      // Check if we're using a mock user
+      if (
+        process.env.NODE_ENV === 'development' &&
+        localStorage.getItem('useMockUser') === 'true'
+      ) {
+        console.log('Signing out mock user');
+        // Remove all mock user related data from localStorage
+        localStorage.removeItem('useMockUser');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('userEmail');
+        localStorage.removeItem('selected-account-storage');
+
+        // Clear the user state
+        setUser(null);
+
+        // Show toast notification
+        toast.success('Signed out successfully');
+
+        // Redirect to auth page
+        setTimeout(() => {
+          window.location.href = '/auth';
+        }, 500);
+
+        return;
+      }
+
+      // Regular Firebase signout
       const auth = getAuth(firebaseApp);
       await firebaseSignOut(auth);
+      console.log('Firebase user signed out successfully');
+
+      // Clear any leftover mock data
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('selected-account-storage');
     } catch (error) {
       console.error('Firebase sign out error:', error);
+      toast.error('Error signing out');
     }
   };
 

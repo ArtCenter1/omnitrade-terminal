@@ -31,9 +31,12 @@ export const useSelectedAccountStore = create<SelectedAccountState>(
     (set) => ({
       selectedAccount: DEFAULT_PORTFOLIO_OVERVIEW, // Default to Portfolio Overview
       setSelectedAccount: (account) => {
-        console.log('Setting selected account:', account?.name || 'null');
         console.log(
-          'Account details:',
+          '[useSelectedAccount] Setting selected account:',
+          account?.name || 'null',
+        );
+        console.log(
+          '[useSelectedAccount] Account details:',
           account ? JSON.stringify(account) : 'null',
         );
         set({ selectedAccount: account });
@@ -89,13 +92,16 @@ export function useSelectedAccount() {
         e.key === null
       ) {
         console.log(
-          `Storage changed (${e.key}), refreshing selected account...`,
+          `[useSelectedAccount] Storage changed (${e.key}), refreshing selected account...`,
         );
         // Force a refresh of the selected account
         clearSelectedAccount();
         // Wait a bit and then set it back to the default
         setTimeout(() => {
           // This will trigger a re-fetch of the account data
+          console.log(
+            '[useSelectedAccount] Setting back to default account after storage change',
+          );
           setSelectedAccount(DEFAULT_PORTFOLIO_OVERVIEW);
         }, 100);
       }
@@ -103,15 +109,15 @@ export function useSelectedAccount() {
 
     // Handle API key updates
     const handleApiKeyUpdated = (e: CustomEvent) => {
-      console.log(
-        'API key updated event received, refreshing selected account...',
-      );
       const { apiKeyId, nickname } = e.detail || {};
+      console.log(
+        `[useSelectedAccount] API key updated event received for ${apiKeyId} with nickname "${nickname}"`,
+      );
 
       // If this is the currently selected account, update it
       if (selectedAccount && selectedAccount.apiKeyId === apiKeyId) {
         console.log(
-          `Updating selected account nickname from ${selectedAccount.name} to ${nickname}`,
+          `[useSelectedAccount] Updating selected account nickname from "${selectedAccount.name}" to "${nickname}"`,
         );
         // Create a new account object with the updated nickname
         const updatedAccount = {
@@ -120,7 +126,19 @@ export function useSelectedAccount() {
         };
 
         // Update the selected account
+        console.log(
+          '[useSelectedAccount] Setting updated account:',
+          updatedAccount,
+        );
         setSelectedAccount(updatedAccount);
+      } else if (selectedAccount) {
+        console.log(
+          `[useSelectedAccount] Selected account (${selectedAccount.apiKeyId}) does not match updated API key (${apiKeyId}), no update needed`,
+        );
+      } else {
+        console.log(
+          '[useSelectedAccount] No selected account, nothing to update',
+        );
       }
     };
 

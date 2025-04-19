@@ -39,10 +39,13 @@ if (import.meta.env.DEV) {
   setupMockFetch();
   console.log('Mock APIs enabled for development');
 
-  // Enable mock user by default in development
-  if (localStorage.getItem('useMockUser') === null) {
-    localStorage.setItem('useMockUser', 'true');
-    console.log('Mock user enabled by default for development');
+  // Setup mock APIs but don't enable mock user by default
+  // This allows real authentication to work properly
+  console.log('Mock APIs ready but not automatically enabled');
+
+  // Check if we have any leftover mock user data and clean it up
+  if (localStorage.getItem('useMockUser') === 'true') {
+    console.log('Found existing mock user setting, keeping it enabled');
   }
 }
 

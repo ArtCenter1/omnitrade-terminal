@@ -3,6 +3,8 @@ import { Route, Routes, useLocation, Navigate } from 'react-router-dom';
 import { ThemeProvider as ShadcnThemeProvider } from '@/components/ThemeProvider';
 import '@/styles/themes.css';
 import '@/styles/components.css';
+import { Toaster } from 'react-hot-toast';
+// Debug panel is now integrated into RoleProtectedRoute
 import UserRoleManagement from './pages/admin/UserRoleManagement';
 import ComingSoon from './pages/admin/ComingSoon';
 import { ScrollToTop } from './components/ScrollToTop';
@@ -94,6 +96,7 @@ function App() {
       storageKey="omnitrade-theme"
       enableSystem={false}
     >
+      <Toaster position="top-right" />
       <ScrollToTop />
       <Routes>
         {/* Public routes */}

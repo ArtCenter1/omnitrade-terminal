@@ -61,11 +61,34 @@ export function AccountSelector() {
   // Listen for API key updates to refresh the account list
   useEffect(() => {
     const handleApiKeyUpdated = (e: CustomEvent) => {
+      const { apiKeyId, nickname } = e.detail || {};
       console.log(
-        'API key updated event received, refreshing account selector data',
+        `[AccountSelector] API key updated event received for ${apiKeyId} with nickname "${nickname}", refreshing data`,
       );
+
       if (selectedAccount) {
+        console.log(
+          `[AccountSelector] Current selected account: ${selectedAccount.name} (${selectedAccount.apiKeyId})`,
+        );
+
+        // If this is the currently selected account, update it immediately
+        if (selectedAccount.apiKeyId === apiKeyId) {
+          console.log(
+            `[AccountSelector] Currently selected account matches updated API key, updating immediately`,
+          );
+          // Create a new account object with the updated nickname
+          const updatedAccount = {
+            ...selectedAccount,
+            name: nickname,
+          };
+          // Update the selected account
+          setSelectedAccount(updatedAccount);
+        }
+
         // Get the latest accounts
+        console.log(
+          `[AccountSelector] Getting latest accounts for exchange: ${selectedAccount.exchangeId}`,
+        );
         const allAccounts = getExchangeAccounts();
 
         // Filter accounts for the current exchange
@@ -75,22 +98,58 @@ export function AccountSelector() {
             selectedAccount.exchangeId?.toLowerCase(),
         );
 
+        console.log(
+          `[AccountSelector] Found ${accounts.length} accounts for exchange ${selectedAccount.exchangeId}:`,
+          accounts.map((acc) => ({
+            id: acc.id,
+            name: acc.name,
+            apiKeyId: acc.apiKeyId,
+          })),
+        );
         setAccountsForExchange(accounts);
       }
     };
 
+    // Also listen for storage events to refresh the account list
+    const handleStorageChange = (e: StorageEvent) => {
+      console.log(
+        `[AccountSelector] Storage changed (${e.key}), checking if we need to refresh`,
+      );
+      // Only refresh if the exchange_api_keys were updated
+      if (e.key === 'exchange_api_keys' || e.key === null) {
+        console.log(
+          '[AccountSelector] exchange_api_keys changed, refreshing account list',
+        );
+        if (selectedAccount) {
+          // Get the latest accounts
+          const allAccounts = getExchangeAccounts();
+
+          // Filter accounts for the current exchange
+          const accounts = allAccounts.filter(
+            (account) =>
+              account.exchangeId?.toLowerCase() ===
+              selectedAccount.exchangeId?.toLowerCase(),
+          );
+
+          setAccountsForExchange(accounts);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
     window.addEventListener(
       'apiKeyUpdated',
       handleApiKeyUpdated as EventListener,
     );
 
     return () => {
+      window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener(
         'apiKeyUpdated',
         handleApiKeyUpdated as EventListener,
       );
     };
-  }, [selectedAccount]);
+  }, [selectedAccount, setSelectedAccount]);
 
   // If no account is selected, show empty state
   if (!selectedAccount) {

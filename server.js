@@ -8,24 +8,40 @@
  * - Existing RBAC and Password Reset
  */
 
-const express = require("express");
-const admin = require("firebase-admin");
-const bcrypt = require("bcrypt");
-const { PrismaClient } = require("@prisma/client");
-const crypto = require("crypto");
-const rateLimit = require("express-rate-limit");
-const http = require("http");
-const WebSocket = require("ws");
+const express = require('express');
+const admin = require('firebase-admin');
+const bcrypt = require('bcrypt');
+const { PrismaClient } = require('@prisma/client');
+const crypto = require('crypto');
+const rateLimit = require('express-rate-limit');
+const http = require('http');
+const WebSocket = require('ws');
 
 // --- Firebase Admin Initialization ---
-const serviceAccount = require("./omnitrade-firebase-adminsdk.json"); // Make sure this path is correct
+let serviceAccount;
+try {
+  // Use the service account file from the root directory
+  serviceAccount = require('./omnitrade-firebase-adminsdk.json'); // Path relative to server.js
+  console.log('Firebase service account loaded successfully');
+} catch (error) {
+  console.error('Error loading Firebase service account:', error);
+  throw new Error(
+    'Failed to load Firebase service account. Please check the file exists and has correct permissions.',
+  );
+}
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
+try {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+  });
+  console.log('Firebase Admin SDK initialized successfully');
+} catch (error) {
+  console.error('Error initializing Firebase Admin SDK:', error);
+  throw error;
+}
 // --- End Firebase Admin Initialization ---
 
-const { loadUserPermissions, checkPermission } = require("./rbacMiddleware");
+const { loadUserPermissions, checkPermission } = require('./rbacMiddleware');
 
 const app = express();
 const prisma = new PrismaClient();
@@ -49,7 +65,7 @@ function getCache(key) {
 const marketLimiter = rateLimit({
   windowMs: 15 * 1000, // 15 seconds
   max: 10, // limit each IP to 10 requests per windowMs
-  message: "Too many requests, please try again later.",
+  message: 'Too many requests, please try again later.',
 });
 
 app.use(express.json());
@@ -58,14 +74,14 @@ app.use(express.json());
 
 // Middleware: Authenticate Firebase ID Token and attach user info
 async function authenticateToken(req, res, next) {
-  const authHeader = req.headers["authorization"];
+  const authHeader = req.headers['authorization'];
   const idToken =
-    authHeader && authHeader.startsWith("Bearer ")
-      ? authHeader.split(" ")[1]
+    authHeader && authHeader.startsWith('Bearer ')
+      ? authHeader.split(' ')[1]
       : null;
 
   if (!idToken) {
-    console.log("Auth: No token provided");
+    console.log('Auth: No token provided');
     return res.sendStatus(401); // Unauthorized
   }
 
@@ -83,12 +99,16 @@ async function authenticateToken(req, res, next) {
     console.log(`Auth: Token verified for user ${req.user.userId}`);
     next();
   } catch (error) {
-    console.error("Auth: Error verifying Firebase ID token:", error.message);
-    // Handle specific errors like expired token, revoked token, etc. if needed
-    if (error.code === "auth/id-token-expired") {
-      return res.status(401).send("Token expired");
+    console.error('Auth: Error verifying Firebase ID token:', error.message);
+
+    // Handle specific errors like expired token, revoked token, etc.
+    const firebaseError = error;
+    if (firebaseError.code === 'auth/id-token-expired') {
+      return res.status(401).json({ error: 'Token expired' });
+    } else if (firebaseError.code === 'auth/argument-error') {
+      return res.status(401).json({ error: 'Invalid token format' });
     }
-    return res.sendStatus(403); // Forbidden
+    return res.status(401).json({ error: 'Authentication failed' });
   }
 }
 
@@ -104,33 +124,33 @@ function requireRole(roles) {
 
 // Example protected route (admin only)
 app.get(
-  "/admin/dashboard",
+  '/admin/dashboard',
   authenticateToken,
   loadUserPermissions,
-  checkPermission("system_settings:manage"),
+  checkPermission('system_settings:manage'),
   (req, res) => {
-    res.json({ message: "Welcome, admin!" });
-  }
+    res.json({ message: 'Welcome, admin!' });
+  },
 );
 
 // Example protected route (any logged-in user)
 app.get(
-  "/user/profile",
+  '/user/profile',
   authenticateToken,
   loadUserPermissions,
-  checkPermission("profile:read:own"),
+  checkPermission('profile:read:own'),
   (req, res) => {
-    res.json({ message: "Welcome, user!" });
-  }
+    res.json({ message: 'Welcome, user!' });
+  },
 );
 
 // Password reset request
-app.post("/auth/request-password-reset", async (req, res) => {
+app.post('/auth/request-password-reset', async (req, res) => {
   const { email } = req.body;
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) return res.sendStatus(200); // Don't reveal user existence
 
-  const token = crypto.randomBytes(32).toString("hex");
+  const token = crypto.randomBytes(32).toString('hex');
   const expiry = new Date(Date.now() + 1000 * 60 * 60); // 1 hour
 
   await prisma.user.update({
@@ -146,7 +166,7 @@ app.post("/auth/request-password-reset", async (req, res) => {
 });
 
 // Password reset confirmation
-app.post("/auth/reset-password", async (req, res) => {
+app.post('/auth/reset-password', async (req, res) => {
   const { email, token, newPassword } = req.body;
   const user = await prisma.user.findUnique({ where: { email } });
   if (
@@ -155,7 +175,7 @@ app.post("/auth/reset-password", async (req, res) => {
     !user.reset_token_expiry ||
     user.reset_token_expiry < new Date()
   ) {
-    return res.status(400).json({ error: "Invalid or expired token" });
+    return res.status(400).json({ error: 'Invalid or expired token' });
   }
 
   const password_hash = await bcrypt.hash(newPassword, 10);
@@ -176,18 +196,18 @@ app.post("/auth/reset-password", async (req, res) => {
 /**
  * Market Data API Endpoints (mock data)
  */
-app.use("/api/v1/market-data", marketLimiter);
+app.use('/api/v1/market-data', marketLimiter);
 
 // GET /api/v1/market-data/symbols?exchangeId=binance
-app.get("/api/v1/market-data/symbols", (req, res) => {
-  const exchangeId = req.query.exchangeId || "binance";
+app.get('/api/v1/market-data/symbols', (req, res) => {
+  const exchangeId = req.query.exchangeId || 'binance';
   const cacheKey = `symbols_${exchangeId}`;
   let symbols = getCache(cacheKey);
   if (!symbols) {
     symbols = [
-      { symbol: "BTCUSDT", baseAsset: "BTC", quoteAsset: "USDT" },
-      { symbol: "ETHUSDT", baseAsset: "ETH", quoteAsset: "USDT" },
-      { symbol: "BNBUSDT", baseAsset: "BNB", quoteAsset: "USDT" },
+      { symbol: 'BTCUSDT', baseAsset: 'BTC', quoteAsset: 'USDT' },
+      { symbol: 'ETHUSDT', baseAsset: 'ETH', quoteAsset: 'USDT' },
+      { symbol: 'BNBUSDT', baseAsset: 'BNB', quoteAsset: 'USDT' },
     ];
     setCache(cacheKey, symbols, 60000); // cache 60s
   }
@@ -195,7 +215,7 @@ app.get("/api/v1/market-data/symbols", (req, res) => {
 });
 
 // GET /api/v1/market-data/price/:symbol
-app.get("/api/v1/market-data/price/:symbol", (req, res) => {
+app.get('/api/v1/market-data/price/:symbol', (req, res) => {
   const symbol = req.params.symbol.toUpperCase();
   const cacheKey = `price_${symbol}`;
   let price = getCache(cacheKey);
@@ -207,11 +227,11 @@ app.get("/api/v1/market-data/price/:symbol", (req, res) => {
 });
 
 // GET /api/v1/market-data/klines
-app.get("/api/v1/market-data/klines", (req, res) => {
+app.get('/api/v1/market-data/klines', (req, res) => {
   const {
-    exchangeId = "binance",
-    symbol = "BTCUSDT",
-    interval = "1h",
+    exchangeId = 'binance',
+    symbol = 'BTCUSDT',
+    interval = '1h',
     limit = 10,
   } = req.query;
   const cacheKey = `klines_${exchangeId}_${symbol}_${interval}_${limit}`;
@@ -226,12 +246,12 @@ app.get("/api/v1/market-data/klines", (req, res) => {
       const high = Math.max(
         open,
         close,
-        (Math.random() * 50000 + 1000).toFixed(2)
+        (Math.random() * 50000 + 1000).toFixed(2),
       );
       const low = Math.min(
         open,
         close,
-        (Math.random() * 50000 + 1000).toFixed(2)
+        (Math.random() * 50000 + 1000).toFixed(2),
       );
       const volume = (Math.random() * 100).toFixed(2);
       klines.unshift([timestamp, open, high, low, close, volume]);
@@ -246,38 +266,38 @@ const server = http.createServer(app);
 // WebSocket server for real-time updates
 const wss = new WebSocket.Server({
   server,
-  path: "/api/v1/market-data/updates",
+  path: '/api/v1/market-data/updates',
 });
 
-wss.on("connection", (ws) => {
-  console.log("Market data WebSocket client connected");
+wss.on('connection', (ws) => {
+  console.log('Market data WebSocket client connected');
   ws.send(
     JSON.stringify({
-      type: "welcome",
-      message: "Connected to market data updates",
-    })
+      type: 'welcome',
+      message: 'Connected to market data updates',
+    }),
   );
 
   const interval = setInterval(() => {
     const update = {
-      type: "price_update",
-      symbol: "BTCUSDT",
+      type: 'price_update',
+      symbol: 'BTCUSDT',
       price: (Math.random() * 50000 + 1000).toFixed(2),
       timestamp: Date.now(),
     };
     ws.send(JSON.stringify(update));
   }, 3000);
 
-  ws.on("close", () => {
+  ws.on('close', () => {
     clearInterval(interval);
-    console.log("Market data WebSocket client disconnected");
+    console.log('Market data WebSocket client disconnected');
   });
 });
 
 // --- User Management Endpoints ---
 
 // GET /api/v1/users/me - Fetch current user's profile
-app.get("/api/v1/users/me", authenticateToken, async (req, res) => {
+app.get('/api/v1/users/me', authenticateToken, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { user_id: req.user.userId }, // Uses userId mapped from Firebase uid
@@ -292,17 +312,17 @@ app.get("/api/v1/users/me", authenticateToken, async (req, res) => {
       },
     });
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({ error: 'User not found' });
     }
     res.json(user);
   } catch (error) {
-    console.error("Error fetching user profile:", error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // PUT /api/v1/users/update-profile - Update current user's profile
-app.put("/api/v1/users/update-profile", authenticateToken, async (req, res) => {
+app.put('/api/v1/users/update-profile', authenticateToken, async (req, res) => {
   const { user_name } = req.body;
   const updateData = {};
 
@@ -310,7 +330,7 @@ app.put("/api/v1/users/update-profile", authenticateToken, async (req, res) => {
   if (user_name !== undefined) updateData.user_name = user_name;
 
   if (Object.keys(updateData).length === 0) {
-    return res.status(400).json({ error: "No fields provided for update" });
+    return res.status(400).json({ error: 'No fields provided for update' });
   }
 
   try {
@@ -334,16 +354,16 @@ app.put("/api/v1/users/update-profile", authenticateToken, async (req, res) => {
 
     res.json(updatedUser);
   } catch (error) {
-    console.error("Error updating user profile:", error);
+    console.error('Error updating user profile:', error);
     // Handle potential errors like user not found (though unlikely with auth)
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // --- Account Settings Endpoints ---
 
 // GET /api/v1/users/settings - Fetch all settings for the current user
-app.get("/api/v1/users/settings", authenticateToken, async (req, res) => {
+app.get('/api/v1/users/settings', authenticateToken, async (req, res) => {
   try {
     const settings = await prisma.userSetting.findMany({
       where: { user_id: req.user.userId }, // Uses userId mapped from Firebase uid
@@ -358,23 +378,23 @@ app.get("/api/v1/users/settings", authenticateToken, async (req, res) => {
 
     res.json(settingsObject);
   } catch (error) {
-    console.error("Error fetching user settings:", error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error('Error fetching user settings:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // PUT /api/v1/users/settings - Update settings for the current user
-app.put("/api/v1/users/settings", authenticateToken, async (req, res) => {
+app.put('/api/v1/users/settings', authenticateToken, async (req, res) => {
   const settingsToUpdate = req.body; // Expects an object like { "notification_prefs": {...}, "security_2fa_enabled": true }
 
   if (
-    typeof settingsToUpdate !== "object" ||
+    typeof settingsToUpdate !== 'object' ||
     settingsToUpdate === null ||
     Object.keys(settingsToUpdate).length === 0
   ) {
     return res
       .status(400)
-      .json({ error: "Invalid or empty settings object provided" });
+      .json({ error: 'Invalid or empty settings object provided' });
   }
 
   const userId = req.user.userId; // Uses userId mapped from Firebase uid
@@ -389,7 +409,7 @@ app.put("/api/v1/users/settings", authenticateToken, async (req, res) => {
           where: { user_id_setting_key: { user_id: userId, setting_key: key } },
           update: { setting_value: value },
           create: { user_id: userId, setting_key: key, setting_value: value },
-        })
+        }),
       );
     }
   }
@@ -412,8 +432,8 @@ app.put("/api/v1/users/settings", authenticateToken, async (req, res) => {
 
     res.json(updatedSettingsObject);
   } catch (error) {
-    console.error("Error updating user settings:", error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error('Error updating user settings:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -441,24 +461,24 @@ async function createNotification(userId, type, message) {
 // createNotification('user-id-goes-here', 'BOT_EXECUTION_SUCCESS', 'Your BTC/USDT bot completed successfully.');
 
 // GET /api/v1/users/notifications - Fetch notifications for the current user
-app.get("/api/v1/users/notifications", authenticateToken, async (req, res) => {
+app.get('/api/v1/users/notifications', authenticateToken, async (req, res) => {
   const { read } = req.query; // Optional query param: ?read=true or ?read=false
   const whereClause = { user_id: req.user.userId }; // Uses userId mapped from Firebase uid
 
   if (read !== undefined) {
-    whereClause.is_read = read === "true";
+    whereClause.is_read = read === 'true';
   }
 
   try {
     const notifications = await prisma.notification.findMany({
       where: whereClause,
-      orderBy: { created_at: "desc" }, // Show newest first
+      orderBy: { created_at: 'desc' }, // Show newest first
       take: 50, // Limit the number of notifications returned
     });
     res.json(notifications);
   } catch (error) {
-    console.error("Error fetching notifications:", error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error('Error fetching notifications:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -471,7 +491,7 @@ async function logUserActivity(
   userId,
   activityType,
   details = null,
-  req = null
+  req = null,
 ) {
   try {
     const logData = {
@@ -483,7 +503,7 @@ async function logUserActivity(
     if (req) {
       logData.ip_address =
         req.ip || req.connection?.remoteAddress || req.socket?.remoteAddress;
-      logData.user_agent = req.headers["user-agent"];
+      logData.user_agent = req.headers['user-agent'];
     }
     await prisma.userActivityLog.create({ data: logData });
     console.log(`Activity logged for user ${userId}: ${activityType}`);
@@ -491,7 +511,7 @@ async function logUserActivity(
     // Avoid crashing the main request if logging fails
     console.error(
       `Error logging activity for user ${userId} (${activityType}):`,
-      error
+      error,
     );
   }
 }
@@ -501,11 +521,11 @@ async function logUserActivity(
 // logUserActivity('user-id-goes-here', 'BOT_START', { botId: 'bot-id' });
 
 // GET /api/v1/users/activity - Fetch recent activity for the current user
-app.get("/api/v1/users/activity", authenticateToken, async (req, res) => {
+app.get('/api/v1/users/activity', authenticateToken, async (req, res) => {
   try {
     const activityLogs = await prisma.userActivityLog.findMany({
       where: { user_id: req.user.userId }, // Uses userId mapped from Firebase uid
-      orderBy: { timestamp: "desc" }, // Show newest first
+      orderBy: { timestamp: 'desc' }, // Show newest first
       take: 100, // Limit the number of logs returned
       select: {
         // Select specific fields to return
@@ -517,8 +537,8 @@ app.get("/api/v1/users/activity", authenticateToken, async (req, res) => {
     });
     res.json(activityLogs);
   } catch (error) {
-    console.error("Error fetching user activity:", error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error('Error fetching user activity:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -526,7 +546,7 @@ app.get("/api/v1/users/activity", authenticateToken, async (req, res) => {
 
 // GET /api/v1/performance/bots/:botId - Fetch performance for a specific bot
 app.get(
-  "/api/v1/performance/bots/:botId",
+  '/api/v1/performance/bots/:botId',
   authenticateToken,
   async (req, res) => {
     const { botId } = req.params;
@@ -544,19 +564,19 @@ app.get(
       if (!bot || bot.userId !== userId) {
         return res
           .status(404)
-          .json({ error: "Bot not found or access denied" });
+          .json({ error: 'Bot not found or access denied' });
       }
 
       // Fetch latest live performance snapshot
       const livePerformance = await prisma.botPerformance.findFirst({
         where: { bot_id: botId, is_live: true },
-        orderBy: { timestamp: "desc" },
+        orderBy: { timestamp: 'desc' },
       });
 
       // Fetch backtest results
       const backtests = await prisma.backtestResult.findMany({
         where: { bot_id: botId },
-        orderBy: { created_at: "desc" },
+        orderBy: { created_at: 'desc' },
         take: 10, // Limit number of backtests returned
       });
 
@@ -615,17 +635,17 @@ app.get(
       });
     } catch (error) {
       console.error(`Error fetching performance for bot ${botId}:`, error);
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({ error: 'Internal server error' });
     }
-  }
+  },
 );
 
 // GET /api/v1/performance/leaderboard - Fetch leaderboard data
 app.get(
-  "/api/v1/performance/leaderboard",
+  '/api/v1/performance/leaderboard',
   authenticateToken,
   async (req, res) => {
-    const { metric = "roi", timePeriod = "all", limit = 10 } = req.query; // Example: ?metric=roi&limit=5
+    const { metric = 'roi', timePeriod = 'all', limit = 10 } = req.query; // Example: ?metric=roi&limit=5
 
     try {
       // --- Mock Data Generation ---
@@ -633,11 +653,11 @@ app.get(
       // across BotPerformance, potentially filtering by is_live=true, timePeriod, etc.
       const mockLeaderboard = [];
       const botIds = [
-        "mock-bot-1",
-        "mock-bot-2",
-        "mock-bot-3",
-        "mock-bot-4",
-        "mock-bot-5",
+        'mock-bot-1',
+        'mock-bot-2',
+        'mock-bot-3',
+        'mock-bot-4',
+        'mock-bot-5',
       ]; // Example bot IDs
       for (let i = 0; i < Math.min(limit, botIds.length); i++) {
         mockLeaderboard.push({
@@ -647,7 +667,7 @@ app.get(
           bot_name: `Mock Bot ${i + 1}`, // Placeholder
           user_name: `User ${String.fromCharCode(65 + i)}`, // Placeholder User A, B, C...
           metric_value:
-            metric === "roi"
+            metric === 'roi'
               ? (Math.random() * 200 + 50).toFixed(2)
               : (Math.random() * 3 + 1).toFixed(2), // Mock ROI or Profit Factor
           metric_name: metric,
@@ -688,10 +708,10 @@ app.get(
 
       res.json(mockLeaderboard); // Return mock data for now
     } catch (error) {
-      console.error("Error fetching leaderboard data:", error);
-      res.status(500).json({ error: "Internal server error" });
+      console.error('Error fetching leaderboard data:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
-  }
+  },
 );
 
 const PORT = process.env.PORT || 3001; // Define PORT if not already defined

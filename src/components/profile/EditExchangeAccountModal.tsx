@@ -16,6 +16,7 @@ import {
   ExchangeApiKey,
   updateExchangeApiKey,
 } from '@/services/exchangeApiKeyService';
+import { dispatchApiKeyUpdated } from '@/utils/apiKeySync';
 
 interface EditExchangeAccountModalProps {
   open: boolean;
@@ -42,9 +43,22 @@ export function EditExchangeAccountModal({
   }, [open, apiKey]);
 
   const updateMutation = useMutation({
-    mutationFn: (data: { apiKeyId: string; key_nickname: string }) =>
-      updateExchangeApiKey(data.apiKeyId, { key_nickname: data.key_nickname }),
-    onSuccess: () => {
+    mutationFn: (data: { apiKeyId: string; key_nickname: string }) => {
+      console.log(
+        '[EditExchangeAccountModal] Updating API key:',
+        data.apiKeyId,
+        'with nickname:',
+        data.key_nickname,
+      );
+      return updateExchangeApiKey(data.apiKeyId, {
+        key_nickname: data.key_nickname,
+      });
+    },
+    onSuccess: (data, variables) => {
+      console.log(
+        '[EditExchangeAccountModal] API key updated successfully:',
+        data,
+      );
       toast({
         title: 'Account updated',
         description: 'Your exchange account has been updated successfully.',
@@ -55,6 +69,14 @@ export function EditExchangeAccountModal({
 
       // Invalidate any other queries that might depend on this data
       queryClient.invalidateQueries({ queryKey: ['portfolioData'] });
+
+      // Dispatch API key updated event to update UI components
+      if (apiKey) {
+        dispatchApiKeyUpdated(apiKey.api_key_id, accountLabel);
+        console.log(
+          `Dispatched API key updated event for ${apiKey.api_key_id} with nickname ${accountLabel}`,
+        );
+      }
 
       // Clear the selected account from localStorage to force a refresh
       localStorage.removeItem('selected-account-storage');
@@ -72,6 +94,10 @@ export function EditExchangeAccountModal({
       }
     },
     onError: (error: Error) => {
+      console.error(
+        '[EditExchangeAccountModal] Error updating API key:',
+        error,
+      );
       toast({
         variant: 'destructive',
         title: 'Failed to update account',
@@ -82,8 +108,17 @@ export function EditExchangeAccountModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!apiKey) return;
+    if (!apiKey) {
+      console.error('[EditExchangeAccountModal] No API key provided');
+      return;
+    }
 
+    console.log(
+      '[EditExchangeAccountModal] Submitting form with apiKeyId:',
+      apiKey.api_key_id,
+      'and label:',
+      accountLabel,
+    );
     updateMutation.mutate({
       apiKeyId: apiKey.api_key_id,
       key_nickname: accountLabel,

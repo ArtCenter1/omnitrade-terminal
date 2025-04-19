@@ -10,14 +10,18 @@ export const API_KEY_UPDATED_EVENT = 'apiKeyUpdated';
  * @param nickname The new nickname for the API key
  */
 export function dispatchApiKeyUpdated(apiKeyId: string, nickname: string) {
-  console.log(`Dispatching API key updated event for ${apiKeyId}: ${nickname}`);
+  console.log(
+    `[apiKeySync] Dispatching API key updated event for ${apiKeyId}: ${nickname}`,
+  );
 
   // Create and dispatch a custom event
   const event = new CustomEvent(API_KEY_UPDATED_EVENT, {
     detail: { apiKeyId, nickname },
   });
 
+  console.log(`[apiKeySync] Dispatching event with detail:`, event.detail);
   window.dispatchEvent(event);
+  console.log(`[apiKeySync] Event dispatched`);
 
   // Also update localStorage directly for immediate effect
   updateApiKeyInLocalStorage(apiKeyId, nickname);
@@ -30,21 +34,30 @@ export function dispatchApiKeyUpdated(apiKeyId: string, nickname: string) {
  */
 export function updateApiKeyInLocalStorage(apiKeyId: string, nickname: string) {
   try {
+    console.log(
+      `[apiKeySync] Updating API key ${apiKeyId} with nickname ${nickname} in localStorage`,
+    );
+
     // Get existing API keys from localStorage
     const savedKeysStr = localStorage.getItem('exchange_api_keys');
     if (savedKeysStr) {
+      console.log(`[apiKeySync] Found existing API keys in localStorage`);
       const savedKeys = JSON.parse(savedKeysStr);
+      console.log(`[apiKeySync] Parsed keys:`, savedKeys);
 
       // Find and update the API key
       const keyIndex = savedKeys.findIndex(
         (key: any) => key.api_key_id === apiKeyId,
       );
+      console.log(`[apiKeySync] Key index in saved keys: ${keyIndex}`);
+
       if (keyIndex >= 0) {
         // Update the nickname
+        const oldNickname = savedKeys[keyIndex].key_nickname;
         savedKeys[keyIndex].key_nickname = nickname;
         localStorage.setItem('exchange_api_keys', JSON.stringify(savedKeys));
         console.log(
-          `Updated API key ${apiKeyId} nickname to ${nickname} in localStorage`,
+          `[apiKeySync] Updated API key ${apiKeyId} nickname from "${oldNickname}" to "${nickname}" in localStorage`,
         );
       } else {
         // Key not found, add it
@@ -56,11 +69,14 @@ export function updateApiKeyInLocalStorage(apiKeyId: string, nickname: string) {
         });
         localStorage.setItem('exchange_api_keys', JSON.stringify(savedKeys));
         console.log(
-          `Added API key ${apiKeyId} with nickname ${nickname} to localStorage`,
+          `[apiKeySync] Added API key ${apiKeyId} with nickname "${nickname}" to localStorage`,
         );
       }
     } else {
       // No existing keys, create a new array
+      console.log(
+        `[apiKeySync] No existing API keys in localStorage, creating new array`,
+      );
       const exchangeId = getExchangeIdForApiKey(apiKeyId);
       const newKeys = [
         {
@@ -71,14 +87,17 @@ export function updateApiKeyInLocalStorage(apiKeyId: string, nickname: string) {
       ];
       localStorage.setItem('exchange_api_keys', JSON.stringify(newKeys));
       console.log(
-        `Created new API keys array in localStorage with ${apiKeyId}: ${nickname}`,
+        `[apiKeySync] Created new API keys array in localStorage with ${apiKeyId}: "${nickname}"`,
       );
     }
 
     // Also update the DEFAULT_MOCK_ACCOUNTS directly for immediate effect
     updateDefaultMockAccounts(apiKeyId, nickname);
   } catch (error) {
-    console.error('Error updating API key in localStorage:', error);
+    console.error(
+      '[apiKeySync] Error updating API key in localStorage:',
+      error,
+    );
   }
 }
 
@@ -89,18 +108,35 @@ export function updateApiKeyInLocalStorage(apiKeyId: string, nickname: string) {
  */
 function updateDefaultMockAccounts(apiKeyId: string, nickname: string) {
   try {
+    console.log(`[apiKeySync] Updating DEFAULT_MOCK_ACCOUNTS for ${apiKeyId}`);
+
     // Find the account in DEFAULT_MOCK_ACCOUNTS
     const account = DEFAULT_MOCK_ACCOUNTS.find(
       (acc) => acc.apiKeyId === apiKeyId,
     );
+
     if (account) {
-      console.log(
-        `Updating DEFAULT_MOCK_ACCOUNTS nickname for ${apiKeyId}: ${nickname}`,
-      );
+      const oldName = account.name;
       account.name = nickname;
+      console.log(
+        `[apiKeySync] Updated DEFAULT_MOCK_ACCOUNTS nickname for ${apiKeyId} from "${oldName}" to "${nickname}"`,
+      );
+    } else {
+      console.log(
+        `[apiKeySync] No matching account found in DEFAULT_MOCK_ACCOUNTS for ${apiKeyId}`,
+      );
+      // Log all accounts for debugging
+      console.log(
+        '[apiKeySync] Current DEFAULT_MOCK_ACCOUNTS:',
+        DEFAULT_MOCK_ACCOUNTS.map((acc) => ({
+          id: acc.id,
+          apiKeyId: acc.apiKeyId,
+          name: acc.name,
+        })),
+      );
     }
   } catch (error) {
-    console.error('Error updating DEFAULT_MOCK_ACCOUNTS:', error);
+    console.error('[apiKeySync] Error updating DEFAULT_MOCK_ACCOUNTS:', error);
   }
 }
 

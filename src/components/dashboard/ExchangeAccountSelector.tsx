@@ -139,19 +139,40 @@ export function ExchangeAccountSelector() {
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       console.log(
-        `Storage changed (${e.key}), refreshing exchange account selector data`,
+        `[ExchangeAccountSelector] Storage changed (${e.key}), refreshing exchange account selector data`,
       );
       // Only refresh if the exchange_api_keys were updated
       if (e.key === 'exchange_api_keys' || e.key === null) {
+        console.log(
+          '[ExchangeAccountSelector] Refetching API keys due to storage change',
+        );
         refetch();
       }
     };
 
     // Handle API key updates
     const handleApiKeyUpdated = (e: CustomEvent) => {
+      const { apiKeyId, nickname } = e.detail || {};
       console.log(
-        'API key updated event received, refreshing exchange account selector data',
+        `[ExchangeAccountSelector] API key updated event received for ${apiKeyId} with nickname "${nickname}", refreshing data`,
       );
+
+      // If this is the currently selected account, update it immediately
+      if (selectedAccount && selectedAccount.apiKeyId === apiKeyId) {
+        console.log(
+          `[ExchangeAccountSelector] Currently selected account (${selectedAccount.name}) matches updated API key, updating immediately`,
+        );
+        // Create a new account object with the updated nickname
+        const updatedAccount = {
+          ...selectedAccount,
+          name: nickname,
+        };
+        // Update the selected account
+        setSelectedAccount(updatedAccount);
+      }
+
+      // Also refetch to ensure all data is in sync
+      console.log('[ExchangeAccountSelector] Refetching API keys');
       refetch();
     };
 
@@ -168,7 +189,7 @@ export function ExchangeAccountSelector() {
         handleApiKeyUpdated as EventListener,
       );
     };
-  }, [refetch]);
+  }, [refetch, selectedAccount, setSelectedAccount]);
 
   // Initialize the selected account only once
   useEffect(() => {
