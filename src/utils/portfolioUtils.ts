@@ -37,14 +37,18 @@ export function combinePortfolioData(accounts: ExchangeAccount[]): Portfolio {
 
   // Combine the portfolios
   const combinedAssets: { [key: string]: PortfolioAsset } = {};
-  let totalUsdValue = 0;
   let latestUpdate = new Date(0); // Start with oldest possible date
+
+  // Log individual portfolio values for debugging
+  console.log('Combining portfolios with the following values:');
+  portfolios.forEach((portfolio, index) => {
+    console.log(
+      `Portfolio ${index + 1}: $${portfolio.totalUsdValue.toFixed(2)}`,
+    );
+  });
 
   // Process each portfolio
   portfolios.forEach((portfolio) => {
-    // Update total value
-    totalUsdValue += portfolio.totalUsdValue;
-
     // Track latest update time
     if (portfolio.lastUpdated > latestUpdate) {
       latestUpdate = portfolio.lastUpdated;
@@ -52,7 +56,8 @@ export function combinePortfolioData(accounts: ExchangeAccount[]): Portfolio {
 
     // Combine assets
     portfolio.assets.forEach((asset) => {
-      const assetKey = asset.asset;
+      // Use both asset symbol and exchange ID as the key to prevent duplicates across exchanges
+      const assetKey = `${asset.asset}-${asset.exchangeId}`;
 
       if (combinedAssets[assetKey]) {
         // Asset already exists, add values
@@ -60,10 +65,6 @@ export function combinePortfolioData(accounts: ExchangeAccount[]): Portfolio {
         combinedAssets[assetKey].locked += asset.locked;
         combinedAssets[assetKey].total += asset.total;
         combinedAssets[assetKey].usdValue += asset.usdValue;
-        // Keep track of exchanges where this asset is held
-        if (!combinedAssets[assetKey].exchangeId.includes(asset.exchangeId)) {
-          combinedAssets[assetKey].exchangeId += `, ${asset.exchangeId}`;
-        }
       } else {
         // New asset, add to combined assets
         combinedAssets[assetKey] = { ...asset };
@@ -75,6 +76,15 @@ export function combinePortfolioData(accounts: ExchangeAccount[]): Portfolio {
   const sortedAssets = Object.values(combinedAssets).sort(
     (a, b) => b.usdValue - a.usdValue,
   );
+
+  // Calculate total USD value from the combined assets
+  const totalUsdValue = sortedAssets.reduce(
+    (sum, asset) => sum + asset.usdValue,
+    0,
+  );
+
+  console.log(`Combined portfolio total value: $${totalUsdValue.toFixed(2)}`);
+  console.log(`Number of assets in combined portfolio: ${sortedAssets.length}`);
 
   return {
     totalUsdValue,

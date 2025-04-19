@@ -89,19 +89,14 @@ export function PortfolioIndicators() {
     );
 
     try {
-      // If we have portfolio data, use it for the value
-      // Otherwise, use the value from the selected account
-      let formattedValue;
-      if (portfolioData && typeof portfolioData.totalUsdValue === 'number') {
-        formattedValue = new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'USD',
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        }).format(portfolioData.totalUsdValue);
-      } else {
-        // Fallback to the account value if portfolio data is not available
-        formattedValue = selectedAccount.value || '$0.00';
+      // Always use the value from the selected account for consistency
+      // This ensures the value in the header matches the value in the dropdown
+      let formattedValue = selectedAccount.value || '$0.00';
+
+      // Log the values for debugging
+      console.log('Using account value for indicators:', formattedValue);
+      if (portfolioData) {
+        console.log('Portfolio data value:', portfolioData.totalUsdValue);
       }
 
       // Extract the change percentage from the account
@@ -111,18 +106,16 @@ export function PortfolioIndicators() {
         : '0';
       const changePercent = parseFloat(changePercentStr) || 0;
 
-      // Calculate the change amount
-      let changeAmount;
-      if (portfolioData && typeof portfolioData.totalUsdValue === 'number') {
-        changeAmount = portfolioData.totalUsdValue * (changePercent / 100);
-      } else {
-        // Fallback calculation if portfolio data is not available
-        // Parse the account value to get a number
-        const accountValue = parseFloat(
-          selectedAccount.value?.replace(/[^0-9.-]+/g, '') || '0',
-        );
-        changeAmount = accountValue * (changePercent / 100);
-      }
+      // Calculate the change amount based on the account value
+      // Parse the account value to get a number
+      const accountValue = parseFloat(
+        selectedAccount.value?.replace(/[^0-9.-]+/g, '') || '0',
+      );
+      const changeAmount = accountValue * (changePercent / 100);
+
+      console.log('Account value:', accountValue);
+      console.log('Change percent:', changePercent);
+      console.log('Calculated change amount:', changeAmount);
 
       const change = new Intl.NumberFormat('en-US', {
         style: 'currency',
