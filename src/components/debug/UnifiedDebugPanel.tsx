@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useRoleBasedAccess, UserRole } from '@/hooks/useRoleBasedAccess';
 import { useLocation } from 'react-router-dom';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 type DebugPanelProps = {
   allowedRoles?: UserRole[];
@@ -140,7 +140,9 @@ export function UnifiedDebugPanel({ allowedRoles = [] }: DebugPanelProps) {
         setIsMockUser(false);
 
         // Show immediate visual feedback
-        toast.success('Disabling mock user...');
+        toast('Disabling mock user...', {
+          description: 'Returning to real user mode',
+        });
 
         // Sign out the current user
         signOut();
@@ -167,7 +169,9 @@ export function UnifiedDebugPanel({ allowedRoles = [] }: DebugPanelProps) {
         localStorage.setItem('userRole', 'user');
 
         // Show immediate visual feedback
-        toast.success('Enabling mock user...');
+        toast('Enabling mock user...', {
+          description: 'Switching to simulated user mode',
+        });
 
         // Reload the page to apply the mock user
         console.log('Reloading page to apply mock user...');
@@ -175,7 +179,7 @@ export function UnifiedDebugPanel({ allowedRoles = [] }: DebugPanelProps) {
       }
     } catch (error) {
       console.error('Error toggling mock user:', error);
-      toast.error('Error toggling mock user');
+      toast('Error toggling mock user', { variant: 'destructive' });
     }
   };
 
@@ -321,12 +325,12 @@ export function UnifiedDebugPanel({ allowedRoles = [] }: DebugPanelProps) {
                 localStorage.setItem('userRole', 'user');
                 // Then call updateRole to trigger UI updates
                 updateRole('user');
-                toast.success('Switched to User role');
+                toast('Role Changed', { description: 'Switched to User role' });
                 // Force reload after a short delay
                 setTimeout(() => window.location.reload(), 500);
               } catch (error) {
                 console.error('Error switching role:', error);
-                toast.error('Error switching role');
+                toast('Error switching role', { variant: 'destructive' });
               }
             }}
             variant={userRole === 'user' ? 'default' : 'outline'}
@@ -347,12 +351,14 @@ export function UnifiedDebugPanel({ allowedRoles = [] }: DebugPanelProps) {
                 localStorage.setItem('userRole', 'premium');
                 // Then call updateRole to trigger UI updates
                 updateRole('premium');
-                toast.success('Switched to Premium role');
+                toast('Role Changed', {
+                  description: 'Switched to Premium role',
+                });
                 // Force reload after a short delay
                 setTimeout(() => window.location.reload(), 500);
               } catch (error) {
                 console.error('Error switching role:', error);
-                toast.error('Error switching role');
+                toast('Error switching role', { variant: 'destructive' });
               }
             }}
             variant={userRole === 'premium' ? 'default' : 'outline'}
@@ -373,12 +379,14 @@ export function UnifiedDebugPanel({ allowedRoles = [] }: DebugPanelProps) {
                 localStorage.setItem('userRole', 'admin');
                 // Then call updateRole to trigger UI updates
                 updateRole('admin');
-                toast.success('Switched to Admin role');
+                toast('Role Changed', {
+                  description: 'Switched to Admin role',
+                });
                 // Force reload after a short delay
                 setTimeout(() => window.location.reload(), 500);
               } catch (error) {
                 console.error('Error switching role:', error);
-                toast.error('Error switching role');
+                toast('Error switching role', { variant: 'destructive' });
               }
             }}
             variant={userRole === 'admin' ? 'default' : 'outline'}

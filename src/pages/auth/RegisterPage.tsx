@@ -1,5 +1,5 @@
-import React, { useState } from "react"; // Add useState
-import { Button } from "@/components/ui/button";
+import React, { useState } from 'react'; // Add useState
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -7,18 +7,18 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Link, useNavigate } from "react-router-dom"; // Add useNavigate
-import { useAuth } from "@/hooks/useAuth"; // Use the unified hook
-import { toast } from "sonner"; // Import toast for notifications
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Link, useNavigate } from 'react-router-dom'; // Add useNavigate
+import { useAuth } from '@/hooks/useAuth'; // Use the unified hook
+import { toast } from 'sonner'; // Import toast for notifications
 // Remove this duplicate import line
 
 export default function RegisterPage() {
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { signUp } = useAuth(); // Get signUp function
@@ -31,8 +31,8 @@ export default function RegisterPage() {
 
     // Basic validation (can be enhanced)
     if (!fullName || !email || !password) {
-      setError("All fields are required.");
-      toast.error("All fields are required.");
+      setError('All fields are required.');
+      toast.error('All fields are required.');
       setIsLoading(false);
       return;
     }
@@ -42,27 +42,27 @@ export default function RegisterPage() {
       const { error: signUpError, success } = await signUp(
         email,
         password,
-        fullName
+        fullName,
       );
 
       if (signUpError) {
         const errorMessage =
-          signUpError.message || "Failed to create account. Please try again.";
+          signUpError.message || 'Failed to create account. Please try again.';
         setError(errorMessage);
-        toast.error(errorMessage);
+        // Toast removed
       } else if (success) {
-        toast.success("Account created successfully!");
-        setFullName("");
-        setEmail("");
-        setPassword("");
+        // Success toast removed
+        setFullName('');
+        setEmail('');
+        setPassword('');
         // Redirect to login after successful registration (Firebase)
-        navigate("/login");
+        navigate('/login');
       }
     } catch (err: any) {
-      console.error("Registration submit error:", err);
-      const errorMessage = "An unexpected error occurred during registration.";
+      console.error('Registration submit error:', err);
+      const errorMessage = 'An unexpected error occurred during registration.';
       setError(errorMessage);
-      toast.error(errorMessage);
+      // Error toast removed
     } finally {
       setIsLoading(false);
     }
@@ -134,13 +134,13 @@ export default function RegisterPage() {
               disabled={isLoading}
             >
               {/* Update button text based on loading state */}
-              {isLoading ? "Creating Account..." : "Create account"}
+              {isLoading ? 'Creating Account...' : 'Create account'}
             </Button>
           </CardContent>
-        </form>{" "}
+        </form>{' '}
         {/* Close form element */}
         <CardFooter className="text-center text-sm text-gray-400">
-          Already have an account?{" "}
+          Already have an account?{' '}
           <Link
             to="/login"
             className="underline text-green-500 hover:text-green-400"

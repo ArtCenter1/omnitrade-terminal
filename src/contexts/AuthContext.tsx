@@ -106,9 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (firebaseUser) {
         console.log('User is authenticated:', firebaseUser.email);
-        setTimeout(() => {
-          toast.success(`Welcome back, ${firebaseUser.email}`);
-        }, 0);
+        // Removed welcome toast message
       } else {
         console.log('No authenticated user, redirecting to auth page');
         // Only redirect to auth if we're not already on an auth page
@@ -121,10 +119,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         ].some((path) => currentPath.startsWith(path));
 
         if (!isAuthPage) {
-          setTimeout(() => {
-            toast.info('You have been signed out');
-            navigate('/auth');
-          }, 0);
+          // Redirect without toast message
+          navigate('/auth');
         }
       }
     });
@@ -173,13 +169,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         // Clear the user state
         setUser(null);
 
-        // Show toast notification
-        toast.success('Signed out successfully');
-
-        // Redirect to auth page
-        setTimeout(() => {
-          window.location.href = '/auth';
-        }, 500);
+        // Redirect to auth page immediately without toast
+        window.location.href = '/auth';
 
         return;
       }
@@ -195,7 +186,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       localStorage.removeItem('selected-account-storage');
     } catch (error) {
       console.error('Firebase sign out error:', error);
-      toast.error('Error signing out');
+      // Removed error toast
     }
   };
 

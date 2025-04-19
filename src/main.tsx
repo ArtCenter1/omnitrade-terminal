@@ -6,6 +6,8 @@ import './styles/protected-theme-override.css';
 import { AuthProvider } from './contexts/AuthContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
+// Debug panel toggle function removed
+
 // Create a QueryClient instance with better error handling
 const queryClient = new QueryClient({
   defaultOptions: {

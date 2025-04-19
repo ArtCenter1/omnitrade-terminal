@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useRoleBasedAccess, UserRole } from '@/hooks/useRoleBasedAccess';
 import { Loader2 } from 'lucide-react';
-import { UnifiedDebugPanel } from '@/components/debug/UnifiedDebugPanel';
+// Debug panel import removed
 
 interface RoleProtectedRouteProps {
   children: React.ReactNode;
@@ -34,24 +34,13 @@ export const RoleProtectedRoute: React.FC<RoleProtectedRouteProps> = ({
     return <Navigate to="/auth" replace />;
   }
 
-  // Environment check - only show debug in development
-  const isDevelopment = process.env.NODE_ENV === 'development';
+  // Debug panel environment check removed
 
   // If authenticated but doesn't have the required role
   if (!allowedRoles.includes(userRole)) {
-    return (
-      <>
-        {isDevelopment && <UnifiedDebugPanel allowedRoles={allowedRoles} />}
-        <Navigate to={redirectTo} replace />
-      </>
-    );
+    return <Navigate to={redirectTo} replace />;
   }
 
   // User is authenticated and has the required role
-  return (
-    <>
-      {isDevelopment && <UnifiedDebugPanel allowedRoles={allowedRoles} />}
-      {children}
-    </>
-  );
+  return <>{children}</>;
 };

@@ -3,8 +3,9 @@ import { Route, Routes, useLocation, Navigate } from 'react-router-dom';
 import { ThemeProvider as ShadcnThemeProvider } from '@/components/ThemeProvider';
 import '@/styles/themes.css';
 import '@/styles/components.css';
-import { Toaster } from 'react-hot-toast';
-// Debug panel is now integrated into RoleProtectedRoute
+import { Toaster } from '@/components/ui/sonner';
+// Debug panel imports removed
+// Debug panel removed
 import UserRoleManagement from './pages/admin/UserRoleManagement';
 import ComingSoon from './pages/admin/ComingSoon';
 import { ScrollToTop } from './components/ScrollToTop';
@@ -89,6 +90,8 @@ function App() {
     );
   };
 
+  // Debug panel functions and variables removed
+
   return (
     <ShadcnThemeProvider
       attribute="class"
@@ -96,7 +99,7 @@ function App() {
       storageKey="omnitrade-theme"
       enableSystem={false}
     >
-      <Toaster position="top-right" />
+      <Toaster />
       <ScrollToTop />
       <Routes>
         {/* Public routes */}

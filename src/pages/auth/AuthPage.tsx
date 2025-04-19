@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { useNavigate, useLocation } from "react-router-dom";
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Card,
   CardContent,
@@ -8,43 +8,43 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 
 const AuthPage = () => {
   // State for the login form
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
 
   // State for the registration form
-  const [registerEmail, setRegisterEmail] = useState("");
-  const [registerPassword, setRegisterPassword] = useState("");
-  const [registerConfirmPassword, setRegisterConfirmPassword] = useState("");
-  const [fullName, setFullName] = useState(""); // Replace firstName and lastName
+  const [registerEmail, setRegisterEmail] = useState('');
+  const [registerPassword, setRegisterPassword] = useState('');
+  const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
+  const [fullName, setFullName] = useState(''); // Replace firstName and lastName
   const [registerLoading, setRegisterLoading] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
 
   // State for forgot password
-  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotEmail, setForgotEmail] = useState('');
   const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
 
   const { signIn, signUp, resetPassword, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as any)?.from?.pathname || "/dashboard";
+  const from = (location.state as any)?.from?.pathname || '/dashboard';
 
   // Redirect if user is already logged in
   useEffect(() => {
@@ -56,8 +56,8 @@ const AuthPage = () => {
   // Determine the initial tab based on the URL
   const getInitialTab = () => {
     const path = location.pathname;
-    if (path.includes("/register")) return "register";
-    return "login";
+    if (path.includes('/register')) return 'register';
+    return 'login';
   };
 
   const [activeTab, setActiveTab] = useState(getInitialTab());
@@ -70,13 +70,12 @@ const AuthPage = () => {
       const { error } = await signIn(loginEmail, loginPassword);
 
       if (error) {
-        toast.error(error.message || "Failed to sign in");
+        toast.error(error.message || 'Failed to sign in');
       } else {
-        toast.success("Signed in successfully");
-        // Will be redirected by the useEffect above
+        // Toast removed - Will be redirected by the useEffect above
       }
     } catch (error: any) {
-      toast.error(error.message || "An error occurred during sign in");
+      toast.error(error.message || 'An error occurred during sign in');
     } finally {
       setLoginLoading(false);
     }
@@ -86,7 +85,7 @@ const AuthPage = () => {
     e.preventDefault();
 
     if (registerPassword !== registerConfirmPassword) {
-      toast.error("Passwords do not match");
+      toast.error('Passwords do not match');
       return;
     }
 
@@ -97,28 +96,28 @@ const AuthPage = () => {
       const { error, success } = await signUp(
         registerEmail,
         registerPassword,
-        fullName
+        fullName,
       );
 
       if (error) {
-        toast.error(error.message || "Failed to sign up");
+        toast.error(error.message || 'Failed to sign up');
       } else if (success) {
         setRegistrationSuccess(true);
         toast.success(
-          "Registration successful! Please check your email to confirm your account."
+          'Registration successful! Please check your email to confirm your account.',
         );
 
         // Reset form
-        setRegisterEmail("");
-        setRegisterPassword("");
-        setRegisterConfirmPassword("");
-        setFullName(""); // Reset fullName instead
+        setRegisterEmail('');
+        setRegisterPassword('');
+        setRegisterConfirmPassword('');
+        setFullName(''); // Reset fullName instead
 
         // Switch to login tab
-        setActiveTab("login");
+        setActiveTab('login');
       }
     } catch (error: any) {
-      toast.error(error.message || "An error occurred during registration");
+      toast.error(error.message || 'An error occurred during registration');
     } finally {
       setRegisterLoading(false);
     }
@@ -132,16 +131,16 @@ const AuthPage = () => {
       const { error, success } = await resetPassword(forgotEmail);
 
       if (error) {
-        toast.error(error.message || "Failed to send reset link");
+        toast.error(error.message || 'Failed to send reset link');
       } else {
         toast.success(
-          `If an account exists for ${forgotEmail}, we've sent a password reset link.`
+          `If an account exists for ${forgotEmail}, we've sent a password reset link.`,
         );
         setForgotPasswordOpen(false);
       }
     } catch (error: any) {
       toast.error(
-        error.message || "An error occurred while sending reset link"
+        error.message || 'An error occurred while sending reset link',
       );
     } finally {
       setForgotPasswordLoading(false);
@@ -213,7 +212,7 @@ const AuthPage = () => {
                     className="w-full bg-green-600 hover:bg-green-700 text-white"
                     disabled={loginLoading}
                   >
-                    {loginLoading ? "Signing in..." : "Sign In"}
+                    {loginLoading ? 'Signing in...' : 'Sign In'}
                   </Button>
                 </form>
               </TabsContent>
@@ -274,7 +273,7 @@ const AuthPage = () => {
                     className="w-full bg-green-600 hover:bg-green-700 text-white"
                     disabled={registerLoading}
                   >
-                    {registerLoading ? "Creating account..." : "Create Account"}
+                    {registerLoading ? 'Creating account...' : 'Create Account'}
                   </Button>
                 </form>
               </TabsContent>
@@ -328,7 +327,7 @@ const AuthPage = () => {
                 className="bg-green-600 hover:bg-green-700 text-white"
                 disabled={forgotPasswordLoading}
               >
-                {forgotPasswordLoading ? "Sending..." : "Send Link"}
+                {forgotPasswordLoading ? 'Sending...' : 'Send Link'}
               </Button>
             </div>
           </form>
