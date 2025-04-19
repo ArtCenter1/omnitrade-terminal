@@ -23,9 +23,13 @@ export function PortfolioTable({
   const [sortField, setSortField] = useState<SortField>('value');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
-  // Get the selected account to check if we're in Portfolio Overview mode
+  // Get the selected account to check if we're in Portfolio Total mode
   const { selectedAccount } = useSelectedAccount();
-  const isPortfolioOverview = selectedAccount?.isPortfolioOverview === true;
+  const isPortfolioTotal = selectedAccount?.isPortfolioOverview === true;
+
+  // Check if we should show the exchange column
+  // For Portfolio Total, we don't show the exchange column
+  const showExchangeColumn = isPortfolioTotal ? false : true;
 
   // Handle sorting
   const handleSort = (field: SortField) => {
@@ -153,7 +157,7 @@ export function PortfolioTable({
             >
               Asset {renderSortIndicator('asset')}
             </th>
-            {isPortfolioOverview && (
+            {showExchangeColumn && (
               <th className="text-left py-2 px-2 text-sm font-medium text-gray-400">
                 Exchange
               </th>

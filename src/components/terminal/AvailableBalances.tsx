@@ -166,7 +166,7 @@ export function AvailableBalances({
             key={asset.asset}
             icon={getIconUrl(asset.asset)}
             name={asset.asset}
-            amount={`${asset.free.toFixed(2)} ${asset.asset}`}
+            amount={`${asset.total.toFixed(2)} ${asset.asset}`}
             usdValue={asset.usdValue}
           />
         ))}

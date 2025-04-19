@@ -138,7 +138,7 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
           (asset) => asset.asset === quoteAsset,
         );
         if (quoteAssetData) {
-          availableBalance = quoteAssetData.free;
+          availableBalance = quoteAssetData.total;
           console.log(`Found ${quoteAsset} balance: ${availableBalance}`);
 
           // If buying with BTC or other non-stablecoin, convert to equivalent base asset amount
@@ -170,7 +170,7 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
           (asset) => asset.asset === baseAsset,
         );
         if (baseAssetData) {
-          availableBalance = baseAssetData.free;
+          availableBalance = baseAssetData.total;
           console.log(`Found ${baseAsset} balance: ${availableBalance}`);
         } else {
           console.log(

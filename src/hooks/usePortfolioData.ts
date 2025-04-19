@@ -64,6 +64,34 @@ export function usePortfolioData(exchangeId?: string, apiKeyId?: string) {
             'Falling back to mock portfolio data for API key:',
             apiKeyId,
           );
+
+          // For individual exchanges, only show assets from that specific exchange
+          if (exchangeId && exchangeId !== 'all') {
+            console.log(
+              `Getting portfolio data for specific exchange: ${exchangeId} with API key: ${apiKeyId}`,
+            );
+            const portfolioData = getMockPortfolioData(apiKeyId).data;
+
+            // Make sure we're only returning assets from this specific exchange
+            if (portfolioData) {
+              // Filter assets to only include those from the selected exchange
+              portfolioData.assets = portfolioData.assets.filter(
+                (asset) => asset.exchangeId === exchangeId,
+              );
+
+              // Recalculate the total USD value based on the filtered assets
+              portfolioData.totalUsdValue = portfolioData.assets.reduce(
+                (sum, asset) => sum + asset.usdValue,
+                0,
+              );
+
+              console.log(
+                `Filtered portfolio for ${exchangeId}: ${portfolioData.assets.length} assets, $${portfolioData.totalUsdValue.toFixed(2)}`,
+              );
+              return portfolioData;
+            }
+          }
+
           return getMockPortfolioData(apiKeyId).data;
         }
 
@@ -78,7 +106,7 @@ export function usePortfolioData(exchangeId?: string, apiKeyId?: string) {
             getMockPortfolioData('mock-key-3').data,
           ].filter(Boolean) as Portfolio[];
 
-          // Combine the portfolios
+          // For Portfolio Total, combine assets by symbol across exchanges
           const combinedPortfolio: Portfolio = {
             totalUsdValue: mockData.reduce(
               (sum, p) => sum + p.totalUsdValue,
@@ -88,27 +116,65 @@ export function usePortfolioData(exchangeId?: string, apiKeyId?: string) {
             lastUpdated: new Date(),
           };
 
-          // Combine assets
-          const assetMap = new Map<
-            string,
-            (typeof combinedPortfolio.assets)[0]
-          >();
+          // Group assets by symbol
+          const assetsBySymbol: Record<string, PortfolioAsset[]> = {};
+
+          // First collect all assets grouped by symbol
           mockData.forEach((portfolio) => {
             portfolio.assets.forEach((asset) => {
-              const key = asset.asset;
-              if (assetMap.has(key)) {
-                const existing = assetMap.get(key)!;
-                existing.free += asset.free;
-                existing.locked += asset.locked;
-                existing.total += asset.total;
-                existing.usdValue += asset.usdValue;
-              } else {
-                assetMap.set(key, { ...asset });
+              if (!assetsBySymbol[asset.asset]) {
+                assetsBySymbol[asset.asset] = [];
               }
+              assetsBySymbol[asset.asset].push(asset);
             });
           });
 
-          combinedPortfolio.assets = Array.from(assetMap.values());
+          // Then combine assets of the same symbol
+          Object.entries(assetsBySymbol).forEach(([symbol, assets]) => {
+            if (assets.length === 1) {
+              // If there's only one asset with this symbol, use it directly
+              combinedPortfolio.assets.push({
+                ...assets[0],
+                exchangeSources: [
+                  { exchangeId: assets[0].exchangeId, amount: assets[0].total },
+                ],
+              });
+            } else {
+              // Combine multiple assets with the same symbol
+              const totalFree = assets.reduce(
+                (sum, asset) => sum + asset.free,
+                0,
+              );
+              const totalLocked = assets.reduce(
+                (sum, asset) => sum + asset.locked,
+                0,
+              );
+              const totalAmount = assets.reduce(
+                (sum, asset) => sum + asset.total,
+                0,
+              );
+              const totalValue = assets.reduce(
+                (sum, asset) => sum + asset.usdValue,
+                0,
+              );
+
+              // Use the first asset as a template
+              const combinedAsset: PortfolioAsset = {
+                ...assets[0],
+                free: totalFree,
+                locked: totalLocked,
+                total: totalAmount,
+                usdValue: totalValue,
+                // Store sources for the trade function
+                exchangeSources: assets.map((asset) => ({
+                  exchangeId: asset.exchangeId,
+                  amount: asset.total,
+                })),
+              };
+
+              combinedPortfolio.assets.push(combinedAsset);
+            }
+          });
           return combinedPortfolio;
         }
 

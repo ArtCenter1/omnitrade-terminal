@@ -6,16 +6,21 @@ import {
 } from '@/mocks/mockPortfolio';
 import { ExchangeAccount } from '@/mocks/mockExchangeAccounts';
 
+import { ExchangeSource } from '@/types/exchange';
+
 // Define the asset type for the portfolio table
 export type PortfolioTableAsset = {
-  icon: string;
+  icon?: string;
   name: string;
   symbol: string;
-  amount: string;
-  value: string;
-  price: string;
+  amount: string | number;
+  value: string | number;
+  price: string | number;
   change: string;
   chart?: Array<{ value: number }>;
+  chartData?: Array<{ value: number }>;
+  exchangeInfo?: string; // For individual exchange info
+  exchangeSources?: ExchangeSource[]; // For Portfolio Total view to track assets across exchanges
 };
 
 // Generate performance chart data based on the selected account and time range

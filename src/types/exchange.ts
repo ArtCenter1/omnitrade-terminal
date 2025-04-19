@@ -25,6 +25,12 @@ export interface TradingPair {
   minNotional?: number; // Minimum order value
 }
 
+// Exchange source for an asset
+export interface ExchangeSource {
+  exchangeId: string; // Exchange where this asset is held
+  amount: number; // Amount of the asset on this exchange
+}
+
 // Asset in a portfolio
 export interface PortfolioAsset {
   asset: string; // e.g., "BTC"
@@ -33,6 +39,7 @@ export interface PortfolioAsset {
   total: number; // Total balance (free + locked)
   usdValue: number; // USD equivalent value
   exchangeId: string; // Exchange where this asset is held
+  exchangeSources?: ExchangeSource[]; // Sources of this asset across exchanges (for Portfolio Total view)
 }
 
 // Full portfolio

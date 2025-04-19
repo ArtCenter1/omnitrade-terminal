@@ -6,7 +6,8 @@ import { PortfolioTable } from '@/components/dashboard/PortfolioTable';
 import { DashboardOrdersTable } from '@/components/dashboard/DashboardOrdersTable';
 import { TransfersTable } from '@/components/dashboard/TransfersTable';
 import { Button } from '@/components/ui/button';
-import { Search, Loader2 } from 'lucide-react';
+import { Search, Loader2, RefreshCw } from 'lucide-react';
+import { clearDataCache } from '@/utils/clearCache';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import { usePortfolioData } from '@/hooks/usePortfolioData';
@@ -318,29 +319,82 @@ const Dashboard: React.FC = () => {
 
               setAllocationData(newAllocationData);
 
-              // Convert portfolio assets to the format expected by the table
-              const newPortfolioAssets: PortfolioTableAsset[] =
-                combinedPortfolio.assets.map((asset) => {
-                  // Generate a unique change value for each asset based on its symbol
+              // For Portfolio Total, we need to combine assets of the same type across exchanges
+              // First, group assets by symbol (ignoring exchange)
+              const assetsBySymbol: Record<string, PortfolioAsset[]> = {};
+
+              combinedPortfolio.assets.forEach((asset) => {
+                if (!assetsBySymbol[asset.asset]) {
+                  assetsBySymbol[asset.asset] = [];
+                }
+                assetsBySymbol[asset.asset].push(asset);
+              });
+
+              // Then create combined assets
+              const combinedAssets: PortfolioTableAsset[] = [];
+
+              Object.entries(assetsBySymbol).forEach(([symbol, assets]) => {
+                // If there's only one asset with this symbol, use it directly
+                if (assets.length === 1) {
+                  const asset = assets[0];
                   const changeValue = getRandomChange(asset.asset);
-                  // Determine if this asset has a positive change
                   const assetIsPositive = !changeValue.includes('-');
 
-                  return {
+                  combinedAssets.push({
                     name: asset.asset,
                     symbol: asset.asset,
                     amount: asset.total,
                     value: asset.usdValue,
                     price: asset.usdValue / asset.total,
-                    change: changeValue, // Use unique change for each asset
+                    change: changeValue,
                     chartData: generate7DayChartData(
                       asset.asset,
                       assetIsPositive,
-                    ), // Match chart direction with change
-                    // Add exchange info for Portfolio Overview
-                    exchangeInfo: asset.exchangeId,
-                  };
-                });
+                    ),
+                    // Store the exchange sources for the trade function
+                    exchangeSources: [
+                      { exchangeId: asset.exchangeId, amount: asset.total },
+                    ],
+                  });
+                } else {
+                  // Combine multiple assets with the same symbol
+                  const totalAmount = assets.reduce(
+                    (sum, asset) => sum + asset.total,
+                    0,
+                  );
+                  const totalValue = assets.reduce(
+                    (sum, asset) => sum + asset.usdValue,
+                    0,
+                  );
+                  const avgPrice = totalValue / totalAmount;
+                  const changeValue = getRandomChange(symbol);
+                  const assetIsPositive = !changeValue.includes('-');
+
+                  // Create exchange sources for the trade function
+                  const exchangeSources = assets.map((asset) => ({
+                    exchangeId: asset.exchangeId,
+                    amount: asset.total,
+                  }));
+
+                  combinedAssets.push({
+                    name: symbol,
+                    symbol: symbol,
+                    amount: totalAmount,
+                    value: totalValue,
+                    price: avgPrice,
+                    change: changeValue,
+                    chartData: generate7DayChartData(symbol, assetIsPositive),
+                    exchangeSources: exchangeSources,
+                  });
+                }
+              });
+
+              // Sort by value (largest first)
+              combinedAssets.sort(
+                (a, b) => (b.value as number) - (a.value as number),
+              );
+
+              const newPortfolioAssets = combinedAssets;
 
               setPortfolioAssets(newPortfolioAssets);
             }
@@ -621,9 +675,20 @@ const Dashboard: React.FC = () => {
           style={{ background: tradingViewBg }}
         >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-theme-primary">
-              Portfolio Overview
-            </h2>
+            <div className="flex items-center">
+              <h2 className="text-lg font-semibold text-theme-primary mr-2">
+                Portfolio Overview
+              </h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="p-1"
+                onClick={() => clearDataCache()}
+                title="Refresh data (clears cache)"
+              >
+                <RefreshCw className="h-4 w-4 text-gray-400 hover:text-gray-300" />
+              </Button>
+            </div>
             <div className="flex gap-2 items-center">
               <div className="relative">
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">

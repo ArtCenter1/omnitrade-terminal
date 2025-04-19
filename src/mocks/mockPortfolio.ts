@@ -50,8 +50,8 @@ export function generateMockPortfolio(
     });
     totalUsdValue += 10000.0;
 
-    // Add BTC with significant balance
-    const btcAmount = 0.4231;
+    // Add BTC with significant balance - Kraken has the most BTC
+    const btcAmount = 0.8945;
     const btcValue = btcAmount * assetPrices['BTC'];
     assets.push({
       asset: 'BTC',
@@ -113,8 +113,8 @@ export function generateMockPortfolio(
     });
     totalUsdValue += 12750.45;
 
-    // Add BTC with significant balance
-    const btcAmount = 0.3843;
+    // Add BTC with significant balance - Coinbase has a medium amount
+    const btcAmount = 0.5432;
     const btcValue = btcAmount * assetPrices['BTC'];
     assets.push({
       asset: 'BTC',
@@ -175,7 +175,7 @@ export function generateMockPortfolio(
     });
     totalUsdValue += 8750.45;
 
-    // Add BTC with significant balance
+    // Add BTC with significant balance - Binance has the least BTC
     const btcAmount = 0.2843;
     const btcValue = btcAmount * assetPrices['BTC'];
     assets.push({
@@ -227,8 +227,19 @@ export function generateMockPortfolio(
     smallerAssets = ['AVAX', 'LINK', 'DOT', 'ADA', 'MATIC'];
   }
 
-  smallerAssets.forEach((asset) => {
-    const amount = parseFloat((Math.random() * 50).toFixed(4));
+  // Use a deterministic random function if a seed is provided
+  const random =
+    seed !== undefined
+      ? (index: number) => {
+          // Simple deterministic random function using the seed and index
+          const seedWithIndex = (seed! * 9301 + index * 49297) % 233280;
+          return seedWithIndex / 233280;
+        }
+      : () => Math.random();
+
+  smallerAssets.forEach((asset, index) => {
+    // Generate a deterministic amount based on the seed and asset index
+    const amount = parseFloat((random(index) * 50).toFixed(4));
     const value = amount * assetPrices[asset];
     assets.push({
       asset,
@@ -274,67 +285,77 @@ export function getMockPortfolioData(apiKeyId?: string): {
 
   console.log('Getting mock portfolio data for API key ID:', apiKeyId);
 
-  // Try to determine the exchange from the API key ID
-  // In a real app, you'd look this up from the API key data
+  // Determine the exchange from the API key ID
+  // This mapping must be consistent to ensure the same exchange is always used for the same API key
   let exchangeId = 'binance'; // Default
 
-  try {
-    // Always try to get the exchange API keys from localStorage first
-    // This is the most up-to-date source
-    const savedKeys = localStorage.getItem('exchange_api_keys');
-    if (savedKeys) {
-      const apiKeys = JSON.parse(savedKeys);
-      const apiKey = apiKeys.find((key: any) => key.api_key_id === apiKeyId);
-      if (apiKey) {
-        exchangeId = apiKey.exchange_id;
-        console.log(
-          `Found exchange ID ${exchangeId} for API key ${apiKeyId} in localStorage`,
-        );
-      }
-    }
+  // Define a fixed mapping of API key IDs to exchange IDs
+  // This ensures consistent behavior regardless of localStorage state
+  const fixedApiKeyMapping: Record<string, string> = {
+    'mock-key-1': 'kraken',
+    'mock-key-2': 'binance',
+    'mock-key-3': 'coinbase',
+    'mock-key-4': 'kraken',
+    'mock-key-5': 'binance',
+    'mock-key-6': 'coinbase',
+    'portfolio-overview': 'all',
+  };
 
-    // If not found in localStorage, fall back to default mock data
-    if (exchangeId === 'binance') {
-      // Default mock data as fallback
-      const mockApiKeys = [
-        {
-          api_key_id: 'mock-key-1',
-          exchange_id: 'kraken',
-          key_nickname: 'Kraken Main',
-        },
-        {
-          api_key_id: 'mock-key-2',
-          exchange_id: 'binance',
-          key_nickname: 'Binance Artcenter1',
-        },
-        {
-          api_key_id: 'mock-key-3',
-          exchange_id: 'coinbase',
-          key_nickname: 'Coinbase Pro',
-        },
-      ];
-
-      const mockApiKey = mockApiKeys.find((key) => key.api_key_id === apiKeyId);
-      if (mockApiKey) {
-        exchangeId = mockApiKey.exchange_id;
-        console.log(
-          `Found exchange ID ${exchangeId} for API key ${apiKeyId} in default mock data`,
-        );
+  // First check our fixed mapping
+  if (apiKeyId && fixedApiKeyMapping[apiKeyId]) {
+    exchangeId = fixedApiKeyMapping[apiKeyId];
+    console.log(
+      `Using fixed mapping: API key ${apiKeyId} -> exchange ${exchangeId}`,
+    );
+  } else {
+    try {
+      // Try to get the exchange API keys from localStorage as a fallback
+      const savedKeys = localStorage.getItem('exchange_api_keys');
+      if (savedKeys) {
+        const apiKeys = JSON.parse(savedKeys);
+        const apiKey = apiKeys.find((key: any) => key.api_key_id === apiKeyId);
+        if (apiKey) {
+          exchangeId = apiKey.exchange_id;
+          console.log(
+            `Found exchange ID ${exchangeId} for API key ${apiKeyId} in localStorage`,
+          );
+        }
       }
+    } catch (error) {
+      console.error('Error getting exchange ID from API key:', error);
     }
-  } catch (error) {
-    console.error('Error getting exchange ID from API key:', error);
   }
 
   console.log(
     `Generating portfolio for exchange: ${exchangeId} with API key: ${apiKeyId}`,
   );
 
-  // Generate a mock portfolio
-  const portfolio = generateMockPortfolio(
-    exchangeId,
-    parseInt(apiKeyId.replace(/[^0-9]/g, '')) || undefined,
+  // Generate a mock portfolio with a consistent seed based on the API key ID
+  // This ensures the same portfolio is generated for the same API key every time
+  let seed: number | undefined = undefined;
+
+  if (apiKeyId) {
+    // Extract a numeric seed from the API key ID
+    // For mock-key-1, mock-key-2, etc., this will extract 1, 2, etc.
+    const match = apiKeyId.match(/\d+/);
+    if (match) {
+      seed = parseInt(match[0]);
+      console.log(`Using seed ${seed} for API key ${apiKeyId}`);
+    }
+  }
+
+  // Force a specific BTC amount based on the exchange
+  // This ensures each exchange has a different, consistent BTC amount
+  const portfolio = generateMockPortfolio(exchangeId, seed);
+
+  // Log the portfolio data for debugging
+  console.log(
+    `Generated portfolio for ${exchangeId} with ${portfolio.assets.length} assets`,
   );
+  const btcAsset = portfolio.assets.find((asset) => asset.asset === 'BTC');
+  if (btcAsset) {
+    console.log(`BTC amount for ${exchangeId}: ${btcAsset.total}`);
+  }
 
   return {
     data: portfolio,

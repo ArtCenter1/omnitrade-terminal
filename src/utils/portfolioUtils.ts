@@ -37,6 +37,7 @@ export function combinePortfolioData(accounts: ExchangeAccount[]): Portfolio {
 
   // Combine the portfolios
   const combinedAssets: { [key: string]: PortfolioAsset } = {};
+  const assetsByExchange: { [key: string]: PortfolioAsset } = {};
   let latestUpdate = new Date(0); // Start with oldest possible date
 
   // Log individual portfolio values for debugging
@@ -56,8 +57,12 @@ export function combinePortfolioData(accounts: ExchangeAccount[]): Portfolio {
 
     // Combine assets
     portfolio.assets.forEach((asset) => {
-      // Use both asset symbol and exchange ID as the key to prevent duplicates across exchanges
+      // Use both asset symbol and exchange ID as the key to prevent combining assets across exchanges
+      // This ensures each exchange's assets remain separate
       const assetKey = `${asset.asset}-${asset.exchangeId}`;
+
+      // Store the asset by exchange for reference
+      assetsByExchange[assetKey] = { ...asset };
 
       if (combinedAssets[assetKey]) {
         // Asset already exists, add values
@@ -68,6 +73,14 @@ export function combinePortfolioData(accounts: ExchangeAccount[]): Portfolio {
       } else {
         // New asset, add to combined assets
         combinedAssets[assetKey] = { ...asset };
+
+        // Add exchangeSources property for the trade function
+        // This will be used by the Portfolio Total view
+        if (!combinedAssets[assetKey].exchangeSources) {
+          combinedAssets[assetKey].exchangeSources = [
+            { exchangeId: asset.exchangeId, amount: asset.total },
+          ];
+        }
       }
     });
   });

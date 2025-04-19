@@ -178,33 +178,102 @@ export class PortfolioService {
       portfolios[0].lastUpdated,
     );
 
-    // Aggregate assets by symbol
-    const assetMap = new Map<string, PortfolioAsset>();
+    // Check if we're aggregating for a specific exchange or for all exchanges
+    const isPortfolioTotal = !exchangeId; // If no exchangeId is provided, we're aggregating all exchanges
+
     let totalUsdValue = 0;
+    let aggregatedAssets: PortfolioAsset[] = [];
 
-    for (const portfolio of portfolios) {
-      for (const asset of portfolio.assets) {
-        const key = `${asset.asset}-${asset.exchangeId}`;
+    if (isPortfolioTotal) {
+      // For Portfolio Total, combine assets by symbol across exchanges
+      const assetsBySymbol: Record<string, PortfolioAsset[]> = {};
 
-        if (assetMap.has(key)) {
-          // Update existing asset
-          const existing = assetMap.get(key)!;
-          existing.free += asset.free;
-          existing.locked += asset.locked;
-          existing.total += asset.total;
-          existing.usdValue += asset.usdValue;
-        } else {
-          // Add new asset
-          assetMap.set(key, { ...asset });
+      // First collect all assets grouped by symbol
+      for (const portfolio of portfolios) {
+        for (const asset of portfolio.assets) {
+          if (!assetsBySymbol[asset.asset]) {
+            assetsBySymbol[asset.asset] = [];
+          }
+          assetsBySymbol[asset.asset].push(asset);
         }
+
+        totalUsdValue += portfolio.totalUsdValue;
       }
 
-      totalUsdValue += portfolio.totalUsdValue;
+      // Then combine assets of the same symbol
+      Object.entries(assetsBySymbol).forEach(([symbol, assets]) => {
+        if (assets.length === 1) {
+          // If there's only one asset with this symbol, use it directly
+          aggregatedAssets.push({
+            ...assets[0],
+            exchangeSources: [
+              { exchangeId: assets[0].exchangeId, amount: assets[0].total },
+            ],
+          });
+        } else {
+          // Combine multiple assets with the same symbol
+          const totalFree = assets.reduce((sum, asset) => sum + asset.free, 0);
+          const totalLocked = assets.reduce(
+            (sum, asset) => sum + asset.locked,
+            0,
+          );
+          const totalAmount = assets.reduce(
+            (sum, asset) => sum + asset.total,
+            0,
+          );
+          const totalValue = assets.reduce(
+            (sum, asset) => sum + asset.usdValue,
+            0,
+          );
+
+          // Use the first asset as a template
+          const combinedAsset: PortfolioAsset = {
+            ...assets[0],
+            free: totalFree,
+            locked: totalLocked,
+            total: totalAmount,
+            usdValue: totalValue,
+            // Store sources for the trade function
+            exchangeSources: assets.map((asset) => ({
+              exchangeId: asset.exchangeId,
+              amount: asset.total,
+            })),
+          };
+
+          aggregatedAssets.push(combinedAsset);
+        }
+      });
+    } else {
+      // For individual exchanges, keep assets separate by exchange
+      const assetMap = new Map<string, PortfolioAsset>();
+
+      for (const portfolio of portfolios) {
+        for (const asset of portfolio.assets) {
+          // Use both asset symbol and exchange ID as the key to prevent combining assets across exchanges
+          const key = `${asset.asset}-${asset.exchangeId}`;
+
+          if (assetMap.has(key)) {
+            // Update existing asset
+            const existing = assetMap.get(key)!;
+            existing.free += asset.free;
+            existing.locked += asset.locked;
+            existing.total += asset.total;
+            existing.usdValue += asset.usdValue;
+          } else {
+            // Add new asset
+            assetMap.set(key, { ...asset });
+          }
+        }
+
+        totalUsdValue += portfolio.totalUsdValue;
+      }
+
+      aggregatedAssets = Array.from(assetMap.values());
     }
 
     return {
       totalUsdValue,
-      assets: Array.from(assetMap.values()),
+      assets: aggregatedAssets,
       lastUpdated,
     };
   }
