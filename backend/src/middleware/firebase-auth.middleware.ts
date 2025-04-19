@@ -12,7 +12,7 @@ const logger = new Logger('FirebaseAuthMiddleware');
 // Read the service account file from the root directory
 const serviceAccountPath = path.resolve(
   process.cwd(),
-  '../../omnitrade-firebase-adminsdk.json', // Go up two levels to reach the root directory
+  './omnitrade-firebase-adminsdk.json', // Use the file in the current directory
 );
 let serviceAccount: admin.ServiceAccount;
 

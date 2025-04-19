@@ -20,8 +20,8 @@ const WebSocket = require('ws');
 // --- Firebase Admin Initialization ---
 let serviceAccount;
 try {
-  // Use the service account file from the root directory
-  serviceAccount = require('./omnitrade-firebase-adminsdk.json'); // Path relative to server.js
+  // Use the service account file from the backend directory
+  serviceAccount = require('./backend/omnitrade-firebase-adminsdk.json'); // Path relative to server.js
   console.log('Firebase service account loaded successfully');
 } catch (error) {
   console.error('Error loading Firebase service account:', error);
