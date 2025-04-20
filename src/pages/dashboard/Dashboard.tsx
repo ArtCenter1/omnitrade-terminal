@@ -174,12 +174,52 @@ const Dashboard: React.FC = () => {
     },
   });
 
-  // Fetch portfolio data from the backend
-  const {
-    data: portfolioData,
-    isLoading: isLoadingPortfolio,
-    error: portfolioError,
-  } = usePortfolioData(selectedAccount?.exchangeId, selectedAccount?.apiKeyId);
+  // Log when selected account changes
+  useEffect(() => {
+    if (selectedAccount) {
+      console.log(
+        'Selected account changed:',
+        selectedAccount.name,
+        'Exchange ID:',
+        selectedAccount.exchangeId,
+        'API Key ID:',
+        selectedAccount.apiKeyId,
+      );
+    }
+  }, [selectedAccount]);
+
+  // Get portfolio data directly from the mock data service
+  const [portfolioData, setPortfolioData] = useState<Portfolio | undefined>(
+    undefined,
+  );
+  const [isLoadingPortfolio, setIsLoadingPortfolio] = useState<boolean>(false);
+  const [portfolioError, setPortfolioError] = useState<Error | null>(null);
+
+  // Update portfolio data when selected account changes
+  useEffect(() => {
+    if (selectedAccount) {
+      setIsLoadingPortfolio(true);
+      try {
+        // Get portfolio data directly from the mock data service
+        const data = getMockPortfolioData(selectedAccount.apiKeyId).data;
+        setPortfolioData(data);
+        console.log(
+          'Portfolio data loaded directly:',
+          data?.assets.length,
+          'assets,',
+          'Total value:',
+          data?.totalUsdValue.toFixed(2),
+        );
+      } catch (error) {
+        console.error('Error loading portfolio data:', error);
+        setPortfolioError(
+          error instanceof Error ? error : new Error('Unknown error'),
+        );
+      } finally {
+        setIsLoadingPortfolio(false);
+      }
+    }
+  }, [selectedAccount]);
 
   // Update chart data when selected account or time range changes
   useEffect(() => {

@@ -218,7 +218,7 @@ export function AssetRow({ asset }: AssetRowProps) {
       <td className="py-3 px-2 min-w-[120px] h-[50px]">
         <AssetChart data={chartData} isPositive={isPositive} />
       </td>
-      <td className="py-3 px-2">
+      <td className="py-3 px-2 text-center">
         <Popover open={isTradePopoverOpen} onOpenChange={setIsTradePopoverOpen}>
           <PopoverTrigger asChild>
             <Button

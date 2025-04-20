@@ -12,7 +12,7 @@ export function usePortfolioData(exchangeId?: string, apiKeyId?: string) {
   const { getAuthToken } = useAuth();
 
   return useQuery<Portfolio>({
-    queryKey: ['portfolio', exchangeId],
+    queryKey: ['portfolio', exchangeId, apiKeyId],
     queryFn: async () => {
       try {
         // Get auth token
@@ -70,24 +70,39 @@ export function usePortfolioData(exchangeId?: string, apiKeyId?: string) {
             console.log(
               `Getting portfolio data for specific exchange: ${exchangeId} with API key: ${apiKeyId}`,
             );
-            const portfolioData = getMockPortfolioData(apiKeyId).data;
+
+            // Map the exchange ID to the correct mock key
+            let mockKeyId = apiKeyId;
+            if (exchangeId === 'kraken') {
+              mockKeyId = 'mock-key-1';
+            } else if (exchangeId === 'binance') {
+              mockKeyId = 'mock-key-2';
+            } else if (exchangeId === 'coinbase') {
+              mockKeyId = 'mock-key-3';
+            }
+
+            // Get the portfolio data for this specific exchange
+            const portfolioData = getMockPortfolioData(mockKeyId).data;
 
             // Make sure we're only returning assets from this specific exchange
             if (portfolioData) {
-              // Filter assets to only include those from the selected exchange
-              portfolioData.assets = portfolioData.assets.filter(
-                (asset) => asset.exchangeId === exchangeId,
-              );
-
-              // Recalculate the total USD value based on the filtered assets
-              portfolioData.totalUsdValue = portfolioData.assets.reduce(
-                (sum, asset) => sum + asset.usdValue,
-                0,
-              );
+              // Ensure all assets have the correct exchangeId
+              portfolioData.assets.forEach((asset) => {
+                asset.exchangeId = exchangeId;
+              });
 
               console.log(
-                `Filtered portfolio for ${exchangeId}: ${portfolioData.assets.length} assets, $${portfolioData.totalUsdValue.toFixed(2)}`,
+                `Portfolio for ${exchangeId}: ${portfolioData.assets.length} assets, $${portfolioData.totalUsdValue.toFixed(2)}`,
               );
+
+              // Log BTC amount for debugging
+              const btcAsset = portfolioData.assets.find(
+                (asset) => asset.asset === 'BTC',
+              );
+              if (btcAsset) {
+                console.log(`BTC amount for ${exchangeId}: ${btcAsset.total}`);
+              }
+
               return portfolioData;
             }
           }
@@ -101,10 +116,26 @@ export function usePortfolioData(exchangeId?: string, apiKeyId?: string) {
           // In a real app, we would fetch data for all exchanges and combine it
           // For now, we'll just return mock data for all default accounts
           const mockData = [
-            getMockPortfolioData('mock-key-1').data,
-            getMockPortfolioData('mock-key-2').data,
-            getMockPortfolioData('mock-key-3').data,
+            getMockPortfolioData('mock-key-1').data, // Kraken
+            getMockPortfolioData('mock-key-2').data, // Binance
+            getMockPortfolioData('mock-key-3').data, // Coinbase
           ].filter(Boolean) as Portfolio[];
+
+          // Log the mock data for debugging
+          mockData.forEach((portfolio, index) => {
+            const exchangeId = ['kraken', 'binance', 'coinbase'][index];
+            console.log(
+              `Portfolio ${index + 1} (${exchangeId}): ${portfolio.assets.length} assets, $${portfolio.totalUsdValue.toFixed(2)}`,
+            );
+
+            // Log BTC amount for each exchange
+            const btcAsset = portfolio.assets.find(
+              (asset) => asset.asset === 'BTC',
+            );
+            if (btcAsset) {
+              console.log(`BTC amount for ${exchangeId}: ${btcAsset.total}`);
+            }
+          });
 
           // For Portfolio Total, combine assets by symbol across exchanges
           const combinedPortfolio: Portfolio = {
@@ -120,8 +151,15 @@ export function usePortfolioData(exchangeId?: string, apiKeyId?: string) {
           const assetsBySymbol: Record<string, PortfolioAsset[]> = {};
 
           // First collect all assets grouped by symbol
-          mockData.forEach((portfolio) => {
+          mockData.forEach((portfolio, index) => {
+            // Make sure each asset has the correct exchangeId
+            const exchangeIds = ['kraken', 'binance', 'coinbase'];
+            const currentExchangeId = exchangeIds[index];
+
             portfolio.assets.forEach((asset) => {
+              // Ensure the asset has the correct exchangeId
+              asset.exchangeId = currentExchangeId;
+
               if (!assetsBySymbol[asset.asset]) {
                 assetsBySymbol[asset.asset] = [];
               }

@@ -27,9 +27,9 @@ export function PortfolioTable({
   const { selectedAccount } = useSelectedAccount();
   const isPortfolioTotal = selectedAccount?.isPortfolioOverview === true;
 
-  // Check if we should show the exchange column
-  // For Portfolio Total, we don't show the exchange column
-  const showExchangeColumn = isPortfolioTotal ? false : true;
+  // For Portfolio Total view, we don't show the exchange column
+  // Always hide the exchange column as per user request
+  const showExchangeColumn = false;
 
   // Handle sorting
   const handleSort = (field: SortField) => {
