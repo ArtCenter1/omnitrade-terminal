@@ -341,39 +341,51 @@ const Dashboard: React.FC = () => {
                   : (() => {
                       // Generate more detailed data for a week (hourly intervals - 7 times more than day view)
                       const days = [
+                        'Sun',
                         'Mon',
                         'Tue',
                         'Wed',
                         'Thu',
                         'Fri',
                         'Sat',
-                        'Sun',
                       ];
                       const weekData = [];
 
-                      // Generate 24 data points per day (every hour) for 7 days = 168 data points
+                      // Generate 288 data points per day (every 5 minutes) for 7 days = 2016 data points
                       days.forEach((day, dayIndex) => {
-                        for (let hour = 0; hour < 24; hour++) {
-                          // Calculate a value that progresses through the week with some randomness
-                          const progress = (dayIndex * 24 + hour) / (7 * 24);
+                        // Generate a data point every 5 minutes (12 per hour × 24 hours = 288 per day)
+                        for (let minute = 0; minute < 24 * 60; minute += 5) {
+                          // Calculate hour and minute from the total minutes
+                          const hour = Math.floor(minute / 60);
+                          const min = minute % 60;
+
+                          // Calculate a value that progresses through the week with extreme randomness
+                          const progress =
+                            (dayIndex * 1440 + minute) / (7 * 1440); // 1440 = minutes in a day
                           const randomFactor =
-                            Math.sin(dayIndex * 3 + hour / 2) * 0.02;
-                          const volatility = Math.random() * 0.01 - 0.005; // Small random fluctuations
+                            Math.sin(dayIndex * 3 + minute / 120) * 0.08;
+                          const volatility = Math.random() * 0.05 - 0.025; // Highly increased random fluctuations
+                          // Add frequent larger jumps for extreme jaggedness
+                          const jumpFactor =
+                            Math.random() < 0.15
+                              ? Math.random() * 0.06 - 0.03
+                              : 0;
                           const value = Math.round(
                             baseValue *
                               (0.95 +
                                 progress * 0.07 +
                                 randomFactor +
-                                volatility),
+                                volatility +
+                                jumpFactor),
                           );
 
-                          // For consistent labeling, mark the first hour of each day (00:00) with just the day name
+                          // For consistent labeling, mark the first point of each day (00:00) with just the day name
                           // This ensures the X-axis labels will show the day names at consistent positions
                           weekData.push({
                             date:
-                              hour === 0
+                              minute === 0
                                 ? day
-                                : `${day} ${hour.toString().padStart(2, '0')}:00`,
+                                : `${day} ${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`,
                             value: value,
                           });
                         }

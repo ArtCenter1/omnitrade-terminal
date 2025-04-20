@@ -93,10 +93,15 @@ export function PerformanceChart({
             }}
             // For Week view, force exactly 7 ticks by using a custom interval function
             interval={(index, data) => {
-              // For Week view (168 data points), show exactly 7 days
-              if (data.length > 160) {
-                // Only show the first hour of each day (index % 24 === 0)
+              // For Week view with ultra-high sample rate (2016 data points), show exactly 7 days
+              if (data.length > 2000) {
+                // Only show the first point of each day (index % 288 === 0)
                 // This ensures we get exactly 7 ticks, one for each day
+                return index % 288 === 0 ? 0 : 1;
+              }
+              // For Week view with medium sample rate (168 data points)
+              else if (data.length > 160) {
+                // Only show the first hour of each day (index % 24 === 0)
                 return index % 24 === 0 ? 0 : 1;
               }
               // For other views, use the original calculation
@@ -136,7 +141,7 @@ export function PerformanceChart({
             labelStyle={{ color: '#999' }}
           />
           <Area
-            type="monotone"
+            type="linear"
             dataKey="value"
             stroke={isPositive ? '#00ff00' : '#ea384d'}
             strokeWidth={2}
