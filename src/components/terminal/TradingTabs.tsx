@@ -119,9 +119,9 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
   const handlePercentageClick = (percentage: number) => {
     // Get the available balance for the current asset from the mock portfolio data
     let availableBalance = 0;
+    let priceToUse = 0;
 
-    // Get portfolio data for the selected account
-    const { selectedAccount } = useSelectedAccount();
+    // Use the selectedAccount from the component state
     const portfolioData = selectedAccount
       ? getMockPortfolioData(selectedAccount.apiKeyId).data
       : null;
@@ -131,87 +131,179 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
       `Getting available balance for ${side} order with ${baseAsset}/${quoteAsset} pair`,
     );
 
+    // Get the current price
+    if (orderType === 'market' && selectedPair?.price) {
+      // For market orders, use the current pair price
+      priceToUse = parseFloat(selectedPair.price.replace(/,/g, ''));
+    } else if (price && !isNaN(parseFloat(price))) {
+      // For limit/stop orders, use the entered price
+      priceToUse = parseFloat(price);
+    }
+
     if (portfolioData && portfolioData.assets) {
-      if (side === 'buy' && selectedPair) {
-        // For buy orders, use the quote asset (e.g., USDT, BTC)
+      if (side === 'buy') {
+        // For buy orders, use the quote asset (e.g., USDT) directly
         const quoteAssetData = portfolioData.assets.find(
           (asset) => asset.asset === quoteAsset,
         );
+
         if (quoteAssetData) {
+          // Use the quote asset balance directly
           availableBalance = quoteAssetData.total;
           console.log(`Found ${quoteAsset} balance: ${availableBalance}`);
-
-          // If buying with BTC or other non-stablecoin, convert to equivalent base asset amount
-          if (
-            quoteAsset !== 'USDT' &&
-            quoteAsset !== 'USDC' &&
-            price &&
-            !isNaN(parseFloat(price))
-          ) {
-            const assetPrice = parseFloat(price);
-            if (assetPrice > 0) {
-              const equivalentAmount = availableBalance / assetPrice;
-              console.log(
-                `Converting ${availableBalance} ${quoteAsset} to ${equivalentAmount} ${baseAsset} at price ${assetPrice}`,
-              );
-              availableBalance = equivalentAmount;
-            }
-          }
         } else {
           console.log(
             `${quoteAsset} not found in portfolio, using default value`,
           );
           availableBalance =
-            quoteAsset === 'USDT' ? 1000 : quoteAsset === 'BTC' ? 0.38 : 10;
+            quoteAsset === 'USDT' ? 16000 : quoteAsset === 'BTC' ? 0.38 : 10;
         }
-      } else if (side === 'sell' && selectedPair) {
-        // For sell orders, use the base asset (e.g., BTC, ETH, DOT)
+
+        // Calculate the percentage of the quote asset
+        const quoteAmount = (availableBalance * percentage) / 100;
+        console.log(
+          `${percentage}% of ${availableBalance} ${quoteAsset} = ${quoteAmount} ${quoteAsset}`,
+        );
+
+        // If we have a valid price, convert to the equivalent base asset amount
+        if (priceToUse > 0) {
+          const baseAmount = quoteAmount / priceToUse;
+          console.log(
+            `${quoteAmount} ${quoteAsset} = ${baseAmount} ${baseAsset} at price ${priceToUse}`,
+          );
+
+          // Set the amount to the calculated base asset amount
+          setAmount(baseAmount.toFixed(8));
+
+          // Set the total to the calculated quote asset amount
+          setTotal(quoteAmount.toFixed(2));
+
+          // Return early since we've already set the amount and total
+          return;
+        }
+      } else if (side === 'sell') {
+        // For sell orders, use the base asset (e.g., BTC, ETH, DOT) directly
         const baseAssetData = portfolioData.assets.find(
           (asset) => asset.asset === baseAsset,
         );
+
         if (baseAssetData) {
+          // Use the base asset balance directly
           availableBalance = baseAssetData.total;
           console.log(`Found ${baseAsset} balance: ${availableBalance}`);
         } else {
           console.log(
             `${baseAsset} not found in portfolio, using default value`,
           );
-          if (baseAsset === 'BTC') availableBalance = 0.38;
+          if (baseAsset === 'BTC') availableBalance = 0.28;
           else if (baseAsset === 'ETH') availableBalance = 2.5;
-          else if (baseAsset === 'DOT')
-            availableBalance = 43.41; // Updated from screenshot
+          else if (baseAsset === 'DOT') availableBalance = 43.41;
           else availableBalance = 10; // Default for other assets
         }
+
+        // Calculate the percentage of the base asset
+        const baseAmount = (availableBalance * percentage) / 100;
+        console.log(
+          `${percentage}% of ${availableBalance} ${baseAsset} = ${baseAmount} ${baseAsset}`,
+        );
+
+        // Set the amount to the calculated base asset amount
+        setAmount(baseAmount.toFixed(8));
+
+        // If we have a valid price, calculate the total in quote asset
+        if (priceToUse > 0) {
+          const quoteAmount = baseAmount * priceToUse;
+          console.log(
+            `${baseAmount} ${baseAsset} = ${quoteAmount} ${quoteAsset} at price ${priceToUse}`,
+          );
+
+          // Set the total to the calculated quote asset amount
+          setTotal(quoteAmount.toFixed(2));
+        } else {
+          // If we don't have a valid price, just set a default total
+          setTotal('0.00');
+        }
+
+        // Return early since we've already set the amount and total
+        return;
       }
     } else {
       // Fallback to hardcoded values if portfolio data is not available
       console.log('No portfolio data available, using default values');
+
       if (side === 'buy') {
-        if (quoteAsset === 'USDT') availableBalance = 1000;
-        else if (quoteAsset === 'BTC') {
-          availableBalance = 0.38;
-          // Convert to equivalent base asset amount for BTC pairs
-          if (price && !isNaN(parseFloat(price))) {
-            const assetPrice = parseFloat(price);
-            if (assetPrice > 0) {
-              availableBalance = availableBalance / assetPrice;
-            }
-          }
-        } else availableBalance = 10;
+        // For buy orders, use the quote asset (e.g., USDT) directly
+        let quoteBalance = 0;
+
+        // Set default quote asset balance
+        if (quoteAsset === 'USDT') quoteBalance = 16000;
+        else if (quoteAsset === 'BTC') quoteBalance = 0.38;
+        else quoteBalance = 10;
+
+        // Calculate the percentage of the quote asset
+        const quoteAmount = (quoteBalance * percentage) / 100;
+        console.log(
+          `${percentage}% of ${quoteBalance} ${quoteAsset} = ${quoteAmount} ${quoteAsset}`,
+        );
+
+        // If we have a valid price, convert to the equivalent base asset amount
+        if (priceToUse > 0) {
+          const baseAmount = quoteAmount / priceToUse;
+          console.log(
+            `${quoteAmount} ${quoteAsset} = ${baseAmount} ${baseAsset} at price ${priceToUse}`,
+          );
+
+          // Set the amount to the calculated base asset amount
+          setAmount(baseAmount.toFixed(8));
+
+          // Set the total to the calculated quote asset amount
+          setTotal(quoteAmount.toFixed(2));
+
+          // Return early since we've already set the amount and total
+          return;
+        }
       } else {
-        // sell
-        if (baseAsset === 'BTC') availableBalance = 0.38;
-        else if (baseAsset === 'ETH') availableBalance = 2.5;
-        else if (baseAsset === 'DOT')
-          availableBalance = 43.41; // Updated from screenshot
-        else availableBalance = 10;
+        // For sell orders, use the base asset (e.g., BTC, ETH, DOT) directly
+        let baseBalance = 0;
+
+        // Set default base asset balance
+        if (baseAsset === 'BTC') baseBalance = 0.28;
+        else if (baseAsset === 'ETH') baseBalance = 2.5;
+        else if (baseAsset === 'DOT') baseBalance = 43.41;
+        else baseBalance = 10; // Default for other assets
+
+        // Calculate the percentage of the base asset
+        const baseAmount = (baseBalance * percentage) / 100;
+        console.log(
+          `${percentage}% of ${baseBalance} ${baseAsset} = ${baseAmount} ${baseAsset}`,
+        );
+
+        // Set the amount to the calculated base asset amount
+        setAmount(baseAmount.toFixed(8));
+
+        // If we have a valid price, calculate the total in quote asset
+        if (priceToUse > 0) {
+          const quoteAmount = baseAmount * priceToUse;
+          console.log(
+            `${baseAmount} ${baseAsset} = ${quoteAmount} ${quoteAsset} at price ${priceToUse}`,
+          );
+
+          // Set the total to the calculated quote asset amount
+          setTotal(quoteAmount.toFixed(2));
+        } else {
+          // If we don't have a valid price, just set a default total
+          setTotal('0.00');
+        }
+
+        // Return early since we've already set the amount and total
+        return;
       }
     }
 
+    // If we get here, something went wrong, so just set default values
+    console.log('Using fallback calculation');
     const newAmount = ((availableBalance * percentage) / 100).toFixed(8);
-    console.log(
-      `Setting amount to ${newAmount} (${percentage}% of ${availableBalance} ${side === 'buy' ? quoteAsset : baseAsset})`,
-    );
+    console.log(`Setting amount to ${newAmount}`);
     setAmount(newAmount);
   };
 
