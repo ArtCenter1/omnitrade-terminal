@@ -26,7 +26,7 @@ interface SelectedAccountState {
 
 // Create a store to share the selected account across components
 // Use persist middleware to save the selected account in localStorage
-export const useSelectedAccountStore = create<SelectedAccountState>(
+export const useSelectedAccountStore = create<SelectedAccountState>()(
   persist(
     (set) => ({
       selectedAccount: DEFAULT_PORTFOLIO_OVERVIEW, // Default to Portfolio Total
@@ -51,13 +51,14 @@ export const useSelectedAccountStore = create<SelectedAccountState>(
       storage: createJSONStorage(() => localStorage), // Use JSON storage
       partialize: (state) => ({ selectedAccount: state.selectedAccount }), // only persist selectedAccount
       version: 1, // Add version for migrations
-      onRehydrateStorage: (state) => {
+      onRehydrateStorage: () => {
         // Handle rehydration and validate the state
         return (rehydratedState, error) => {
           if (error || !rehydratedState?.selectedAccount) {
             console.warn('Error rehydrating selected account state:', error);
-            // Set default account if there's an error or no selected account
-            set({ selectedAccount: DEFAULT_PORTFOLIO_OVERVIEW });
+            // We can't use 'set' here directly as it's not in scope
+            // The state will be initialized with the default value anyway
+            console.log('Will use default account');
           } else {
             console.log('Successfully rehydrated selected account state');
           }
