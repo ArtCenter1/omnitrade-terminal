@@ -62,11 +62,22 @@ export function PerformanceChart({
                 stopOpacity={0.2}
               />
               <stop
-                offset="100%"
+                offset="80%"
                 stopColor={isPositive ? '#00ff00' : '#ea384d'}
                 stopOpacity={0.01}
               />
+              <stop
+                offset="80%"
+                stopColor={isPositive ? '#00ff00' : '#ea384d'}
+                stopOpacity={0}
+              />
             </linearGradient>
+
+            {/* Add a clipPath for the chart */}
+            <clipPath id="chartClipPath">
+              <rect x="0" y="0" width="100%" height="80%" />{' '}
+              {/* Clip the bottom 20% (1/5) */}
+            </clipPath>
           </defs>
           <XAxis
             dataKey="date"
