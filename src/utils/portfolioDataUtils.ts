@@ -63,8 +63,8 @@ export function generatePerformanceData(
 
     switch (timeRange) {
       case 'Day':
-        interval = '1h'; // 1 hour intervals for day view
-        limit = 24; // 24 hours in a day
+        interval = '15m'; // 15 minute intervals for day view
+        limit = 96; // 96 15-minute intervals in a day
         break;
       case 'Week':
         interval = '1d'; // 1 day intervals for week view
@@ -86,6 +86,10 @@ export function generatePerformanceData(
         interval = '1d'; // Default to daily
         limit = 7; // Default to a week
     }
+
+    console.log(
+      `Generating performance data for ${timeRange} view with interval ${interval} and limit ${limit}`,
+    );
 
     // Calculate end time (now) and start time based on the time range
     const endTime = Date.now();
@@ -129,6 +133,8 @@ export function generatePerformanceData(
     );
 
     // Convert klines to performance chart data format
+    console.log(`Converting ${klines.length} klines to performance data`);
+
     const performanceData = klines.map((kline) => {
       // Format date based on the time range
       let formattedDate: string;
@@ -136,11 +142,18 @@ export function generatePerformanceData(
 
       switch (timeRange) {
         case 'Day':
-          // Format as hour (e.g., "3pm")
+          // Format as hour:minute (e.g., "3:15pm")
           const hour = date.getHours();
+          const minute = date.getMinutes();
           const ampm = hour >= 12 ? 'pm' : 'am';
           const hour12 = hour % 12 || 12; // Convert 0 to 12 for 12am
-          formattedDate = `${hour12}${ampm}`;
+
+          // For cleaner display, only show minutes if not zero
+          if (minute === 0) {
+            formattedDate = `${hour12}${ampm}`;
+          } else {
+            formattedDate = `${hour12}:${minute.toString().padStart(2, '0')}${ampm}`;
+          }
           break;
         case 'Week':
           // Format as day of week (e.g., "Mon")
@@ -208,16 +221,112 @@ export function generatePerformanceData(
     // The data is already sorted by timestamp from the klines generation
     // No need to sort again, and we can't reliably parse the formatted dates back to timestamps
 
+    console.log(`Generated ${performanceData.length} performance data points`);
+    if (performanceData.length > 0) {
+      console.log(`First data point: ${JSON.stringify(performanceData[0])}`);
+      console.log(
+        `Last data point: ${JSON.stringify(performanceData[performanceData.length - 1])}`,
+      );
+    }
+
     return performanceData;
   } catch (error) {
     console.error('Error generating performance data:', error);
 
     // Fallback to simple data if there's an error
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    return days.map((day, index) => ({
-      date: day,
-      value: Math.round(baseValue * (0.95 + index * 0.01)),
-    }));
+    console.log('Using fallback performance data generation');
+
+    // Create more realistic fallback data based on the time range
+    let fallbackData = [];
+
+    switch (timeRange) {
+      case 'Day':
+        // Generate hourly data for a day
+        fallbackData = Array.from({ length: 24 }, (_, i) => {
+          const hour = i;
+          const hour12 = hour % 12 || 12; // Convert 0 to 12 for 12am
+          const ampm = hour >= 12 ? 'pm' : 'am';
+          return {
+            date: `${hour12}${ampm}`,
+            value: Math.round(
+              baseValue * (0.97 + (i / 24) * 0.06 + Math.sin(i) * 0.015),
+            ),
+          };
+        });
+        break;
+      case 'Week':
+        // Generate daily data for a week
+        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        fallbackData = days.map((day, index) => ({
+          date: day,
+          value: Math.round(
+            baseValue * (0.95 + index * 0.01 + Math.random() * 0.02),
+          ),
+        }));
+        break;
+      case 'Month':
+        // Generate data for a month
+        fallbackData = Array.from({ length: 30 }, (_, i) => ({
+          date: `${i + 1}`,
+          value: Math.round(
+            baseValue * (0.93 + (i / 30) * 0.1 + Math.sin(i / 3) * 0.03),
+          ),
+        }));
+        break;
+      case 'Year':
+        // Generate monthly data for a year
+        const months = [
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
+        ];
+        fallbackData = months.map((month, index) => ({
+          date: month,
+          value: Math.round(
+            baseValue * (0.9 + (index / 12) * 0.2 + Math.sin(index) * 0.05),
+          ),
+        }));
+        break;
+      case '5 Years':
+        // Generate yearly data for 5 years
+        const currentYear = new Date().getFullYear();
+        fallbackData = Array.from({ length: 5 }, (_, i) => ({
+          date: `${currentYear - 4 + i}`,
+          value: Math.round(
+            baseValue * (0.7 + (i / 5) * 0.6 + Math.random() * 0.1),
+          ),
+        }));
+        break;
+      default:
+        // Default to weekly data
+        fallbackData = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(
+          (day, index) => ({
+            date: day,
+            value: Math.round(baseValue * (0.95 + index * 0.01)),
+          }),
+        );
+    }
+
+    console.log(`Generated ${fallbackData.length} fallback data points`);
+    if (fallbackData.length > 0) {
+      console.log(
+        `First fallback data point: ${JSON.stringify(fallbackData[0])}`,
+      );
+      console.log(
+        `Last fallback data point: ${JSON.stringify(fallbackData[fallbackData.length - 1])}`,
+      );
+    }
+
+    return fallbackData;
   }
 }
 

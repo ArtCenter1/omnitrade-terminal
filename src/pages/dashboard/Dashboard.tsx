@@ -294,14 +294,51 @@ const Dashboard: React.FC = () => {
                 TIME_RANGES[
                   TIME_RANGES.indexOf(activeRange) || 1
                 ].toLowerCase() === 'day'
-                  ? ['12am', '4am', '8am', '12pm', '4pm', '8pm'].map(
-                      (hour, i) => ({
-                        date: hour,
-                        value: Math.round(
-                          baseValue * (0.97 + i * 0.01 + Math.random() * 0.02),
-                        ),
-                      }),
-                    )
+                  ? [
+                      // Generate 24 hourly data points for the day view
+                      ...Array.from({ length: 24 }, (_, i) => {
+                        const hour = i;
+                        const hour12 = hour % 12 || 12; // Convert 0 to 12 for 12am
+                        const ampm = hour >= 12 ? 'pm' : 'am';
+                        // Add 15-minute intervals for more granular data
+                        return [
+                          {
+                            date: `${hour12}${ampm}`,
+                            value: Math.round(
+                              baseValue *
+                                (0.97 + (i / 24) * 0.06 + Math.sin(i) * 0.015),
+                            ),
+                          },
+                          {
+                            date: `${hour12}:15${ampm}`,
+                            value: Math.round(
+                              baseValue *
+                                (0.97 +
+                                  (i / 24) * 0.06 +
+                                  Math.sin(i + 0.25) * 0.015),
+                            ),
+                          },
+                          {
+                            date: `${hour12}:30${ampm}`,
+                            value: Math.round(
+                              baseValue *
+                                (0.97 +
+                                  (i / 24) * 0.06 +
+                                  Math.sin(i + 0.5) * 0.015),
+                            ),
+                          },
+                          {
+                            date: `${hour12}:45${ampm}`,
+                            value: Math.round(
+                              baseValue *
+                                (0.97 +
+                                  (i / 24) * 0.06 +
+                                  Math.sin(i + 0.75) * 0.015),
+                            ),
+                          },
+                        ];
+                      }).flat(),
+                    ]
                   : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(
                       (day, i) => ({
                         date: day,
@@ -650,10 +687,14 @@ const Dashboard: React.FC = () => {
         </ErrorBoundary>
 
         {/* Performance Chart and Allocation Chart */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 lg:grid-cols-10 gap-4 mb-4">
           <div
-            className="lg:col-span-2 dashboard-card p-0 overflow-hidden"
-            style={{ background: tradingViewBg, height: '300px' }}
+            className="lg:col-span-6 dashboard-card p-0 overflow-hidden"
+            style={{
+              background: '#131722',
+              height: '390px' /* 30% taller than original 300px */,
+              border: '1px solid #2a2e39',
+            }}
           >
             <div className="flex items-center justify-between p-4 pb-0">
               <h2 className="text-lg font-semibold text-theme-primary">
@@ -664,7 +705,7 @@ const Dashboard: React.FC = () => {
                   <Button
                     key={range}
                     variant={activeRange === range ? 'default' : 'outline'}
-                    className={`text-xs px-3 py-1 rounded-full ${activeRange === range ? 'bg-purple-600 text-gray-300' : 'bg-transparent text-gray-400 border-gray-700'}`}
+                    className={`text-xs px-3 py-1 rounded-sm ${activeRange === range ? 'bg-purple-600 text-gray-300' : 'bg-transparent text-gray-400 border-gray-700'}`}
                     onClick={() => setActiveRange(range)}
                   >
                     {range}
@@ -682,16 +723,33 @@ const Dashboard: React.FC = () => {
                   </div>
                 }
               >
-                <PerformanceChart
-                  data={performanceData}
-                  isPositive={isPositive}
-                />
+                {/* Log performance data for debugging */}
+                {console.log(
+                  'Rendering performance chart with data:',
+                  performanceData,
+                )}
+                {performanceData && performanceData.length > 0 ? (
+                  <PerformanceChart
+                    data={performanceData}
+                    isPositive={isPositive}
+                  />
+                ) : (
+                  <div className="h-full flex items-center justify-center">
+                    <p className="text-gray-400">
+                      No performance data available
+                    </p>
+                  </div>
+                )}
               </ErrorBoundary>
             </div>
           </div>
           <div
-            className="dashboard-card p-0 flex flex-col items-center justify-center overflow-hidden"
-            style={{ background: tradingViewBg, height: '300px' }}
+            className="lg:col-span-4 dashboard-card p-0 flex flex-col items-center justify-center overflow-hidden"
+            style={{
+              background: '#131722',
+              height: '390px' /* Match the performance chart height */,
+              border: '1px solid #2a2e39',
+            }}
           >
             <h2 className="text-lg font-semibold text-theme-primary mb-1 mt-2 text-center w-full">
               Current Allocations

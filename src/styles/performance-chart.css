@@ -2,6 +2,10 @@
   height: 100% !important;
   width: 100% !important;
   overflow: visible !important;
+  /* Ensure the chart extends to the edges */
+  margin-left: -10px;
+  margin-right: -10px;
+  background-color: #131722;
 }
 
 .performance-chart-container {
@@ -10,6 +14,7 @@
   display: flex;
   align-items: flex-end;
   justify-content: flex-end;
+  overflow: visible !important;
 }
 
 /* Ensure the chart touches the bottom */
@@ -19,8 +24,66 @@
   right: 0 !important;
   left: 0 !important;
   height: 100% !important;
+  /* Extend to the edges */
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
 .recharts-surface {
   overflow: visible;
+}
+
+/* Ensure X-axis ticks align with edges */
+.recharts-xAxis .recharts-cartesian-axis-tick:first-child {
+  text-anchor: start !important;
+  transform: translateX(-5px);
+}
+
+.recharts-xAxis .recharts-cartesian-axis-tick:last-child {
+  text-anchor: end !important;
+  transform: translateX(5px);
+}
+
+/* Style the area graph to match the reference image */
+.recharts-area path.recharts-area-area {
+  opacity: 0.5 !important;
+}
+
+.recharts-area path.recharts-area-curve {
+  stroke-width: 2px !important;
+}
+
+/* Style the Y-axis ticks to match the reference image */
+.recharts-yAxis .recharts-cartesian-axis-tick text {
+  fill: #888 !important;
+  font-size: 10px !important;
+}
+
+/* Style the X-axis ticks to match the reference image */
+.recharts-xAxis .recharts-cartesian-axis-tick text {
+  fill: #888 !important;
+  font-size: 10px !important;
+  transform: translateY(125px) !important; /* Move text down 5x more */
+  z-index: 1000 !important; /* Ensure text is visible */
+}
+
+/* Position the X-axis at the bottom */
+.recharts-xAxis {
+  transform: translateY(0) !important;
+  overflow: visible !important;
+}
+
+/* Hide the X-axis line */
+.recharts-xAxis .recharts-cartesian-axis-line {
+  display: none;
+}
+
+/* Make sure the area chart is visible */
+.recharts-area {
+  z-index: 1;
+}
+
+/* Ensure the gradient fill is visible */
+.recharts-area-area {
+  fill-opacity: 0.5 !important;
 }

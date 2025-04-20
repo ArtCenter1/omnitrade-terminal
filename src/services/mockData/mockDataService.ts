@@ -193,18 +193,26 @@ export class MockDataService {
     endTime?: number,
     limit: number = 100,
   ): Kline[] {
+    console.log(
+      `Generating klines for ${exchangeId}:${symbol} with interval ${interval}`,
+    );
     const klines: Kline[] = [];
     const currentPrice = this.getCurrentPrice(exchangeId, symbol);
+    console.log(`Current price for ${symbol}: ${currentPrice}`);
 
     // Determine interval in milliseconds
     let intervalMs = 60000; // Default to 1 minute
-    if (interval === '1h') intervalMs = 3600000;
-    if (interval === '1d') intervalMs = 86400000;
-    if (interval === '1w') intervalMs = 604800000;
+    if (interval === '15m') intervalMs = 15 * 60000; // 15 minutes
+    if (interval === '1h') intervalMs = 3600000; // 1 hour
+    if (interval === '1d') intervalMs = 86400000; // 1 day
+    if (interval === '1w') intervalMs = 604800000; // 1 week
 
     // Set default times if not provided
     const end = endTime || Date.now();
     const start = startTime || end - intervalMs * limit;
+    console.log(
+      `Generating klines from ${new Date(start).toISOString()} to ${new Date(end).toISOString()}`,
+    );
 
     let lastClose = currentPrice * randomInRange(0.8, 1.2); // Start with a price around current
 
@@ -236,6 +244,12 @@ export class MockDataService {
       });
 
       lastClose = close;
+    }
+
+    console.log(`Generated ${klines.length} klines for ${symbol}`);
+    if (klines.length > 0) {
+      console.log(`First kline: ${JSON.stringify(klines[0])}`);
+      console.log(`Last kline: ${JSON.stringify(klines[klines.length - 1])}`);
     }
 
     return klines;
