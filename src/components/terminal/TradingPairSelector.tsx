@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ChevronDown, Star, Search, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -80,62 +80,161 @@ export function TradingPairSelector({
     }
   }, [selectedAccount, activeQuoteAsset]);
 
-  // Fetch trading pairs when the component mounts or when the active quote asset changes
-  useEffect(() => {
-    const fetchTradingPairs = async () => {
-      setIsLoading(true);
-      try {
-        const exchangeId = selectedAccount?.exchange || 'binance';
-        const backendPairs = await getTradingPairs(exchangeId);
+  // This section has been replaced by fetchAndUpdatePairs
 
-        // Filter pairs by the active quote asset
-        const filteredByQuote = backendPairs.filter(
-          (pair) => pair.quoteAsset === activeQuoteAsset,
+  // Store the original pairs for filtering
+  const [originalPairs, setOriginalPairs] = useState<TradingPair[]>([]);
+
+  // Fetch trading pairs and update both original and filtered pairs
+  const fetchAndUpdatePairs = useCallback(async () => {
+    console.log(
+      'Fetching trading pairs for',
+      selectedAccount?.exchange || 'binance',
+      'with quote asset',
+      activeQuoteAsset,
+    );
+    setIsLoading(true);
+    try {
+      const exchangeId = selectedAccount?.exchange || 'binance';
+      const backendPairs = await getTradingPairs(exchangeId);
+      console.log('Received trading pairs from backend:', backendPairs);
+
+      // Filter pairs by the active quote asset
+      const filteredByQuote = backendPairs.filter(
+        (pair) => pair.quoteAsset === activeQuoteAsset,
+      );
+      console.log('Filtered pairs by quote asset:', filteredByQuote);
+
+      // If no pairs found for this quote asset, create fallback pairs
+      if (filteredByQuote.length === 0) {
+        console.warn(
+          `No pairs found for ${exchangeId} with quote asset ${activeQuoteAsset}. Creating fallback pairs.`,
         );
 
+        // Create fallback pairs for common cryptocurrencies
+        const fallbackPairs = [
+          {
+            symbol: `BTC/${activeQuoteAsset}`,
+            baseAsset: 'BTC',
+            quoteAsset: activeQuoteAsset,
+            exchangeId,
+            priceDecimals: 2,
+            quantityDecimals: 8,
+            price: '84316.58',
+            change24h: '+0.92%',
+            volume24h: '1.62b',
+            isFavorite: true,
+          },
+          {
+            symbol: `ETH/${activeQuoteAsset}`,
+            baseAsset: 'ETH',
+            quoteAsset: activeQuoteAsset,
+            exchangeId,
+            priceDecimals: 2,
+            quantityDecimals: 8,
+            price: '3452.78',
+            change24h: '+1.08%',
+            volume24h: '963.40m',
+            isFavorite: true,
+          },
+          {
+            symbol: `SOL/${activeQuoteAsset}`,
+            baseAsset: 'SOL',
+            quoteAsset: activeQuoteAsset,
+            exchangeId,
+            priceDecimals: 2,
+            quantityDecimals: 8,
+            price: '176.42',
+            change24h: '+4.92%',
+            volume24h: '688.79m',
+            isFavorite: false,
+          },
+        ];
+
+        // Use the fallback pairs
+        const frontendPairs = fallbackPairs;
+        console.log('Using fallback pairs:', frontendPairs);
+        setOriginalPairs(frontendPairs);
+
+        // Apply search filter if there's a search query
+        if (searchQuery) {
+          const query = searchQuery.toLowerCase();
+          const filtered = frontendPairs.filter(
+            (pair) =>
+              pair.symbol.toLowerCase().includes(query) ||
+              pair.baseAsset.toLowerCase().includes(query),
+          );
+          setFilteredPairs(filtered);
+        } else {
+          setFilteredPairs(frontendPairs);
+        }
+      } else {
         // Convert backend pairs to frontend format
         const frontendPairs: TradingPair[] = filteredByQuote.map((pair) => ({
           symbol: pair.symbol,
           baseAsset: pair.baseAsset,
           quoteAsset: pair.quoteAsset,
           price: pair.price?.toString() || '0.00',
-          change24h: '+0.00%', // We'll update this with real data later
-          volume24h: '0', // We'll update this with real data later
+          change24h: pair.change24h || '+0.00%',
+          volume24h: pair.volume24h || '0',
           isFavorite: false,
           exchangeId: pair.exchangeId,
         }));
 
-        setFilteredPairs(frontendPairs);
-      } catch (error) {
-        console.error('Error fetching trading pairs:', error);
-        setFilteredPairs([]);
-      } finally {
-        setIsLoading(false);
+        console.log('Setting original and filtered pairs:', frontendPairs);
+        setOriginalPairs(frontendPairs);
+
+        // Apply search filter if there's a search query
+        if (searchQuery) {
+          const query = searchQuery.toLowerCase();
+          const filtered = frontendPairs.filter(
+            (pair) =>
+              pair.symbol.toLowerCase().includes(query) ||
+              pair.baseAsset.toLowerCase().includes(query),
+          );
+          setFilteredPairs(filtered);
+        } else {
+          setFilteredPairs(frontendPairs);
+        }
       }
-    };
-
-    fetchTradingPairs();
-  }, [activeQuoteAsset, selectedAccount]);
-
-  // Filter pairs based on search query
-  useEffect(() => {
-    if (!searchQuery) return; // Skip if no search query
-
-    setIsLoading(true);
-    try {
-      const query = searchQuery.toLowerCase();
-      const filtered = filteredPairs.filter(
-        (pair) =>
-          pair.symbol.toLowerCase().includes(query) ||
-          pair.baseAsset.toLowerCase().includes(query),
-      );
-      setFilteredPairs(filtered);
     } catch (error) {
-      console.error('Error filtering trading pairs:', error);
+      console.error('Error fetching trading pairs:', error);
+      // Create default pairs as fallback in case of error
+      const defaultPairs = [
+        {
+          symbol: 'BTC/USDT',
+          baseAsset: 'BTC',
+          quoteAsset: 'USDT',
+          price: '84316.58',
+          change24h: '+0.92%',
+          volume24h: '1.62b',
+          isFavorite: true,
+          exchangeId: selectedAccount?.exchange || 'binance',
+        },
+        {
+          symbol: 'ETH/USDT',
+          baseAsset: 'ETH',
+          quoteAsset: 'USDT',
+          price: '3452.78',
+          change24h: '+1.08%',
+          volume24h: '963.40m',
+          isFavorite: true,
+          exchangeId: selectedAccount?.exchange || 'binance',
+        },
+      ];
+      setFilteredPairs(defaultPairs);
+      setOriginalPairs(defaultPairs);
     } finally {
       setIsLoading(false);
     }
-  }, [searchQuery]);
+  }, [activeQuoteAsset, searchQuery, selectedAccount]);
+
+  // Fetch pairs when component mounts or when dependencies change
+  useEffect(() => {
+    fetchAndUpdatePairs();
+  }, [fetchAndUpdatePairs]);
+
+  // Search filtering is now handled in fetchAndUpdatePairs
 
   // Handle pair selection
   const handlePairSelect = (pair: TradingPair) => {

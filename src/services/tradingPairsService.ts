@@ -226,6 +226,8 @@ export const getTradingPair = async (
  * Generate mock trading pairs for testing
  */
 const generateMockTradingPairs = (exchangeId: string): TradingPair[] => {
+  console.log(`Generating mock trading pairs for exchange: ${exchangeId}`);
+
   // Common base assets
   const baseAssets = [
     'BTC',
@@ -240,19 +242,77 @@ const generateMockTradingPairs = (exchangeId: string): TradingPair[] => {
     'UNI',
   ];
 
-  // Quote assets
+  // Quote assets - ensure USDT is always included
   const quoteAssets = ['USDT', 'USD', 'BTC', 'ETH'];
 
   // Generate pairs for each quote asset
   const pairs: TradingPair[] = [];
 
+  // Ensure we always have at least BTC/USDT and ETH/USDT pairs for all exchanges
+  // This guarantees that filtering by USDT will always return results
+  const guaranteedPairs = [
+    {
+      baseAsset: 'BTC',
+      quoteAsset: 'USDT',
+      price: '84316.58',
+      change24h: '+0.92%',
+      volume24h: '1.62b',
+      isFavorite: true,
+    },
+    {
+      baseAsset: 'ETH',
+      quoteAsset: 'USDT',
+      price: '3452.78',
+      change24h: '+1.08%',
+      volume24h: '963.40m',
+      isFavorite: true,
+    },
+    {
+      baseAsset: 'SOL',
+      quoteAsset: 'USDT',
+      price: '176.42',
+      change24h: '+4.92%',
+      volume24h: '688.79m',
+      isFavorite: false,
+    },
+  ];
+
+  // Add guaranteed pairs first
+  guaranteedPairs.forEach(
+    ({ baseAsset, quoteAsset, price, change24h, volume24h, isFavorite }) => {
+      pairs.push({
+        symbol: `${baseAsset}/${quoteAsset}`,
+        baseAsset,
+        quoteAsset,
+        exchangeId,
+        priceDecimals: 2,
+        quantityDecimals: 8,
+        price,
+        change24h,
+        volume24h,
+        isFavorite,
+      });
+    },
+  );
+
+  // Then add additional pairs
   quoteAssets.forEach((quoteAsset) => {
-    // Skip BTC/BTC and ETH/ETH pairs
+    // Skip BTC/BTC and ETH/ETH pairs and pairs we've already added
     const filteredBaseAssets = baseAssets.filter(
       (base) =>
         !(base === quoteAsset) &&
         !(base === 'BTC' && quoteAsset === 'BTC') &&
-        !(base === 'ETH' && quoteAsset === 'ETH'),
+        !(base === 'ETH' && quoteAsset === 'ETH') &&
+        // Skip pairs we've already added as guaranteed pairs
+        !(
+          quoteAsset === 'USDT' &&
+          (base === 'BTC' || base === 'ETH' || base === 'SOL')
+        ),
+    );
+
+    console.log(
+      `Generating pairs for quote asset: ${quoteAsset}, with base assets:`,
+      filteredBaseAssets,
     );
 
     filteredBaseAssets.forEach((baseAsset) => {
@@ -287,6 +347,7 @@ const generateMockTradingPairs = (exchangeId: string): TradingPair[] => {
     });
   });
 
+  console.log(`Generated ${pairs.length} trading pairs for ${exchangeId}`);
   return pairs;
 };
 
