@@ -8,6 +8,7 @@ import { Toaster } from '@/components/ui/sonner';
 // Debug panel removed
 import UserRoleManagement from './pages/admin/UserRoleManagement';
 import ComingSoon from './pages/admin/ComingSoon';
+import DevSettings from './pages/admin/DevSettings';
 import { ScrollToTop } from './components/ScrollToTop';
 import Index from './pages/Index';
 import AuthPage from './pages/auth/AuthPage';
@@ -246,6 +247,17 @@ function App() {
               redirectTo="/dashboard"
             >
               <UserRoleManagement />
+            </RoleProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/dev-settings"
+          element={
+            <RoleProtectedRoute
+              allowedRoles={['admin']}
+              redirectTo="/dashboard"
+            >
+              <DevSettings />
             </RoleProtectedRoute>
           }
         />

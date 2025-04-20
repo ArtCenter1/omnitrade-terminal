@@ -4,6 +4,7 @@ import './index.css';
 import './styles/crypto-colors.css';
 import './styles/protected-theme-override.css';
 import { AuthProvider } from './contexts/AuthContext';
+import { FeatureFlagsProvider } from './config/featureFlags.tsx';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Debug panel toggle function removed
@@ -12,7 +13,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
+      retry: 2,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
       refetchOnWindowFocus: false,
       staleTime: 5 * 60 * 1000, // 5 minutes
       onError: (error) => {
@@ -20,6 +22,7 @@ const queryClient = new QueryClient({
       },
     },
     mutations: {
+      retry: 1,
       onError: (error) => {
         console.error('Mutation error:', error);
       },
@@ -31,6 +34,7 @@ import { BrowserRouter } from 'react-router-dom';
 // Import mock API setup for development
 import { setupMockAdminApi } from './mocks/mockAdminApi';
 import { setupMockFetch } from './mocks/mockFetch';
+import { setupApiMiddleware } from './mocks/apiMiddleware';
 
 // Import development helpers
 import './utils/devHelpers';
@@ -39,6 +43,10 @@ import './utils/devHelpers';
 if (import.meta.env.DEV) {
   setupMockAdminApi();
   setupMockFetch();
+
+  // Initialize API middleware to handle backend unavailability
+  setupApiMiddleware();
+
   console.log('Mock APIs enabled for development');
 
   // Setup mock APIs but don't enable mock user by default
@@ -54,9 +62,11 @@ if (import.meta.env.DEV) {
 createRoot(document.getElementById('root')!).render(
   <QueryClientProvider client={queryClient}>
     <BrowserRouter>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
+      <FeatureFlagsProvider>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </FeatureFlagsProvider>
     </BrowserRouter>
   </QueryClientProvider>,
 );
