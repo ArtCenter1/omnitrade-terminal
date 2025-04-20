@@ -41,11 +41,15 @@ import './utils/devHelpers';
 
 // Set up mock API for development
 if (import.meta.env.DEV) {
-  setupMockAdminApi();
-  setupMockFetch();
+  // Define originalFetch on window to avoid reference errors
+  window.originalFetch = window.fetch;
 
-  // Initialize API middleware to handle backend unavailability
+  // Initialize API middleware first
   setupApiMiddleware();
+
+  // Then set up the specific mock implementations
+  setupMockFetch();
+  setupMockAdminApi();
 
   console.log('Mock APIs enabled for development');
 

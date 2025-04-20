@@ -134,8 +134,14 @@ export function setupSimpleMock() {
     console.error('Error loading saved API keys:', error);
   }
 
-  // Store the original fetch function
-  const originalFetch = window.fetch;
+  // Store a reference to the original fetch function
+  // Make sure we don't override it if it's already been overridden
+  const originalFetch = window.originalFetch || window.fetch;
+
+  // Store the original fetch for other modules to use
+  if (!window.originalFetch) {
+    window.originalFetch = originalFetch;
+  }
 
   // Override the fetch function
   window.fetch = async function (input: RequestInfo | URL, init?: RequestInit) {

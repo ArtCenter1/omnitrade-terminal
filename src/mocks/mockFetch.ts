@@ -55,7 +55,14 @@ const generateId = () => Math.random().toString(36).substring(2, 15);
 
 // Setup mock fetch
 export function setupMockFetch() {
-  const originalFetch = window.fetch;
+  // Store a reference to the original fetch function
+  // Make sure we don't override it if it's already been overridden
+  const originalFetch = window.originalFetch || window.fetch;
+
+  // Store the original fetch for other modules to use
+  if (!window.originalFetch) {
+    window.originalFetch = originalFetch;
+  }
 
   window.fetch = async function (input: RequestInfo | URL, init?: RequestInit) {
     const url =

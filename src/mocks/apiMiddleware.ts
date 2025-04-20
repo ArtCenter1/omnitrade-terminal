@@ -11,8 +11,14 @@ const mockDataService = new MockDataService();
  * This allows the application to function without a running backend server
  */
 export function setupApiMiddleware() {
-  // Store the original fetch function
-  const originalFetch = window.fetch;
+  // Store a reference to the original fetch function
+  // Make sure we don't override it if it's already been overridden
+  const originalFetch = window.originalFetch || window.fetch;
+
+  // Store the original fetch for other modules to use
+  if (!window.originalFetch) {
+    window.originalFetch = originalFetch;
+  }
 
   // Override the fetch function
   window.fetch = async function (input: RequestInfo | URL, init?: RequestInit) {
@@ -113,6 +119,20 @@ async function handleApiWithMockData(
   // Orders endpoint
   if (url.startsWith('/api/orders')) {
     return handleOrdersRequest(url, init);
+  }
+
+  // Admin API endpoints
+  if (
+    url.startsWith('/api/users') ||
+    url.startsWith('/api/roles') ||
+    url.startsWith('/api/permissions')
+  ) {
+    // Forward to mockAdminApi
+    console.log('Forwarding admin API request to mockAdminApi:', url);
+
+    // For admin endpoints, we'll let the mockAdminApi handle it
+    // We need to pass the original input to avoid 'input is not defined' errors
+    return originalFetch(input, init);
   }
 
   // For unhandled endpoints, return a 404 response
