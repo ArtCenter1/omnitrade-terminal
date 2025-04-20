@@ -252,14 +252,32 @@ export function generatePerformanceData(
         });
         break;
       case 'Week':
-        // Generate daily data for a week
+        // Generate more detailed data for a week (hourly intervals - 7 times more than day view)
         const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        fallbackData = days.map((day, index) => ({
-          date: day,
-          value: Math.round(
-            baseValue * (0.95 + index * 0.01 + Math.random() * 0.02),
-          ),
-        }));
+        fallbackData = [];
+
+        // Generate 24 data points per day (every hour) for 7 days = 168 data points
+        days.forEach((day, dayIndex) => {
+          for (let hour = 0; hour < 24; hour++) {
+            // Calculate a value that progresses through the week with some randomness
+            const progress = (dayIndex * 24 + hour) / (7 * 24);
+            const randomFactor = Math.sin(dayIndex * 3 + hour / 2) * 0.02;
+            const volatility = Math.random() * 0.01 - 0.005; // Small random fluctuations
+            const value = Math.round(
+              baseValue * (0.95 + progress * 0.07 + randomFactor + volatility),
+            );
+
+            // For consistent labeling, mark the first hour of each day (00:00) with just the day name
+            // This ensures the X-axis labels will show the day names at consistent positions
+            fallbackData.push({
+              date:
+                hour === 0
+                  ? day
+                  : `${day} ${hour.toString().padStart(2, '0')}:00`,
+              value: value,
+            });
+          }
+        });
         break;
       case 'Month':
         // Generate data for a month

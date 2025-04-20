@@ -84,12 +84,26 @@ export function PerformanceChart({
             axisLine={false} // No visible axis line
             tickLine={false}
             tick={{ fill: '#666', fontSize: 12 }}
-            tickFormatter={(value) => value.split('\n')[0]} // Show only MM-DD part
-            interval={
-              data.length > 50
+            tickFormatter={(value) => {
+              // For Week view, only show the day part (Mon, Tue, etc.)
+              if (value.includes(' ')) {
+                return value.split(' ')[0]; // Return just the day name
+              }
+              return value.split('\n')[0]; // For other views, show as before
+            }}
+            // For Week view, force exactly 7 ticks by using a custom interval function
+            interval={(index, data) => {
+              // For Week view (168 data points), show exactly 7 days
+              if (data.length > 160) {
+                // Only show the first hour of each day (index % 24 === 0)
+                // This ensures we get exactly 7 ticks, one for each day
+                return index % 24 === 0 ? 0 : 1;
+              }
+              // For other views, use the original calculation
+              return data.length > 50
                 ? Math.floor(data.length / 8)
-                : Math.floor(data.length / 6)
-            } // Adjust tick count based on data size
+                : Math.floor(data.length / 6);
+            }}
             padding={{ left: 10, right: 10 }} // Add consistent padding
             minTickGap={6} // Adjust gap for 1.2x font size
             tickMargin={6} // Adjust margin for 1.2x font size
