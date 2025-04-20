@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { ChevronDown, Plus, Loader2, PieChart } from 'lucide-react';
+import { ChevronDown, Plus, Loader2, PieChart, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import {
@@ -10,6 +10,12 @@ import {
   DropdownMenuTrigger,
   DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useQuery } from '@tanstack/react-query';
 import { listExchangeApiKeys } from '@/services/exchangeApiKeyService';
 import {
@@ -364,34 +370,59 @@ export function ExchangeAccountSelector() {
                     }}
                     className="py-3 cursor-pointer hover:bg-gray-800"
                   >
-                    <div className="flex items-center w-full">
-                      <div className="w-6 h-6 rounded-full overflow-hidden mr-2">
-                        <img
-                          src={account?.logo || '/placeholder.svg'}
-                          alt={account?.exchange || 'Exchange'}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            // Fallback to placeholder if image fails to load
-                            e.currentTarget.src = '/placeholder.svg';
-                            e.currentTarget.onerror = null; // Prevent infinite loop
-                          }}
-                        />
-                      </div>
-                      <div className="flex flex-col flex-1">
-                        <span className="text-white text-sm">
-                          {account?.name || 'Unknown Account'}
-                        </span>
-                        <span className="text-xs">
-                          <span className="text-gray-400">
-                            {account?.value || '$0.00'}
+                    <div className="flex items-center w-full justify-between">
+                      <div className="flex items-center">
+                        <div className="w-6 h-6 rounded-full overflow-hidden mr-2">
+                          <img
+                            src={account?.logo || '/placeholder.svg'}
+                            alt={account?.exchange || 'Exchange'}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              // Fallback to placeholder if image fails to load
+                              e.currentTarget.src = '/placeholder.svg';
+                              e.currentTarget.onerror = null; // Prevent infinite loop
+                            }}
+                          />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-white text-sm">
+                            {account?.name || 'Unknown Account'}
                           </span>
-                          <span
-                            className={`ml-1 ${account?.change && !account.change.includes('-') ? 'text-crypto-green' : 'text-crypto-red'}`}
-                          >
-                            {account?.change || '0.00%'}
+                          <span className="text-xs">
+                            <span className="text-gray-400">
+                              {account?.value || '$0.00'}
+                            </span>
+                            <span
+                              className={`ml-1 ${account?.change && !account.change.includes('-') ? 'text-crypto-green' : 'text-crypto-red'}`}
+                            >
+                              {account?.change || '0.00%'}
+                            </span>
                           </span>
-                        </span>
+                        </div>
                       </div>
+
+                      {account.isSandbox && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle
+                                size={14}
+                                className="text-gray-400 ml-2"
+                              />
+                            </TooltipTrigger>
+                            <TooltipContent
+                              side="right"
+                              className="bg-gray-900 border-gray-800 text-white"
+                            >
+                              <p className="max-w-xs">
+                                Sandbox mode for practice trading. <br />
+                                Start with $50,000 in virtual funds to test
+                                strategies without risk.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
                     </div>
                   </DropdownMenuItem>
                 ))}

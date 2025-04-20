@@ -1,4 +1,5 @@
 import React, { useState, useEffect, Suspense } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { PerformanceChart } from '@/components/PerformanceChart';
 import { AllocationChart } from '@/components/AllocationChart';
@@ -7,7 +8,8 @@ import { DashboardOrdersTable } from '@/components/dashboard/DashboardOrdersTabl
 import { TransfersTable } from '@/components/dashboard/TransfersTable';
 import { Button } from '@/components/ui/button';
 import { Search, Loader2, RefreshCw } from 'lucide-react';
-import { clearDataCache } from '@/utils/clearCache';
+import { clearDataCache, refreshPortfolioData } from '@/utils/clearCache';
+import { useQueryClient } from '@tanstack/react-query';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import { usePortfolioData } from '@/hooks/usePortfolioData';
@@ -97,6 +99,8 @@ const TIME_RANGES = ['Day', 'Week', 'Month', 'Year', '5 Years'];
 const tradingViewBg = '#131722';
 
 const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('Balances');
   const [activeRange, setActiveRange] = useState('Week');
   const [hasError, setHasError] = useState(false);
@@ -104,6 +108,7 @@ const Dashboard: React.FC = () => {
   const [localAccounts, setLocalAccounts] = useState<ExchangeAccount[]>(
     DEFAULT_MOCK_ACCOUNTS,
   );
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Generate dynamic chart data based on the selected account
   const [performanceData, setPerformanceData] = useState(mockPerformanceData);
@@ -719,15 +724,37 @@ const Dashboard: React.FC = () => {
               <h2 className="text-lg font-semibold text-theme-primary mr-2">
                 Portfolio Overview
               </h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="p-1"
-                onClick={() => clearDataCache()}
-                title="Refresh data (clears cache)"
-              >
-                <RefreshCw className="h-4 w-4 text-gray-400 hover:text-gray-300" />
-              </Button>
+              <div className="flex items-center">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="p-1"
+                  onClick={() => {
+                    setIsRefreshing(true);
+                    refreshPortfolioData(queryClient);
+                    // Set a timeout to reset the refreshing state
+                    setTimeout(() => setIsRefreshing(false), 1000);
+                  }}
+                  title="Refresh portfolio data"
+                  disabled={isRefreshing}
+                >
+                  <RefreshCw
+                    className={`h-4 w-4 text-gray-400 hover:text-gray-300 ${isRefreshing ? 'animate-spin' : ''}`}
+                  />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="p-1 ml-1"
+                  onClick={() => clearDataCache()}
+                  title="Full refresh (clears cache)"
+                  disabled={isRefreshing}
+                >
+                  <span className="text-xs text-gray-400 hover:text-gray-300">
+                    Full
+                  </span>
+                </Button>
+              </div>
             </div>
             <div className="flex gap-2 items-center">
               <div className="relative">

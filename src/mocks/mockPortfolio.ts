@@ -6,6 +6,10 @@ export function generateMockPortfolio(
   exchangeId: string = 'binance',
   seed?: number,
 ): Portfolio {
+  // Special case for sandbox account
+  if (exchangeId === 'sandbox') {
+    return generateSandboxPortfolio();
+  }
   // Use different portfolio compositions based on the exchange
   const exchangeType = exchangeId.toLowerCase();
   const isBinance = exchangeType === 'binance';
@@ -265,6 +269,75 @@ export function generateMockPortfolio(
   };
 }
 
+// Generate a sandbox portfolio with a standard set of assets
+function generateSandboxPortfolio(): Portfolio {
+  const assets: PortfolioAsset[] = [];
+  let totalUsdValue = 0;
+  const exchangeId = 'sandbox';
+
+  // Standard asset prices
+  const assetPrices: Record<string, number> = {
+    BTC: 83055.34,
+    ETH: 3534.64,
+    SOL: 164.81,
+    AVAX: 41.23,
+    LINK: 18.75,
+    DOT: 7.92,
+    ADA: 0.59,
+    MATIC: 0.89,
+    USDT: 1.0,
+    USDC: 1.0,
+  };
+
+  // Add a large USDT balance for trading
+  assets.push({
+    asset: 'USDT',
+    free: 50000.0,
+    locked: 0,
+    total: 50000.0,
+    usdValue: 50000.0,
+    exchangeId,
+  });
+  totalUsdValue += 50000.0;
+
+  // Add small amounts of major cryptocurrencies for practice
+  const cryptoAssets = [
+    { asset: 'BTC', amount: 0.1 },
+    { asset: 'ETH', amount: 1.0 },
+    { asset: 'SOL', amount: 10.0 },
+    { asset: 'AVAX', amount: 20.0 },
+    { asset: 'LINK', amount: 50.0 },
+    { asset: 'DOT', amount: 100.0 },
+    { asset: 'ADA', amount: 1000.0 },
+    { asset: 'MATIC', amount: 1000.0 },
+  ];
+
+  cryptoAssets.forEach(({ asset, amount }) => {
+    const price = assetPrices[asset];
+    const usdValue = amount * price;
+
+    assets.push({
+      asset,
+      free: amount,
+      locked: 0,
+      total: amount,
+      usdValue,
+      exchangeId,
+    });
+
+    totalUsdValue += usdValue;
+  });
+
+  // Sort assets by USD value (descending)
+  assets.sort((a, b) => b.usdValue - a.usdValue);
+
+  return {
+    totalUsdValue,
+    assets,
+    lastUpdated: new Date(),
+  };
+}
+
 // Mock implementation of the usePortfolio hook result
 export function getMockPortfolioData(apiKeyId?: string): {
   data: Portfolio | undefined;
@@ -299,6 +372,7 @@ export function getMockPortfolioData(apiKeyId?: string): {
     'mock-key-5': 'binance',
     'mock-key-6': 'coinbase',
     'portfolio-overview': 'all',
+    'sandbox-key': 'sandbox',
   };
 
   // First check our fixed mapping

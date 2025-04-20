@@ -27,6 +27,14 @@ let mockApiKeys = [
     updated_at: new Date().toISOString(),
     is_valid: true,
   },
+  {
+    api_key_id: 'sandbox-key',
+    exchange_id: 'sandbox',
+    key_nickname: '🔰 Sandbox Account',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    is_valid: true,
+  },
 ];
 
 // Try to load saved API keys from localStorage

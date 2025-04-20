@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronDown, Loader2, Plus } from 'lucide-react';
+import { ChevronDown, Loader2, Plus, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,6 +10,12 @@ import {
   DropdownMenuTrigger,
   DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import {
@@ -219,20 +225,45 @@ export function AccountSelector() {
                   }}
                   className="py-2 cursor-pointer hover:bg-gray-800"
                 >
-                  <div className="flex items-center w-full">
-                    <div className="w-5 h-5 rounded-full overflow-hidden mr-2">
-                      <img
-                        src={account.logo}
-                        alt={account.exchange}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          // Fallback to placeholder if image fails to load
-                          e.currentTarget.src = '/placeholder.svg';
-                          e.currentTarget.onerror = null; // Prevent infinite loop
-                        }}
-                      />
+                  <div className="flex items-center w-full justify-between">
+                    <div className="flex items-center">
+                      <div className="w-5 h-5 rounded-full overflow-hidden mr-2">
+                        <img
+                          src={account.logo}
+                          alt={account.exchange}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Fallback to placeholder if image fails to load
+                            e.currentTarget.src = '/placeholder.svg';
+                            e.currentTarget.onerror = null; // Prevent infinite loop
+                          }}
+                        />
+                      </div>
+                      <span className="text-white text-sm">{account.name}</span>
                     </div>
-                    <span className="text-white text-sm">{account.name}</span>
+
+                    {account.isSandbox && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle
+                              size={14}
+                              className="text-gray-400 ml-2"
+                            />
+                          </TooltipTrigger>
+                          <TooltipContent
+                            side="right"
+                            className="bg-gray-900 border-gray-800 text-white"
+                          >
+                            <p className="max-w-xs">
+                              Sandbox mode for practice trading. <br />
+                              Start with $50,000 in virtual funds to test
+                              strategies without risk.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
                   </div>
                 </DropdownMenuItem>
               ))}

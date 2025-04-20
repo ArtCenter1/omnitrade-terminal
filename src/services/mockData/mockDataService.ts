@@ -565,4 +565,42 @@ export class MockDataService {
     // For mock purposes, consider any non-empty strings as valid
     return apiKey.length > 0 && apiSecret.length > 0;
   }
+
+  // Update an order's status
+  public updateOrderStatus(
+    userId: string,
+    orderId: string,
+    status: OrderStatus,
+    executedQuantity?: number,
+  ): boolean {
+    if (!this.mockOrders.has(userId)) {
+      return false;
+    }
+
+    const orders = this.mockOrders.get(userId)!;
+    const orderIndex = orders.findIndex((o) => o.id === orderId);
+
+    if (orderIndex === -1) {
+      return false;
+    }
+
+    const order = orders[orderIndex];
+
+    // Update the order status
+    order.status = status;
+    order.lastUpdated = Date.now();
+
+    // Update executed quantity if provided
+    if (executedQuantity !== undefined) {
+      order.executed = executedQuantity;
+      order.remaining = order.quantity - executedQuantity;
+
+      // Calculate cost based on executed quantity
+      const price =
+        order.price || this.getCurrentPrice(order.exchangeId, order.symbol);
+      order.cost = roundToDecimals(executedQuantity * price, 2);
+    }
+
+    return true;
+  }
 }

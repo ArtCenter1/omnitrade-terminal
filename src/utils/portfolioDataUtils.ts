@@ -23,6 +23,12 @@ export type PortfolioTableAsset = {
   exchangeSources?: ExchangeSource[]; // For Portfolio Total view to track assets across exchanges
 };
 
+// Import the MockDataService for kline generation
+import { MockDataService } from '@/services/mockData/mockDataService';
+
+// Create a singleton instance of MockDataService
+const mockDataService = new MockDataService();
+
 // Generate performance chart data based on the selected account and time range
 export function generatePerformanceData(
   selectedAccount: ExchangeAccount | null,
@@ -50,65 +56,100 @@ export function generatePerformanceData(
   // Determine if the change is positive based on the account's change value
   const isPositive = !selectedAccount.change.includes('-');
 
-  // Extract a seed from the API key ID for consistent random values
-  const seed = parseInt(selectedAccount.apiKeyId.replace(/[^0-9]/g, '')) || 0;
-  console.log('Using seed for performance data:', seed);
-
-  // Use the seed to generate consistent random values
-  const generateSeededRandom = (day: number) => {
-    const daySeed = (seed + day * 13) % 10000;
-    return (daySeed / 10000) * 0.1; // 0-10% variation
-  };
-
   try {
-    // Define data points based on time range
-    let dataPoints: { labels: string[]; volatility: number; trend: number };
+    // Map time range to kline interval
+    let interval: string;
+    let limit: number;
 
     switch (timeRange) {
       case 'Day':
-        // 24 hours of data with hourly points
-        dataPoints = {
-          labels: [
-            '12am',
-            '2am',
-            '4am',
-            '6am',
-            '8am',
-            '10am',
-            '12pm',
-            '2pm',
-            '4pm',
-            '6pm',
-            '8pm',
-            '10pm',
-          ],
-          volatility: 0.04, // 4% volatility for day view
-          trend: isPositive ? 0.02 : -0.01, // 2% up or 1% down over the day
-        };
+        interval = '1h'; // 1 hour intervals for day view
+        limit = 24; // 24 hours in a day
         break;
-
       case 'Week':
-        // 7 days of data
-        dataPoints = {
-          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-          volatility: 0.06, // 6% volatility for week view
-          trend: isPositive ? 0.05 : -0.03, // 5% up or 3% down over the week
-        };
+        interval = '1d'; // 1 day intervals for week view
+        limit = 7; // 7 days in a week
         break;
-
       case 'Month':
-        // 30 days of data (showing weekly points)
-        dataPoints = {
-          labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-          volatility: 0.08, // 8% volatility for month view
-          trend: isPositive ? 0.08 : -0.05, // 8% up or 5% down over the month
-        };
+        interval = '1d'; // 1 day intervals for month view
+        limit = 30; // ~30 days in a month
         break;
-
       case 'Year':
-        // 12 months of data
-        dataPoints = {
-          labels: [
+        interval = '1w'; // 1 week intervals for year view
+        limit = 52; // 52 weeks in a year
+        break;
+      case '5 Years':
+        interval = '1w'; // 1 week intervals for 5-year view
+        limit = 260; // 52 weeks * 5 years
+        break;
+      default:
+        interval = '1d'; // Default to daily
+        limit = 7; // Default to a week
+    }
+
+    // Calculate end time (now) and start time based on the time range
+    const endTime = Date.now();
+    let startTime: number;
+
+    switch (timeRange) {
+      case 'Day':
+        startTime = endTime - 24 * 60 * 60 * 1000; // 1 day ago
+        break;
+      case 'Week':
+        startTime = endTime - 7 * 24 * 60 * 60 * 1000; // 7 days ago
+        break;
+      case 'Month':
+        startTime = endTime - 30 * 24 * 60 * 60 * 1000; // 30 days ago
+        break;
+      case 'Year':
+        startTime = endTime - 365 * 24 * 60 * 60 * 1000; // 365 days ago
+        break;
+      case '5 Years':
+        startTime = endTime - 5 * 365 * 24 * 60 * 60 * 1000; // 5 years ago
+        break;
+      default:
+        startTime = endTime - 7 * 24 * 60 * 60 * 1000; // Default to 7 days ago
+    }
+
+    // Use the exchange ID from the selected account
+    const exchangeId = selectedAccount.exchangeId;
+
+    // Create a synthetic symbol for the portfolio performance
+    // This ensures we get consistent data for the same account
+    const symbol = `PORTFOLIO/${selectedAccount.apiKeyId}`;
+
+    // Generate klines using the MockDataService
+    const klines = mockDataService.generateKlines(
+      exchangeId,
+      symbol,
+      interval,
+      startTime,
+      endTime,
+      limit,
+    );
+
+    // Convert klines to performance chart data format
+    const performanceData = klines.map((kline) => {
+      // Format date based on the time range
+      let formattedDate: string;
+      const date = new Date(kline.timestamp);
+
+      switch (timeRange) {
+        case 'Day':
+          // Format as hour (e.g., "3pm")
+          const hour = date.getHours();
+          const ampm = hour >= 12 ? 'pm' : 'am';
+          const hour12 = hour % 12 || 12; // Convert 0 to 12 for 12am
+          formattedDate = `${hour12}${ampm}`;
+          break;
+        case 'Week':
+          // Format as day of week (e.g., "Mon")
+          const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+          formattedDate = days[date.getDay()];
+          break;
+        case 'Month':
+          // Format as day of month with month (e.g., "15 Jan")
+          const monthsShort = [
             'Jan',
             'Feb',
             'Mar',
@@ -121,195 +162,53 @@ export function generatePerformanceData(
             'Oct',
             'Nov',
             'Dec',
-          ],
-          volatility: 0.12, // 12% volatility for year view
-          trend: isPositive ? 0.15 : -0.1, // 15% up or 10% down over the year
-        };
-        break;
-
-      case '5 Years':
-        // 5 years of data (showing yearly points)
-        dataPoints = {
-          labels: ['2019', '2020', '2021', '2022', '2023'],
-          volatility: 0.18, // 18% volatility for 5-year view
-          trend: isPositive ? 0.4 : -0.25, // 40% up or 25% down over 5 years
-        };
-        break;
-
-      default:
-        // Default to week view
-        dataPoints = {
-          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-          volatility: 0.06,
-          trend: isPositive ? 0.05 : -0.03,
-        };
-    }
-
-    // Create a more realistic price chart with random walks
-    const startValue = baseValue * 0.95; // Start 5% below current value
-    const endValue = baseValue * (1 + dataPoints.trend); // End with the trend percentage
-
-    // Use a constant sample rate for consistent appearance
-    const numPoints = 100; // High resolution for all time ranges
-    const priceData = [];
-
-    // Use random walk algorithm with higher volatility for jagged appearance
-    let currentValue = startValue;
-
-    // Create an array of price points with high volatility
-    const rawPricePoints = [];
-
-    for (let i = 0; i < numPoints; i++) {
-      // Random walk with volatility adjusted for time range
-      let volatilityMultiplier;
-      switch (timeRange) {
-        case 'Day':
-          volatilityMultiplier = 2.5; // Lower volatility for day view (more realistic intraday movements)
-          break;
-        case 'Week':
-          volatilityMultiplier = 3.0; // Medium volatility for week view
-          break;
-        case 'Month':
-          volatilityMultiplier = 3.5; // Higher volatility for month view
+          ];
+          formattedDate = `${date.getDate()} ${monthsShort[date.getMonth()]}`;
           break;
         case 'Year':
-        case '5 Years':
-          volatilityMultiplier = 4.0; // Highest volatility for year and 5-year views
-          break;
-        default:
-          volatilityMultiplier = 3.0;
-      }
-
-      const volatilityFactor =
-        dataPoints.volatility * baseValue * volatilityMultiplier;
-      const randomWalk = (Math.random() - 0.5) * volatilityFactor * 4.0; // Consistent multiplier
-
-      // Add trend bias
-      const trendBias = (dataPoints.trend / numPoints) * baseValue;
-
-      // Update current value with random walk and trend
-      currentValue += randomWalk + trendBias;
-
-      // Add larger moves (spikes and dips) with frequency based on time range
-      let spikeChance;
-      let spikeMultiplier;
-
-      switch (timeRange) {
-        case 'Day':
-          spikeChance = 0.08; // Fewer spikes for day view (8%)
-          spikeMultiplier = 3.0; // Smaller spikes for day view
-          break;
-        case 'Week':
-          spikeChance = 0.12; // Medium spike frequency for week view (12%)
-          spikeMultiplier = 4.0; // Medium spike magnitude
-          break;
-        case 'Month':
-          spikeChance = 0.15; // Higher spike frequency for month view (15%)
-          spikeMultiplier = 5.0; // Larger spikes
-          break;
-        case 'Year':
-          spikeChance = 0.18; // Even higher spike frequency for year view (18%)
-          spikeMultiplier = 6.0; // Even larger spikes
+          // Format as month (e.g., "Jan")
+          const months = [
+            'Jan',
+            'Feb',
+            'Mar',
+            'Apr',
+            'May',
+            'Jun',
+            'Jul',
+            'Aug',
+            'Sep',
+            'Oct',
+            'Nov',
+            'Dec',
+          ];
+          formattedDate = months[date.getMonth()];
           break;
         case '5 Years':
-          spikeChance = 0.2; // Highest spike frequency for 5-year view (20%)
-          spikeMultiplier = 7.0; // Largest spikes
+          // Format as year (e.g., "2023")
+          formattedDate = date.getFullYear().toString();
           break;
         default:
-          spikeChance = 0.15;
-          spikeMultiplier = 5.0;
+          // Default format as MM-DD
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          formattedDate = `${month}-${day}`;
       }
 
-      if (Math.random() < spikeChance) {
-        const spikeDirection = Math.random() > 0.5 ? 1 : -1;
-        const spikeMagnitude =
-          volatilityFactor * spikeMultiplier * Math.random();
-        currentValue += spikeDirection * spikeMagnitude;
-      }
+      // Scale the close price to match the portfolio value
+      // We use the close price from klines and scale it to the portfolio's base value
+      const scaleFactor = baseValue / klines[0].close;
+      const scaledValue = Math.round(kline.close * scaleFactor);
 
-      // Ensure we don't go too low (no negative prices)
-      currentValue = Math.max(currentValue, baseValue * 0.5);
-
-      rawPricePoints.push(currentValue);
-    }
-
-    // Generate date labels for each data point to match reference image format
-    const today = new Date();
-    // End date is yesterday to avoid including current day (which might cause abrupt drop)
-    const endDate = new Date(today);
-    endDate.setDate(today.getDate() - 1);
-    const startDate = new Date(endDate);
-
-    // Set start date based on time range
-    switch (timeRange) {
-      case 'Day':
-        startDate.setDate(endDate.getDate() - 1);
-        break;
-      case 'Week':
-        startDate.setDate(endDate.getDate() - 7);
-        break;
-      case 'Month':
-        startDate.setMonth(endDate.getMonth() - 1);
-        break;
-      case 'Year':
-        startDate.setFullYear(endDate.getFullYear() - 1);
-        break;
-      case '5 Years':
-        startDate.setFullYear(endDate.getFullYear() - 5);
-        break;
-      default:
-        startDate.setDate(endDate.getDate() - 7); // Default to week
-    }
-
-    // Map all raw price points to the chart with proper dates
-    for (let i = 0; i < rawPricePoints.length; i++) {
-      // Calculate date for this point
-      const pointDate = new Date(startDate);
-      const timeIncrement =
-        (endDate.getTime() - startDate.getTime()) / (rawPricePoints.length - 1);
-      pointDate.setTime(startDate.getTime() + timeIncrement * i);
-
-      // Format date as MM-DD YYYY to match reference image
-      const month = String(pointDate.getMonth() + 1).padStart(2, '0');
-      const day = String(pointDate.getDate()).padStart(2, '0');
-      const year = pointDate.getFullYear();
-      const formattedDate = `${month}-${day}\n${year}`;
-
-      priceData.push({
+      return {
         date: formattedDate,
-        value: Math.round(rawPricePoints[i]),
-      });
-    }
+        value: scaledValue,
+      };
+    });
 
-    // Ensure the values are in a reasonable range and the last point is close to our target end value
-    if (priceData.length > 0) {
-      // Find min and max values
-      const values = priceData.map((point) => point.value);
-      const minValue = Math.min(...values);
-      const maxValue = Math.max(...values);
+    // The data is already sorted by timestamp from the klines generation
+    // No need to sort again, and we can't reliably parse the formatted dates back to timestamps
 
-      // If the range is too small, scale it up
-      if (maxValue - minValue < baseValue * 0.05) {
-        // Scale up to at least 5% range
-        const targetRange = baseValue * 0.05;
-        const currentRange = maxValue - minValue;
-        const scaleFactor = targetRange / currentRange;
-
-        // Apply scaling to all points
-        for (let i = 0; i < priceData.length; i++) {
-          const normalizedValue =
-            (priceData[i].value - minValue) / currentRange;
-          priceData[i].value = Math.round(
-            minValue + normalizedValue * targetRange,
-          );
-        }
-      }
-
-      // Set the last point to the target end value
-      priceData[priceData.length - 1].value = Math.round(endValue);
-    }
-
-    return priceData;
+    return performanceData;
   } catch (error) {
     console.error('Error generating performance data:', error);
 

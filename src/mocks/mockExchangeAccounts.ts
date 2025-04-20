@@ -11,6 +11,7 @@ export interface ExchangeAccount {
   logo: string;
   apiKeyId: string;
   isPortfolioOverview?: boolean; // Flag to identify the Portfolio Overview option
+  isSandbox?: boolean; // Flag to identify the Sandbox account
 }
 
 // Generate mock exchange accounts based on the API keys
@@ -142,6 +143,17 @@ export const DEFAULT_MOCK_ACCOUNTS: ExchangeAccount[] = [
     change: '+2.15%',
     logo: '/exchanges/coinbase.svg',
     apiKeyId: 'mock-key-3',
+  },
+  {
+    id: 'sandbox-account',
+    name: '🔰 Sandbox Account', // Prefixed with a training symbol emoji
+    exchange: 'Sandbox',
+    exchangeId: 'sandbox',
+    value: '$50,000.00', // Standard starting amount
+    change: '+0.00%', // No change initially
+    logo: '/exchanges/sandbox.svg', // Will need to create this
+    apiKeyId: 'sandbox-key',
+    isSandbox: true, // Flag to identify sandbox account
   },
 ];
 
