@@ -138,15 +138,16 @@ export function setupSimpleMock() {
   const originalFetch = window.fetch;
 
   // Override the fetch function
-  window.fetch = async function(input: RequestInfo | URL, init?: RequestInit) {
-    const url = typeof input === 'string' 
-      ? input 
-      : input instanceof URL 
-        ? input.toString() 
-        : input.url;
-    
+  window.fetch = async function (input: RequestInfo | URL, init?: RequestInit) {
+    const url =
+      typeof input === 'string'
+        ? input
+        : input instanceof URL
+          ? input.toString()
+          : input.url;
+
     const method = init?.method?.toUpperCase() || 'GET';
-    
+
     console.log(`Simple mock intercepted: ${method} ${url}`);
 
     // Handle API endpoints
@@ -155,17 +156,17 @@ export function setupSimpleMock() {
       if (url === '/api/exchange-api-keys' && method === 'GET') {
         return mockResponse(mockApiKeys);
       }
-      
+
       // Users
       if (url === '/api/users' && method === 'GET') {
         return mockResponse(mockUsers);
       }
-      
+
       // Roles
       if (url === '/api/roles' && method === 'GET') {
         return mockResponse(mockRoles);
       }
-      
+
       // Permissions
       if (url === '/api/permissions' && method === 'GET') {
         return mockResponse(mockPermissions);
@@ -181,12 +182,14 @@ export function setupSimpleMock() {
 
 // Helper function to create a mock response
 function mockResponse(data: any, status = 200, delay = 500) {
-  return new Promise<Response>(resolve => {
+  return new Promise<Response>((resolve) => {
     setTimeout(() => {
-      resolve(new Response(JSON.stringify(data), {
-        status,
-        headers: { 'Content-Type': 'application/json' },
-      }));
+      resolve(
+        new Response(JSON.stringify(data), {
+          status,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
     }, delay);
   });
 }
