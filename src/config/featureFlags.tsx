@@ -1,5 +1,6 @@
 // src/config/featureFlags.tsx
 import { ConnectionMode } from './exchangeConfig';
+import React from 'react';
 
 /**
  * Feature flags for the application
@@ -130,9 +131,6 @@ export function subscribeToFeatureFlags(
     window.removeEventListener('feature-flags-changed', handleFlagsChanged);
   };
 }
-
-// Import React at the top of the file
-import React from 'react';
 
 /**
  * Hook to use feature flags in React components
