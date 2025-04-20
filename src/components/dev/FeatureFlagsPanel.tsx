@@ -78,13 +78,7 @@ export function FeatureFlagsPanel() {
 
   return (
     <TooltipProvider>
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Feature Flags</CardTitle>
-          <CardDescription>
-            Toggle features for development and testing
-          </CardDescription>
-        </CardHeader>
+      <div className="w-full">
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <Tooltip>
@@ -255,7 +249,7 @@ export function FeatureFlagsPanel() {
             </TooltipContent>
           </Tooltip>
         </CardFooter>
-      </Card>
+      </div>
     </TooltipProvider>
   );
 }

@@ -156,13 +156,18 @@ export class PortfolioService {
     }
 
     // Aggregate portfolios
-    return this.aggregatePortfolios(portfolios);
+    return this.aggregatePortfolios(portfolios, exchangeId);
   }
 
   /**
    * Aggregate multiple portfolios into a single portfolio.
+   * @param portfolios The portfolios to aggregate
+   * @param exchangeId Optional exchange ID to filter by
    */
-  private aggregatePortfolios(portfolios: Portfolio[]): Portfolio {
+  private aggregatePortfolios(
+    portfolios: Portfolio[],
+    exchangeId?: string,
+  ): Portfolio {
     if (portfolios.length === 0) {
       return {
         totalUsdValue: 0,

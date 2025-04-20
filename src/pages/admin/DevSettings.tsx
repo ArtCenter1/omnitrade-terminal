@@ -36,8 +36,13 @@ export default function DevSettings() {
 
   return (
     <div className="container mx-auto p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Developer Settings</h1>
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold">Developer Settings</h1>
+          <p className="text-gray-400 text-sm mt-1">
+            Configure feature flags and development tools
+          </p>
+        </div>
         <Link
           to="/admin"
           className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm flex items-center"
