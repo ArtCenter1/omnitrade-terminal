@@ -131,9 +131,43 @@ export function ChartSection({
   // Update currentPair when selectedPair changes
   useEffect(() => {
     if (selectedPair) {
+      console.log(
+        `ChartSection: Updating to selected pair ${selectedPair.symbol}`,
+      );
       setCurrentPair(selectedPair);
+
+      // Force recreation of the TradingView widget with the new symbol
+      const currentContainer = container.current;
+      if (currentContainer) {
+        currentContainer.innerHTML = '';
+
+        // Small delay to ensure the DOM is updated
+        setTimeout(() => {
+          if (
+            typeof window.TradingView !== 'undefined' &&
+            window.TradingView.widget
+          ) {
+            widgetInstanceRef.current = new window.TradingView.widget({
+              autosize: true,
+              symbol: `${selectedAccount?.exchange?.toUpperCase() || 'BINANCE'}:${selectedPair.baseAsset}${selectedPair.quoteAsset}`,
+              interval: currentTimeframe,
+              timezone: 'Etc/UTC',
+              theme: 'dark',
+              style: '1',
+              locale: 'en',
+              enable_publishing: false,
+              allow_symbol_change: true,
+              container_id: currentContainer.id,
+              hide_side_toolbar: false,
+            });
+            console.log(
+              `TradingView widget recreated with symbol: ${selectedPair.baseAsset}${selectedPair.quoteAsset}`,
+            );
+          }
+        }, 50);
+      }
     }
-  }, [selectedPair]);
+  }, [selectedPair, selectedAccount, currentTimeframe]);
 
   const handleTimeframeSelect = (timeframe: string) => {
     setCurrentTimeframe(timeframe);
@@ -151,7 +185,10 @@ export function ChartSection({
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-4 border-b border-gray-800">
         <div className="flex items-center">
-          <TradingPairSelector onPairSelect={handlePairSelect} />
+          <TradingPairSelector
+            onPairSelect={handlePairSelect}
+            currentPair={currentPair}
+          />
           <PriceOverview selectedPair={currentPair} showPriceOnly={true} />
         </div>
         <PriceOverview selectedPair={currentPair} />

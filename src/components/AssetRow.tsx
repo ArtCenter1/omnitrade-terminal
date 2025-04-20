@@ -252,6 +252,7 @@ export function AssetRow({ asset }: AssetRowProps) {
                             setSelectedAccount(account);
 
                             // Navigate to the terminal with this exchange and asset selected
+                            // Use the asset's symbol (like ETH) as the base asset in the trading pair
                             navigate(
                               `/terminal?symbol=${asset.symbol}/USDT&exchange=${source.exchangeId}`,
                             );
@@ -296,6 +297,7 @@ export function AssetRow({ asset }: AssetRowProps) {
                   className="p-2 hover:bg-gray-800 cursor-pointer transition-colors duration-150"
                   onClick={() => {
                     // Navigate to the terminal with this exchange and asset selected
+                    // Use the asset's symbol (like ETH) as the base asset in the trading pair
                     navigate(
                       `/terminal?symbol=${asset.symbol}/USDT&exchange=${selectedAccount?.exchangeId}`,
                     );

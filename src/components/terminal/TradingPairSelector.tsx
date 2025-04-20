@@ -33,21 +33,25 @@ export interface TradingPair {
 
 interface TradingPairSelectorProps {
   onPairSelect: (pair: TradingPair) => void;
+  currentPair?: TradingPair; // Add prop for current pair
 }
 
 export function TradingPairSelector({
   onPairSelect,
+  currentPair,
 }: TradingPairSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedPair, setSelectedPair] = useState<TradingPair>({
-    symbol: 'BTC/USDT',
-    baseAsset: 'BTC',
-    quoteAsset: 'USDT',
-    price: '84,316.58',
-    change24h: '+0.92%',
-    volume24h: '1.62b',
-    isFavorite: true,
-  });
+  const [selectedPair, setSelectedPair] = useState<TradingPair>(
+    currentPair || {
+      symbol: 'BTC/USDT',
+      baseAsset: 'BTC',
+      quoteAsset: 'USDT',
+      price: '84,316.58',
+      change24h: '+0.92%',
+      volume24h: '1.62b',
+      isFavorite: true,
+    },
+  );
   const [activeQuoteAsset, setActiveQuoteAsset] = useState('USDT');
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredPairs, setFilteredPairs] = useState<TradingPair[]>([]);
@@ -135,10 +139,21 @@ export function TradingPairSelector({
 
   // Handle pair selection
   const handlePairSelect = (pair: TradingPair) => {
+    console.log(`TradingPairSelector: Selected pair ${pair.symbol}`);
     setSelectedPair(pair);
     onPairSelect(pair);
     setIsOpen(false);
   };
+
+  // Update selectedPair when currentPair changes from parent
+  useEffect(() => {
+    if (currentPair) {
+      console.log(
+        `TradingPairSelector: Updating from parent to ${currentPair.symbol}`,
+      );
+      setSelectedPair(currentPair);
+    }
+  }, [currentPair]);
 
   // Toggle favorite status
   const handleToggleFavorite = async (
@@ -199,11 +214,23 @@ export function TradingPairSelector({
               className="flex items-center space-x-2 text-white hover:bg-gray-800 px-3 py-2 h-auto"
             >
               <div className="flex items-center">
-                <div className="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center mr-2">
-                  <span className="text-xs font-bold text-white">
-                    {selectedPair.baseAsset.substring(0, 1)}
-                  </span>
-                </div>
+                <img
+                  src={`/crypto-icons/${selectedPair.baseAsset.toLowerCase()}.svg`}
+                  alt={selectedPair.baseAsset}
+                  className="w-6 h-6 mr-2"
+                  onError={(e) => {
+                    // Fallback to letter if icon not found
+                    e.currentTarget.style.display = 'none';
+                    const parent = e.currentTarget.parentElement;
+                    if (parent) {
+                      const fallback = document.createElement('div');
+                      fallback.className =
+                        'w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center mr-2';
+                      fallback.innerHTML = `<span class="text-xs font-bold text-white">${selectedPair.baseAsset.substring(0, 1)}</span>`;
+                      parent.insertBefore(fallback, parent.firstChild);
+                    }
+                  }}
+                />
                 <span className="font-bold">{selectedPair.symbol}</span>
               </div>
               <ChevronDown size={16} className="text-gray-400" />

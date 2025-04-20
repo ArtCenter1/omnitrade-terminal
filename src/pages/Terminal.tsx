@@ -23,10 +23,22 @@ import { OrderBook } from '@/components/terminal/OrderBook';
 import { TerminalTabs } from '@/components/terminal/TerminalTabs';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { Suspense, useState, useRef, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useSelectedAccount } from '@/hooks/useSelectedAccount';
+import { getTradingPair } from '@/services/tradingPairsService';
 import { ResizableSplitter } from '@/components/ui/resizable-splitter';
 import { TradingPair } from '@/components/terminal/TradingPairSelector';
 
 export default function Terminal() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { selectedAccount, setSelectedAccount } = useSelectedAccount();
+
+  // Parse URL parameters
+  const queryParams = new URLSearchParams(location.search);
+  const symbolParam = queryParams.get('symbol');
+  const exchangeParam = queryParams.get('exchange');
+
   // State for the selected trading pair
   const [selectedPair, setSelectedPair] = useState<TradingPair>({
     symbol: 'BTC/USDT',
@@ -38,12 +50,92 @@ export default function Terminal() {
     isFavorite: true,
   });
 
+  // Initialize trading pair and exchange from URL parameters
+  useEffect(() => {
+    const initializeFromUrl = async () => {
+      try {
+        // If we have both symbol and exchange parameters
+        if (symbolParam && exchangeParam) {
+          console.log(
+            `Initializing terminal with symbol=${symbolParam} and exchange=${exchangeParam}`,
+          );
+
+          // Find the account for this exchange
+          const { DEFAULT_MOCK_ACCOUNTS } = await import(
+            '@/mocks/mockExchangeAccounts'
+          );
+          const account = DEFAULT_MOCK_ACCOUNTS.find(
+            (acc) => acc.exchangeId === exchangeParam,
+          );
+
+          if (account) {
+            // Set the selected account
+            setSelectedAccount(account);
+            console.log(
+              `Set selected account to ${account.name} (${account.exchangeId})`,
+            );
+          }
+
+          // Parse the symbol parameter (format: BASE/QUOTE)
+          const [baseAsset, quoteAsset] = symbolParam.split('/');
+
+          if (baseAsset && quoteAsset) {
+            // Get the trading pair data
+            const pair = await getTradingPair(
+              exchangeParam,
+              `${baseAsset}/${quoteAsset}`,
+            );
+
+            if (pair) {
+              // Set the selected pair
+              const updatedPair = {
+                symbol: `${baseAsset}/${quoteAsset}`,
+                baseAsset: baseAsset,
+                quoteAsset: quoteAsset,
+                price: pair.price?.toString() || '0.00',
+                change24h: '+0.00%',
+                volume24h: '0',
+                isFavorite: false,
+                exchangeId: exchangeParam,
+              };
+
+              setSelectedPair(updatedPair);
+
+              console.log(
+                `Set selected pair to ${updatedPair.symbol} on ${exchangeParam}`,
+              );
+            } else {
+              console.warn(
+                `Trading pair ${symbolParam} not found for exchange ${exchangeParam}`,
+              );
+            }
+          }
+        }
+      } catch (error) {
+        console.error(
+          'Error initializing terminal from URL parameters:',
+          error,
+        );
+      }
+    };
+
+    initializeFromUrl();
+  }, [symbolParam, exchangeParam, setSelectedAccount]);
+
   // Refresh trigger for components that need to refresh when orders are placed
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Handler for when a trading pair is selected
   const handlePairSelect = (pair: TradingPair) => {
+    console.log(`Terminal: Selected pair changed to ${pair.symbol}`);
     setSelectedPair(pair);
+
+    // Update URL to reflect the new pair
+    if (pair.exchangeId) {
+      navigate(`/terminal?symbol=${pair.symbol}&exchange=${pair.exchangeId}`, {
+        replace: true,
+      });
+    }
   };
 
   // Handler for when an order is placed
