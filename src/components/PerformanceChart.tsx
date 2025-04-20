@@ -43,7 +43,7 @@ export function PerformanceChart({
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart
           data={data}
-          margin={{ top: 10, right: 10, left: 10, bottom: 30 }} // Add bottom margin for the time labels
+          margin={{ top: 10, right: 10, left: 10, bottom: 32 }} // Adjust bottom margin for 1.2x font size
           className="performance-chart"
           style={{
             overflow: 'visible',
@@ -83,7 +83,7 @@ export function PerformanceChart({
             dataKey="date"
             axisLine={false} // No visible axis line
             tickLine={false}
-            tick={{ fill: '#666', fontSize: 10 }}
+            tick={{ fill: '#666', fontSize: 12 }}
             tickFormatter={(value) => value.split('\n')[0]} // Show only MM-DD part
             interval={
               data.length > 50
@@ -91,13 +91,13 @@ export function PerformanceChart({
                 : Math.floor(data.length / 6)
             } // Adjust tick count based on data size
             padding={{ left: 10, right: 10 }} // Add consistent padding
-            minTickGap={5} // Allow some gap between ticks
-            tickMargin={5} // Add small margin for better positioning
+            minTickGap={6} // Adjust gap for 1.2x font size
+            tickMargin={6} // Adjust margin for 1.2x font size
           />
           <YAxis
             axisLine={false}
             tickLine={false}
-            tick={{ fill: '#666', fontSize: 10 }}
+            tick={{ fill: '#666', fontSize: 12 }}
             orientation="right"
             // Use a simpler approach with a fixed minimum value
             domain={[
@@ -109,8 +109,8 @@ export function PerformanceChart({
               `$${value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`
             } // Format as currency with commas
             padding={{ top: 10, bottom: 10 }} // Add consistent padding to match X-axis
-            minTickGap={5} // Match X-axis settings
-            tickMargin={5} // Match X-axis settings
+            minTickGap={6} // Adjust gap for 1.2x font size
+            tickMargin={6} // Adjust margin for 1.2x font size
           />
           <Tooltip
             contentStyle={{

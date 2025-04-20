@@ -56,13 +56,13 @@
 /* Style the Y-axis ticks to match the reference image */
 .recharts-yAxis .recharts-cartesian-axis-tick text {
   fill: #888 !important;
-  font-size: 10px !important;
+  font-size: 12px !important; /* 1.2x bigger than original 10px */
 }
 
 /* Style the X-axis ticks to match the reference image */
 .recharts-xAxis .recharts-cartesian-axis-tick text {
   fill: #888 !important;
-  font-size: 10px !important;
+  font-size: 12px !important; /* 1.2x bigger than original 10px */
   transform: translateY(125px) !important; /* Move text down 5x more */
   z-index: 1000 !important; /* Ensure text is visible */
   position: relative !important; /* Needed for z-index to work */

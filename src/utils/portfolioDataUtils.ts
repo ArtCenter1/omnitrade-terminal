@@ -142,17 +142,15 @@ export function generatePerformanceData(
 
       switch (timeRange) {
         case 'Day':
-          // Format as hour:minute (e.g., "3:15pm")
+          // Format as hour:minute in 24-hour format (e.g., "15:30")
           const hour = date.getHours();
           const minute = date.getMinutes();
-          const ampm = hour >= 12 ? 'pm' : 'am';
-          const hour12 = hour % 12 || 12; // Convert 0 to 12 for 12am
 
           // For cleaner display, only show minutes if not zero
           if (minute === 0) {
-            formattedDate = `${hour12}${ampm}`;
+            formattedDate = `${hour.toString().padStart(2, '0')}:00`;
           } else {
-            formattedDate = `${hour12}:${minute.toString().padStart(2, '0')}${ampm}`;
+            formattedDate = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
           }
           break;
         case 'Week':
@@ -244,10 +242,9 @@ export function generatePerformanceData(
         // Generate hourly data for a day
         fallbackData = Array.from({ length: 24 }, (_, i) => {
           const hour = i;
-          const hour12 = hour % 12 || 12; // Convert 0 to 12 for 12am
-          const ampm = hour >= 12 ? 'pm' : 'am';
+          // Use 24-hour format
           return {
-            date: `${hour12}${ampm}`,
+            date: `${hour.toString().padStart(2, '0')}:00`,
             value: Math.round(
               baseValue * (0.97 + (i / 24) * 0.06 + Math.sin(i) * 0.015),
             ),

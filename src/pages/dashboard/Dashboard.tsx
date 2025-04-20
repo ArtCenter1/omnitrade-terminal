@@ -298,19 +298,18 @@ const Dashboard: React.FC = () => {
                       // Generate 24 hourly data points for the day view
                       ...Array.from({ length: 24 }, (_, i) => {
                         const hour = i;
-                        const hour12 = hour % 12 || 12; // Convert 0 to 12 for 12am
-                        const ampm = hour >= 12 ? 'pm' : 'am';
+                        // Use 24-hour format
                         // Add 15-minute intervals for more granular data
                         return [
                           {
-                            date: `${hour12}${ampm}`,
+                            date: `${hour.toString().padStart(2, '0')}:00`,
                             value: Math.round(
                               baseValue *
                                 (0.97 + (i / 24) * 0.06 + Math.sin(i) * 0.015),
                             ),
                           },
                           {
-                            date: `${hour12}:15${ampm}`,
+                            date: `${hour.toString().padStart(2, '0')}:15`,
                             value: Math.round(
                               baseValue *
                                 (0.97 +
@@ -319,7 +318,7 @@ const Dashboard: React.FC = () => {
                             ),
                           },
                           {
-                            date: `${hour12}:30${ampm}`,
+                            date: `${hour.toString().padStart(2, '0')}:30`,
                             value: Math.round(
                               baseValue *
                                 (0.97 +
@@ -328,7 +327,7 @@ const Dashboard: React.FC = () => {
                             ),
                           },
                           {
-                            date: `${hour12}:45${ampm}`,
+                            date: `${hour.toString().padStart(2, '0')}:45`,
                             value: Math.round(
                               baseValue *
                                 (0.97 +
