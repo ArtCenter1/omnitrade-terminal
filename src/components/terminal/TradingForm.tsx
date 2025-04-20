@@ -1,5 +1,5 @@
-import React from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import React, { useState } from 'react';
+import { OrderTypeSelector } from './OrderTypeSelector';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { TradingPair } from './TradingPairSelector';
@@ -11,20 +11,24 @@ interface TradingFormProps {
 
 export function TradingForm({ selectedPair }: TradingFormProps = {}) {
   const { selectedAccount } = useSelectedAccount();
+  const [orderType, setOrderType] = useState<'market' | 'limit' | 'stop'>(
+    'market',
+  );
 
   // Use the selected pair or default to BTC/USDT
   const baseAsset = selectedPair?.baseAsset || 'BTC';
   const quoteAsset = selectedPair?.quoteAsset || 'USDT';
+
+  const handleOrderTypeChange = (type: 'market' | 'limit' | 'stop') => {
+    setOrderType(type);
+  };
   return (
     <div className="border-t border-gray-800 pt-6">
-      <div className="flex justify-center mb-4">
-        <Tabs defaultValue="market" className="w-full">
-          <TabsList className="grid grid-cols-3 bg-gray-900">
-            <TabsTrigger value="market">Market</TabsTrigger>
-            <TabsTrigger value="limit">Limit</TabsTrigger>
-            <TabsTrigger value="stop">Stop</TabsTrigger>
-          </TabsList>
-        </Tabs>
+      <div className="mb-4">
+        <OrderTypeSelector
+          activeOrderType={orderType}
+          onOrderTypeChange={handleOrderTypeChange}
+        />
       </div>
 
       <div className="flex space-x-2 mb-4">

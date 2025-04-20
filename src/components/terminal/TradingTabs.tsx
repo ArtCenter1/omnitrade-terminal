@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { OrderTypeSelector } from './OrderTypeSelector';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { TradingPair } from './TradingPairSelector';
@@ -299,23 +299,10 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
 
   return (
     <div className="px-1 py-2">
-      <Tabs
-        defaultValue="market"
-        className="w-full mb-2"
-        onValueChange={handleOrderTypeChange}
-      >
-        <TabsList className="grid grid-cols-3 w-full h-8">
-          <TabsTrigger value="market" className="text-xs px-1 py-0">
-            Market
-          </TabsTrigger>
-          <TabsTrigger value="limit" className="text-xs px-1 py-0">
-            Limit
-          </TabsTrigger>
-          <TabsTrigger value="stop" className="text-xs px-1 py-0">
-            Stop
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <OrderTypeSelector
+        activeOrderType={orderType}
+        onOrderTypeChange={(type) => handleOrderTypeChange(type)}
+      />
 
       <div className="grid grid-cols-2 gap-1 mb-2">
         <Button
