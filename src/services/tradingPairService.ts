@@ -7,4 +7,7 @@ import { TradingPair } from '../types/trading';
 export { generateMockTradingPairs } from './tradingService';
 
 // Empty mock trading pairs object for backward compatibility
-export const mockTradingPairs: Record<string, Record<string, TradingPair[]>> = {};
+export const mockTradingPairs: Record<
+  string,
+  Record<string, TradingPair[]>
+> = {};
