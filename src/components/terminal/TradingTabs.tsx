@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { TradingPair } from './TradingPairSelector';
 import { useToast } from '@/components/ui/use-toast';
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
-import { placeOrder, CreateOrderDto } from '@/services/ordersService';
+import { placeOrder, CreateOrderDto } from '@/services/enhancedOrdersService';
 import { getMockPortfolioData } from '@/mocks/mockPortfolio';
 import { usePrice } from '@/contexts/PriceContext';
 

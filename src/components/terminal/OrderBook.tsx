@@ -1,8 +1,11 @@
-import { Loader2 } from 'lucide-react';
-import { getMockOrderbookData } from '@/mocks/mockOrderbook';
-import { TradingPair } from './TradingPairSelector';
+import { Loader2, RefreshCw } from 'lucide-react';
+import { TradingPair } from '@/types/trading';
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import { usePrice } from '@/contexts/PriceContext';
+import { useFeatureFlags } from '@/config/featureFlags';
+import { useState, useEffect, useCallback } from 'react';
+import { getMockOrderbookData } from '@/mocks/mockOrderbook';
+import * as enhancedCoinGeckoService from '@/services/enhancedCoinGeckoService';
 
 interface OrderBookProps {
   selectedPair?: TradingPair;
@@ -14,14 +17,71 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
   const { selectedAccount } = useSelectedAccount();
   const { setSelectedPrice } = usePrice();
   const exchangeName = selectedAccount?.exchange || 'Binance';
+  const { useMockData, useRealMarketData } = useFeatureFlags();
 
   // Use the selected pair or default to BTC/USDT
   const symbol = selectedPair?.symbol || 'BTC/USDT';
   const baseAsset = selectedPair?.baseAsset || 'BTC';
   const quoteAsset = selectedPair?.quoteAsset || 'USDT';
 
-  // Get mock orderbook data for the selected pair
-  const { orderbook, isLoading, isError } = getMockOrderbookData(symbol);
+  // State for orderbook data
+  const [orderbook, setOrderbook] =
+    useState<enhancedCoinGeckoService.Orderbook>({ bids: [], asks: [] });
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isError, setIsError] = useState<boolean>(false);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [refreshInterval, setRefreshInterval] = useState<number>(10000); // 10 seconds
+
+  // Function to fetch orderbook data
+  const fetchOrderbook = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setIsError(false);
+
+      // Use mock data if feature flag is enabled
+      if (useMockData && !useRealMarketData) {
+        const mockData = getMockOrderbookData(symbol);
+        setOrderbook(mockData.orderbook);
+      } else {
+        // Use real data from CoinGecko
+        const realOrderbook = await enhancedCoinGeckoService.getOrderbook(
+          symbol,
+          exchangeName.toLowerCase(),
+          10, // depth
+        );
+        setOrderbook(realOrderbook);
+      }
+
+      setLastUpdated(new Date());
+    } catch (error) {
+      console.error('Error fetching orderbook:', error);
+      setIsError(true);
+
+      // Fallback to mock data if real data fails
+      if (!useMockData || useRealMarketData) {
+        const mockData = getMockOrderbookData(symbol);
+        setOrderbook(mockData.orderbook);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [symbol, exchangeName, useMockData, useRealMarketData]);
+
+  // Fetch orderbook data on mount and when dependencies change
+  useEffect(() => {
+    fetchOrderbook();
+
+    // Set up interval to refresh data
+    const intervalId = setInterval(fetchOrderbook, refreshInterval);
+
+    // Clean up interval on unmount
+    return () => clearInterval(intervalId);
+  }, [fetchOrderbook, refreshInterval]);
+
+  // Manual refresh handler
+  const handleRefresh = () => {
+    fetchOrderbook();
+  };
 
   // Format price with appropriate precision
   const formatPrice = (price: string | number) => {
@@ -103,11 +163,27 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
   return (
     <div className="h-screen flex flex-col">
       {/* Order Book Header */}
-      <div className="p-3 border-b border-gray-800">
+      <div className="p-3 border-b border-gray-800 flex justify-between items-center">
         <h3 className="text-white font-medium">
           Order Book{' '}
           <span className="text-xs text-gray-400">({exchangeName})</span>
         </h3>
+        <div className="flex items-center space-x-2">
+          <span className="text-xs text-gray-400">
+            {lastUpdated.toLocaleTimeString()}
+          </span>
+          <button
+            onClick={handleRefresh}
+            className="p-1 rounded hover:bg-gray-700 transition-colors"
+            title="Refresh order book"
+            disabled={isLoading}
+          >
+            <RefreshCw
+              size={14}
+              className={`text-gray-400 ${isLoading ? 'animate-spin' : ''}`}
+            />
+          </button>
+        </div>
       </div>
 
       {/* Order Book Column Headers */}
@@ -217,7 +293,14 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
 
       {/* Recent Trades Section */}
       <div className="p-2 border-t border-gray-800 h-[35%] overflow-hidden flex flex-col">
-        <h3 className="text-white font-medium mb-2">Recent Trades</h3>
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="text-white font-medium">Recent Trades</h3>
+          <div className="text-xs text-gray-400">
+            {useMockData && !useRealMarketData
+              ? 'Using mock data'
+              : 'Using real data'}
+          </div>
+        </div>
 
         <div className="grid grid-cols-3 gap-x-0 text-xs text-gray-400 mb-2">
           <div>Amount ({baseAsset})</div>
@@ -227,20 +310,64 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
 
         <div className="space-y-2 overflow-y-auto flex-1 scrollbar-thin">
           {[...Array(10)].map((_, i) => {
-            // Generate random trade data based on the current pair
-            const quantity = (Math.random() * 0.01).toFixed(8);
+            // Generate trade data based on the current orderbook
             const price = parseFloat(orderbook.bids[0]?.[0] || '0');
-            const priceWithVariation = (
-              price *
-              (1 + (Math.random() * 0.002 - 0.001))
-            ).toFixed(2);
-            const now = new Date();
-            const minutes = now.getMinutes() - i;
-            const seconds = Math.floor(Math.random() * 60);
-            const timeString = `${now.getHours()}:${minutes < 10 ? '0' + minutes : minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
 
-            // Randomly determine if it's a buy or sell
-            const isBuy = Math.random() > 0.5;
+            // Use slightly different logic for real vs mock data
+            let quantity, priceWithVariation, timeString, isBuy;
+
+            if (useMockData && !useRealMarketData) {
+              // Generate completely random data for mock mode
+              quantity = (Math.random() * 0.01).toFixed(8);
+              priceWithVariation = (
+                price *
+                (1 + (Math.random() * 0.002 - 0.001))
+              ).toFixed(2);
+              const now = new Date();
+              const minutes = now.getMinutes() - i;
+              const seconds = Math.floor(Math.random() * 60);
+              timeString = `${now.getHours()}:${minutes < 10 ? '0' + minutes : minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
+              isBuy = Math.random() > 0.5;
+            } else {
+              // Generate semi-random data based on real orderbook
+              // This simulates trades that would happen at prices in the orderbook
+              const bidPrice = parseFloat(
+                orderbook.bids[Math.min(i, orderbook.bids.length - 1)]?.[0] ||
+                  '0',
+              );
+              const askPrice = parseFloat(
+                orderbook.asks[Math.min(i, orderbook.asks.length - 1)]?.[0] ||
+                  '0',
+              );
+
+              // Alternate between buys and sells
+              isBuy = i % 2 === 0;
+              priceWithVariation = (isBuy ? bidPrice : askPrice).toFixed(2);
+
+              // Generate a realistic quantity based on the orderbook
+              const bidQty = parseFloat(
+                orderbook.bids[Math.min(i, orderbook.bids.length - 1)]?.[1] ||
+                  '0.001',
+              );
+              const askQty = parseFloat(
+                orderbook.asks[Math.min(i, orderbook.asks.length - 1)]?.[1] ||
+                  '0.001',
+              );
+              quantity =
+                (isBuy ? bidQty : askQty) * (0.1 + Math.random() * 0.5);
+              quantity = quantity.toFixed(8);
+
+              // Generate a realistic timestamp
+              const now = new Date();
+              now.setSeconds(
+                now.getSeconds() - i * 15 - Math.floor(Math.random() * 30),
+              );
+              timeString = now.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+              });
+            }
 
             return (
               <div

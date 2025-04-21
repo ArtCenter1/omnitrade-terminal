@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { TradingPair } from './TradingPairSelector';
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import { useToast } from '@/components/ui/use-toast';
-import { placeOrder, CreateOrderDto } from '@/services/ordersService';
+import { placeOrder, CreateOrderDto } from '@/services/enhancedOrdersService';
 import { usePrice } from '@/contexts/PriceContext';
 
 interface TradingFormProps {

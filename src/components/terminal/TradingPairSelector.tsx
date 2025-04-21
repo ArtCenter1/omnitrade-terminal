@@ -16,7 +16,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import {
   getTradingPairs,
   subscribeToPriceUpdates,
-} from '../../services/tradingPairsService';
+} from '../../services/tradingService';
 
 // Import the TradingPair interface from shared types
 import { TradingPair } from '@/types/trading';

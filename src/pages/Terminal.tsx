@@ -25,7 +25,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import { Suspense, useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
-import { getTradingPair } from '@/services/tradingPairsService';
+import { getTradingPair } from '@/services/tradingService';
 import { ResizableSplitter } from '@/components/ui/resizable-splitter';
 import { TradingPair } from '@/components/terminal/TradingPairSelector';
 import { PriceProvider } from '@/contexts/PriceContext';

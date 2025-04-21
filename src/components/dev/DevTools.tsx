@@ -6,7 +6,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { HelpCircle } from 'lucide-react';
+import { HelpCircle, RefreshCw } from 'lucide-react';
 import { FeatureFlagsPanel } from './FeatureFlagsPanel';
 import { useFeatureFlagsContext } from '@/config/featureFlags.tsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -17,6 +17,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import * as enhancedCoinGeckoService from '@/services/enhancedCoinGeckoService';
 
 /**
  * Developer tools component
@@ -141,6 +143,33 @@ export function DevTools() {
           </CardHeader>
           <CardContent className="pt-0">
             <ApiExplorer />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* CoinGecko API Status */}
+      <div className="mt-4">
+        <Card className="w-full p-0">
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-1">
+              <CardTitle className="text-lg">CoinGecko API Status</CardTitle>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">
+                      Monitor CoinGecko API usage and cache statistics
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <CardDescription>API usage and cache statistics</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <CoinGeckoStatus />
           </CardContent>
         </Card>
       </div>
@@ -403,6 +432,177 @@ function ApiExplorer() {
         <p className="text-sm text-muted-foreground">
           API Explorer coming soon...
         </p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * CoinGecko API status component
+ * Shows statistics about CoinGecko API usage and cache
+ */
+function CoinGeckoStatus() {
+  const [cacheStats, setCacheStats] = React.useState<Record<string, number>>(
+    {},
+  );
+  const [coinGeckoStatus, setCoinGeckoStatus] = React.useState<
+    'connected' | 'disconnected' | 'checking'
+  >('checking');
+  const [apiKey, setApiKey] = React.useState<string>('');
+  const [isRefreshing, setIsRefreshing] = React.useState<boolean>(false);
+
+  // Check if CoinGecko API key is set
+  React.useEffect(() => {
+    const key = import.meta.env.VITE_COINGECKO_API_KEY || '';
+    setApiKey(key ? 'Configured' : 'Not configured');
+  }, []);
+
+  // Check CoinGecko API status and get cache statistics
+  const checkCoinGeckoStatus = React.useCallback(async () => {
+    try {
+      setIsRefreshing(true);
+      setCoinGeckoStatus('checking');
+
+      // Test the API by fetching top coins
+      await enhancedCoinGeckoService.getTopCoins(5);
+      setCoinGeckoStatus('connected');
+
+      // Get cache statistics
+      const stats = enhancedCoinGeckoService.getCacheStats();
+      setCacheStats(stats);
+    } catch (error) {
+      console.error('Error checking CoinGecko API status:', error);
+      setCoinGeckoStatus('disconnected');
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  // Check status on mount
+  React.useEffect(() => {
+    checkCoinGeckoStatus();
+  }, [checkCoinGeckoStatus]);
+
+  // Reset cache handler
+  const handleResetCache = () => {
+    enhancedCoinGeckoService.resetCache();
+    checkCoinGeckoStatus();
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="border rounded-lg p-2">
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="text-sm font-medium text-muted-foreground">
+            API Status
+          </h3>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={checkCoinGeckoStatus}
+            disabled={isRefreshing}
+            className="h-7 px-2 text-xs"
+          >
+            <RefreshCw
+              className={`h-3 w-3 mr-1 ${isRefreshing ? 'animate-spin' : ''}`}
+            />
+            Refresh
+          </Button>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground text-sm">CoinGecko API</span>
+            <StatusIndicator status={coinGeckoStatus} />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground text-sm">API Key</span>
+            <span className="text-muted-foreground text-sm">{apiKey}</span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground text-sm">
+              Public API Requests
+            </span>
+            <span className="text-muted-foreground text-sm">
+              {cacheStats.publicRequestCount || 0}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground text-sm">
+              Pro API Requests
+            </span>
+            <span className="text-muted-foreground text-sm">
+              {cacheStats.proRequestCount || 0}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="border rounded-lg p-2">
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="text-sm font-medium text-muted-foreground">
+            Cache Statistics
+          </h3>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleResetCache}
+            className="h-7 px-2 text-xs"
+          >
+            Reset Cache
+          </Button>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground text-sm">Coins Cache</span>
+            <span className="text-muted-foreground text-sm">
+              {cacheStats.coins || 0} items
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground text-sm">Markets Cache</span>
+            <span className="text-muted-foreground text-sm">
+              {cacheStats.markets || 0} items
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground text-sm">Tickers Cache</span>
+            <span className="text-muted-foreground text-sm">
+              {cacheStats.tickers || 0} items
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground text-sm">
+              Symbol to ID Cache
+            </span>
+            <span className="text-muted-foreground text-sm">
+              {cacheStats.symbolToId || 0} items
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="border rounded-lg p-2">
+        <h3 className="text-sm font-medium text-muted-foreground mb-2">
+          API Information
+        </h3>
+        <div className="space-y-1 text-xs text-muted-foreground">
+          <p>
+            Public API: <code>https://api.coingecko.com/api/v3</code>
+          </p>
+          <p>
+            Pro API: <code>https://pro-api.coingecko.com/api/v3</code>
+          </p>
+          <p>Rate Limits: 30 req/min (Public), 50 req/min (Free tier)</p>
+          <p>Last checked: {new Date().toLocaleTimeString()}</p>
+        </div>
       </div>
     </div>
   );

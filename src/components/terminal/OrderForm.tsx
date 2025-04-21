@@ -12,7 +12,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
-import { placeOrder, CreateOrderDto } from '../../services/ordersService';
+import {
+  placeOrder,
+  CreateOrderDto,
+} from '../../services/enhancedOrdersService';
 import { TradingPair } from './TradingPairSelector';
 
 interface OrderFormProps {
