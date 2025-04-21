@@ -79,15 +79,27 @@ export function ChartSection({
       return `${testExchange}:${pair.baseAsset}${pair.quoteAsset}`;
     }
 
-    // Get the exchange ID in lowercase for mapping
-    const exchangeId = account?.exchangeId?.toLowerCase() || 'binance';
+    // First try to use the exchange from the pair itself
+    if (pair.exchangeId) {
+      const pairExchangeId = pair.exchangeId.toLowerCase();
+      const tvExchange =
+        EXCHANGE_TO_TRADINGVIEW_MAP[pairExchangeId] ||
+        EXCHANGE_TO_TRADINGVIEW_MAP['binance'];
 
-    // Map the exchange ID to the correct TradingView exchange symbol
+      console.log(
+        `Using pair's exchange ID ${pairExchangeId} for TradingView symbol: ${tvExchange}:${pair.baseAsset}${pair.quoteAsset}`,
+      );
+
+      return `${tvExchange}:${pair.baseAsset}${pair.quoteAsset}`;
+    }
+
+    // Fallback to account's exchange ID
+    const exchangeId = account?.exchangeId?.toLowerCase() || 'binance';
     const tvExchange = EXCHANGE_TO_TRADINGVIEW_MAP[exchangeId] || 'BINANCE';
 
     // Log for debugging
     console.log(
-      `Mapping exchange ${exchangeId} to TradingView symbol ${tvExchange}`,
+      `Falling back to account's exchange ID ${exchangeId} for TradingView symbol: ${tvExchange}:${pair.baseAsset}${pair.quoteAsset}`,
     );
 
     // Return the formatted symbol

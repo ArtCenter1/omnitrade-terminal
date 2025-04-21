@@ -79,17 +79,21 @@ export function TradingPairSelector({
 
   // Fetch trading pairs and update both original and filtered pairs
   const fetchAndUpdatePairs = useCallback(async () => {
+    // Get the exchange ID from the selected account
+    const exchangeId = selectedAccount?.exchangeId?.toLowerCase() || 'binance';
+    const exchangeName = selectedAccount?.exchange || 'binance';
+
     console.log(
-      'Fetching trading pairs for',
-      selectedAccount?.exchange || 'binance',
-      'with quote asset',
-      activeQuoteAsset,
+      `Fetching trading pairs for ${exchangeName} (ID: ${exchangeId}) with quote asset ${activeQuoteAsset}`,
     );
     setIsLoading(true);
     try {
-      const exchangeId = selectedAccount?.exchange || 'binance';
+      // Pass the exchange ID to get trading pairs
       const backendPairs = await getTradingPairs(exchangeId);
-      console.log('Received trading pairs from backend:', backendPairs);
+      console.log(
+        `Received ${backendPairs.length} trading pairs from backend for ${exchangeId}:`,
+        backendPairs,
+      );
 
       // Filter pairs by the active quote asset
       const filteredByQuote = backendPairs.filter(
@@ -110,6 +114,7 @@ export function TradingPairSelector({
             baseAsset: 'BTC',
             quoteAsset: activeQuoteAsset,
             exchangeId,
+            exchange: exchangeName, // Add exchange name
             priceDecimals: 2,
             quantityDecimals: 8,
             price: '84316.58',
@@ -122,6 +127,7 @@ export function TradingPairSelector({
             baseAsset: 'ETH',
             quoteAsset: activeQuoteAsset,
             exchangeId,
+            exchange: exchangeName, // Add exchange name
             priceDecimals: 2,
             quantityDecimals: 8,
             price: '3452.78',
@@ -134,6 +140,7 @@ export function TradingPairSelector({
             baseAsset: 'SOL',
             quoteAsset: activeQuoteAsset,
             exchangeId,
+            exchange: exchangeName, // Add exchange name
             priceDecimals: 2,
             quantityDecimals: 8,
             price: '176.42',
@@ -170,7 +177,8 @@ export function TradingPairSelector({
           change24h: pair.change24h || '+0.00%',
           volume24h: pair.volume24h || '0',
           isFavorite: false,
-          exchangeId: pair.exchangeId,
+          exchangeId: pair.exchangeId || exchangeId,
+          exchange: pair.exchange || exchangeName,
           priceDecimals: pair.priceDecimals,
           quantityDecimals: pair.quantityDecimals,
         }));
@@ -203,7 +211,8 @@ export function TradingPairSelector({
           change24h: '+0.92%',
           volume24h: '1.62b',
           isFavorite: true,
-          exchangeId: selectedAccount?.exchange || 'binance',
+          exchangeId: exchangeId,
+          exchange: exchangeName,
           priceDecimals: 2,
           quantityDecimals: 8,
         },
@@ -215,7 +224,8 @@ export function TradingPairSelector({
           change24h: '+1.08%',
           volume24h: '963.40m',
           isFavorite: true,
-          exchangeId: selectedAccount?.exchange || 'binance',
+          exchangeId: exchangeId,
+          exchange: exchangeName,
           priceDecimals: 2,
           quantityDecimals: 8,
         },

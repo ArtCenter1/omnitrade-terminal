@@ -34,35 +34,58 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
 
   // Function to fetch orderbook data with debouncing
   const fetchOrderbook = useCallback(async () => {
-    // Skip if we're already loading
-    if (isLoading) return;
+    // Set a timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      console.warn('Orderbook fetch timeout - forcing fallback to mock data');
+      const mockData = getMockOrderbookData(symbol);
+      setOrderbook(mockData.orderbook);
+      setIsLoading(false);
+      setLastUpdated(new Date());
+    }, 5000); // 5 second timeout
 
     try {
       setIsLoading(true);
       setIsError(false);
+      console.log(`Fetching orderbook for ${symbol} on ${exchangeName}`);
 
       // Check feature flags to determine data source
       if (useMockData || !useRealMarketData) {
         // Use mock data
+        console.log('Using mock orderbook data due to feature flags');
         const mockData = getMockOrderbookData(symbol);
         setOrderbook(mockData.orderbook);
-        console.log('Using mock orderbook data for', symbol);
+        console.log('Mock orderbook data loaded for', symbol);
       } else {
         // Use real data from CoinGecko
         try {
+          console.log(
+            `Attempting to fetch real orderbook data from CoinGecko for ${symbol}`,
+          );
           const realOrderbook = await enhancedCoinGeckoService.getOrderbook(
             symbol,
             exchangeName.toLowerCase(),
             10,
           );
-          setOrderbook(realOrderbook);
-          console.log('Using real orderbook data for', symbol);
+
+          // Check if we got valid data
+          if (
+            realOrderbook &&
+            realOrderbook.bids &&
+            realOrderbook.asks &&
+            realOrderbook.bids.length > 0 &&
+            realOrderbook.asks.length > 0
+          ) {
+            setOrderbook(realOrderbook);
+            console.log('Successfully loaded real orderbook data for', symbol);
+          } else {
+            throw new Error('Received empty or invalid orderbook data');
+          }
         } catch (apiError) {
           console.error('Error fetching real orderbook data:', apiError);
           // Fallback to mock data if real data fails
           const mockData = getMockOrderbookData(symbol);
           setOrderbook(mockData.orderbook);
-          console.log('Falling back to mock orderbook data for', symbol);
+          console.log('Falling back to mock orderbook data due to API error');
         }
       }
 
@@ -72,6 +95,7 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
       setIsError(true);
 
       // Create a simple fallback orderbook with some basic data
+      console.log('Using emergency fallback orderbook data');
       const fallbackOrderbook: Orderbook = {
         bids: [
           ['40000.00', '0.50000000'],
@@ -87,9 +111,10 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
 
       setOrderbook(fallbackOrderbook);
     } finally {
+      clearTimeout(timeoutId); // Clear the timeout
       setIsLoading(false);
     }
-  }, [symbol, isLoading, useMockData, useRealMarketData, exchangeName]);
+  }, [symbol, useMockData, useRealMarketData, exchangeName]);
 
   // Fetch orderbook data on mount and when dependencies change
   useEffect(() => {
@@ -98,16 +123,16 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
 
     // Set up interval for refreshing data
     const intervalId = setInterval(() => {
-      if (!isLoading) {
-        fetchOrderbook();
-      }
+      // Always try to fetch, even if we think we're loading
+      // This prevents getting stuck in a loading state
+      fetchOrderbook();
     }, refreshInterval);
 
     // Clean up interval on unmount
     return () => {
       clearInterval(intervalId);
     };
-  }, [fetchOrderbook, refreshInterval, isLoading]);
+  }, [fetchOrderbook, refreshInterval]);
 
   // Manual refresh handler
   const handleRefresh = () => {
@@ -195,10 +220,23 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
     <div className="h-screen flex flex-col">
       {/* Order Book Header */}
       <div className="p-3 border-b border-gray-800 flex justify-between items-center">
-        <h3 className="text-white font-medium">
-          Order Book{' '}
-          <span className="text-xs text-gray-400">({exchangeName})</span>
-        </h3>
+        <div>
+          <h3 className="text-white font-medium">
+            Order Book{' '}
+            <span className="text-xs text-gray-400">({exchangeName})</span>
+          </h3>
+          {/* Data source indicator */}
+          <div className="flex items-center mt-1">
+            <div
+              className={`w-2 h-2 rounded-full mr-1 ${useMockData || !useRealMarketData ? 'bg-yellow-500' : 'bg-crypto-green'}`}
+            />
+            <span className="text-xs text-gray-400">
+              {useMockData || !useRealMarketData
+                ? 'Using mock data'
+                : 'Using real data'}
+            </span>
+          </div>
+        </div>
         <div className="flex items-center space-x-2">
           <span className="text-xs text-gray-400">
             {lastUpdated.toLocaleTimeString()}
@@ -325,11 +363,22 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
       {/* Recent Trades Section */}
       <div className="p-2 border-t border-gray-800 h-[35%] overflow-hidden flex flex-col">
         <div className="flex justify-between items-center mb-2">
-          <h3 className="text-white font-medium">Recent Trades</h3>
+          <div>
+            <h3 className="text-white font-medium">Recent Trades</h3>
+            {/* Data source indicator */}
+            <div className="flex items-center mt-1">
+              <div
+                className={`w-2 h-2 rounded-full mr-1 ${useMockData || !useRealMarketData ? 'bg-yellow-500' : 'bg-crypto-green'}`}
+              />
+              <span className="text-xs text-gray-400">
+                {useMockData || !useRealMarketData
+                  ? 'Using mock data'
+                  : 'Using real data'}
+              </span>
+            </div>
+          </div>
           <div className="text-xs text-gray-400">
-            {useMockData && !useRealMarketData
-              ? 'Using mock data'
-              : 'Using real data'}
+            Last updated: {lastUpdated.toLocaleTimeString()}
           </div>
         </div>
 
@@ -345,7 +394,10 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
             const price = parseFloat(orderbook.bids[0]?.[0] || '0');
 
             // Use slightly different logic for real vs mock data
-            let quantity, priceWithVariation, timeString, isBuy;
+            let quantity: string = '0';
+            let priceWithVariation: string = '0';
+            let timeString: string = '';
+            let isBuy: boolean = false;
 
             if (useMockData && !useRealMarketData) {
               // Generate completely random data for mock mode
@@ -384,9 +436,9 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
                 orderbook.asks[Math.min(i, orderbook.asks.length - 1)]?.[1] ||
                   '0.001',
               );
-              quantity =
+              const calculatedQty =
                 (isBuy ? bidQty : askQty) * (0.1 + Math.random() * 0.5);
-              quantity = quantity.toFixed(8);
+              quantity = calculatedQty.toFixed(8);
 
               // Generate a realistic timestamp
               const now = new Date();

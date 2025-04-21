@@ -4,6 +4,7 @@ export interface TradingPair {
   baseAsset: string;
   quoteAsset: string;
   exchangeId: string;
+  exchange?: string; // Human-readable exchange name
   priceDecimals: number;
   quantityDecimals: number;
   minQuantity?: number;

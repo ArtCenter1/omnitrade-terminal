@@ -112,37 +112,44 @@ export const getTradingPairs = async (
 ): Promise<TradingPair[]> => {
   try {
     // Get feature flags
-    const featureFlags = typeof window !== 'undefined' ? 
-      JSON.parse(localStorage.getItem('omnitrade_feature_flags') || '{}') : {};
-    
-    const useMockData = featureFlags.useMockData !== undefined ? 
-      featureFlags.useMockData : true;
-    
-    const useRealMarketData = featureFlags.useRealMarketData !== undefined ? 
-      featureFlags.useRealMarketData : false;
+    const featureFlags =
+      typeof window !== 'undefined'
+        ? JSON.parse(localStorage.getItem('omnitrade_feature_flags') || '{}')
+        : {};
+
+    const useMockData =
+      featureFlags.useMockData !== undefined ? featureFlags.useMockData : true;
+
+    const useRealMarketData =
+      featureFlags.useRealMarketData !== undefined
+        ? featureFlags.useRealMarketData
+        : false;
 
     // If mock data is enabled and real market data is disabled, use mock data directly
     if (useMockData && !useRealMarketData) {
-      console.log(`Using mock trading pairs data for ${exchangeId} as configured by feature flags`);
+      console.log(
+        `Using mock trading pairs data for ${exchangeId} as configured by feature flags`,
+      );
       return generateMockTradingPairs(exchangeId.toLowerCase());
     }
 
     // Check cache first
     if (tradingPairsCache.has(exchangeId)) {
       const cachedPairs = tradingPairsCache.get(exchangeId) || [];
-      
+
       // If quoteAsset is specified, filter the cached pairs
       if (quoteAsset) {
-        return cachedPairs.filter(pair => pair.quoteAsset === quoteAsset);
+        return cachedPairs.filter((pair) => pair.quoteAsset === quoteAsset);
       }
-      
+
       return cachedPairs;
     }
 
     // Try to get real data from CoinGecko
     try {
       console.log(`Fetching trading pairs from CoinGecko for ${exchangeId}`);
-      const coinGeckoPairs = await enhancedCoinGeckoService.getTradingPairs(exchangeId);
+      const coinGeckoPairs =
+        await enhancedCoinGeckoService.getTradingPairs(exchangeId);
 
       if (coinGeckoPairs.length > 0) {
         console.log(
@@ -150,12 +157,14 @@ export const getTradingPairs = async (
         );
         // Update cache
         tradingPairsCache.set(exchangeId, coinGeckoPairs);
-        
+
         // If quoteAsset is specified, filter the pairs
         if (quoteAsset) {
-          return coinGeckoPairs.filter(pair => pair.quoteAsset === quoteAsset);
+          return coinGeckoPairs.filter(
+            (pair) => pair.quoteAsset === quoteAsset,
+          );
         }
-        
+
         return coinGeckoPairs;
       }
     } catch (coinGeckoError) {
@@ -175,9 +184,9 @@ export const getTradingPairs = async (
 
       // If quoteAsset is specified, filter the pairs
       if (quoteAsset) {
-        return pairs.filter(pair => pair.quoteAsset === quoteAsset);
+        return pairs.filter((pair) => pair.quoteAsset === quoteAsset);
       }
-      
+
       return pairs;
     } catch (apiError) {
       // Log detailed error information
@@ -199,22 +208,22 @@ export const getTradingPairs = async (
     // Fallback to mock data if both CoinGecko and API calls fail
     console.log(`Using mock trading pairs data as fallback for ${exchangeId}`);
     const mockPairs = generateMockTradingPairs(exchangeId.toLowerCase());
-    
+
     // If quoteAsset is specified, filter the mock pairs
     if (quoteAsset) {
-      return mockPairs.filter(pair => pair.quoteAsset === quoteAsset);
+      return mockPairs.filter((pair) => pair.quoteAsset === quoteAsset);
     }
-    
+
     return mockPairs;
   } catch (error) {
     console.error('Unexpected error in getTradingPairs:', error);
     const mockPairs = generateMockTradingPairs(exchangeId.toLowerCase());
-    
+
     // If quoteAsset is specified, filter the mock pairs
     if (quoteAsset) {
-      return mockPairs.filter(pair => pair.quoteAsset === quoteAsset);
+      return mockPairs.filter((pair) => pair.quoteAsset === quoteAsset);
     }
-    
+
     return mockPairs;
   }
 };
@@ -229,31 +238,37 @@ export const getTradingPair = async (
 ): Promise<TradingPair | null> => {
   try {
     // Get feature flags
-    const featureFlags = typeof window !== 'undefined' ? 
-      JSON.parse(localStorage.getItem('omnitrade_feature_flags') || '{}') : {};
-    
-    const useMockData = featureFlags.useMockData !== undefined ? 
-      featureFlags.useMockData : true;
-    
-    const useRealMarketData = featureFlags.useRealMarketData !== undefined ? 
-      featureFlags.useRealMarketData : false;
+    const featureFlags =
+      typeof window !== 'undefined'
+        ? JSON.parse(localStorage.getItem('omnitrade_feature_flags') || '{}')
+        : {};
+
+    const useMockData =
+      featureFlags.useMockData !== undefined ? featureFlags.useMockData : true;
+
+    const useRealMarketData =
+      featureFlags.useRealMarketData !== undefined
+        ? featureFlags.useRealMarketData
+        : false;
 
     // If mock data is enabled and real market data is disabled, use mock data directly
     if (useMockData && !useRealMarketData) {
-      console.log(`Using mock trading pair data for ${symbol} on ${exchangeId} as configured by feature flags`);
+      console.log(
+        `Using mock trading pair data for ${symbol} on ${exchangeId} as configured by feature flags`,
+      );
       const mockPairs = generateMockTradingPairs(exchangeId.toLowerCase());
       const mockPair = mockPairs.find((pair) => pair.symbol === symbol);
-      
+
       if (mockPair) {
         return mockPair;
       }
-      
+
       // If not found in mock data, try to create it
       if (symbol.includes('/')) {
         const [baseAsset, quoteAsset] = symbol.split('/');
         return createMockTradingPair(baseAsset, quoteAsset, exchangeId);
       }
-      
+
       return null;
     }
 
@@ -282,7 +297,10 @@ export const getTradingPair = async (
       if (symbol.includes('/')) {
         const [baseAsset, quoteAsset] = symbol.split('/');
         try {
-          const price = await enhancedCoinGeckoService.getCurrentPrice(baseAsset, quoteAsset);
+          const price = await enhancedCoinGeckoService.getCurrentPrice(
+            baseAsset,
+            quoteAsset,
+          );
           if (price > 0) {
             // Create a trading pair with real price data
             return {
@@ -362,18 +380,24 @@ export const getAllTradingPairs = async (): Promise<
 > => {
   try {
     // Get feature flags
-    const featureFlags = typeof window !== 'undefined' ? 
-      JSON.parse(localStorage.getItem('omnitrade_feature_flags') || '{}') : {};
-    
-    const useMockData = featureFlags.useMockData !== undefined ? 
-      featureFlags.useMockData : true;
-    
-    const useRealMarketData = featureFlags.useRealMarketData !== undefined ? 
-      featureFlags.useRealMarketData : false;
+    const featureFlags =
+      typeof window !== 'undefined'
+        ? JSON.parse(localStorage.getItem('omnitrade_feature_flags') || '{}')
+        : {};
+
+    const useMockData =
+      featureFlags.useMockData !== undefined ? featureFlags.useMockData : true;
+
+    const useRealMarketData =
+      featureFlags.useRealMarketData !== undefined
+        ? featureFlags.useRealMarketData
+        : false;
 
     // If mock data is enabled and real market data is disabled, use mock data directly
     if (useMockData && !useRealMarketData) {
-      console.log('Using mock trading pairs data for all exchanges as configured by feature flags');
+      console.log(
+        'Using mock trading pairs data for all exchanges as configured by feature flags',
+      );
       return {
         binance: generateMockTradingPairs('binance'),
         coinbase: generateMockTradingPairs('coinbase'),
@@ -418,7 +442,7 @@ export const getAllTradingPairs = async (): Promise<
     return mockData;
   } catch (error) {
     console.error('Unexpected error in getAllTradingPairs:', error);
-    
+
     // Fallback to mock data
     return {
       binance: generateMockTradingPairs('binance'),
@@ -450,7 +474,7 @@ export const toggleFavoritePair = async (
     const pair = await getTradingPair(exchangeId, symbol);
     if (pair) {
       pair.isFavorite = !pair.isFavorite;
-      
+
       // Update cache
       if (cachedPairs) {
         const index = cachedPairs.findIndex((p) => p.symbol === symbol);
@@ -462,7 +486,7 @@ export const toggleFavoritePair = async (
       } else {
         tradingPairsCache.set(exchangeId, [pair]);
       }
-      
+
       return pair.isFavorite;
     }
 
@@ -481,15 +505,28 @@ function createMockTradingPair(
   quoteAsset: string,
   exchangeId: string,
 ): TradingPair {
+  // Get a human-readable exchange name
+  const exchangeMap: Record<string, string> = {
+    binance: 'Binance',
+    coinbase: 'Coinbase',
+    kraken: 'Kraken',
+    kucoin: 'KuCoin',
+    bybit: 'Bybit',
+    okx: 'OKX',
+    sandbox: 'Sandbox',
+  };
+
+  const exchangeName = exchangeMap[exchangeId.toLowerCase()] || exchangeId;
+
   return {
     symbol: `${baseAsset}/${quoteAsset}`,
     baseAsset,
     quoteAsset,
     exchangeId,
+    exchange: exchangeName,
     priceDecimals: 2,
     quantityDecimals: 8,
-    price:
-      baseAsset === 'BTC' ? '84316.58' : (Math.random() * 1000).toFixed(2),
+    price: baseAsset === 'BTC' ? '84316.58' : (Math.random() * 1000).toFixed(2),
     change24h: getRandomChange(),
     volume24h: (Math.random() * 100).toFixed(1) + 'm',
     isFavorite: false,
@@ -501,6 +538,19 @@ function createMockTradingPair(
  */
 export function generateMockTradingPairs(exchangeId: string): TradingPair[] {
   console.log(`Generating mock trading pairs for ${exchangeId}`);
+
+  // Get a human-readable exchange name
+  const exchangeMap: Record<string, string> = {
+    binance: 'Binance',
+    coinbase: 'Coinbase',
+    kraken: 'Kraken',
+    kucoin: 'KuCoin',
+    bybit: 'Bybit',
+    okx: 'OKX',
+    sandbox: 'Sandbox',
+  };
+
+  const exchangeName = exchangeMap[exchangeId.toLowerCase()] || exchangeId;
 
   // Common base assets
   const baseAssets = [
@@ -559,6 +609,7 @@ export function generateMockTradingPairs(exchangeId: string): TradingPair[] {
         baseAsset,
         quoteAsset,
         exchangeId,
+        exchange: exchangeName,
         priceDecimals: 2,
         quantityDecimals: 8,
         price,
@@ -620,14 +671,14 @@ export function generateMockTradingPairs(exchangeId: string): TradingPair[] {
 
       // Generate random volume
       const volume24h =
-        (Math.random() * 100).toFixed(1) +
-        (Math.random() > 0.5 ? 'm' : 'k');
+        (Math.random() * 100).toFixed(1) + (Math.random() > 0.5 ? 'm' : 'k');
 
       pairs.push({
         symbol: `${baseAsset}/${quoteAsset}`,
         baseAsset,
         quoteAsset,
         exchangeId,
+        exchange: exchangeName,
         priceDecimals: 2,
         quantityDecimals: 8,
         price,
