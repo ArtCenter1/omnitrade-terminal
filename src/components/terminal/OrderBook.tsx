@@ -32,8 +32,11 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [refreshInterval, setRefreshInterval] = useState<number>(10000); // 10 seconds
 
-  // Function to fetch orderbook data
+  // Function to fetch orderbook data with debouncing
   const fetchOrderbook = useCallback(async () => {
+    // Skip if we're already loading
+    if (isLoading) return;
+
     try {
       setIsLoading(true);
       setIsError(false);
@@ -43,40 +46,88 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
         const mockData = getMockOrderbookData(symbol);
         setOrderbook(mockData.orderbook);
       } else {
-        // Use real data from CoinGecko
-        const realOrderbook = await enhancedCoinGeckoService.getOrderbook(
-          symbol,
-          exchangeName.toLowerCase(),
-          10, // depth
-        );
-        setOrderbook(realOrderbook);
+        // Use real data from CoinGecko with enhanced stability
+        try {
+          const realOrderbook = await enhancedCoinGeckoService.getOrderbook(
+            symbol,
+            exchangeName.toLowerCase(),
+            10, // depth
+          );
+
+          // Only update if we have valid data
+          if (
+            realOrderbook &&
+            realOrderbook.bids &&
+            realOrderbook.asks &&
+            realOrderbook.bids.length > 0 &&
+            realOrderbook.asks.length > 0
+          ) {
+            setOrderbook(realOrderbook);
+          } else {
+            console.warn('Received empty or invalid orderbook data');
+            // Don't update the orderbook if we received invalid data
+          }
+        } catch (apiError) {
+          console.error('Error fetching from CoinGecko API:', apiError);
+          // Don't set error state here, we'll try the fallback
+
+          // If we already have valid orderbook data, keep using it
+          if (!(orderbook.bids?.length > 0 && orderbook.asks?.length > 0)) {
+            const mockData = getMockOrderbookData(symbol);
+            setOrderbook(mockData.orderbook);
+          }
+        }
       }
 
       setLastUpdated(new Date());
     } catch (error) {
-      console.error('Error fetching orderbook:', error);
+      console.error('Error in fetchOrderbook:', error);
       setIsError(true);
 
-      // Fallback to mock data if real data fails
-      if (!useMockData || useRealMarketData) {
+      // Fallback to mock data if real data fails and we don't have valid data
+      if (
+        (!useMockData || useRealMarketData) &&
+        !(orderbook.bids?.length > 0 && orderbook.asks?.length > 0)
+      ) {
         const mockData = getMockOrderbookData(symbol);
         setOrderbook(mockData.orderbook);
       }
     } finally {
       setIsLoading(false);
     }
-  }, [symbol, exchangeName, useMockData, useRealMarketData]);
+  }, [
+    symbol,
+    exchangeName,
+    useMockData,
+    useRealMarketData,
+    isLoading,
+    orderbook,
+  ]);
 
   // Fetch orderbook data on mount and when dependencies change
   useEffect(() => {
-    fetchOrderbook();
+    // Use a timeout to prevent immediate re-fetching when dependencies change
+    const timeoutId = setTimeout(() => {
+      fetchOrderbook();
+    }, 300); // 300ms debounce
 
-    // Set up interval to refresh data
-    const intervalId = setInterval(fetchOrderbook, refreshInterval);
+    // Set up interval for refreshing data with dynamic interval
+    const intervalId = setInterval(
+      () => {
+        // Only fetch if we're not already loading
+        if (!isLoading) {
+          fetchOrderbook();
+        }
+      },
+      useMockData ? refreshInterval : Math.max(refreshInterval, 5000),
+    ); // Minimum 5 seconds for real data
 
-    // Clean up interval on unmount
-    return () => clearInterval(intervalId);
-  }, [fetchOrderbook, refreshInterval]);
+    // Clean up interval and timeout on unmount or when dependencies change
+    return () => {
+      clearInterval(intervalId);
+      clearTimeout(timeoutId);
+    };
+  }, [fetchOrderbook, refreshInterval, useMockData, isLoading]);
 
   // Manual refresh handler
   const handleRefresh = () => {

@@ -63,14 +63,27 @@ export function generateMockOrderbook(
 
   // Generate 20 bid prices (slightly below base price)
   for (let i = 0; i < 20; i++) {
-    const price = (basePrice - i * 5 - Math.random() * 5).toFixed(2);
+    // Calculate a percentage decrease instead of a fixed amount
+    // This ensures prices stay positive for all assets
+    const percentDecrease = (i + 1) * 0.01; // 1% decrease per level
+    const randomVariation = Math.random() * 0.005; // 0-0.5% random variation
+    const price = Math.max(
+      0.01,
+      basePrice * (1 - percentDecrease - randomVariation),
+    ).toFixed(2);
     const quantity = randomQuantity();
     bids.push([price, quantity]);
   }
 
   // Generate 20 ask prices (slightly above base price)
   for (let i = 0; i < 20; i++) {
-    const price = (basePrice + i * 5 + Math.random() * 5).toFixed(2);
+    // Calculate a percentage increase instead of a fixed amount
+    // This ensures consistent scaling for all assets
+    const percentIncrease = (i + 1) * 0.01; // 1% increase per level
+    const randomVariation = Math.random() * 0.005; // 0-0.5% random variation
+    const price = (basePrice * (1 + percentIncrease + randomVariation)).toFixed(
+      2,
+    );
     const quantity = randomQuantity();
     asks.push([price, quantity]);
   }

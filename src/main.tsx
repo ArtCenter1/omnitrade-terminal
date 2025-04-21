@@ -32,6 +32,7 @@ const queryClient = new QueryClient({
 import { BrowserRouter } from 'react-router-dom';
 
 // Import mock API setup for development
+import { setupMockApis } from './mocks/mockSetup';
 import { setupMockAdminApi } from './mocks/mockAdminApi';
 import { setupMockFetch } from './mocks/mockFetch';
 import { setupApiMiddleware } from './mocks/apiMiddleware';
@@ -50,6 +51,9 @@ if (import.meta.env.DEV) {
   // Then set up the specific mock implementations
   setupMockFetch();
   setupMockAdminApi();
+
+  // Initialize the MSW worker with all handlers
+  setupMockApis();
 
   console.log('Mock APIs enabled for development');
 

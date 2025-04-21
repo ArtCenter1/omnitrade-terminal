@@ -154,15 +154,8 @@ export const handlers = [
   }),
 ];
 
-// Create the worker
-export const worker = setupWorker(...handlers);
-
-// Initialize the mock API
+// Export only the handlers
+// The worker is now created in mockSetup.ts
 export function setupMockExchangeApi() {
-  if (typeof window !== 'undefined') {
-    worker.start({
-      onUnhandledRequest: 'bypass', // Don't warn about unhandled requests
-    });
-    console.log('Mock Exchange API initialized');
-  }
+  console.log('Mock Exchange API handlers registered');
 }

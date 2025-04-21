@@ -128,5 +128,10 @@
   },
   "prisma": {
     "seed": "node backend/prisma/seed.js"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
   }
 }
