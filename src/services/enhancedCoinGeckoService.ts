@@ -1,6 +1,7 @@
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { TradingPair } from '@/types/trading';
-import { useFeatureFlags } from '@/config/featureFlags';
+import { Orderbook } from '@/types/marketData';
+
 import { getCoinGeckoApiKey } from '@/utils/env';
 
 // Define the base URLs for CoinGecko APIs
@@ -80,11 +81,7 @@ export interface CoinGeckoTickerResponse {
   tickers: CoinGeckoTicker[];
 }
 
-// Interface for our orderbook format
-export interface Orderbook {
-  bids: [string, string][]; // [price, quantity]
-  asks: [string, string][]; // [price, quantity]
-}
+// Using Orderbook interface from marketData.ts
 
 // Cache for data to avoid excessive API calls
 const cache = {

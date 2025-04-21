@@ -1,5 +1,6 @@
 import { Loader2, RefreshCw } from 'lucide-react';
 import { TradingPair } from '@/types/trading';
+import { Orderbook } from '@/types/marketData';
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import { usePrice } from '@/contexts/PriceContext';
 import { useFeatureFlags } from '@/config/featureFlags';
@@ -25,8 +26,7 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
   const quoteAsset = selectedPair?.quoteAsset || 'USDT';
 
   // State for orderbook data
-  const [orderbook, setOrderbook] =
-    useState<enhancedCoinGeckoService.Orderbook>({ bids: [], asks: [] });
+  const [orderbook, setOrderbook] = useState<Orderbook>({ bids: [], asks: [] });
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isError, setIsError] = useState<boolean>(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -41,93 +41,54 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
       setIsLoading(true);
       setIsError(false);
 
-      // Use mock data if feature flag is enabled
-      if (useMockData && !useRealMarketData) {
-        const mockData = getMockOrderbookData(symbol);
-        setOrderbook(mockData.orderbook);
-      } else {
-        // Use real data from CoinGecko with enhanced stability
-        try {
-          const realOrderbook = await enhancedCoinGeckoService.getOrderbook(
-            symbol,
-            exchangeName.toLowerCase(),
-            10, // depth
-          );
-
-          // Only update if we have valid data
-          if (
-            realOrderbook &&
-            realOrderbook.bids &&
-            realOrderbook.asks &&
-            realOrderbook.bids.length > 0 &&
-            realOrderbook.asks.length > 0
-          ) {
-            setOrderbook(realOrderbook);
-          } else {
-            console.warn('Received empty or invalid orderbook data');
-            // Don't update the orderbook if we received invalid data
-          }
-        } catch (apiError) {
-          console.error('Error fetching from CoinGecko API:', apiError);
-          // Don't set error state here, we'll try the fallback
-
-          // If we already have valid orderbook data, keep using it
-          if (!(orderbook.bids?.length > 0 && orderbook.asks?.length > 0)) {
-            const mockData = getMockOrderbookData(symbol);
-            setOrderbook(mockData.orderbook);
-          }
-        }
-      }
+      // Always use mock data for now to avoid CSP issues
+      // This is a temporary fix until we can properly configure CSP
+      const mockData = getMockOrderbookData(symbol);
+      setOrderbook(mockData.orderbook);
+      console.log('Using mock orderbook data for', symbol);
 
       setLastUpdated(new Date());
     } catch (error) {
       console.error('Error in fetchOrderbook:', error);
       setIsError(true);
 
-      // Fallback to mock data if real data fails and we don't have valid data
-      if (
-        (!useMockData || useRealMarketData) &&
-        !(orderbook.bids?.length > 0 && orderbook.asks?.length > 0)
-      ) {
-        const mockData = getMockOrderbookData(symbol);
-        setOrderbook(mockData.orderbook);
-      }
+      // Create a simple fallback orderbook with some basic data
+      const fallbackOrderbook: Orderbook = {
+        bids: [
+          ['40000.00', '0.50000000'],
+          ['39900.00', '1.20000000'],
+          ['39800.00', '0.75000000'],
+        ],
+        asks: [
+          ['40100.00', '0.40000000'],
+          ['40200.00', '0.90000000'],
+          ['40300.00', '0.60000000'],
+        ],
+      };
+
+      setOrderbook(fallbackOrderbook);
     } finally {
       setIsLoading(false);
     }
-  }, [
-    symbol,
-    exchangeName,
-    useMockData,
-    useRealMarketData,
-    isLoading,
-    orderbook,
-  ]);
+  }, [symbol, isLoading]);
 
   // Fetch orderbook data on mount and when dependencies change
   useEffect(() => {
-    // Use a timeout to prevent immediate re-fetching when dependencies change
-    const timeoutId = setTimeout(() => {
-      fetchOrderbook();
-    }, 300); // 300ms debounce
+    // Fetch immediately on mount
+    fetchOrderbook();
 
-    // Set up interval for refreshing data with dynamic interval
-    const intervalId = setInterval(
-      () => {
-        // Only fetch if we're not already loading
-        if (!isLoading) {
-          fetchOrderbook();
-        }
-      },
-      useMockData ? refreshInterval : Math.max(refreshInterval, 5000),
-    ); // Minimum 5 seconds for real data
+    // Set up interval for refreshing data
+    const intervalId = setInterval(() => {
+      if (!isLoading) {
+        fetchOrderbook();
+      }
+    }, refreshInterval);
 
-    // Clean up interval and timeout on unmount or when dependencies change
+    // Clean up interval on unmount
     return () => {
       clearInterval(intervalId);
-      clearTimeout(timeoutId);
     };
-  }, [fetchOrderbook, refreshInterval, useMockData, isLoading]);
+  }, [fetchOrderbook, refreshInterval, isLoading]);
 
   // Manual refresh handler
   const handleRefresh = () => {
