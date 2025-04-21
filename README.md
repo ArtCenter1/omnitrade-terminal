@@ -33,7 +33,8 @@ A revolutionary, enterprise-grade AI-powered Crypto trading platform featuring c
 │   ├── App.tsx         # Main application component
 │   ├── main.tsx        # Application entry point
 │   └── index.css       # Global styles
-├── project_management/ # Planning, design docs, requirements
+├── docs/              # Essential documentation
+├── project_management/ # Legacy planning docs, requirements
 ├── .github/workflows/  # CI/CD configuration
 ├── package.json        # Project dependencies and scripts
 ├── tsconfig.json       # TypeScript configuration
@@ -90,6 +91,7 @@ See the `.env` file for detailed placeholders and instructions.
 The project uses two separate `.env` files for configuration:
 
 1. **Root `.env`**: Contains frontend-specific variables (prefixed with `VITE_`)
+
    - Authentication configuration (Firebase)
    - Frontend API endpoints
    - UI configuration
@@ -125,9 +127,28 @@ This separation helps maintain a clear distinction between frontend and backend 
 - `bun run preview`: Serves the production build locally for preview.
 - `bun test`: Runs the test suite using Vitest. (Note: Ensure tests are configured and written)
 
-## Project Management
+## Documentation
 
-Detailed planning, requirements, design documents, and architecture decisions are located in the `/project_management` directory.
+OmniTrade uses a hybrid documentation approach:
+
+### In-Project Documentation
+
+Essential documentation is available in the `/docs` directory:
+
+- [Environment Setup](./docs/ENVIRONMENT_SETUP.md) - Quick guide to setting up the development environment
+- [Coding Standards](./docs/CODING_STANDARDS.md) - Coding conventions and best practices
+- [Architecture Overview](./docs/ARCHITECTURE.md) - High-level system architecture
+- [UI Guidelines](./docs/UI_GUIDELINES.md) - Essential UI/UX guidelines and principles
+
+### Comprehensive Documentation
+
+For more detailed documentation, please visit our [GitHub Wiki](https://github.com/yourusername/omnitrade/wiki).
+
+### Project Management
+
+For roadmap, sprint planning, and task tracking, please visit our [GitHub Projects](https://github.com/yourusername/omnitrade/projects).
+
+Legacy planning documents and design decisions are located in the `/project_management` directory.
 
 ## Contributing
 
