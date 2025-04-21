@@ -7,6 +7,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import { placeOrder, CreateOrderDto } from '@/services/ordersService';
 import { getMockPortfolioData } from '@/mocks/mockPortfolio';
+import { usePrice } from '@/contexts/PriceContext';
 
 interface TradingTabsProps {
   selectedPair?: TradingPair;
@@ -18,13 +19,14 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
     'market',
   );
   const [side, setSide] = useState<'buy' | 'sell'>('buy');
-  const [amount, setAmount] = useState('');
+  const [amount, setAmount] = useState('0.001');
   const [price, setPrice] = useState('');
   const [total, setTotal] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { toast } = useToast();
   const { selectedAccount } = useSelectedAccount();
+  const { selectedPrice } = usePrice();
 
   // Use the selected pair or default to BTC/USDT
   const baseAsset = selectedPair?.baseAsset || 'BTC';
@@ -47,6 +49,29 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
       }
     }
   }, [selectedPair]);
+
+  // Update price when selectedPrice changes (from OrderBook clicks)
+  useEffect(() => {
+    if (selectedPrice && selectedPrice !== price) {
+      console.log(`Setting price to ${selectedPrice} from OrderBook click`);
+      setPrice(selectedPrice);
+
+      // If we have an amount, update the total as well
+      if (amount && !isNaN(parseFloat(amount))) {
+        const priceValue = parseFloat(selectedPrice);
+        const amountValue = parseFloat(amount);
+        if (!isNaN(priceValue) && !isNaN(amountValue)) {
+          const calculatedTotal = (amountValue * priceValue).toFixed(2);
+          setTotal(calculatedTotal);
+        }
+      }
+
+      // Automatically switch to limit order type when a price is selected
+      if (orderType === 'market') {
+        setOrderType('limit');
+      }
+    }
+  }, [selectedPrice]);
 
   // Update total when amount or price changes
   useEffect(() => {
@@ -80,6 +105,7 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
   }, [amount, price, orderType, selectedPair]);
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('Amount changed to:', e.target.value);
     setAmount(e.target.value);
   };
 
@@ -117,6 +143,7 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
   };
 
   const handlePercentageClick = (percentage: number) => {
+    console.log(`Percentage button clicked: ${percentage}%`);
     // Get the available balance for the current asset from the mock portfolio data
     let availableBalance = 0;
     let priceToUse = 0;
@@ -308,6 +335,7 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
   };
 
   const handlePlaceOrder = async () => {
+    console.log('TradingTabs handlePlaceOrder called');
     if (!selectedAccount) {
       toast({
         title: 'No exchange selected',
@@ -326,6 +354,12 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
       return;
     }
 
+    console.log(
+      'Amount value:',
+      amount,
+      'parseFloat result:',
+      parseFloat(amount),
+    );
     if (!amount || parseFloat(amount) <= 0) {
       toast({
         title: 'Invalid amount',
@@ -357,6 +391,15 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
 
       if (orderType === 'limit' || orderType === 'stop') {
         orderDto.price = parseFloat(price);
+      } else if (orderType === 'market') {
+        // For market orders, use the current pair price
+        if (selectedPair?.price) {
+          orderDto.price = parseFloat(selectedPair.price.replace(/,/g, ''));
+        } else {
+          // Default price if none is available
+          orderDto.price =
+            baseAsset === 'BTC' ? 60000 : baseAsset === 'ETH' ? 3000 : 10;
+        }
       }
 
       console.log('Placing order with data:', orderDto);
@@ -420,7 +463,7 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
           value={amount}
           onChange={handleAmountChange}
           className="bg-gray-900 border-gray-800 h-7 text-sm py-0"
-          placeholder="0.00"
+          placeholder="0.001"
         />
       </div>
 
@@ -494,7 +537,10 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
 
       <Button
         className={`w-full ${side === 'buy' ? 'bg-crypto-green hover:bg-crypto-green/90' : 'bg-crypto-red hover:bg-crypto-red/90'} h-8 py-0`}
-        onClick={handlePlaceOrder}
+        onClick={() => {
+          console.log('Buy/Sell button clicked');
+          handlePlaceOrder();
+        }}
         disabled={isSubmitting}
       >
         {isSubmitting

@@ -2,6 +2,7 @@ import { Loader2 } from 'lucide-react';
 import { getMockOrderbookData } from '@/mocks/mockOrderbook';
 import { TradingPair } from './TradingPairSelector';
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
+import { usePrice } from '@/contexts/PriceContext';
 
 interface OrderBookProps {
   selectedPair?: TradingPair;
@@ -11,6 +12,7 @@ interface OrderBookProps {
 export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
   // Get selected account for exchange-specific data
   const { selectedAccount } = useSelectedAccount();
+  const { setSelectedPrice } = usePrice();
   const exchangeName = selectedAccount?.exchange || 'Binance';
 
   // Use the selected pair or default to BTC/USDT
@@ -142,7 +144,11 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
                     <div className="text-white relative z-10">
                       {formatQuantity(ask[1])}
                     </div>
-                    <div className="text-crypto-red text-center relative z-10">
+                    <div
+                      className="text-crypto-red text-center relative z-10 cursor-pointer hover:text-crypto-red/80"
+                      onClick={() => setSelectedPrice(formatPrice(ask[0]))}
+                      title="Click to set price"
+                    >
                       {formatPrice(ask[0])}
                     </div>
                     <div className="text-white text-right relative z-10">
@@ -192,7 +198,11 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
                   <div className="text-white relative z-10">
                     {formatQuantity(bid[1])}
                   </div>
-                  <div className="text-crypto-green text-center relative z-10">
+                  <div
+                    className="text-crypto-green text-center relative z-10 cursor-pointer hover:text-crypto-green/80"
+                    onClick={() => setSelectedPrice(formatPrice(bid[0]))}
+                    title="Click to set price"
+                  >
                     {formatPrice(bid[0])}
                   </div>
                   <div className="text-white text-right relative z-10">

@@ -48,7 +48,7 @@ export function generateMockOrderbook(
         basePrice = 15 + Math.random() * 0.5;
         break;
       case 'XRP':
-        basePrice = 2.05 + Math.random() * 0.1;
+        basePrice = 0.48 + Math.random() * 0.05;
         break;
       case 'USDC':
         basePrice = 1;

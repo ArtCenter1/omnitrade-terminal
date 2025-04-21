@@ -23,6 +23,7 @@ export function TerminalTabs({
   selectedPair,
   refreshTrigger = 0,
 }: TerminalTabsProps = {}) {
+  console.log('TerminalTabs refreshTrigger:', refreshTrigger);
   const [activeTab, setActiveTab] = useState('Balances');
   const [showCurrentExchangeOnly, setShowCurrentExchangeOnly] = useState(true);
   const [showCurrentPairOnly, setShowCurrentPairOnly] = useState(false);
@@ -135,9 +136,19 @@ export function TerminalTabs({
     const hash = symbol
       .split('')
       .reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const random = Math.sin(hash) * 10;
-    const change = random.toFixed(2);
-    return parseFloat(change) >= 0 ? `+${change}%` : `${change}%`;
+
+    // Special handling for XRP to ensure positive values
+    if (symbol === 'XRP') {
+      // Generate a positive value between 0.1 and 5.0 for XRP
+      const random = Math.abs(Math.sin(hash)) * 4.9 + 0.1;
+      const change = random.toFixed(2);
+      return `+${change}%`;
+    } else {
+      // For other symbols, allow both positive and negative changes
+      const random = Math.sin(hash) * 10;
+      const change = random.toFixed(2);
+      return parseFloat(change) >= 0 ? `+${change}%` : `${change}%`;
+    }
   }
 
   // Helper function to generate chart data
@@ -146,11 +157,17 @@ export function TerminalTabs({
     const hash = symbol
       .split('')
       .reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const isPositive = Math.sin(hash) > 0;
+
+    // Special handling for XRP to ensure it always has positive values
+    let isPositive = Math.sin(hash) > 0;
+    if (symbol === 'XRP') {
+      isPositive = true;
+    }
 
     // Generate 7 data points
     return Array.from({ length: 7 }, (_, i) => {
-      const random = Math.sin(hash + i) * 5;
+      // Use absolute value to ensure positive values
+      const random = Math.abs(Math.sin(hash + i) * 5);
       return { value: 10 + random };
     });
   }

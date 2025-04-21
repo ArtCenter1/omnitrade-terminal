@@ -5,6 +5,12 @@ import { getRandomChange } from '@/lib/utils';
 // Import the shared API instance from lib/api
 import { api } from '@/lib/api';
 
+// Import CoinGecko service
+import {
+  getTradingPairsFromCoinGecko,
+  getCurrentPrice,
+} from './coinGeckoService';
+
 // Define API endpoints
 const API_ENDPOINTS = {
   ALL_TRADING_PAIRS: '/trading-pairs',
@@ -14,24 +20,8 @@ const API_ENDPOINTS = {
     `/trading-pairs/${exchangeId}/${symbol}`,
 };
 
-// Define the TradingPair interface
-export interface TradingPair {
-  symbol: string;
-  baseAsset: string;
-  quoteAsset: string;
-  exchangeId: string;
-  priceDecimals: number;
-  quantityDecimals: number;
-  minQuantity?: number;
-  maxQuantity?: number;
-  minPrice?: number;
-  maxPrice?: number;
-  minNotional?: number;
-  price?: string;
-  change24h?: string;
-  volume24h?: string;
-  isFavorite?: boolean;
-}
+// Import the TradingPair interface from shared types
+import { TradingPair } from '@/types/trading';
 
 // Cache for trading pairs
 const tradingPairsCache = new Map<string, TradingPair[]>();
@@ -125,31 +115,57 @@ export const getTradingPairs = async (
       return tradingPairsCache.get(exchangeId) || [];
     }
 
-    // Fetch from API
-    const response = await api.get<TradingPair[]>(
-      API_ENDPOINTS.EXCHANGE_TRADING_PAIRS(exchangeId),
-    );
-    const pairs = response.data;
+    try {
+      // First try to get real data from CoinGecko
+      console.log(`Fetching trading pairs from CoinGecko for ${exchangeId}`);
+      const coinGeckoPairs = await getTradingPairsFromCoinGecko(exchangeId);
 
-    // Update cache
-    tradingPairsCache.set(exchangeId, pairs);
-
-    return pairs;
-  } catch (error) {
-    // Log detailed error information
-    if (axios.isAxiosError(error)) {
-      console.error(`Error fetching trading pairs for ${exchangeId}:`, {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        url: error.config?.url,
-      });
-    } else {
-      console.error('Error fetching trading pairs:', error);
+      if (coinGeckoPairs.length > 0) {
+        console.log(
+          `Successfully fetched ${coinGeckoPairs.length} pairs from CoinGecko`,
+        );
+        // Update cache
+        tradingPairsCache.set(exchangeId, coinGeckoPairs);
+        return coinGeckoPairs;
+      }
+    } catch (coinGeckoError) {
+      console.error('Error fetching from CoinGecko:', coinGeckoError);
     }
 
-    // Fallback to mock data if API call fails
+    // If CoinGecko fails, try the backend API
+    try {
+      console.log(`Fetching trading pairs from backend API for ${exchangeId}`);
+      const response = await api.get<TradingPair[]>(
+        API_ENDPOINTS.EXCHANGE_TRADING_PAIRS(exchangeId),
+      );
+      const pairs = response.data;
+
+      // Update cache
+      tradingPairsCache.set(exchangeId, pairs);
+
+      return pairs;
+    } catch (apiError) {
+      // Log detailed error information
+      if (axios.isAxiosError(apiError)) {
+        console.error(
+          `Error fetching trading pairs from API for ${exchangeId}:`,
+          {
+            status: apiError.response?.status,
+            statusText: apiError.response?.statusText,
+            data: apiError.response?.data,
+            url: apiError.config?.url,
+          },
+        );
+      } else {
+        console.error('Error fetching trading pairs from API:', apiError);
+      }
+    }
+
+    // Fallback to mock data if both CoinGecko and API calls fail
     console.log(`Using mock trading pairs data as fallback for ${exchangeId}`);
+    return generateMockTradingPairs(exchangeId.toLowerCase());
+  } catch (error) {
+    console.error('Unexpected error in getTradingPairs:', error);
     return generateMockTradingPairs(exchangeId.toLowerCase());
   }
 };
@@ -169,25 +185,72 @@ export const getTradingPair = async (
       if (cachedPair) return cachedPair;
     }
 
-    // Fetch from API
-    const response = await api.get<TradingPair>(
-      API_ENDPOINTS.SPECIFIC_TRADING_PAIR(exchangeId, symbol),
-    );
-    return response.data;
-  } catch (error) {
-    // Log detailed error information
-    if (axios.isAxiosError(error)) {
-      console.error(
-        `Error fetching trading pair ${symbol} for ${exchangeId}:`,
-        {
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          data: error.response?.data,
-          url: error.config?.url,
-        },
+    // Try to get all pairs from CoinGecko first
+    try {
+      // This will populate the cache with CoinGecko data
+      await getTradingPairs(exchangeId);
+
+      // Check cache again after populating
+      const updatedCachedPairs = tradingPairsCache.get(exchangeId);
+      if (updatedCachedPairs) {
+        const cachedPair = updatedCachedPairs.find(
+          (pair) => pair.symbol === symbol,
+        );
+        if (cachedPair) return cachedPair;
+      }
+
+      // If we have the symbol in format 'BTC/USDT', try to get price directly from CoinGecko
+      if (symbol.includes('/')) {
+        const [baseAsset, quoteAsset] = symbol.split('/');
+        try {
+          const price = await getCurrentPrice(baseAsset, quoteAsset);
+          if (price > 0) {
+            // Create a trading pair with real price data
+            return {
+              symbol,
+              baseAsset,
+              quoteAsset,
+              exchangeId,
+              priceDecimals: 2,
+              quantityDecimals: 8,
+              price: price.toString(),
+              change24h: '+0.00%', // We don't have this data
+              volume24h: '0', // We don't have this data
+              isFavorite: false,
+            };
+          }
+        } catch (priceError) {
+          console.error(
+            `Error getting price for ${baseAsset}/${quoteAsset}:`,
+            priceError,
+          );
+        }
+      }
+    } catch (coinGeckoError) {
+      console.error('Error fetching from CoinGecko:', coinGeckoError);
+    }
+
+    // If CoinGecko fails, try the backend API
+    try {
+      const response = await api.get<TradingPair>(
+        API_ENDPOINTS.SPECIFIC_TRADING_PAIR(exchangeId, symbol),
       );
-    } else {
-      console.error('Error fetching trading pair:', error);
+      return response.data;
+    } catch (apiError) {
+      // Log detailed error information
+      if (axios.isAxiosError(apiError)) {
+        console.error(
+          `Error fetching trading pair ${symbol} for ${exchangeId}:`,
+          {
+            status: apiError.response?.status,
+            statusText: apiError.response?.statusText,
+            data: apiError.response?.data,
+            url: apiError.config?.url,
+          },
+        );
+      } else {
+        console.error('Error fetching trading pair from API:', apiError);
+      }
     }
 
     // Generate mock pairs and find the requested one
@@ -218,6 +281,9 @@ export const getTradingPair = async (
       };
     }
 
+    return null;
+  } catch (error) {
+    console.error('Unexpected error in getTradingPair:', error);
     return null;
   }
 };

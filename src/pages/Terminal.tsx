@@ -28,6 +28,7 @@ import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import { getTradingPair } from '@/services/tradingPairsService';
 import { ResizableSplitter } from '@/components/ui/resizable-splitter';
 import { TradingPair } from '@/components/terminal/TradingPairSelector';
+import { PriceProvider } from '@/contexts/PriceContext';
 
 export default function Terminal() {
   const location = useLocation();
@@ -163,70 +164,72 @@ export default function Terminal() {
           </div>
         }
       >
-        {/* Main Layout */}
-        <div className="flex h-screen overflow-hidden">
-          {/* Left Section - Trading Sidebar and Main Content */}
-          <div className="flex flex-col flex-1">
-            <ResizableSplitter
-              direction="horizontal"
-              initialSizes={[70, 30]}
-              minSizes={[30, 15]}
-              className="h-full"
-            >
-              {/* Top Section - Trading Sidebar and Chart */}
-              <div className="flex h-full">
-                <ErrorBoundary>
-                  <div className="w-[280px] border-r border-gray-800 h-full">
-                    <TradingSidebar
-                      selectedPair={selectedPair}
-                      onOrderPlaced={handleOrderPlaced}
-                    />
-                  </div>
-                </ErrorBoundary>
+        <PriceProvider>
+          {/* Main Layout */}
+          <div className="flex h-screen overflow-hidden">
+            {/* Left Section - Trading Sidebar and Main Content */}
+            <div className="flex flex-col flex-1">
+              <ResizableSplitter
+                direction="horizontal"
+                initialSizes={[70, 30]}
+                minSizes={[30, 15]}
+                className="h-full"
+              >
+                {/* Top Section - Trading Sidebar and Chart */}
+                <div className="flex h-full">
+                  <ErrorBoundary>
+                    <div className="w-[280px] border-r border-gray-800 h-full">
+                      <TradingSidebar
+                        selectedPair={selectedPair}
+                        onOrderPlaced={handleOrderPlaced}
+                      />
+                    </div>
+                  </ErrorBoundary>
 
-                {/* Chart Section */}
-                <div className="flex-1 h-full">
-                  <ErrorBoundary
-                    fallback={
-                      <div className="h-full flex items-center justify-center">
-                        <AlertTriangle className="w-10 h-10 text-yellow-500 mb-4" />
-                        <h3 className="text-lg font-medium mb-2 text-white">
-                          Chart unavailable
-                        </h3>
-                      </div>
-                    }
-                  >
-                    <Suspense
+                  {/* Chart Section */}
+                  <div className="flex-1 h-full">
+                    <ErrorBoundary
                       fallback={
-                        <div className="h-full bg-gray-900 animate-pulse"></div>
+                        <div className="h-full flex items-center justify-center">
+                          <AlertTriangle className="w-10 h-10 text-yellow-500 mb-4" />
+                          <h3 className="text-lg font-medium mb-2 text-white">
+                            Chart unavailable
+                          </h3>
+                        </div>
                       }
                     >
-                      <ChartSection
-                        selectedPair={selectedPair}
-                        onPairSelect={handlePairSelect}
-                      />
-                    </Suspense>
-                  </ErrorBoundary>
+                      <Suspense
+                        fallback={
+                          <div className="h-full bg-gray-900 animate-pulse"></div>
+                        }
+                      >
+                        <ChartSection
+                          selectedPair={selectedPair}
+                          onPairSelect={handlePairSelect}
+                        />
+                      </Suspense>
+                    </ErrorBoundary>
+                  </div>
                 </div>
-              </div>
 
-              {/* Bottom Section - Assets */}
-              <ErrorBoundary>
-                <TerminalTabs
-                  selectedPair={selectedPair}
-                  refreshTrigger={refreshTrigger}
-                />
-              </ErrorBoundary>
-            </ResizableSplitter>
-          </div>
-
-          {/* Right Order Book - Fixed Width */}
-          <ErrorBoundary>
-            <div className="w-[242px] border-l border-gray-800">
-              <OrderBook selectedPair={selectedPair} />
+                {/* Bottom Section - Assets */}
+                <ErrorBoundary>
+                  <TerminalTabs
+                    selectedPair={selectedPair}
+                    refreshTrigger={refreshTrigger}
+                  />
+                </ErrorBoundary>
+              </ResizableSplitter>
             </div>
-          </ErrorBoundary>
-        </div>
+
+            {/* Right Order Book - Fixed Width */}
+            <ErrorBoundary>
+              <div className="w-[242px] border-l border-gray-800">
+                <OrderBook selectedPair={selectedPair} />
+              </div>
+            </ErrorBoundary>
+          </div>
+        </PriceProvider>
       </ErrorBoundary>
     </div>
   );

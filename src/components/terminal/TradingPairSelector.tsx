@@ -16,20 +16,10 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import {
   getTradingPairs,
   subscribeToPriceUpdates,
-  TradingPair as BackendTradingPair,
 } from '../../services/tradingPairsService';
 
-// Define the trading pair interface
-export interface TradingPair {
-  symbol: string;
-  baseAsset: string;
-  quoteAsset: string;
-  price: string;
-  change24h: string;
-  volume24h: string;
-  isFavorite?: boolean;
-  exchangeId?: string;
-}
+// Import the TradingPair interface from shared types
+import { TradingPair } from '@/types/trading';
 
 interface TradingPairSelectorProps {
   onPairSelect: (pair: TradingPair) => void;
@@ -50,6 +40,8 @@ export function TradingPairSelector({
       change24h: '+0.92%',
       volume24h: '1.62b',
       isFavorite: true,
+      priceDecimals: 2,
+      quantityDecimals: 8,
     },
   );
   const [activeQuoteAsset, setActiveQuoteAsset] = useState('USDT');
@@ -179,6 +171,8 @@ export function TradingPairSelector({
           volume24h: pair.volume24h || '0',
           isFavorite: false,
           exchangeId: pair.exchangeId,
+          priceDecimals: pair.priceDecimals,
+          quantityDecimals: pair.quantityDecimals,
         }));
 
         console.log('Setting original and filtered pairs:', frontendPairs);
@@ -210,6 +204,8 @@ export function TradingPairSelector({
           volume24h: '1.62b',
           isFavorite: true,
           exchangeId: selectedAccount?.exchange || 'binance',
+          priceDecimals: 2,
+          quantityDecimals: 8,
         },
         {
           symbol: 'ETH/USDT',
@@ -220,6 +216,8 @@ export function TradingPairSelector({
           volume24h: '963.40m',
           isFavorite: true,
           exchangeId: selectedAccount?.exchange || 'binance',
+          priceDecimals: 2,
+          quantityDecimals: 8,
         },
       ];
       setFilteredPairs(defaultPairs);

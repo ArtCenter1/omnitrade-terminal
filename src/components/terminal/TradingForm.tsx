@@ -1,21 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { OrderTypeSelector } from './OrderTypeSelector';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { TradingPair } from './TradingPairSelector';
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
+import { useToast } from '@/components/ui/use-toast';
+import { placeOrder, CreateOrderDto } from '@/services/ordersService';
+import { usePrice } from '@/contexts/PriceContext';
 
 interface TradingFormProps {
   selectedPair?: TradingPair;
+  onOrderPlaced?: () => void;
 }
 
-export function TradingForm({ selectedPair }: TradingFormProps = {}) {
+export function TradingForm({
+  selectedPair,
+  onOrderPlaced,
+}: TradingFormProps = {}) {
   const { selectedAccount } = useSelectedAccount();
   const [orderType, setOrderType] = useState<'market' | 'limit' | 'stop'>(
     'market',
   );
   const [amount, setAmount] = useState<string>('0');
   const [total, setTotal] = useState<string>('0');
+  const [side, setSide] = useState<'buy' | 'sell'>('buy');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+  const { selectedPrice } = usePrice();
 
   // Use the selected pair or default to BTC/USDT
   const baseAsset = selectedPair?.baseAsset || 'BTC';
@@ -24,6 +35,28 @@ export function TradingForm({ selectedPair }: TradingFormProps = {}) {
   const handleOrderTypeChange = (type: 'market' | 'limit' | 'stop') => {
     setOrderType(type);
   };
+
+  // Update price when selectedPrice changes (from OrderBook clicks)
+  useEffect(() => {
+    if (selectedPrice) {
+      console.log(`Setting price to ${selectedPrice} from OrderBook click`);
+
+      // Automatically switch to limit order type when a price is selected
+      if (orderType === 'market') {
+        setOrderType('limit');
+      }
+
+      // If we have an amount, update the total as well
+      if (amount && amount !== '0') {
+        const priceValue = parseFloat(selectedPrice);
+        const amountValue = parseFloat(amount);
+        if (!isNaN(priceValue) && !isNaN(amountValue)) {
+          const calculatedTotal = (amountValue * priceValue).toFixed(2);
+          setTotal(calculatedTotal);
+        }
+      }
+    }
+  }, [selectedPrice]);
 
   const handlePercentageClick = (percentage: number) => {
     // Mock quote asset balance (what we're paying with)
@@ -45,30 +78,119 @@ export function TradingForm({ selectedPair }: TradingFormProps = {}) {
       ? parseFloat(selectedPair.price.replace(/,/g, ''))
       : 20000;
 
-    // For buy orders, use the quote asset (e.g., USDT) directly
     if (currentPrice > 0) {
-      // Calculate the percentage of the quote asset
-      const quoteAmount = (quoteBalance * percentage) / 100;
-      console.log(
-        `${percentage}% of ${quoteBalance} ${quoteAsset} = ${quoteAmount} ${quoteAsset}`,
-      );
+      if (side === 'buy') {
+        // For buy orders, use the quote asset (e.g., USDT) directly
+        // Calculate the percentage of the quote asset
+        const quoteAmount = (quoteBalance * percentage) / 100;
+        console.log(
+          `${percentage}% of ${quoteBalance} ${quoteAsset} = ${quoteAmount} ${quoteAsset}`,
+        );
 
-      // Convert to the equivalent base asset amount
-      const baseAmount = quoteAmount / currentPrice;
-      console.log(
-        `${quoteAmount} ${quoteAsset} = ${baseAmount} ${baseAsset} at price ${currentPrice}`,
-      );
+        // Convert to the equivalent base asset amount
+        const baseAmount = quoteAmount / currentPrice;
+        console.log(
+          `${quoteAmount} ${quoteAsset} = ${baseAmount} ${baseAsset} at price ${currentPrice}`,
+        );
 
-      // Set the amount to the calculated base asset amount
-      setAmount(baseAmount.toFixed(8));
+        // Set the amount to the calculated base asset amount
+        setAmount(baseAmount.toFixed(8));
 
-      // Set the total to the calculated quote asset amount
-      setTotal(quoteAmount.toFixed(2));
+        // Set the total to the calculated quote asset amount
+        setTotal(quoteAmount.toFixed(2));
+      } else {
+        // For sell orders, use the base asset (e.g., BTC) directly
+        // Calculate the percentage of the base asset
+        const baseAmount = (baseBalance * percentage) / 100;
+        console.log(
+          `${percentage}% of ${baseBalance} ${baseAsset} = ${baseAmount} ${baseAsset}`,
+        );
+
+        // Calculate the equivalent quote asset amount
+        const quoteAmount = baseAmount * currentPrice;
+        console.log(
+          `${baseAmount} ${baseAsset} = ${quoteAmount} ${quoteAsset} at price ${currentPrice}`,
+        );
+
+        // Set the amount to the calculated base asset amount
+        setAmount(baseAmount.toFixed(8));
+
+        // Set the total to the calculated quote asset amount
+        setTotal(quoteAmount.toFixed(2));
+      }
     } else {
       // If we don't have a valid price, use default values
       const baseAmount = (baseBalance * percentage) / 100;
       setAmount(baseAmount.toFixed(8));
       setTotal('0.00');
+    }
+  };
+
+  const handlePlaceOrder = async () => {
+    if (!selectedAccount) {
+      toast({
+        title: 'No exchange selected',
+        description: 'Please select an exchange account first.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!selectedPair) {
+      toast({
+        title: 'No trading pair selected',
+        description: 'Please select a trading pair first.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!amount || parseFloat(amount) <= 0) {
+      toast({
+        title: 'Invalid amount',
+        description: 'Please enter a valid amount.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const orderDto: CreateOrderDto = {
+        exchangeId: selectedAccount.exchange,
+        symbol: selectedPair.symbol,
+        side,
+        type: orderType,
+        quantity: parseFloat(amount),
+      };
+
+      console.log('Placing order with data:', orderDto);
+      const order = await placeOrder(orderDto);
+      console.log('Order placed successfully:', order);
+
+      toast({
+        title: 'Order placed successfully',
+        description: `${side.toUpperCase()} ${amount} ${baseAsset} at market price`,
+      });
+
+      // Reset form
+      setAmount('0');
+      setTotal('0');
+
+      // Notify parent component
+      if (onOrderPlaced) {
+        onOrderPlaced();
+      }
+    } catch (error) {
+      console.error('Error placing order:', error);
+      toast({
+        title: 'Failed to place order',
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
   return (
@@ -81,10 +203,16 @@ export function TradingForm({ selectedPair }: TradingFormProps = {}) {
       </div>
 
       <div className="flex space-x-2 mb-4">
-        <Button className="flex-1 bg-crypto-green hover:bg-crypto-green/90 text-white">
+        <Button
+          className={`flex-1 ${side === 'buy' ? 'bg-crypto-green' : 'bg-gray-800'} hover:bg-crypto-green/90 text-white`}
+          onClick={() => setSide('buy')}
+        >
           BUY {baseAsset}
         </Button>
-        <Button className="flex-1 bg-crypto-red hover:bg-crypto-red/90 text-white">
+        <Button
+          className={`flex-1 ${side === 'sell' ? 'bg-crypto-red' : 'bg-gray-800'} hover:bg-crypto-red/90 text-white`}
+          onClick={() => setSide('sell')}
+        >
           SELL {baseAsset}
         </Button>
       </div>
@@ -161,8 +289,14 @@ export function TradingForm({ selectedPair }: TradingFormProps = {}) {
         </div>
       </div>
 
-      <Button className="w-full bg-crypto-green hover:bg-crypto-green/90 text-white">
-        BUY {baseAsset}
+      <Button
+        className={`w-full ${side === 'buy' ? 'bg-crypto-green hover:bg-crypto-green/90' : 'bg-crypto-red hover:bg-crypto-red/90'} text-white`}
+        onClick={handlePlaceOrder}
+        disabled={isSubmitting}
+      >
+        {isSubmitting
+          ? 'Processing...'
+          : `${side === 'buy' ? 'BUY' : 'SELL'} ${baseAsset}`}
       </Button>
     </div>
   );

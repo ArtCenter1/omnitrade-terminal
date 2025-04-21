@@ -10,6 +10,10 @@ export function generate7DayChartData(
   symbol: string,
   isPositive: boolean = false,
 ): Array<{ value: number }> {
+  // Special handling for XRP to ensure it always has positive values
+  if (symbol === 'XRP') {
+    isPositive = true;
+  }
   // Use the symbol to generate a consistent random seed
   const seed = symbol
     .split('')
@@ -44,6 +48,11 @@ export function generate7DayChartData(
 
     // Ensure value stays positive and reasonable
     currentValue = Math.max(currentValue, startValue * 0.7);
+
+    // Extra safety for XRP to ensure it's always positive
+    if (symbol === 'XRP') {
+      currentValue = Math.abs(currentValue);
+    }
 
     // Add occasional small spikes to simulate market events (but keep them subtle)
     if (i % 6 === 3) {

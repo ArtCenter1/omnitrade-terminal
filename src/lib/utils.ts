@@ -29,7 +29,11 @@ export function formatNumber(value: number, decimals = 2) {
   }).format(value);
 }
 
-export function generateChartData(isPositive: boolean) {
+export function generateChartData(isPositive: boolean, symbol?: string) {
+  // Special handling for XRP to ensure it always has positive values
+  if (symbol === 'XRP') {
+    isPositive = true;
+  }
   const trend = isPositive ? 1 : -1;
   const volatility = 1.2; // Increased volatility
   const startValue = 10;

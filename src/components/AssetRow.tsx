@@ -98,7 +98,8 @@ export function AssetRow({ asset }: AssetRowProps) {
       chartData = (asset as Asset).chart || (asset as any).chartData || [];
     } else {
       // For legacy asset type, use chart property or generate data
-      chartData = (asset as any).chart || generateChartData(isPositive);
+      chartData =
+        (asset as any).chart || generateChartData(isPositive, asset.symbol);
     }
   } catch (e) {
     console.error('Error generating chart data:', e);

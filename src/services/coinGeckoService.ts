@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { TradingPair } from '@/types/trading';
 
 // Define the base URL for CoinGecko API
 const COINGECKO_API_URL = 'https://api.coingecko.com/api/v3';
@@ -167,4 +168,119 @@ export async function getCoinsBySymbols(
   await Promise.all(fetchPromises);
 
   return result;
+}
+
+/**
+ * Get trading pairs for a specific exchange
+ * This function converts CoinGecko data to our TradingPair format
+ */
+export async function getTradingPairsFromCoinGecko(
+  exchangeId: string = 'binance',
+): Promise<TradingPair[]> {
+  try {
+    // Get top coins to use as base assets
+    const topCoins = await getTopCoins(20);
+
+    // Common quote assets
+    const quoteAssets = ['USDT', 'USD', 'BTC', 'ETH'];
+
+    // Generate trading pairs
+    const tradingPairs: TradingPair[] = [];
+
+    for (const coin of topCoins) {
+      for (const quoteAsset of quoteAssets) {
+        // Skip if base and quote are the same
+        if (coin.symbol.toUpperCase() === quoteAsset) continue;
+
+        // Format price with appropriate precision
+        const price = coin.current_price.toString();
+
+        // Format 24h change
+        const change24h =
+          coin.price_change_percentage_24h >= 0
+            ? `+${coin.price_change_percentage_24h.toFixed(2)}%`
+            : `${coin.price_change_percentage_24h.toFixed(2)}%`;
+
+        // Format volume (simplified)
+        const volume = (coin.market_cap / 1000000).toFixed(2) + 'm';
+
+        tradingPairs.push({
+          symbol: `${coin.symbol.toUpperCase()}/${quoteAsset}`,
+          baseAsset: coin.symbol.toUpperCase(),
+          quoteAsset: quoteAsset,
+          price: price,
+          change24h: change24h,
+          volume24h: volume,
+          exchangeId: exchangeId,
+          priceDecimals: 2,
+          quantityDecimals: 8,
+        });
+      }
+    }
+
+    return tradingPairs;
+  } catch (error) {
+    console.error('Error generating trading pairs from CoinGecko data:', error);
+    return [];
+  }
+}
+
+/**
+ * Get historical price data for a specific coin
+ */
+export async function getHistoricalPriceData(
+  coinId: string,
+  days: number = 7,
+  interval: string = 'daily',
+): Promise<{ prices: [number, number][] }> {
+  try {
+    const response = await axios.get(
+      `${COINGECKO_API_URL}/coins/${coinId}/market_chart`,
+      {
+        params: {
+          vs_currency: 'usd',
+          days: days,
+          interval: interval,
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching historical data for ${coinId}:`, error);
+    return { prices: [] };
+  }
+}
+
+/**
+ * Get current price for a trading pair
+ */
+export async function getCurrentPrice(
+  baseAsset: string,
+  quoteAsset: string = 'usd',
+): Promise<number> {
+  try {
+    const coin = await getCoinBySymbol(baseAsset);
+    if (!coin) return 0;
+
+    if (
+      quoteAsset.toLowerCase() === 'usd' ||
+      quoteAsset.toLowerCase() === 'usdt'
+    ) {
+      return coin.current_price;
+    } else {
+      // For other quote assets, we would need to calculate the relative price
+      // This is a simplified implementation
+      const quoteCoin = await getCoinBySymbol(quoteAsset);
+      if (!quoteCoin || quoteCoin.current_price === 0) return 0;
+
+      return coin.current_price / quoteCoin.current_price;
+    }
+  } catch (error) {
+    console.error(
+      `Error getting current price for ${baseAsset}/${quoteAsset}:`,
+      error,
+    );
+    return 0;
+  }
 }

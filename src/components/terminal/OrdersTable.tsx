@@ -19,6 +19,7 @@ export function OrdersTable({
   initialTab = 'open',
   showTabs = true,
 }: OrdersTableProps) {
+  console.log('OrdersTable refreshTrigger:', refreshTrigger);
   const [activeTab, setActiveTab] = useState(initialTab);
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,6 +48,7 @@ export function OrdersTable({
 
   // Fetch orders from the API
   const fetchOrders = async () => {
+    console.log('OrdersTable fetchOrders called');
     setIsLoading(true);
     try {
       const status = activeTab === 'open' ? 'new,partially_filled' : undefined;
