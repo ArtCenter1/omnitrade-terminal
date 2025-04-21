@@ -438,26 +438,30 @@ export function generateAllocationData(
       // Format the USD value with 2 decimal places
       const formattedValue = asset.usdValue.toFixed(2);
 
+      // Ensure all values have the correct types
       return {
-        name: asset.asset,
-        value: Math.round(percentage),
+        name: String(asset.asset),
+        value: Number(Math.round(percentage)),
         color: assetColors[asset.asset] || '#888888', // Use default color if not found
-        // Additional data for the tooltip
-        usdValue: formattedValue,
-        price: price.toFixed(2),
-        amount: asset.total.toFixed(8),
-        symbol: asset.asset, // The ticker symbol
-        displayName: getDisplayName(asset.asset), // Get a more readable name
+        // Additional data for the tooltip - ensure all are strings
+        usdValue: String(formattedValue),
+        price: String(price.toFixed(2)),
+        amount: String(asset.total.toFixed(8)),
+        symbol: String(asset.asset), // The ticker symbol
+        displayName: String(getDisplayName(asset.asset)), // Get a more readable name
       };
     });
 
     // Add total portfolio value to the result for display in the center
     if (result.length > 0) {
       // Add a property to the first item that will be accessible in the chart component
-      result[0].totalPortfolioValue = portfolio.totalUsdValue.toFixed(2);
+      // Ensure it's a string to avoid type mismatches
+      result[0].totalPortfolioValue = String(
+        portfolio.totalUsdValue.toFixed(2),
+      );
       console.log(
         'Added total portfolio value:',
-        portfolio.totalUsdValue.toFixed(2),
+        String(portfolio.totalUsdValue.toFixed(2)),
       );
     }
 

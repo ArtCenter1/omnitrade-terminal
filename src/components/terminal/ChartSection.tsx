@@ -3,6 +3,19 @@ import { PriceOverview } from './PriceOverview';
 import { TimeframeSelector } from './TimeframeSelector';
 import { TradingPairSelector, TradingPair } from './TradingPairSelector';
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
+import { SandboxNetworkSelector } from '@/components/SandboxNetworkSelector';
+
+// Map exchange IDs to TradingView exchange symbols
+const EXCHANGE_TO_TRADINGVIEW_MAP: Record<string, string> = {
+  binance: 'BINANCE',
+  coinbase: 'COINBASE',
+  kraken: 'KRAKEN',
+  kucoin: 'KUCOIN',
+  bybit: 'BYBIT',
+  okx: 'OKX',
+  // Add more exchanges as needed
+  // Default to BINANCE if not found
+};
 
 // Define an interface for the TradingView widget options
 interface TradingViewWidgetOptions {
@@ -56,6 +69,31 @@ export function ChartSection({
   );
   const widgetInstanceRef = useRef<unknown | null>(null); // To potentially hold widget instance if needed, though direct update is tricky here
 
+  // Helper function to get the correct TradingView symbol format
+  const getTradingViewSymbol = (account: any, pair: TradingPair): string => {
+    // Handle sandbox mode
+    if (account?.exchangeId === 'sandbox') {
+      const preferredTestNetwork =
+        localStorage.getItem('sandbox_test_network') || 'binance';
+      const testExchange = preferredTestNetwork.toUpperCase();
+      return `${testExchange}:${pair.baseAsset}${pair.quoteAsset}`;
+    }
+
+    // Get the exchange ID in lowercase for mapping
+    const exchangeId = account?.exchangeId?.toLowerCase() || 'binance';
+
+    // Map the exchange ID to the correct TradingView exchange symbol
+    const tvExchange = EXCHANGE_TO_TRADINGVIEW_MAP[exchangeId] || 'BINANCE';
+
+    // Log for debugging
+    console.log(
+      `Mapping exchange ${exchangeId} to TradingView symbol ${tvExchange}`,
+    );
+
+    // Return the formatted symbol
+    return `${tvExchange}:${pair.baseAsset}${pair.quoteAsset}`;
+  };
+
   useEffect(() => {
     const currentContainer = container.current;
     if (!currentContainer) {
@@ -70,9 +108,15 @@ export function ChartSection({
       ) {
         // Clear previous widget before creating a new one
         currentContainer.innerHTML = '';
+
+        // Get the properly formatted symbol for TradingView
+        const symbolFormat = getTradingViewSymbol(selectedAccount, currentPair);
+        console.log(`Creating TradingView widget with symbol: ${symbolFormat}`);
+
+        // Create the widget with the correct symbol format
         widgetInstanceRef.current = new window.TradingView.widget({
           autosize: true,
-          symbol: `${selectedAccount?.exchange?.toUpperCase() || 'BINANCE'}:${currentPair.baseAsset}${currentPair.quoteAsset}`,
+          symbol: symbolFormat,
           interval: currentTimeframe, // Use state variable
           timezone: 'Etc/UTC',
           theme: 'dark',
@@ -147,9 +191,27 @@ export function ChartSection({
             typeof window.TradingView !== 'undefined' &&
             window.TradingView.widget
           ) {
+            // Format the symbol based on the exchange
+            let symbolFormat;
+            if (selectedAccount?.exchangeId === 'sandbox') {
+              // For sandbox, check if we have a preferred test network in localStorage
+              const preferredTestNetwork =
+                localStorage.getItem('sandbox_test_network') || 'binance';
+              const testExchange = preferredTestNetwork.toUpperCase();
+
+              symbolFormat = `${testExchange}:${selectedPair.baseAsset}${selectedPair.quoteAsset}`;
+              console.log(
+                `Using ${testExchange} test network for sandbox symbol: ${symbolFormat}`,
+              );
+            } else {
+              // For other exchanges, use the exchange name
+              symbolFormat = `${selectedAccount?.exchange?.toUpperCase() || 'BINANCE'}:${selectedPair.baseAsset}${selectedPair.quoteAsset}`;
+              console.log(`Using standard symbol format: ${symbolFormat}`);
+            }
+
             widgetInstanceRef.current = new window.TradingView.widget({
               autosize: true,
-              symbol: `${selectedAccount?.exchange?.toUpperCase() || 'BINANCE'}:${selectedPair.baseAsset}${selectedPair.quoteAsset}`,
+              symbol: symbolFormat,
               interval: currentTimeframe,
               timezone: 'Etc/UTC',
               theme: 'dark',
@@ -191,7 +253,10 @@ export function ChartSection({
           />
           <PriceOverview selectedPair={currentPair} showPriceOnly={true} />
         </div>
-        <PriceOverview selectedPair={currentPair} />
+        <div className="flex items-center gap-2">
+          <SandboxNetworkSelector />
+          <PriceOverview selectedPair={currentPair} />
+        </div>
       </div>
 
       {/* TradingView Widget Container - Ensure it has the ID used in options */}

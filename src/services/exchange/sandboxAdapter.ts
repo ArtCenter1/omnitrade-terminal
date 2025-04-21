@@ -11,15 +11,38 @@ import {
   PerformanceMetrics,
 } from '@/types/exchange';
 
+// Import test network adapters
+import { BinanceAdapter } from './binanceAdapter';
+import { CoinbaseAdapter } from './coinbaseAdapter';
+
 /**
  * Sandbox exchange adapter for practice trading
  */
 export class SandboxAdapter extends BaseExchangeAdapter {
   private readonly mockDataService: MockDataService;
+  private readonly binanceTestAdapter: BinanceAdapter;
+  private readonly coinbaseTestAdapter: CoinbaseAdapter;
+  private readonly preferredTestNetwork: string = 'binance'; // Default to Binance test network
 
   constructor() {
     super('sandbox');
     this.mockDataService = new MockDataService();
+
+    // Initialize test network adapters
+    this.binanceTestAdapter = new BinanceAdapter();
+    this.coinbaseTestAdapter = new CoinbaseAdapter();
+
+    // Try to get preferred test network from localStorage
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const savedNetwork = window.localStorage.getItem('sandbox_test_network');
+      if (savedNetwork && ['binance', 'coinbase'].includes(savedNetwork)) {
+        this.preferredTestNetwork = savedNetwork;
+      }
+    }
+
+    console.log(
+      `[SandboxAdapter] Using ${this.preferredTestNetwork} test network as primary data source`,
+    );
   }
 
   /**
@@ -47,7 +70,38 @@ export class SandboxAdapter extends BaseExchangeAdapter {
    * Get all available trading pairs on the Sandbox.
    */
   public async getTradingPairs(): Promise<TradingPair[]> {
-    // Generate a comprehensive set of trading pairs for practice
+    try {
+      // First try to get trading pairs from the preferred test network
+      let testPairs: TradingPair[] = [];
+
+      if (this.preferredTestNetwork === 'binance') {
+        testPairs = await this.binanceTestAdapter.getTradingPairs();
+      } else if (this.preferredTestNetwork === 'coinbase') {
+        testPairs = await this.coinbaseTestAdapter.getTradingPairs();
+      }
+
+      // If we got pairs from the test network, use them but mark them as sandbox
+      if (testPairs && testPairs.length > 0) {
+        console.log(
+          `[SandboxAdapter] Using ${testPairs.length} trading pairs from ${this.preferredTestNetwork} test network`,
+        );
+
+        // Mark the pairs as sandbox pairs
+        return testPairs.map((pair) => ({
+          ...pair,
+          exchangeId: this.exchangeId,
+          isSandbox: true,
+        }));
+      }
+    } catch (error) {
+      console.error(
+        `[SandboxAdapter] Error getting trading pairs from test network:`,
+        error,
+      );
+    }
+
+    // Fallback to mock data if test network fails
+    console.log(`[SandboxAdapter] Falling back to mock trading pairs`);
     return this.mockDataService.generateTradingPairs(this.exchangeId, 100);
   }
 
@@ -58,6 +112,47 @@ export class SandboxAdapter extends BaseExchangeAdapter {
     symbol: string,
     limit: number = 20,
   ): Promise<OrderBook> {
+    try {
+      // First try to get order book from the preferred test network
+      let testOrderBook: OrderBook | null = null;
+
+      if (this.preferredTestNetwork === 'binance') {
+        testOrderBook = await this.binanceTestAdapter.getOrderBook(
+          symbol,
+          limit,
+        );
+      } else if (this.preferredTestNetwork === 'coinbase') {
+        testOrderBook = await this.coinbaseTestAdapter.getOrderBook(
+          symbol,
+          limit,
+        );
+      }
+
+      // If we got an order book from the test network, use it but mark it as sandbox
+      if (
+        testOrderBook &&
+        (testOrderBook.bids.length > 0 || testOrderBook.asks.length > 0)
+      ) {
+        console.log(
+          `[SandboxAdapter] Using order book from ${this.preferredTestNetwork} test network for ${symbol}`,
+        );
+
+        return {
+          ...testOrderBook,
+          exchangeId: this.exchangeId,
+        };
+      }
+    } catch (error) {
+      console.error(
+        `[SandboxAdapter] Error getting order book from test network:`,
+        error,
+      );
+    }
+
+    // Fallback to mock data if test network fails
+    console.log(
+      `[SandboxAdapter] Falling back to mock order book for ${symbol}`,
+    );
     return this.mockDataService.generateOrderBook(
       this.exchangeId,
       symbol,
@@ -75,6 +170,44 @@ export class SandboxAdapter extends BaseExchangeAdapter {
     endTime?: number,
     limit: number = 500,
   ): Promise<Kline[]> {
+    try {
+      // First try to get klines from the preferred test network
+      let testKlines: Kline[] = [];
+
+      if (this.preferredTestNetwork === 'binance') {
+        testKlines = await this.binanceTestAdapter.getKlines(
+          symbol,
+          interval,
+          startTime,
+          endTime,
+          limit,
+        );
+      } else if (this.preferredTestNetwork === 'coinbase') {
+        testKlines = await this.coinbaseTestAdapter.getKlines(
+          symbol,
+          interval,
+          startTime,
+          endTime,
+          limit,
+        );
+      }
+
+      // If we got klines from the test network, use them
+      if (testKlines && testKlines.length > 0) {
+        console.log(
+          `[SandboxAdapter] Using ${testKlines.length} klines from ${this.preferredTestNetwork} test network for ${symbol}`,
+        );
+        return testKlines;
+      }
+    } catch (error) {
+      console.error(
+        `[SandboxAdapter] Error getting klines from test network:`,
+        error,
+      );
+    }
+
+    // Fallback to mock data if test network fails
+    console.log(`[SandboxAdapter] Falling back to mock klines for ${symbol}`);
     return this.mockDataService.generateKlines(
       this.exchangeId,
       symbol,

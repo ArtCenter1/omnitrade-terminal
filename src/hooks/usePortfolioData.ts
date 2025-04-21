@@ -35,21 +35,30 @@ export function usePortfolioData(exchangeId?: string, apiKeyId?: string) {
         }
 
         // Fetch portfolio data
-        const response = await fetch(url, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        try {
+          console.log(`Fetching portfolio data from: ${url}`);
+          const response = await fetch(url, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(
-            errorData.message ||
-              `Failed to fetch portfolio data: ${response.status}`,
-          );
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error(`API error (${response.status}):`, errorData);
+            throw new Error(
+              errorData.message ||
+                `Failed to fetch portfolio data: ${response.status}`,
+            );
+          }
+
+          const data = await response.json();
+          console.log(`Successfully fetched portfolio data:`, data);
+          return data;
+        } catch (fetchError) {
+          console.error('Error in portfolio data fetch:', fetchError);
+          throw fetchError;
         }
-
-        return response.json();
       } catch (error) {
         // Handle API errors more gracefully
         if (error instanceof Error) {
@@ -74,12 +83,17 @@ export function usePortfolioData(exchangeId?: string, apiKeyId?: string) {
             // Map the exchange ID to the correct mock key
             let mockKeyId = apiKeyId;
             if (exchangeId === 'kraken') {
+              console.log('Falling back to mock data for Kraken exchange');
               mockKeyId = 'mock-key-1';
             } else if (exchangeId === 'binance') {
               mockKeyId = 'mock-key-2';
             } else if (exchangeId === 'coinbase') {
               mockKeyId = 'mock-key-3';
             }
+
+            console.log(
+              `Using mock key ${mockKeyId} for exchange ${exchangeId}`,
+            );
 
             // Get the portfolio data for this specific exchange
             const portfolioData = getMockPortfolioData(mockKeyId).data;

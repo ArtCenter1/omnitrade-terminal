@@ -127,6 +127,8 @@ export default function Markets() {
       // Don't retry too many times to avoid rate limits
       retry: 1,
       retryDelay: 5000,
+      // Reduce stale time to quickly fall back to direct API
+      staleTime: 30 * 1000, // 30 seconds
     },
   );
 
@@ -136,6 +138,18 @@ export default function Markets() {
     loading: isCoingeckoLoading,
     error: coingeckoError,
   } = useCoingeckoMarkets();
+
+  // Log connection status for debugging
+  useEffect(() => {
+    if (apiError) {
+      console.warn('Backend API connection failed:', apiError.message);
+      console.info('Falling back to direct CoinGecko API access');
+    }
+    if (coingeckoError) {
+      console.warn('Direct CoinGecko API access failed:', coingeckoError);
+      console.info('Falling back to mock data');
+    }
+  }, [apiError, coingeckoError]);
 
   // Determine which data source to use
   const isLoading = isApiLoading && isCoingeckoLoading;
@@ -150,41 +164,83 @@ export default function Markets() {
   // Convert CoinGecko markets to MarketCoin format if needed
   const convertedCoingeckoMarkets: MarketCoin[] =
     hasCoingeckoData && coingeckoMarkets
-      ? coingeckoMarkets.map((market, index) => ({
-          id: market.symbol,
-          symbol: market.symbol,
-          name: market.name,
-          image: market.image,
-          current_price: parseFloat(
-            market.price.replace('$', '').replace(',', ''),
-          ),
-          market_cap: 0, // Not available in this format
-          market_cap_rank: index + 1,
-          fully_diluted_valuation: null,
-          total_volume: 0, // Not available in this format
-          high_24h: 0,
-          low_24h: 0,
-          price_change_24h: 0,
-          price_change_percentage_24h: parseFloat(
-            market.change.replace('+', '').replace('%', ''),
-          ),
-          market_cap_change_24h: 0,
-          market_cap_change_percentage_24h: 0,
-          circulating_supply: 0,
-          total_supply: null,
-          max_supply: null,
-          ath: 0,
-          ath_change_percentage: 0,
-          ath_date: '',
-          atl: 0,
-          atl_change_percentage: 0,
-          atl_date: '',
-          roi: null,
-          last_updated: '',
-          sparkline_in_7d: {
-            price: market.sparkline,
-          },
-        }))
+      ? coingeckoMarkets.map((market, index) => {
+          // Parse price from string format (e.g. "$1,234.56")
+          const priceString = market.price.replace('$', '').replace(/,/g, '');
+          const price = parseFloat(priceString);
+
+          // Parse market cap from string format (e.g. "$1.23B")
+          let marketCap = 0;
+          if (market.marketCap) {
+            const mcString = market.marketCap.replace('$', '');
+            if (mcString.endsWith('T')) {
+              marketCap = parseFloat(mcString.replace('T', '')) * 1e12;
+            } else if (mcString.endsWith('B')) {
+              marketCap = parseFloat(mcString.replace('B', '')) * 1e9;
+            } else if (mcString.endsWith('M')) {
+              marketCap = parseFloat(mcString.replace('M', '')) * 1e6;
+            } else if (mcString.endsWith('K')) {
+              marketCap = parseFloat(mcString.replace('K', '')) * 1e3;
+            } else {
+              marketCap = parseFloat(mcString);
+            }
+          }
+
+          // Parse volume from string format
+          let volume = 0;
+          if (market.volume) {
+            const volString = market.volume.replace('$', '');
+            if (volString.endsWith('T')) {
+              volume = parseFloat(volString.replace('T', '')) * 1e12;
+            } else if (volString.endsWith('B')) {
+              volume = parseFloat(volString.replace('B', '')) * 1e9;
+            } else if (volString.endsWith('M')) {
+              volume = parseFloat(volString.replace('M', '')) * 1e6;
+            } else if (volString.endsWith('K')) {
+              volume = parseFloat(volString.replace('K', '')) * 1e3;
+            } else {
+              volume = parseFloat(volString);
+            }
+          }
+
+          // Parse change percentage
+          const changeString = market.change.replace('+', '').replace('%', '');
+          const changePercentage = parseFloat(changeString);
+
+          return {
+            id: market.symbol.toLowerCase(),
+            symbol: market.symbol.toLowerCase(),
+            name: market.name,
+            image: market.image,
+            current_price: price,
+            market_cap: marketCap,
+            market_cap_rank: index + 1,
+            fully_diluted_valuation: null,
+            total_volume: volume,
+            high_24h: price * 1.05, // Estimate
+            low_24h: price * 0.95, // Estimate
+            price_change_24h: price * (changePercentage / 100), // Estimate
+            price_change_percentage_24h: changePercentage,
+            market_cap_change_24h: marketCap * (changePercentage / 100), // Estimate
+            market_cap_change_percentage_24h: changePercentage,
+            circulating_supply: marketCap / price, // Estimate
+            total_supply: null,
+            max_supply: null,
+            ath: price * 1.5, // Estimate
+            ath_change_percentage: -33.33, // Estimate
+            ath_date: new Date().toISOString(),
+            atl: price * 0.5, // Estimate
+            atl_change_percentage: 100, // Estimate
+            atl_date: new Date(
+              Date.now() - 365 * 24 * 60 * 60 * 1000,
+            ).toISOString(), // 1 year ago
+            roi: null,
+            last_updated: new Date().toISOString(),
+            sparkline_in_7d: {
+              price: market.sparkline,
+            },
+          };
+        })
       : [];
 
   // Use API data if available, otherwise use CoinGecko data, finally fall back to mock data
@@ -234,6 +290,23 @@ export default function Markets() {
 
     return `M${points.join(' L')}`;
   }
+
+  // Determine connection status message
+  const getConnectionStatus = () => {
+    if (hasApiData) {
+      return { message: 'Connected to backend API', type: 'success' };
+    } else if (hasCoingeckoData) {
+      return {
+        message: 'Using direct CoinGecko API (backend unavailable)',
+        type: 'warning',
+      };
+    } else if (!isLoading) {
+      return { message: 'Using mock data (APIs unavailable)', type: 'error' };
+    }
+    return null;
+  };
+
+  const connectionStatus = getConnectionStatus();
 
   if (isLoading) {
     return (
@@ -290,6 +363,31 @@ export default function Markets() {
                 {filteredMarkets?.length ?? 0}+
               </span>
               <span>Coins/Markets (Page 1)</span> {/* Indicate page */}
+              {/* Connection status indicator */}
+              {connectionStatus && (
+                <div className="ml-4 flex items-center">
+                  <div
+                    className={`w-2 h-2 rounded-full mr-2 ${
+                      connectionStatus.type === 'success'
+                        ? 'bg-crypto-green'
+                        : connectionStatus.type === 'warning'
+                          ? 'bg-yellow-500'
+                          : 'bg-crypto-red'
+                    }`}
+                  />
+                  <span
+                    className={`text-xs ${
+                      connectionStatus.type === 'success'
+                        ? 'text-crypto-green'
+                        : connectionStatus.type === 'warning'
+                          ? 'text-yellow-500'
+                          : 'text-crypto-red'
+                    }`}
+                  >
+                    {connectionStatus.message}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 

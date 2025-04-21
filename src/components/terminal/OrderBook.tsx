@@ -41,11 +41,30 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
       setIsLoading(true);
       setIsError(false);
 
-      // Always use mock data for now to avoid CSP issues
-      // This is a temporary fix until we can properly configure CSP
-      const mockData = getMockOrderbookData(symbol);
-      setOrderbook(mockData.orderbook);
-      console.log('Using mock orderbook data for', symbol);
+      // Check feature flags to determine data source
+      if (useMockData || !useRealMarketData) {
+        // Use mock data
+        const mockData = getMockOrderbookData(symbol);
+        setOrderbook(mockData.orderbook);
+        console.log('Using mock orderbook data for', symbol);
+      } else {
+        // Use real data from CoinGecko
+        try {
+          const realOrderbook = await enhancedCoinGeckoService.getOrderbook(
+            symbol,
+            exchangeName.toLowerCase(),
+            10,
+          );
+          setOrderbook(realOrderbook);
+          console.log('Using real orderbook data for', symbol);
+        } catch (apiError) {
+          console.error('Error fetching real orderbook data:', apiError);
+          // Fallback to mock data if real data fails
+          const mockData = getMockOrderbookData(symbol);
+          setOrderbook(mockData.orderbook);
+          console.log('Falling back to mock orderbook data for', symbol);
+        }
+      }
 
       setLastUpdated(new Date());
     } catch (error) {
@@ -70,7 +89,7 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
     } finally {
       setIsLoading(false);
     }
-  }, [symbol, isLoading]);
+  }, [symbol, isLoading, useMockData, useRealMarketData, exchangeName]);
 
   // Fetch orderbook data on mount and when dependencies change
   useEffect(() => {

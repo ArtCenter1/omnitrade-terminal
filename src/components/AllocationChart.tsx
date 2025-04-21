@@ -22,12 +22,16 @@ type AllocationChartProps = {
 const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
-    const symbol = data.symbol || data.name;
-    const displayName = data.displayName || data.name;
+    // Ensure we have string values
+    const symbol = String(data.symbol || data.name || '');
+    const displayName = String(data.displayName || data.name || '');
 
-    // Format currency values
-    const formatCurrency = (value: string) => {
-      return `$${parseFloat(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    // Format currency values with safety checks
+    const formatCurrency = (value: string | number | undefined) => {
+      if (value === undefined || value === null) return '$0.00';
+      const numValue =
+        typeof value === 'string' ? parseFloat(value) : Number(value);
+      return `$${numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     };
 
     return (
@@ -66,7 +70,7 @@ const CustomTooltip = ({ active, payload }: any) => {
             <span style={{ color: '#999' }}>{displayName}</span>
           </div>
           <span style={{ fontWeight: 'bold' }}>
-            {`(${data.value.toFixed(1)}%)`}
+            {`(${typeof data.value === 'number' ? data.value.toFixed(1) : parseFloat(String(data.value)).toFixed(1)}%)`}
           </span>
         </div>
 
@@ -213,7 +217,22 @@ export function AllocationChart({
                   fill: '#fff',
                 }}
               >
-                {`$${Number(data[0].totalPortfolioValue).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+                {(() => {
+                  try {
+                    // Safely parse the value with error handling
+                    const value =
+                      typeof data[0].totalPortfolioValue === 'string'
+                        ? parseFloat(data[0].totalPortfolioValue)
+                        : Number(data[0].totalPortfolioValue);
+                    return `$${value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+                  } catch (error) {
+                    console.error(
+                      'Error formatting total portfolio value:',
+                      error,
+                    );
+                    return '$0';
+                  }
+                })()}
               </text>
             </g>
           )}

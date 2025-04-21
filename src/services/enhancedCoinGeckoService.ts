@@ -5,11 +5,21 @@ import { Orderbook } from '@/types/marketData';
 import { getCoinGeckoApiKey } from '@/utils/env';
 
 // Define the base URLs for CoinGecko APIs
-const PUBLIC_API_URL = 'https://api.coingecko.com/api/v3';
-const PRO_API_URL = 'https://pro-api.coingecko.com/api/v3';
+const PUBLIC_API_URL =
+  import.meta.env.VITE_COINGECKO_PUBLIC_API_URL ||
+  'https://api.coingecko.com/api/v3';
+const PRO_API_URL =
+  import.meta.env.VITE_COINGECKO_PRO_API_URL ||
+  'https://pro-api.coingecko.com/api/v3';
 
 // Get API key from frontend environment variables
 const API_KEY = getCoinGeckoApiKey();
+
+// Log API configuration for debugging
+console.log(`Enhanced CoinGecko Service initialized with:`);
+console.log(`- Public API URL: ${PUBLIC_API_URL}`);
+console.log(`- Pro API URL: ${PRO_API_URL}`);
+console.log(`- API Key available: ${API_KEY ? 'Yes' : 'No'}`);
 
 // Rate limiting configuration
 const PUBLIC_RATE_LIMIT = 10; // requests per minute (reduced for safety)
@@ -172,7 +182,13 @@ async function makeApiRequest<T>(
 
   // Add API key if using pro API
   if (useProApi) {
+    // CoinGecko Pro API expects the key in the x_cg_pro_api_key parameter
     config.params.x_cg_pro_api_key = API_KEY;
+
+    // Also add it as a header for better compatibility
+    config.headers = {
+      'x-cg-pro-api-key': API_KEY,
+    };
   }
 
   try {
@@ -258,9 +274,35 @@ async function makeApiRequest<T>(
     // If we get a timeout or network error, wait and retry once
     if (
       axios.isAxiosError(error) &&
-      (error.code === 'ECONNABORTED' || !error.response)
+      (error.code === 'ECONNABORTED' ||
+        !error.response ||
+        error.code === 'ECONNREFUSED')
     ) {
       console.warn(`Network error or timeout for ${endpoint}, retrying once`);
+      console.warn(`Error details: ${error.message}, Code: ${error.code}`);
+
+      // For ECONNREFUSED errors, we might be having issues with the network
+      if (error.code === 'ECONNREFUSED') {
+        console.warn(
+          'Connection refused error detected. This usually means the API server is not reachable.',
+        );
+
+        // Check if we have cached data we can return
+        const cachedData = cacheMap.get(cacheKey);
+        if (cachedData) {
+          console.warn(
+            `Using stale cached data for ${endpoint} due to connection refused error`,
+          );
+          return cachedData.data;
+        }
+
+        // If no cached data, throw a more specific error
+        throw new Error(
+          `API server connection refused. Please check your network connection or API server status.`,
+        );
+      }
+
+      // For other network errors, wait and retry
       await new Promise((resolve) => setTimeout(resolve, 3000));
       try {
         // Add a longer timeout for the retry
@@ -304,10 +346,26 @@ async function makeApiRequest<T>(
 
 /**
  * Fetch top cryptocurrencies from CoinGecko
+ *
+ * @param limit The number of coins to fetch
+ * @returns An array of coin data
  */
 export async function getTopCoins(limit = 100): Promise<CoinGeckoData[]> {
   const cacheKey = `top_coins_${limit}`;
 
+  // First check if we have cached data
+  const cachedData = cache.markets.get(cacheKey);
+  if (
+    cachedData &&
+    Date.now() - cachedData.timestamp < CACHE_DURATIONS.MARKETS
+  ) {
+    console.log(
+      `Using cached top coins data (${cachedData.data.length} coins)`,
+    );
+    return cachedData.data;
+  }
+
+  console.log(`Fetching top ${limit} coins from CoinGecko`);
   try {
     const data = await makeApiRequest<CoinGeckoData[]>(
       '/coins/markets',
@@ -328,6 +386,20 @@ export async function getTopCoins(limit = 100): Promise<CoinGeckoData[]> {
       true, // Prefer pro API for this endpoint
     );
 
+    if (!data || data.length === 0) {
+      console.warn('Received empty data from CoinGecko API');
+      // Try to use cached data even if it's expired
+      if (cachedData) {
+        console.log(
+          `Using expired cached data (${cachedData.data.length} coins)`,
+        );
+        return cachedData.data;
+      }
+      return [];
+    }
+
+    console.log(`Successfully fetched ${data.length} coins from CoinGecko`);
+
     // Update symbol to ID mapping
     data.forEach((coin) => {
       cache.symbolToId.set(coin.symbol.toLowerCase(), coin.id);
@@ -337,9 +409,16 @@ export async function getTopCoins(limit = 100): Promise<CoinGeckoData[]> {
   } catch (error) {
     console.error('Error fetching top coins:', error);
 
+    // Return cached data if we have it, even if it's expired
+    if (cachedData) {
+      console.warn(
+        `Using stale cached data (${cachedData.data.length} coins) due to API error`,
+      );
+      return cachedData.data;
+    }
+
     // Return empty array if we have no cached data
-    const cachedData = cache.markets.get(cacheKey);
-    return cachedData ? cachedData.data : [];
+    return [];
   }
 }
 
@@ -475,6 +554,10 @@ export async function getTradingPairs(
 /**
  * Get tickers for a specific coin
  * This is used to build the order book
+ *
+ * @param coinId The coin ID or symbol
+ * @param exchangeIds Optional array of exchange IDs to filter by
+ * @returns A response containing tickers for the coin
  */
 export async function getCoinTickers(
   coinId: string,
@@ -488,11 +571,23 @@ export async function getCoinTickers(
       const normalizedSymbol = coinId.toLowerCase();
       if (cache.symbolToId.has(normalizedSymbol)) {
         coinId = cache.symbolToId.get(normalizedSymbol)!;
+        console.log(`Resolved symbol ${normalizedSymbol} to coin ID ${coinId}`);
       } else {
         // Try to fetch top coins to populate the cache
+        console.log(
+          `Symbol ${normalizedSymbol} not found in cache, fetching top coins`,
+        );
         await getTopCoins();
         if (cache.symbolToId.has(normalizedSymbol)) {
           coinId = cache.symbolToId.get(normalizedSymbol)!;
+          console.log(
+            `After fetching top coins, resolved symbol ${normalizedSymbol} to coin ID ${coinId}`,
+          );
+        } else {
+          console.warn(
+            `Could not resolve symbol ${normalizedSymbol} to a coin ID`,
+          );
+          return { name: '', tickers: [] };
         }
       }
     }
@@ -503,19 +598,40 @@ export async function getCoinTickers(
       params.exchange_ids = exchangeIds.join(',');
     }
 
-    return await makeApiRequest<CoinGeckoTickerResponse>(
-      `/coins/${coinId}/tickers`,
-      params,
-      CACHE_DURATIONS.TICKERS,
-      cacheKey,
-      cache.tickers as Map<
-        string,
-        { data: CoinGeckoTickerResponse; timestamp: number }
-      >,
-      true, // Prefer pro API for this endpoint
-    );
+    console.log(`Fetching tickers for coin ${coinId} with params:`, params);
+
+    try {
+      const response = await makeApiRequest<CoinGeckoTickerResponse>(
+        `/coins/${coinId}/tickers`,
+        params,
+        CACHE_DURATIONS.TICKERS,
+        cacheKey,
+        cache.tickers as Map<
+          string,
+          { data: CoinGeckoTickerResponse; timestamp: number }
+        >,
+        true, // Prefer pro API for this endpoint
+      );
+
+      console.log(
+        `Successfully fetched ${response.tickers?.length || 0} tickers for ${coinId}`,
+      );
+      return response;
+    } catch (apiError) {
+      console.error(`API error fetching tickers for ${coinId}:`, apiError);
+
+      // Check for cached data
+      const cachedData = cache.tickers.get(cacheKey);
+      if (cachedData) {
+        console.warn(`Using cached tickers for ${coinId} due to API error`);
+        return cachedData.data;
+      }
+
+      // If no cached data, return empty response
+      return { name: '', tickers: [] };
+    }
   } catch (error) {
-    console.error(`Error fetching tickers for ${coinId}:`, error);
+    console.error(`Error in getCoinTickers for ${coinId}:`, error);
 
     // Return empty response if we have no cached data
     const cachedData = cache.tickers.get(cacheKey);
@@ -569,6 +685,11 @@ export function tickersToOrderbook(
 
 /**
  * Get orderbook for a trading pair
+ *
+ * @param symbol The trading pair symbol (e.g., BTC/USDT)
+ * @param exchangeId The exchange ID (e.g., binance, coinbase)
+ * @param depth The number of orders to include in the orderbook
+ * @returns An orderbook with bids and asks
  */
 export async function getOrderbook(
   symbol: string,
@@ -587,6 +708,9 @@ export async function getOrderbook(
 
       // Use cached data if it's less than 30 seconds old
       if (Date.now() - timestamp < 30000) {
+        console.log(
+          `Using cached orderbook for ${symbol} from ${new Date(timestamp).toLocaleTimeString()}`,
+        );
         return parsed.data;
       }
     } catch (e) {
@@ -598,6 +722,10 @@ export async function getOrderbook(
   try {
     // Parse the symbol to get base and quote assets
     const [baseAsset, quoteAsset] = symbol.split('/');
+    if (!baseAsset || !quoteAsset) {
+      console.error(`Invalid symbol format: ${symbol}`);
+      return generateFallbackOrderbook(symbol, depth);
+    }
 
     // Get the coin ID for the base asset
     let coinId = '';
@@ -605,44 +733,76 @@ export async function getOrderbook(
       coinId = cache.symbolToId.get(baseAsset.toLowerCase())!;
     } else {
       // Try to fetch top coins to populate the cache
-      await getTopCoins();
-      if (cache.symbolToId.has(baseAsset.toLowerCase())) {
-        coinId = cache.symbolToId.get(baseAsset.toLowerCase())!;
-      } else {
-        console.warn(
-          `Could not find coin ID for ${baseAsset}, using fallback data`,
+      console.log(`Fetching top coins to find ID for ${baseAsset}`);
+      try {
+        await getTopCoins();
+        if (cache.symbolToId.has(baseAsset.toLowerCase())) {
+          coinId = cache.symbolToId.get(baseAsset.toLowerCase())!;
+          console.log(`Found coin ID for ${baseAsset}: ${coinId}`);
+        } else {
+          console.warn(
+            `Could not find coin ID for ${baseAsset}, using fallback data`,
+          );
+          return generateFallbackOrderbook(symbol, depth);
+        }
+      } catch (topCoinsError) {
+        console.error(
+          `Error fetching top coins for ${baseAsset}:`,
+          topCoinsError,
         );
         return generateFallbackOrderbook(symbol, depth);
       }
     }
 
     // Get tickers for the coin
-    const tickerResponse = await getCoinTickers(coinId, [exchangeId]);
-
-    // Filter tickers for the specific trading pair
-    const filteredTickers = tickerResponse.tickers.filter(
-      (ticker) =>
-        ticker.base.toLowerCase() === baseAsset.toLowerCase() &&
-        ticker.target.toLowerCase() === quoteAsset.toLowerCase(),
-    );
-
-    // Convert tickers to orderbook format
-    const orderbook = tickersToOrderbook(filteredTickers, depth);
-
-    // Cache the orderbook
+    console.log(`Fetching tickers for ${coinId} on ${exchangeId}`);
     try {
-      localStorage.setItem(
-        cacheKey,
-        JSON.stringify({
-          data: orderbook,
-          timestamp: Date.now(),
-        }),
-      );
-    } catch (e) {
-      console.warn('Error caching orderbook:', e);
-    }
+      const tickerResponse = await getCoinTickers(coinId, [exchangeId]);
 
-    return orderbook;
+      // Check if we got any tickers
+      if (!tickerResponse.tickers || tickerResponse.tickers.length === 0) {
+        console.warn(
+          `No tickers found for ${coinId} on ${exchangeId}, using fallback data`,
+        );
+        return generateFallbackOrderbook(symbol, depth);
+      }
+
+      // Filter tickers for the specific trading pair
+      const filteredTickers = tickerResponse.tickers.filter(
+        (ticker) =>
+          ticker.base.toLowerCase() === baseAsset.toLowerCase() &&
+          ticker.target.toLowerCase() === quoteAsset.toLowerCase(),
+      );
+
+      // Check if we have any matching tickers after filtering
+      if (filteredTickers.length === 0) {
+        console.warn(
+          `No matching tickers found for ${symbol} on ${exchangeId}, using fallback data`,
+        );
+        return generateFallbackOrderbook(symbol, depth);
+      }
+
+      // Convert tickers to orderbook format
+      const orderbook = tickersToOrderbook(filteredTickers, depth);
+
+      // Cache the orderbook
+      try {
+        localStorage.setItem(
+          cacheKey,
+          JSON.stringify({
+            data: orderbook,
+            timestamp: Date.now(),
+          }),
+        );
+      } catch (e) {
+        console.warn('Error caching orderbook:', e);
+      }
+
+      return orderbook;
+    } catch (tickersError) {
+      console.error(`Error fetching tickers for ${coinId}:`, tickersError);
+      throw tickersError; // Let the outer catch block handle this
+    }
   } catch (error) {
     console.error(`Error getting orderbook for ${symbol}:`, error);
 
