@@ -191,24 +191,16 @@ export function ChartSection({
             typeof window.TradingView !== 'undefined' &&
             window.TradingView.widget
           ) {
-            // Format the symbol based on the exchange
-            let symbolFormat;
-            if (selectedAccount?.exchangeId === 'sandbox') {
-              // For sandbox, check if we have a preferred test network in localStorage
-              const preferredTestNetwork =
-                localStorage.getItem('sandbox_test_network') || 'binance';
-              const testExchange = preferredTestNetwork.toUpperCase();
+            // Get the properly formatted symbol for TradingView
+            const symbolFormat = getTradingViewSymbol(
+              selectedAccount,
+              selectedPair,
+            );
+            console.log(
+              `Recreating TradingView widget with symbol: ${symbolFormat}`,
+            );
 
-              symbolFormat = `${testExchange}:${selectedPair.baseAsset}${selectedPair.quoteAsset}`;
-              console.log(
-                `Using ${testExchange} test network for sandbox symbol: ${symbolFormat}`,
-              );
-            } else {
-              // For other exchanges, use the exchange name
-              symbolFormat = `${selectedAccount?.exchange?.toUpperCase() || 'BINANCE'}:${selectedPair.baseAsset}${selectedPair.quoteAsset}`;
-              console.log(`Using standard symbol format: ${symbolFormat}`);
-            }
-
+            // Create the widget with the correct symbol format
             widgetInstanceRef.current = new window.TradingView.widget({
               autosize: true,
               symbol: symbolFormat,
@@ -223,7 +215,7 @@ export function ChartSection({
               hide_side_toolbar: false,
             });
             console.log(
-              `TradingView widget recreated with symbol: ${selectedPair.baseAsset}${selectedPair.quoteAsset}`,
+              `TradingView widget recreated with symbol: ${selectedPair.baseAsset}${selectedPair.quoteAsset} on ${symbolFormat}`,
             );
           }
         }, 50);
