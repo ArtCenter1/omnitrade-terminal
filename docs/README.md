@@ -1,6 +1,6 @@
 # OmniTrade Documentation
 
-This directory contains essential documentation for the OmniTrade project. For more comprehensive documentation, please visit our [GitHub Wiki](https://github.com/yourusername/omnitrade/wiki).
+This directory contains essential documentation for the OmniTrade project. For more comprehensive documentation, please visit our [GitHub Wiki](https://github.com/ArtCenter1/omnitrade/wiki).
 
 ## In-Project Documentation
 
@@ -13,7 +13,7 @@ These files are kept within the project repository for easy access by developers
 
 ## Comprehensive Documentation
 
-For more detailed documentation, please visit our [GitHub Wiki](https://github.com/yourusername/omnitrade/wiki), which includes:
+For more detailed documentation, please visit our [GitHub Wiki](https://github.com/ArtCenter1/omnitrade/wiki), which includes:
 
 - Detailed Getting Started Guide
 - Complete Environment Configuration
