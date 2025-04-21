@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'; // Added useState
+import { useEffect, useRef, useState } from 'react'; // Removed React import
 import { PriceOverview } from './PriceOverview';
 import { TimeframeSelector } from './TimeframeSelector';
 import { TradingPairSelector, TradingPair } from './TradingPairSelector';
@@ -32,13 +32,11 @@ declare global {
 interface ChartSectionProps {
   selectedPair?: TradingPair;
   onPairSelect?: (pair: TradingPair) => void;
-  className?: string;
 }
 
 export function ChartSection({
   selectedPair,
   onPairSelect,
-  className,
 }: ChartSectionProps = {}) {
   const container = useRef<HTMLDivElement>(null);
   const [currentTimeframe, setCurrentTimeframe] = useState<string>('D'); // Default to Daily
@@ -117,13 +115,15 @@ export function ChartSection({
       if (existingScript) {
         existingScript.removeEventListener('load', createWidget);
       }
-      // Optional: Clean up widget instance if TradingView provides an API for it
-      // if (widgetInstanceRef.current && typeof widgetInstanceRef.current.remove === 'function') {
-      //   widgetInstanceRef.current.remove();
-      // }
+
+      // Just clear the container instead of trying to remove the widget
+      // This avoids the "Cannot read properties of null" error
       if (currentContainer) {
-        // currentContainer.innerHTML = ''; // Clear container on unmount/re-render
+        currentContainer.innerHTML = ''; // Clear container on unmount/re-render
       }
+
+      // Reset the widget instance reference
+      widgetInstanceRef.current = null;
     };
     // Re-run effect when currentTimeframe, currentPair, or selectedAccount changes
   }, [currentTimeframe, currentPair, selectedAccount]);
@@ -131,9 +131,43 @@ export function ChartSection({
   // Update currentPair when selectedPair changes
   useEffect(() => {
     if (selectedPair) {
+      console.log(
+        `ChartSection: Updating to selected pair ${selectedPair.symbol}`,
+      );
       setCurrentPair(selectedPair);
+
+      // Force recreation of the TradingView widget with the new symbol
+      const currentContainer = container.current;
+      if (currentContainer) {
+        currentContainer.innerHTML = '';
+
+        // Small delay to ensure the DOM is updated
+        setTimeout(() => {
+          if (
+            typeof window.TradingView !== 'undefined' &&
+            window.TradingView.widget
+          ) {
+            widgetInstanceRef.current = new window.TradingView.widget({
+              autosize: true,
+              symbol: `${selectedAccount?.exchange?.toUpperCase() || 'BINANCE'}:${selectedPair.baseAsset}${selectedPair.quoteAsset}`,
+              interval: currentTimeframe,
+              timezone: 'Etc/UTC',
+              theme: 'dark',
+              style: '1',
+              locale: 'en',
+              enable_publishing: false,
+              allow_symbol_change: true,
+              container_id: currentContainer.id,
+              hide_side_toolbar: false,
+            });
+            console.log(
+              `TradingView widget recreated with symbol: ${selectedPair.baseAsset}${selectedPair.quoteAsset}`,
+            );
+          }
+        }, 50);
+      }
     }
-  }, [selectedPair]);
+  }, [selectedPair, selectedAccount, currentTimeframe]);
 
   const handleTimeframeSelect = (timeframe: string) => {
     setCurrentTimeframe(timeframe);
@@ -150,7 +184,13 @@ export function ChartSection({
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-4 border-b border-gray-800">
-        <TradingPairSelector onPairSelect={handlePairSelect} />
+        <div className="flex items-center">
+          <TradingPairSelector
+            onPairSelect={handlePairSelect}
+            currentPair={currentPair}
+          />
+          <PriceOverview selectedPair={currentPair} showPriceOnly={true} />
+        </div>
         <PriceOverview selectedPair={currentPair} />
       </div>
 

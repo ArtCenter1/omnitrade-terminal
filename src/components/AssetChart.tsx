@@ -28,9 +28,12 @@ export function AssetChart({
   return (
     <div className="w-[100px] h-[40px] relative">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={chartData}>
+        <LineChart
+          data={chartData}
+          margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+        >
           <Line
-            type="natural"
+            type="monotone"
             dataKey="value"
             stroke={isPositive ? '#05c48a' : '#ea384d'}
             strokeWidth={1.2}

@@ -27,6 +27,7 @@ type AuthContextType = {
   resetPassword: (
     email: string,
   ) => Promise<{ error: any | null; success: boolean }>;
+  getAuthToken: () => Promise<string | null>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -45,12 +46,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // Check if we should use a mock user (you can toggle this in localStorage)
       const useMockUser = localStorage.getItem('useMockUser') === 'true';
       if (useMockUser) {
-        console.log('Using mock user for development');
+        console.log(
+          '%c MOCK USER ACTIVE ',
+          'background: #f59e0b; color: #000; font-weight: bold; padding: 4px;',
+        );
+        console.log(
+          '%c API calls will be intercepted with mock data ',
+          'background: #78350f; color: #fff; padding: 2px;',
+        );
+
+        // Get the stored email or use default
+        const storedEmail =
+          localStorage.getItem('userEmail') || 'dev@example.com';
+
         // Create a mock Firebase user
         const mockUser = {
           uid: 'mock-user-id',
-          email: 'dev@example.com',
-          displayName: 'Dev User',
+          email: storedEmail,
+          displayName: storedEmail.split('@')[0],
           emailVerified: true,
           isAnonymous: false,
           metadata: {
@@ -93,9 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (firebaseUser) {
         console.log('User is authenticated:', firebaseUser.email);
-        setTimeout(() => {
-          toast.success(`Welcome back, ${firebaseUser.email}`);
-        }, 0);
+        // Removed welcome toast message
       } else {
         console.log('No authenticated user, redirecting to auth page');
         // Only redirect to auth if we're not already on an auth page
@@ -108,10 +119,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         ].some((path) => currentPath.startsWith(path));
 
         if (!isAuthPage) {
-          setTimeout(() => {
-            toast.info('You have been signed out');
-            navigate('/auth');
-          }, 0);
+          // Redirect without toast message
+          navigate('/auth');
         }
       }
     });
@@ -145,10 +154,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const signOut = async () => {
     try {
+      // Check if we're using a mock user
+      if (
+        process.env.NODE_ENV === 'development' &&
+        localStorage.getItem('useMockUser') === 'true'
+      ) {
+        console.log('Signing out mock user');
+        // Remove all mock user related data from localStorage
+        localStorage.removeItem('useMockUser');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('userEmail');
+        localStorage.removeItem('selected-account-storage');
+
+        // Clear the user state
+        setUser(null);
+
+        // Redirect to auth page immediately without toast
+        window.location.href = '/auth';
+
+        return;
+      }
+
+      // Regular Firebase signout
       const auth = getAuth(firebaseApp);
       await firebaseSignOut(auth);
+      console.log('Firebase user signed out successfully');
+
+      // Clear any leftover mock data
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('selected-account-storage');
     } catch (error) {
       console.error('Firebase sign out error:', error);
+      // Removed error toast
     }
   };
 
@@ -163,6 +201,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const getAuthToken = async (): Promise<string | null> => {
+    try {
+      // Check if we're using a mock user
+      if (
+        process.env.NODE_ENV === 'development' &&
+        localStorage.getItem('useMockUser') === 'true'
+      ) {
+        console.log('Returning mock auth token');
+        return 'mock-auth-token';
+      }
+
+      // Get token from Firebase user
+      if (!user) {
+        console.warn('No authenticated user found when requesting token');
+        return null;
+      }
+
+      const token = await user.getIdToken();
+      return token;
+    } catch (error) {
+      console.error('Error getting auth token:', error);
+      return null;
+    }
+  };
+
   const value = {
     user,
     isLoading,
@@ -170,6 +233,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     signUp,
     signOut,
     resetPassword,
+    getAuthToken,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

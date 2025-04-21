@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronDown, Loader2, Plus } from 'lucide-react';
+import { ChevronDown, Loader2, Plus, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,11 +10,17 @@ import {
   DropdownMenuTrigger,
   DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import {
   ExchangeAccount,
-  exchangeAccounts,
+  getExchangeAccounts,
 } from '@/mocks/mockExchangeAccounts';
 
 export function AccountSelector() {
@@ -28,8 +34,22 @@ export function AccountSelector() {
   // Get accounts for the current exchange
   useEffect(() => {
     if (selectedAccount) {
+      // Skip Portfolio Total (exchangeId: 'all')
+      if (
+        selectedAccount.exchangeId === 'all' ||
+        selectedAccount.isPortfolioOverview
+      ) {
+        console.log(
+          'Portfolio Total detected in AccountSelector, skipping account filtering',
+        );
+        return;
+      }
+
+      // Get the latest accounts using the function to ensure we have the latest data
+      const allAccounts = getExchangeAccounts();
+
       // Filter accounts for the current exchange
-      const accounts = exchangeAccounts.filter(
+      const accounts = allAccounts.filter(
         (account) =>
           account.exchangeId?.toLowerCase() ===
           selectedAccount.exchangeId?.toLowerCase(),
@@ -43,6 +63,99 @@ export function AccountSelector() {
       setAccountsForExchange(accounts);
     }
   }, [selectedAccount]);
+
+  // Listen for API key updates to refresh the account list
+  useEffect(() => {
+    const handleApiKeyUpdated = (e: CustomEvent) => {
+      const { apiKeyId, nickname } = e.detail || {};
+      console.log(
+        `[AccountSelector] API key updated event received for ${apiKeyId} with nickname "${nickname}", refreshing data`,
+      );
+
+      if (selectedAccount) {
+        console.log(
+          `[AccountSelector] Current selected account: ${selectedAccount.name} (${selectedAccount.apiKeyId})`,
+        );
+
+        // If this is the currently selected account, update it immediately
+        if (selectedAccount.apiKeyId === apiKeyId) {
+          console.log(
+            `[AccountSelector] Currently selected account matches updated API key, updating immediately`,
+          );
+          // Create a new account object with the updated nickname
+          const updatedAccount = {
+            ...selectedAccount,
+            name: nickname,
+          };
+          // Update the selected account
+          setSelectedAccount(updatedAccount);
+        }
+
+        // Get the latest accounts
+        console.log(
+          `[AccountSelector] Getting latest accounts for exchange: ${selectedAccount.exchangeId}`,
+        );
+        const allAccounts = getExchangeAccounts();
+
+        // Filter accounts for the current exchange
+        const accounts = allAccounts.filter(
+          (account) =>
+            account.exchangeId?.toLowerCase() ===
+            selectedAccount.exchangeId?.toLowerCase(),
+        );
+
+        console.log(
+          `[AccountSelector] Found ${accounts.length} accounts for exchange ${selectedAccount.exchangeId}:`,
+          accounts.map((acc) => ({
+            id: acc.id,
+            name: acc.name,
+            apiKeyId: acc.apiKeyId,
+          })),
+        );
+        setAccountsForExchange(accounts);
+      }
+    };
+
+    // Also listen for storage events to refresh the account list
+    const handleStorageChange = (e: StorageEvent) => {
+      console.log(
+        `[AccountSelector] Storage changed (${e.key}), checking if we need to refresh`,
+      );
+      // Only refresh if the exchange_api_keys were updated
+      if (e.key === 'exchange_api_keys' || e.key === null) {
+        console.log(
+          '[AccountSelector] exchange_api_keys changed, refreshing account list',
+        );
+        if (selectedAccount) {
+          // Get the latest accounts
+          const allAccounts = getExchangeAccounts();
+
+          // Filter accounts for the current exchange
+          const accounts = allAccounts.filter(
+            (account) =>
+              account.exchangeId?.toLowerCase() ===
+              selectedAccount.exchangeId?.toLowerCase(),
+          );
+
+          setAccountsForExchange(accounts);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener(
+      'apiKeyUpdated',
+      handleApiKeyUpdated as EventListener,
+    );
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener(
+        'apiKeyUpdated',
+        handleApiKeyUpdated as EventListener,
+      );
+    };
+  }, [selectedAccount, setSelectedAccount]);
 
   // If no account is selected, show empty state
   if (!selectedAccount) {
@@ -112,20 +225,45 @@ export function AccountSelector() {
                   }}
                   className="py-2 cursor-pointer hover:bg-gray-800"
                 >
-                  <div className="flex items-center w-full">
-                    <div className="w-5 h-5 rounded-full overflow-hidden mr-2">
-                      <img
-                        src={account.logo}
-                        alt={account.exchange}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          // Fallback to placeholder if image fails to load
-                          e.currentTarget.src = '/placeholder.svg';
-                          e.currentTarget.onerror = null; // Prevent infinite loop
-                        }}
-                      />
+                  <div className="flex items-center w-full justify-between">
+                    <div className="flex items-center">
+                      <div className="w-5 h-5 rounded-full overflow-hidden mr-2">
+                        <img
+                          src={account.logo}
+                          alt={account.exchange}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Fallback to placeholder if image fails to load
+                            e.currentTarget.src = '/placeholder.svg';
+                            e.currentTarget.onerror = null; // Prevent infinite loop
+                          }}
+                        />
+                      </div>
+                      <span className="text-white text-sm">{account.name}</span>
                     </div>
-                    <span className="text-white text-sm">{account.name}</span>
+
+                    {account.isSandbox && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle
+                              size={14}
+                              className="text-gray-400 ml-2"
+                            />
+                          </TooltipTrigger>
+                          <TooltipContent
+                            side="right"
+                            className="bg-gray-900 border-gray-800 text-white"
+                          >
+                            <p className="max-w-xs">
+                              Sandbox mode for practice trading. <br />
+                              Start with $50,000 in virtual funds to test
+                              strategies without risk.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
                   </div>
                 </DropdownMenuItem>
               ))}

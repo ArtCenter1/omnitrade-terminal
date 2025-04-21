@@ -1,16 +1,17 @@
-import { useState } from "react";
-import { ProtectedLayout } from "@/components/layout/ProtectedLayout";
-import { useRoleBasedAccess } from "@/hooks/useRoleBasedAccess";
-import { useAuth } from "@/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { useState } from 'react';
+import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
+import { useRoleBasedAccess } from '@/hooks/useRoleBasedAccess';
+import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 import {
   Users,
   Settings,
   BarChart3,
   ChevronDown,
   ChevronUp,
-} from "lucide-react";
+  Terminal,
+} from 'lucide-react';
 
 export default function AdminDashboard() {
   const { userRole, isAdmin } = useRoleBasedAccess();
@@ -43,11 +44,11 @@ export default function AdminDashboard() {
                 User Email: {user?.email}
               </p>
               <p className="text-sm text-gray-300 mb-2">
-                Current Role:{" "}
+                Current Role:{' '}
                 <span className="font-bold text-green-500">{userRole}</span>
               </p>
               <p className="text-sm text-gray-300 mb-2">
-                Is Admin: {isAdmin ? "Yes" : "No"}
+                Is Admin: {isAdmin ? 'Yes' : 'No'}
               </p>
               <p className="text-sm text-gray-300 mb-4">
                 User Metadata: {JSON.stringify(user?.metadata || {})}
@@ -103,7 +104,7 @@ export default function AdminDashboard() {
                   <div className="bg-blue-500 rounded-full h-2 w-2 mt-2 mr-2"></div>
                   <div>
                     <p className="text-sm">
-                      New user registered:{" "}
+                      New user registered:{' '}
                       <span className="text-blue-400">
                         john.doe@example.com
                       </span>
@@ -115,7 +116,7 @@ export default function AdminDashboard() {
                   <div className="bg-green-500 rounded-full h-2 w-2 mt-2 mr-2"></div>
                   <div>
                     <p className="text-sm">
-                      Role <span className="text-green-400">Editor</span>{" "}
+                      Role <span className="text-green-400">Editor</span>{' '}
                       modified
                     </p>
                     <p className="text-xs text-gray-500">Yesterday, 4:45 PM</p>
@@ -132,7 +133,7 @@ export default function AdminDashboard() {
                   <div className="bg-purple-500 rounded-full h-2 w-2 mt-2 mr-2"></div>
                   <div>
                     <p className="text-sm">
-                      New permission added:{" "}
+                      New permission added:{' '}
                       <span className="text-purple-400">manage_reports</span>
                     </p>
                     <p className="text-xs text-gray-500">Aug 15, 2023</p>
@@ -232,6 +233,19 @@ export default function AdminDashboard() {
               </div>
               <p className="text-sm text-gray-400">
                 View system-wide analytics and reports
+              </p>
+            </Link>
+
+            <Link
+              to="/admin/dev-settings"
+              className="bg-gray-800 p-4 rounded-lg hover:bg-gray-700 transition-colors"
+            >
+              <div className="flex items-center mb-2">
+                <Terminal className="h-5 w-5 mr-2 text-amber-500" />
+                <h3 className="font-medium">Developer Settings</h3>
+              </div>
+              <p className="text-sm text-gray-400">
+                Configure feature flags and development tools
               </p>
             </Link>
           </div>

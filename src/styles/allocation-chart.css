@@ -9,6 +9,8 @@
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+  overflow: visible !important;
+  min-height: 200px !important;
 }
 
 /* Remove outlines and borders from Recharts elements */
@@ -54,13 +56,31 @@ svg {
   outline: none !important;
 }
 
-/* Ensure the allocation pie is properly positioned */
+/* Ensure the allocation pie is properly positioned and sized */
 .allocation-pie {
   transform: translateY(0) !important;
+  width: 100% !important;
+  height: 100% !important;
 }
 
 /* Override any Recharts default styles */
 .recharts-pie .recharts-pie-sector path {
   stroke-width: 0 !important;
   stroke: none !important;
+}
+
+/* Make sure the chart wrapper takes up full space */
+.recharts-wrapper {
+  width: 100% !important;
+  height: 100% !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+}
+
+/* Ensure the chart scales with the container */
+.recharts-responsive-container {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 200px !important;
 }

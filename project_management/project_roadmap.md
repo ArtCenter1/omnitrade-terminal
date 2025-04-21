@@ -70,9 +70,27 @@
 Before proceeding to Phase 6, the platform needs a proper Redis cloud setup for production and live testing environments. Currently, Redis runs locally and requires manual startup after system restart, which is not suitable for production use.
 
 Refer to [Redis Cloud Roadmap](redis_cloud_roadmap.md) for detailed implementation steps, timeline, and cost considerations. This setup is critical for ensuring reliable:
+
 - Market data caching
 - API rate limiting
 - Job queuing for trading bots
+
+## Comprehensive Onboarding Experience
+
+To improve user retention and provide a better first-time experience, we will implement a comprehensive onboarding solution that combines three key features:
+
+1. **Sandbox/Demo Environment**: A risk-free environment for new users to explore the platform, test trading strategies, and practice bot building without real funds
+2. **Guided Tutorial System**: Step-by-step walkthroughs using react-joyride to help users learn platform features
+3. **AI Assistant Guide**: An animated AI assistant with voice capabilities to provide contextual help and answer user questions
+
+This solution will serve multiple purposes:
+
+- Onboarding new users with an engaging, interactive experience
+- Supporting the bot building and competition features with a sandbox for testing
+- Providing a backtesting environment using historical data
+- Creating a pathway for users to transition from sandbox to real trading
+
+Refer to [Onboarding Experience](onboarding_experience.md) for detailed implementation plan, architecture, and user flows.
 
 ## Phase 6: Blockchain Integration
 

@@ -32,11 +32,11 @@ This checklist tracks the prioritized integration of the core frontend component
 ## Phase 2: Portfolio Display
 
 - [x] Implement mock portfolio data generation
-- [ ] Implement backend API endpoint to fetch and aggregate user portfolio data from all connected exchanges
-- [ ] Connect Dashboard page and components to portfolio endpoint:
-  - [ ] Fetch and display portfolio data
-  - [ ] Display asset breakdown and charts
-  - [ ] Handle loading and error states
+- [x] Implement backend API endpoint to fetch and aggregate user portfolio data from all connected exchanges
+- [x] Connect Dashboard page and components to portfolio endpoint:
+  - [x] Fetch and display portfolio data
+  - [x] Display asset breakdown and charts
+  - [x] Handle loading and error states
 
 ---
 
@@ -44,16 +44,16 @@ This checklist tracks the prioritized integration of the core frontend component
 
 - [x] Implement mock trading data (pairs, orderbooks, klines)
 - [x] Implement mock order management (place, cancel, history)
-- [ ] Implement backend endpoints/WebSocket for:
-  - [ ] Fetching available trading pairs per exchange
-  - [ ] Streaming live market data for selected pair/exchange
-  - [ ] Placing trade orders
-  - [ ] Fetching open orders/trade history
-- [ ] Connect Terminal page components:
-  - [ ] Fetch and display available pairs
-  - [ ] Subscribe to and display live market data
-  - [ ] Submit trade orders
-  - [ ] Display open orders/history
-  - [ ] Handle real-time updates and errors
+- [x] Implement backend endpoints/WebSocket for:
+  - [x] Fetching available trading pairs per exchange
+  - [x] Streaming live market data for selected pair/exchange
+  - [x] Placing trade orders
+  - [x] Fetching open orders/trade history
+- [x] Connect Terminal page components:
+  - [x] Fetch and display available pairs
+  - [x] Subscribe to and display live market data
+  - [x] Submit trade orders
+  - [x] Display open orders/history
+  - [x] Handle real-time updates and errors
 
 ---

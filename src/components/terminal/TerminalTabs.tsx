@@ -8,16 +8,22 @@ import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import { TradingPair } from './TradingPairSelector';
 import { getMockPortfolioData } from '@/mocks/mockPortfolio';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { OrdersTable } from './OrdersTable';
 
 interface TerminalTabsProps {
   selectedPair?: TradingPair;
+  refreshTrigger?: number;
 }
 
 // Define sorting types
 type SortField = 'asset' | 'amount' | 'value' | 'price' | 'change';
 type SortDirection = 'asc' | 'desc';
 
-export function TerminalTabs({ selectedPair }: TerminalTabsProps = {}) {
+export function TerminalTabs({
+  selectedPair,
+  refreshTrigger = 0,
+}: TerminalTabsProps = {}) {
+  console.log('TerminalTabs refreshTrigger:', refreshTrigger);
   const [activeTab, setActiveTab] = useState('Balances');
   const [showCurrentExchangeOnly, setShowCurrentExchangeOnly] = useState(true);
   const [showCurrentPairOnly, setShowCurrentPairOnly] = useState(false);
@@ -56,13 +62,13 @@ export function TerminalTabs({ selectedPair }: TerminalTabsProps = {}) {
         icon: `/crypto-icons/${asset.asset.toLowerCase()}.svg`,
         name: getAssetName(asset.asset),
         symbol: asset.asset,
-        amount: asset.free.toFixed(8),
+        amount: asset.total.toFixed(8),
         value: `$${asset.usdValue.toFixed(2)}`,
         price: `$${price.toFixed(2)}`,
         change: getRandomChange(asset.asset),
         chart: generateChartData(asset.asset),
         // Store raw values for sorting
-        _rawAmount: asset.free,
+        _rawAmount: asset.total,
         _rawValue: asset.usdValue,
         _rawPrice: price,
         _rawChange: parseFloat(getRandomChange(asset.asset).replace('%', '')),
@@ -130,9 +136,19 @@ export function TerminalTabs({ selectedPair }: TerminalTabsProps = {}) {
     const hash = symbol
       .split('')
       .reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const random = Math.sin(hash) * 10;
-    const change = random.toFixed(2);
-    return parseFloat(change) >= 0 ? `+${change}%` : `${change}%`;
+
+    // Special handling for XRP to ensure positive values
+    if (symbol === 'XRP') {
+      // Generate a positive value between 0.1 and 5.0 for XRP
+      const random = Math.abs(Math.sin(hash)) * 4.9 + 0.1;
+      const change = random.toFixed(2);
+      return `+${change}%`;
+    } else {
+      // For other symbols, allow both positive and negative changes
+      const random = Math.sin(hash) * 10;
+      const change = random.toFixed(2);
+      return parseFloat(change) >= 0 ? `+${change}%` : `${change}%`;
+    }
   }
 
   // Helper function to generate chart data
@@ -141,11 +157,17 @@ export function TerminalTabs({ selectedPair }: TerminalTabsProps = {}) {
     const hash = symbol
       .split('')
       .reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const isPositive = Math.sin(hash) > 0;
+
+    // Special handling for XRP to ensure it always has positive values
+    let isPositive = Math.sin(hash) > 0;
+    if (symbol === 'XRP') {
+      isPositive = true;
+    }
 
     // Generate 7 data points
     return Array.from({ length: 7 }, (_, i) => {
-      const random = Math.sin(hash + i) * 5;
+      // Use absolute value to ensure positive values
+      const random = Math.abs(Math.sin(hash + i) * 5);
       return { value: 10 + random };
     });
   }
@@ -176,63 +198,70 @@ export function TerminalTabs({ selectedPair }: TerminalTabsProps = {}) {
   return (
     <div className="h-full">
       <div className="h-full">
-        <div className="flex items-center justify-between px-4 py-2 border-b border-gray-800">
-          <div className="flex-1">
-            <Tabs
-              value={activeTab}
-              onValueChange={setActiveTab}
-              className="w-full"
-            >
-              <TerminalTabsList className="grid grid-cols-6">
-                <TerminalTabsTrigger value="Balances">
-                  Balances
-                </TerminalTabsTrigger>
-                <TerminalTabsTrigger value="OpenOrders">
-                  Open Orders
-                </TerminalTabsTrigger>
-                <TerminalTabsTrigger value="OrderHistory">
-                  Order History
-                </TerminalTabsTrigger>
-                <TerminalTabsTrigger value="Positions">
-                  Positions
-                </TerminalTabsTrigger>
-                <TerminalTabsTrigger value="Transfers">
-                  Transfers
-                </TerminalTabsTrigger>
-                <TerminalTabsTrigger value="Trades">
-                  Recent Trades
-                </TerminalTabsTrigger>
-              </TerminalTabsList>
-            </Tabs>
-          </div>
-
-          <div className="flex items-center gap-4 ml-4">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="currentExchange"
-                checked={showCurrentExchangeOnly}
-                onCheckedChange={(checked) =>
-                  setShowCurrentExchangeOnly(checked as boolean)
-                }
-              />
-              <Label
-                htmlFor="currentExchange"
-                className="text-gray-400 text-sm"
+        <div className="px-4 py-2 border-b border-gray-800">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <Tabs
+                value={activeTab}
+                onValueChange={setActiveTab}
+                className="w-full"
               >
-                {selectedAccount?.exchange || 'Binance'} Only
-              </Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="currentPair"
-                checked={showCurrentPairOnly}
-                onCheckedChange={(checked) =>
-                  setShowCurrentPairOnly(checked as boolean)
-                }
-              />
-              <Label htmlFor="currentPair" className="text-gray-400 text-sm">
-                {selectedPair?.symbol || 'BTC/USDT'} Only
-              </Label>
+                <div className="flex items-center justify-between w-full">
+                  <TerminalTabsList className="flex">
+                    <TerminalTabsTrigger value="Balances">
+                      Balances
+                    </TerminalTabsTrigger>
+                    <TerminalTabsTrigger value="OpenOrders">
+                      Open Orders
+                    </TerminalTabsTrigger>
+                    <TerminalTabsTrigger value="OrderHistory">
+                      Order History
+                    </TerminalTabsTrigger>
+                    <TerminalTabsTrigger value="Positions">
+                      Positions
+                    </TerminalTabsTrigger>
+                    <TerminalTabsTrigger value="Transfers">
+                      Transfers
+                    </TerminalTabsTrigger>
+                    <TerminalTabsTrigger value="Trades">
+                      Recent Trades
+                    </TerminalTabsTrigger>
+                  </TerminalTabsList>
+
+                  <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="currentExchange"
+                        checked={showCurrentExchangeOnly}
+                        onCheckedChange={(checked) =>
+                          setShowCurrentExchangeOnly(checked as boolean)
+                        }
+                      />
+                      <Label
+                        htmlFor="currentExchange"
+                        className="text-gray-400 text-sm"
+                      >
+                        {selectedAccount?.exchange || 'Binance'} Only
+                      </Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="currentPair"
+                        checked={showCurrentPairOnly}
+                        onCheckedChange={(checked) =>
+                          setShowCurrentPairOnly(checked as boolean)
+                        }
+                      />
+                      <Label
+                        htmlFor="currentPair"
+                        className="text-gray-400 text-sm"
+                      >
+                        {selectedPair?.symbol || 'BTC/USDT'} Only
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+              </Tabs>
             </div>
           </div>
         </div>
@@ -242,36 +271,36 @@ export function TerminalTabs({ selectedPair }: TerminalTabsProps = {}) {
           style={{ height: 'calc(100% - 45px)' }}
         >
           {activeTab === 'Balances' && (
-            <div className="overflow-x-auto">
+            <div>
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-800">
                     <th
-                      className="text-left py-2 px-2 text-sm font-medium text-gray-400 cursor-pointer hover:text-white"
+                      className="text-left py-2 px-2 text-sm font-medium text-gray-400 cursor-pointer hover:text-gray-300"
                       onClick={() => handleSort('asset')}
                     >
                       Asset {renderSortIndicator('asset')}
                     </th>
                     <th
-                      className="text-left py-2 px-2 text-sm font-medium text-gray-400 cursor-pointer hover:text-white"
+                      className="text-left py-2 px-2 text-sm font-medium text-gray-400 cursor-pointer hover:text-gray-300"
                       onClick={() => handleSort('amount')}
                     >
                       Available Amount {renderSortIndicator('amount')}
                     </th>
                     <th
-                      className="text-left py-2 px-2 text-sm font-medium text-gray-400 cursor-pointer hover:text-white"
+                      className="text-left py-2 px-2 text-sm font-medium text-gray-400 cursor-pointer hover:text-gray-300"
                       onClick={() => handleSort('value')}
                     >
                       Value (USD) {renderSortIndicator('value')}
                     </th>
                     <th
-                      className="text-left py-2 px-2 text-sm font-medium text-gray-400 cursor-pointer hover:text-white"
+                      className="text-left py-2 px-2 text-sm font-medium text-gray-400 cursor-pointer hover:text-gray-300"
                       onClick={() => handleSort('price')}
                     >
                       Last Price {renderSortIndicator('price')}
                     </th>
                     <th
-                      className="text-left py-2 px-2 text-sm font-medium text-gray-400 cursor-pointer hover:text-white"
+                      className="text-left py-2 px-2 text-sm font-medium text-gray-400 cursor-pointer hover:text-gray-300"
                       onClick={() => handleSort('change')}
                     >
                       24h Change {renderSortIndicator('change')}
@@ -303,14 +332,13 @@ export function TerminalTabs({ selectedPair }: TerminalTabsProps = {}) {
             </div>
           )}
 
-          {activeTab === 'OpenOrders' && (
-            <div className="text-center py-8 text-gray-400">No open orders</div>
-          )}
-
-          {activeTab === 'OrderHistory' && (
-            <div className="text-center py-8 text-gray-400">
-              No order history
-            </div>
+          {(activeTab === 'OpenOrders' || activeTab === 'OrderHistory') && (
+            <OrdersTable
+              selectedSymbol={selectedPair?.symbol}
+              refreshTrigger={refreshTrigger}
+              initialTab={activeTab === 'OpenOrders' ? 'open' : 'history'}
+              showTabs={false}
+            />
           )}
 
           {activeTab === 'Positions' && (

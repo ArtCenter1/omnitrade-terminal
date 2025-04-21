@@ -3,8 +3,12 @@ import { Route, Routes, useLocation, Navigate } from 'react-router-dom';
 import { ThemeProvider as ShadcnThemeProvider } from '@/components/ThemeProvider';
 import '@/styles/themes.css';
 import '@/styles/components.css';
+import { Toaster } from '@/components/ui/sonner';
+// Debug panel imports removed
+// Debug panel removed
 import UserRoleManagement from './pages/admin/UserRoleManagement';
 import ComingSoon from './pages/admin/ComingSoon';
+import DevSettings from './pages/admin/DevSettings';
 import { ScrollToTop } from './components/ScrollToTop';
 import Index from './pages/Index';
 import AuthPage from './pages/auth/AuthPage';
@@ -87,6 +91,8 @@ function App() {
     );
   };
 
+  // Debug panel functions and variables removed
+
   return (
     <ShadcnThemeProvider
       attribute="class"
@@ -94,6 +100,7 @@ function App() {
       storageKey="omnitrade-theme"
       enableSystem={false}
     >
+      <Toaster />
       <ScrollToTop />
       <Routes>
         {/* Public routes */}
@@ -240,6 +247,17 @@ function App() {
               redirectTo="/dashboard"
             >
               <UserRoleManagement />
+            </RoleProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/dev-settings"
+          element={
+            <RoleProtectedRoute
+              allowedRoles={['admin']}
+              redirectTo="/dashboard"
+            >
+              <DevSettings />
             </RoleProtectedRoute>
           }
         />

@@ -19,9 +19,9 @@ function BalanceItem({ icon, name, amount, usdValue }: BalanceItemProps) {
   const assetSymbol = amount.split(' ')[1] || name;
 
   return (
-    <div className="flex justify-between items-center">
+    <div className="flex justify-between items-center py-0.5">
       <div className="flex items-center">
-        <div className="w-5 h-5 rounded-full overflow-hidden mr-2">
+        <div className="w-4 h-4 rounded-full overflow-hidden mr-1">
           <img
             src={icon}
             alt={name}
@@ -32,10 +32,10 @@ function BalanceItem({ icon, name, amount, usdValue }: BalanceItemProps) {
             }}
           />
         </div>
-        <span className="text-white">{assetSymbol}</span>
+        <span className="text-white text-sm">{assetSymbol}</span>
       </div>
       <div className="flex flex-col items-end">
-        <div className="text-white">{amountValue.toFixed(2)}</div>
+        <div className="text-white text-sm">{amountValue.toFixed(2)}</div>
         <div className="text-xs text-blue-400">
           = ${usdValue.toFixed(2)} USD
         </div>
@@ -46,10 +46,12 @@ function BalanceItem({ icon, name, amount, usdValue }: BalanceItemProps) {
 
 interface AvailableBalancesProps {
   selectedPair?: TradingPair;
+  refreshTrigger?: number;
 }
 
 export function AvailableBalances({
   selectedPair,
+  refreshTrigger = 0,
 }: AvailableBalancesProps = {}) {
   const { selectedAccount } = useSelectedAccount();
   const [assets, setAssets] = useState<PortfolioAsset[]>([]);
@@ -120,7 +122,7 @@ export function AvailableBalances({
       }
       setIsLoading(false);
     }
-  }, [selectedAccount]);
+  }, [selectedAccount, refreshTrigger]);
 
   if (isLoading) {
     return (
@@ -156,15 +158,15 @@ export function AvailableBalances({
   }
 
   return (
-    <div className="mb-6">
-      <div className="text-gray-400 mb-2 text-xs">Available Balances</div>
-      <div className="space-y-3 max-h-40 overflow-y-auto pr-1">
+    <div className="mb-3">
+      <div className="text-gray-400 mb-1 text-xs">Available Balances</div>
+      <div className="space-y-2 max-h-24 overflow-y-auto pr-1">
         {filteredAssets.map((asset) => (
           <BalanceItem
             key={asset.asset}
             icon={getIconUrl(asset.asset)}
             name={asset.asset}
-            amount={`${asset.free.toFixed(2)} ${asset.asset}`}
+            amount={`${asset.total.toFixed(2)} ${asset.asset}`}
             usdValue={asset.usdValue}
           />
         ))}

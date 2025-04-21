@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { ProfileLayout } from '@/components/profile/ProfileLayout';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, AlertCircle, Loader2 } from 'lucide-react';
+import { Plus, Trash2, AlertCircle, Loader2, Settings } from 'lucide-react';
 import { AddExchangeAccountModal } from '@/components/profile/AddExchangeAccountModal';
+import { EditExchangeAccountModal } from '@/components/profile/EditExchangeAccountModal';
 import {
   listExchangeApiKeys,
   deleteExchangeApiKey,
@@ -23,7 +24,9 @@ import {
 
 export default function MyAccounts() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [deleteKeyId, setDeleteKeyId] = useState<string | null>(null);
+  const [editApiKey, setEditApiKey] = useState<ExchangeApiKey | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -173,14 +176,29 @@ export default function MyAccounts() {
                         {formatDate(apiKey.created_at)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
-                          onClick={() => setDeleteKeyId(apiKey.api_key_id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex justify-end space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/20"
+                            onClick={() => {
+                              setEditApiKey(apiKey);
+                              setIsEditModalOpen(true);
+                            }}
+                            title="Edit account"
+                          >
+                            <Settings className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                            onClick={() => setDeleteKeyId(apiKey.api_key_id)}
+                            title="Delete account"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -230,6 +248,16 @@ export default function MyAccounts() {
       <AddExchangeAccountModal
         open={isAddModalOpen}
         onOpenChange={setIsAddModalOpen}
+        onSuccess={() =>
+          queryClient.invalidateQueries({ queryKey: ['exchangeApiKeys'] })
+        }
+      />
+
+      {/* Edit Exchange Modal */}
+      <EditExchangeAccountModal
+        open={isEditModalOpen}
+        onOpenChange={setIsEditModalOpen}
+        apiKey={editApiKey}
         onSuccess={() =>
           queryClient.invalidateQueries({ queryKey: ['exchangeApiKeys'] })
         }

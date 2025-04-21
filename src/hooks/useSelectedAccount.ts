@@ -1,8 +1,22 @@
 // src/hooks/useSelectedAccount.ts
+import { useEffect } from 'react';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { ExchangeAccount } from '@/mocks/mockExchangeAccounts';
 import { DEFAULT_MOCK_ACCOUNTS } from '@/mocks/mockExchangeAccounts';
+
+// Default Portfolio Total account
+const DEFAULT_PORTFOLIO_OVERVIEW: ExchangeAccount = {
+  id: 'portfolio-overview',
+  name: 'Portfolio Total',
+  exchange: 'all',
+  exchangeId: 'all',
+  apiKeyId: 'portfolio-overview',
+  logo: '/placeholder.svg',
+  value: '$56,019.96', // Default value
+  change: '+1.96%', // Default change
+  isPortfolioOverview: true,
+};
 
 interface SelectedAccountState {
   selectedAccount: ExchangeAccount | null;
@@ -12,14 +26,17 @@ interface SelectedAccountState {
 
 // Create a store to share the selected account across components
 // Use persist middleware to save the selected account in localStorage
-export const useSelectedAccountStore = create<SelectedAccountState>(
+export const useSelectedAccountStore = create<SelectedAccountState>()(
   persist(
     (set) => ({
-      selectedAccount: DEFAULT_MOCK_ACCOUNTS[1], // Default to Binance account
+      selectedAccount: DEFAULT_PORTFOLIO_OVERVIEW, // Default to Portfolio Total
       setSelectedAccount: (account) => {
-        console.log('Setting selected account:', account?.name || 'null');
         console.log(
-          'Account details:',
+          '[useSelectedAccount] Setting selected account:',
+          account?.name || 'null',
+        );
+        console.log(
+          '[useSelectedAccount] Account details:',
           account ? JSON.stringify(account) : 'null',
         );
         set({ selectedAccount: account });
@@ -34,13 +51,14 @@ export const useSelectedAccountStore = create<SelectedAccountState>(
       storage: createJSONStorage(() => localStorage), // Use JSON storage
       partialize: (state) => ({ selectedAccount: state.selectedAccount }), // only persist selectedAccount
       version: 1, // Add version for migrations
-      onRehydrateStorage: (state) => {
+      onRehydrateStorage: () => {
         // Handle rehydration and validate the state
         return (rehydratedState, error) => {
           if (error || !rehydratedState?.selectedAccount) {
             console.warn('Error rehydrating selected account state:', error);
-            // Set default account if there's an error or no selected account
-            set({ selectedAccount: DEFAULT_MOCK_ACCOUNTS[1] });
+            // We can't use 'set' here directly as it's not in scope
+            // The state will be initialized with the default value anyway
+            console.log('Will use default account');
           } else {
             console.log('Successfully rehydrated selected account state');
           }
@@ -62,6 +80,86 @@ export function useSelectedAccount() {
   const clearSelectedAccount = useSelectedAccountStore(
     (state) => state.clearSelectedAccount,
   );
+
+  // Add a useEffect to check for localStorage changes and API key updates
+  useEffect(() => {
+    // This will run when the component mounts
+    const handleStorageChange = (e: StorageEvent) => {
+      // If the selected account storage was changed in another tab/window
+      // or if the exchange_api_keys were updated
+      if (
+        e.key === 'selected-account-storage' ||
+        e.key === 'exchange_api_keys' ||
+        e.key === null
+      ) {
+        console.log(
+          `[useSelectedAccount] Storage changed (${e.key}), refreshing selected account...`,
+        );
+        // Force a refresh of the selected account
+        clearSelectedAccount();
+        // Wait a bit and then set it back to the default
+        setTimeout(() => {
+          // This will trigger a re-fetch of the account data
+          console.log(
+            '[useSelectedAccount] Setting back to default account after storage change',
+          );
+          setSelectedAccount(DEFAULT_PORTFOLIO_OVERVIEW);
+        }, 100);
+      }
+    };
+
+    // Handle API key updates
+    const handleApiKeyUpdated = (e: CustomEvent) => {
+      const { apiKeyId, nickname } = e.detail || {};
+      console.log(
+        `[useSelectedAccount] API key updated event received for ${apiKeyId} with nickname "${nickname}"`,
+      );
+
+      // If this is the currently selected account, update it
+      if (selectedAccount && selectedAccount.apiKeyId === apiKeyId) {
+        console.log(
+          `[useSelectedAccount] Updating selected account nickname from "${selectedAccount.name}" to "${nickname}"`,
+        );
+        // Create a new account object with the updated nickname
+        const updatedAccount = {
+          ...selectedAccount,
+          name: nickname,
+        };
+
+        // Update the selected account
+        console.log(
+          '[useSelectedAccount] Setting updated account:',
+          updatedAccount,
+        );
+        setSelectedAccount(updatedAccount);
+      } else if (selectedAccount) {
+        console.log(
+          `[useSelectedAccount] Selected account (${selectedAccount.apiKeyId}) does not match updated API key (${apiKeyId}), no update needed`,
+        );
+      } else {
+        console.log(
+          '[useSelectedAccount] No selected account, nothing to update',
+        );
+      }
+    };
+
+    // Listen for storage events
+    window.addEventListener('storage', handleStorageChange);
+    // Listen for API key update events
+    window.addEventListener(
+      'apiKeyUpdated',
+      handleApiKeyUpdated as EventListener,
+    );
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener(
+        'apiKeyUpdated',
+        handleApiKeyUpdated as EventListener,
+      );
+    };
+  }, [clearSelectedAccount, setSelectedAccount, selectedAccount]);
 
   return {
     selectedAccount,

@@ -3,6 +3,7 @@
 import { ExchangeAdapter } from '@/types/exchange';
 import { BinanceAdapter } from './binanceAdapter';
 import { CoinbaseAdapter } from './coinbaseAdapter';
+import { SandboxAdapter } from './sandboxAdapter';
 import { SUPPORTED_EXCHANGES } from '../mockData/mockDataUtils';
 
 /**
@@ -33,6 +34,9 @@ export class ExchangeFactory {
         break;
       case 'coinbase':
         adapter = new CoinbaseAdapter();
+        break;
+      case 'sandbox':
+        adapter = new SandboxAdapter();
         break;
       default:
         // Check if the exchange is supported

@@ -2,8 +2,11 @@ import { CircleDollarSign, Info, Search, Star } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
+import { useCoingeckoMarkets } from '@/hooks/useCoingeckoMarkets';
+import { useMarkets } from '@/services/marketDataApi';
+import { MarketCoin } from '@/types/marketData';
 
-// Mock data for markets
+// Fallback mock data for markets
 const mockMarkets = [
   {
     id: 'bitcoin',
@@ -105,17 +108,106 @@ const mockMarkets = [
 ];
 
 export default function Markets() {
-  const [markets, setMarkets] = useState(mockMarkets);
-  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredMarkets, setFilteredMarkets] = useState<MarketCoin[]>([]);
 
+  // Try to use the backend API first
+  const {
+    data: apiMarkets,
+    isLoading: isApiLoading,
+    error: apiError,
+  } = useMarkets(
+    {
+      vs_currency: 'usd',
+      page: 1,
+      per_page: 100,
+      sparkline: true,
+    },
+    {
+      // Don't retry too many times to avoid rate limits
+      retry: 1,
+      retryDelay: 5000,
+    },
+  );
+
+  // Fallback to direct CoinGecko API if backend fails
+  const {
+    markets: coingeckoMarkets,
+    loading: isCoingeckoLoading,
+    error: coingeckoError,
+  } = useCoingeckoMarkets();
+
+  // Determine which data source to use
+  const isLoading = isApiLoading && isCoingeckoLoading;
+  const hasApiData =
+    !isApiLoading && !apiError && apiMarkets && apiMarkets.length > 0;
+  const hasCoingeckoData =
+    !isCoingeckoLoading &&
+    !coingeckoError &&
+    coingeckoMarkets &&
+    coingeckoMarkets.length > 0;
+
+  // Convert CoinGecko markets to MarketCoin format if needed
+  const convertedCoingeckoMarkets: MarketCoin[] =
+    hasCoingeckoData && coingeckoMarkets
+      ? coingeckoMarkets.map((market, index) => ({
+          id: market.symbol,
+          symbol: market.symbol,
+          name: market.name,
+          image: market.image,
+          current_price: parseFloat(
+            market.price.replace('$', '').replace(',', ''),
+          ),
+          market_cap: 0, // Not available in this format
+          market_cap_rank: index + 1,
+          fully_diluted_valuation: null,
+          total_volume: 0, // Not available in this format
+          high_24h: 0,
+          low_24h: 0,
+          price_change_24h: 0,
+          price_change_percentage_24h: parseFloat(
+            market.change.replace('+', '').replace('%', ''),
+          ),
+          market_cap_change_24h: 0,
+          market_cap_change_percentage_24h: 0,
+          circulating_supply: 0,
+          total_supply: null,
+          max_supply: null,
+          ath: 0,
+          ath_change_percentage: 0,
+          ath_date: '',
+          atl: 0,
+          atl_change_percentage: 0,
+          atl_date: '',
+          roi: null,
+          last_updated: '',
+          sparkline_in_7d: {
+            price: market.sparkline,
+          },
+        }))
+      : [];
+
+  // Use API data if available, otherwise use CoinGecko data, finally fall back to mock data
+  const marketsData: MarketCoin[] = hasApiData
+    ? apiMarkets
+    : hasCoingeckoData
+      ? convertedCoingeckoMarkets
+      : mockMarkets;
+
+  // Filter markets based on search query
   useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
+    if (searchQuery.trim() === '') {
+      setFilteredMarkets(marketsData);
+    } else {
+      const query = searchQuery.toLowerCase();
+      const filtered = marketsData.filter(
+        (coin) =>
+          coin.name.toLowerCase().includes(query) ||
+          coin.symbol.toLowerCase().includes(query),
+      );
+      setFilteredMarkets(filtered);
+    }
+  }, [searchQuery, marketsData]);
 
   // Helper function for sparkline (can be moved to utils)
   function getSparklinePath(
@@ -193,175 +285,9 @@ export default function Markets() {
           <div>
             <h1 className="text-2xl font-bold text-white">Market Overview</h1>
             <div className="flex items-center text-sm text-gray-400 mt-1">
-              <span className="text-crypto-green mr-1">
-                {markets?.length ?? 0}+
-              </span>
-              <span>Coins/Markets (Page 1)</span>
-            </div>
-          </div>
-
-          <div className="flex items-center">
-            <div className="relative mr-4">
-              <Search
-                className="text-gray-500 absolute left-3 top-1/2 transform -translate-y-1/2"
-                size={16}
-              />
-              <Input
-                placeholder="Search Coins"
-                className="pl-10 bg-gray-800 border-gray-700 text-sm h-9 rounded-full w-60"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-gray-900 rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-800">
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-400 w-10">
-                  #
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-400 w-8"></th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">
-                  Name
-                </th>
-                <th className="text-right py-3 px-4 text-sm font-medium text-gray-400">
-                  Price
-                </th>
-                <th className="text-right py-3 px-4 text-sm font-medium text-gray-400">
-                  24h %
-                </th>
-                <th className="text-right py-3 px-4 text-sm font-medium text-gray-400">
-                  24h Volume
-                </th>
-                <th className="text-right py-3 px-4 text-sm font-medium text-gray-400">
-                  Market Cap
-                </th>
-                <th className="text-right py-3 px-4 text-sm font-medium text-gray-400">
-                  7d Change
-                </th>
-                <th className="text-center py-3 px-4 text-sm font-medium text-gray-400">
-                  Action
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {markets.map((coin, index) => {
-                const priceChange24h = coin.price_change_percentage_24h ?? 0;
-                const isPositiveChange = priceChange24h >= 0;
-                const sparklineData = coin.sparkline_in_7d?.price;
-                const sparklinePath = getSparklinePath(sparklineData, 80, 20);
-
-                return (
-                  <tr
-                    key={coin.id}
-                    className="border-b border-gray-800 hover:bg-gray-800/50"
-                  >
-                    {/* Rank */}
-                    <td className="py-4 px-4 text-sm text-gray-300">
-                      {coin.market_cap_rank ?? index + 1}
-                    </td>
-                    {/* Favorite */}
-                    <td className="py-4 px-4">
-                      <Button variant="ghost" className="h-6 w-6 p-0">
-                        <Star size={16} className="text-gray-500" />
-                      </Button>
-                    </td>
-                    {/* Name */}
-                    <td className="py-4 px-4">
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 rounded-full overflow-hidden mr-3 flex-shrink-0">
-                          <img
-                            src={coin.image}
-                            alt={coin.name}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div>
-                          <div className="font-medium text-white">
-                            {coin.name}
-                          </div>
-                          <div className="text-xs text-gray-400">
-                            {coin.symbol.toUpperCase()}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    {/* Price */}
-                    <td className="py-4 px-4 text-right">
-                      <div className="font-medium text-white">
-                        ${coin.current_price.toLocaleString()}
-                      </div>
-                    </td>
-                    {/* 24h % */}
-                    <td className="py-4 px-4 text-right">
-                      <div
-                        className={`font-medium ${isPositiveChange ? 'text-green-500' : 'text-red-500'}`}
-                      >
-                        {isPositiveChange ? '+' : ''}
-                        {priceChange24h.toFixed(2)}%
-                      </div>
-                    </td>
-                    {/* 24h Volume */}
-                    <td className="py-4 px-4 text-right">
-                      <div className="text-white">
-                        ${coin.total_volume.toLocaleString()}
-                      </div>
-                    </td>
-                    {/* Market Cap */}
-                    <td className="py-4 px-4 text-right">
-                      <div className="text-white">
-                        ${coin.market_cap.toLocaleString()}
-                      </div>
-                    </td>
-                    {/* 7d Change */}
-                    <td className="py-4 px-4 text-right">
-                      <div className="h-10 w-20 ml-auto">
-                        {sparklinePath ? (
-                          <svg viewBox="0 0 80 20" className="h-full w-full">
-                            <path
-                              d={sparklinePath}
-                              stroke={isPositiveChange ? '#05c48a' : '#ea3943'}
-                              fill="none"
-                              strokeWidth="1.5"
-                            />
-                          </svg>
-                        ) : (
-                          <span className="text-xs text-gray-500">N/A</span>
-                        )}
-                      </div>
-                    </td>
-                    {/* Action */}
-                    <td className="py-4 px-4 text-center">
-                      <Button
-                        variant="outline"
-                        className="border-gray-600 hover:bg-gray-800 text-xs rounded h-8"
-                      >
-                        TRADE
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="container mx-auto p-6">
-      <div className="mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Market Overview</h1>
-            <div className="flex items-center text-sm text-gray-400 mt-1">
               {/* Display actual count */}
               <span className="text-crypto-green mr-1">
-                {markets?.length ?? 0}+
+                {filteredMarkets?.length ?? 0}+
               </span>
               <span>Coins/Markets (Page 1)</span> {/* Indicate page */}
             </div>
@@ -376,6 +302,8 @@ export default function Markets() {
               <Input
                 placeholder="Search Coins"
                 className="pl-10 bg-gray-800 border-gray-700 text-sm h-9 rounded-full w-60"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
           </div>
@@ -418,7 +346,7 @@ export default function Markets() {
               </tr>
             </thead>
             <tbody>
-              {markets.map((coin: MarketCoin, index: number) => {
+              {filteredMarkets.map((coin: MarketCoin, index: number) => {
                 const priceChange24h = coin.price_change_percentage_24h ?? 0;
                 const isPositiveChange = priceChange24h >= 0;
                 const sparklineData = coin.sparkline_in_7d?.price;

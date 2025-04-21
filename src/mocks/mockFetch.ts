@@ -6,7 +6,7 @@ let mockApiKeys = [
   {
     api_key_id: 'mock-key-1',
     exchange_id: 'kraken',
-    key_nickname: 'kraken', // Match the exact label from the account list
+    key_nickname: 'Kraken Main', // Match the exact label from the account list
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     is_valid: true,
@@ -14,7 +14,7 @@ let mockApiKeys = [
   {
     api_key_id: 'mock-key-2',
     exchange_id: 'binance',
-    key_nickname: 'binance artcenter1', // Match the exact label from the account list
+    key_nickname: 'Binance Artcenter1', // Match the exact label from the account list
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     is_valid: true,
@@ -22,7 +22,15 @@ let mockApiKeys = [
   {
     api_key_id: 'mock-key-3',
     exchange_id: 'coinbase',
-    key_nickname: 'Coinbase 123', // Match the exact label from the account list
+    key_nickname: 'Coinbase Pro', // Match the exact label from the account list
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    is_valid: true,
+  },
+  {
+    api_key_id: 'sandbox-key',
+    exchange_id: 'sandbox',
+    key_nickname: '🔰 Sandbox Account',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     is_valid: true,
@@ -47,7 +55,14 @@ const generateId = () => Math.random().toString(36).substring(2, 15);
 
 // Setup mock fetch
 export function setupMockFetch() {
-  const originalFetch = window.fetch;
+  // Store a reference to the original fetch function
+  // Make sure we don't override it if it's already been overridden
+  const originalFetch = window.originalFetch || window.fetch;
+
+  // Store the original fetch for other modules to use
+  if (!window.originalFetch) {
+    window.originalFetch = originalFetch;
+  }
 
   window.fetch = async function (input: RequestInfo | URL, init?: RequestInit) {
     const url =
@@ -121,6 +136,62 @@ export function setupMockFetch() {
         await new Promise((resolve) => setTimeout(resolve, 800));
         return new Response(JSON.stringify(newApiKey), {
           status: 201,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Update API key
+      if (
+        url.match(/\/api\/exchange-api-keys\/[^/]+$/) &&
+        init?.method === 'PATCH'
+      ) {
+        console.log('Mocking PATCH /api/exchange-api-keys/:id');
+        const id = url.split('/')[3];
+        const apiKey = mockApiKeys.find((key) => key.api_key_id === id);
+        const body = init.body ? JSON.parse(init.body.toString()) : {};
+
+        if (!apiKey) {
+          await new Promise((resolve) => setTimeout(resolve, 300));
+          return new Response(
+            JSON.stringify({ message: 'API key not found' }),
+            {
+              status: 404,
+              headers: { 'Content-Type': 'application/json' },
+            },
+          );
+        }
+
+        // Update the API key
+        if (body.key_nickname) {
+          apiKey.key_nickname = body.key_nickname;
+          console.log(`Updated API key nickname to: ${body.key_nickname}`);
+        }
+        apiKey.updated_at = new Date().toISOString();
+
+        // Save to localStorage
+        try {
+          localStorage.setItem(
+            'exchange_api_keys',
+            JSON.stringify(mockApiKeys),
+          );
+          console.log('Saved updated API keys to localStorage');
+
+          // Also update the mockPortfolio.ts data by dispatching a custom event
+          window.dispatchEvent(
+            new CustomEvent('apiKeyUpdated', {
+              detail: { apiKey },
+            }),
+          );
+        } catch (error) {
+          console.error(
+            'Error saving updated API keys to localStorage:',
+            error,
+          );
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        return new Response(JSON.stringify(apiKey), {
+          status: 200,
           headers: { 'Content-Type': 'application/json' },
         });
       }

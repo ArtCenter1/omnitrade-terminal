@@ -14,6 +14,9 @@ import { ExchangeApiKeyModule } from './exchange-api-key/exchange-api-key.module
 import { FirebaseAuthMiddleware } from './middleware/firebase-auth.middleware'; // Corrected import path
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
+import { PortfolioModule } from './portfolio/portfolio.module';
+import { TradingPairsModule } from './trading-pairs/trading-pairs.module';
+import { OrdersModule } from './orders/orders.module';
 // Determine which auth module to load based on environment variable
 const authProvider = process.env.VITE_AUTH_PROVIDER;
 const authModules = [];
@@ -43,6 +46,9 @@ if (authProvider === 'firebase') {
     MarketDataModule,
     ...authModules, // Spread the conditionally added auth modules here
     ExchangeApiKeyModule,
+    PortfolioModule,
+    TradingPairsModule,
+    OrdersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

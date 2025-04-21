@@ -6,11 +6,13 @@ import {
 } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { passwordResetLimiter } from '../middleware/rate-limiter.middleware';
+import { JwtAuthGuard } from './jwt-auth.guard';
 
 @Module({
   imports: [],
   controllers: [AuthController],
-  providers: [],
+  providers: [JwtAuthGuard],
+  exports: [JwtAuthGuard],
 })
 export class AuthModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

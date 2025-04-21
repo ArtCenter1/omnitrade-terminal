@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Toggle Mock Data</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    button {
+      background-color: #4f46e5;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #4338ca;
+    }
+    .status {
+      margin-top: 20px;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    .enabled {
+      background-color: #dcfce7;
+      color: #166534;
+    }
+    .disabled {
+      background-color: #fee2e2;
+      color: #991b1b;
+    }
+    pre {
+      background-color: #f1f5f9;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>OmniTrade Development Tools</h1>
+  
+  <div class="card">
+    <h2>Mock Data Toggle</h2>
+    <p>Use this tool to toggle the "Use Mock Data" feature flag. When enabled, the application will use mock data instead of trying to connect to a real backend API.</p>
+    
+    <button id="toggleButton">Toggle Mock Data</button>
+    
+    <div id="status" class="status">
+      Checking current status...
+    </div>
+    
+    <h3>Current Feature Flags:</h3>
+    <pre id="flagsDisplay">Loading...</pre>
+  </div>
+  
+  <div class="card">
+    <h2>Instructions</h2>
+    <p>If you're seeing API connection errors in the console, enable mock data to prevent the application from trying to connect to a backend server that isn't running.</p>
+    <p>When mock data is enabled:</p>
+    <ul>
+      <li>The application will use mock data for all API requests</li>
+      <li>Connection status indicators will show as connected</li>
+      <li>You won't see ECONNREFUSED errors in the console</li>
+    </ul>
+  </div>
+
+  <script>
+    const FEATURE_FLAGS_STORAGE_KEY = 'omnitrade_feature_flags';
+    const statusElement = document.getElementById('status');
+    const flagsDisplay = document.getElementById('flagsDisplay');
+    const toggleButton = document.getElementById('toggleButton');
+    
+    // Function to get current feature flags
+    function getFeatureFlags() {
+      try {
+        const storedFlags = localStorage.getItem(FEATURE_FLAGS_STORAGE_KEY);
+        if (!storedFlags) {
+          return { useMockData: false };
+        }
+        return JSON.parse(storedFlags);
+      } catch (error) {
+        console.error('Error getting feature flags:', error);
+        return { useMockData: false };
+      }
+    }
+    
+    // Function to update the UI
+    function updateUI() {
+      const flags = getFeatureFlags();
+      const isMockDataEnabled = flags.useMockData === true;
+      
+      // Update status display
+      statusElement.textContent = `Mock Data is currently ${isMockDataEnabled ? 'ENABLED' : 'DISABLED'}`;
+      statusElement.className = `status ${isMockDataEnabled ? 'enabled' : 'disabled'}`;
+      
+      // Update flags display
+      flagsDisplay.textContent = JSON.stringify(flags, null, 2);
+    }
+    
+    // Toggle mock data flag
+    toggleButton.addEventListener('click', () => {
+      const flags = getFeatureFlags();
+      const newMockDataValue = !flags.useMockData;
+      
+      const updatedFlags = {
+        ...flags,
+        useMockData: newMockDataValue
+      };
+      
+      // Store updated flags
+      localStorage.setItem(FEATURE_FLAGS_STORAGE_KEY, JSON.stringify(updatedFlags));
+      console.log(`Mock data ${newMockDataValue ? 'enabled' : 'disabled'}:`, updatedFlags);
+      
+      // Update UI
+      updateUI();
+      
+      // Show alert
+      alert(`Mock data ${newMockDataValue ? 'enabled' : 'disabled'}. Reload your application to apply changes.`);
+    });
+    
+    // Initialize UI
+    updateUI();
+  </script>
+</body>
+</html>

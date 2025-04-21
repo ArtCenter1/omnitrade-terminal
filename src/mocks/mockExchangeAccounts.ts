@@ -10,6 +10,8 @@ export interface ExchangeAccount {
   change: string;
   logo: string;
   apiKeyId: string;
+  isPortfolioOverview?: boolean; // Flag to identify the Portfolio Overview option
+  isSandbox?: boolean; // Flag to identify the Sandbox account
 }
 
 // Generate mock exchange accounts based on the API keys
@@ -26,6 +28,33 @@ export function generateMockExchangeAccounts(
     return [];
   }
 
+  // Try to get the latest API keys from localStorage
+  let latestApiKeys = [...apiKeys];
+  try {
+    const savedKeys = localStorage.getItem('exchange_api_keys');
+    if (savedKeys) {
+      const parsedKeys = JSON.parse(savedKeys);
+      if (Array.isArray(parsedKeys) && parsedKeys.length > 0) {
+        console.log('Using API keys from localStorage for account generation');
+        // Update the nicknames in our apiKeys array
+        latestApiKeys = apiKeys.map((key) => {
+          const savedKey = parsedKeys.find(
+            (k) => k.api_key_id === key.api_key_id,
+          );
+          if (savedKey && savedKey.key_nickname) {
+            console.log(
+              `Using saved nickname for ${key.api_key_id}: ${savedKey.key_nickname}`,
+            );
+            return { ...key, key_nickname: savedKey.key_nickname };
+          }
+          return key;
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error loading API keys from localStorage:', error);
+  }
+
   // Map of exchange IDs to their logos
   const exchangeLogos: Record<string, string> = {
     binance: '/exchanges/binance.svg',
@@ -39,7 +68,7 @@ export function generateMockExchangeAccounts(
   // Default logo if exchange not found
   const defaultLogo = '/placeholder.svg';
 
-  return apiKeys.map((key, index) => {
+  return latestApiKeys.map((key, index) => {
     // Generate a portfolio for this API key to get the total value
     const portfolio = generateMockPortfolio(
       key.exchange_id,
@@ -115,45 +144,251 @@ export const DEFAULT_MOCK_ACCOUNTS: ExchangeAccount[] = [
     logo: '/exchanges/coinbase.svg',
     apiKeyId: 'mock-key-3',
   },
+  {
+    id: 'sandbox-account',
+    name: '🔰 Sandbox Account', // Prefixed with a training symbol emoji
+    exchange: 'Sandbox',
+    exchangeId: 'sandbox',
+    value: '$50,000.00', // Standard starting amount
+    change: '+0.00%', // No change initially
+    logo: '/exchanges/sandbox.svg', // Will need to create this
+    apiKeyId: 'sandbox-key',
+    isSandbox: true, // Flag to identify sandbox account
+  },
 ];
 
 // Additional accounts for the same exchanges to demonstrate account switching
-export const exchangeAccounts: ExchangeAccount[] = [
-  ...DEFAULT_MOCK_ACCOUNTS,
-  {
-    id: 'mock-key-4',
-    name: 'Kraken Trading', // Second Kraken account
-    exchange: 'Kraken',
-    exchangeId: 'kraken',
-    value: '$5,432.10',
-    change: '+1.23%',
-    logo: '/exchanges/kraken.svg',
-    apiKeyId: 'mock-key-4',
-  },
-  {
-    id: 'mock-key-5',
-    name: 'Binance Spot', // Second Binance account
-    exchange: 'Binance',
-    exchangeId: 'binance',
-    value: '$3,456.78',
-    change: '-0.45%',
-    logo: '/exchanges/binance.svg',
-    apiKeyId: 'mock-key-5',
-  },
-  {
-    id: 'mock-key-6',
-    name: 'Coinbase Personal', // Second Coinbase account
-    exchange: 'Coinbase',
-    exchangeId: 'coinbase',
-    value: '$7,890.12',
-    change: '+3.21%',
-    logo: '/exchanges/coinbase.svg',
-    apiKeyId: 'mock-key-6',
-  },
-];
+// This is a function to ensure we always get the latest DEFAULT_MOCK_ACCOUNTS
+export function getExchangeAccounts(): ExchangeAccount[] {
+  console.log('[mockExchangeAccounts] Getting exchange accounts');
+
+  // Always update from localStorage first to ensure we have the latest data
+  updateDefaultMockAccounts();
+
+  // Get the latest nicknames from localStorage for additional accounts
+  let additionalAccounts = [
+    {
+      id: 'mock-key-4',
+      name: 'Kraken Trading', // Second Kraken account
+      exchange: 'Kraken',
+      exchangeId: 'kraken',
+      value: '$5,432.10',
+      change: '+1.23%',
+      logo: '/exchanges/kraken.svg',
+      apiKeyId: 'mock-key-4',
+    },
+    {
+      id: 'mock-key-5',
+      name: 'Binance Spot', // Second Binance account
+      exchange: 'Binance',
+      exchangeId: 'binance',
+      value: '$3,456.78',
+      change: '-0.45%',
+      logo: '/exchanges/binance.svg',
+      apiKeyId: 'mock-key-5',
+    },
+    {
+      id: 'mock-key-6',
+      name: 'Coinbase Personal', // Second Coinbase account
+      exchange: 'Coinbase',
+      exchangeId: 'coinbase',
+      value: '$7,890.12',
+      change: '+3.21%',
+      logo: '/exchanges/coinbase.svg',
+      apiKeyId: 'mock-key-6',
+    },
+  ];
+
+  // Update additional accounts from localStorage if available
+  if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+    try {
+      const savedKeys = localStorage.getItem('exchange_api_keys');
+      if (savedKeys) {
+        const parsedKeys = JSON.parse(savedKeys);
+        if (Array.isArray(parsedKeys) && parsedKeys.length > 0) {
+          // Update additional accounts with the latest nicknames
+          additionalAccounts = additionalAccounts.map((account) => {
+            const savedKey = parsedKeys.find(
+              (k) => k.api_key_id === account.apiKeyId,
+            );
+            if (savedKey && savedKey.key_nickname) {
+              console.log(
+                `[mockExchangeAccounts] Updating additional account ${account.id} nickname from "${account.name}" to "${savedKey.key_nickname}"`,
+              );
+              return {
+                ...account,
+                name: savedKey.key_nickname,
+              };
+            }
+            return account;
+          });
+        }
+      }
+    } catch (error) {
+      console.error(
+        '[mockExchangeAccounts] Error updating additional accounts:',
+        error,
+      );
+    }
+  }
+
+  const allAccounts = [...DEFAULT_MOCK_ACCOUNTS, ...additionalAccounts];
+
+  console.log(
+    '[mockExchangeAccounts] Returning all accounts:',
+    allAccounts.map((acc) => ({
+      id: acc.id,
+      apiKeyId: acc.apiKeyId,
+      name: acc.name,
+    })),
+  );
+
+  return allAccounts;
+}
+
+// Function to update the default mock accounts with the latest nicknames
+export function updateDefaultMockAccounts() {
+  // Check if we're in a browser environment
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+    return; // Skip if not in browser
+  }
+
+  try {
+    console.log(
+      '[mockExchangeAccounts] Updating DEFAULT_MOCK_ACCOUNTS from localStorage',
+    );
+    const savedKeys = localStorage.getItem('exchange_api_keys');
+    if (savedKeys) {
+      const parsedKeys = JSON.parse(savedKeys);
+      console.log(
+        '[mockExchangeAccounts] Parsed API keys from localStorage:',
+        parsedKeys,
+      );
+
+      if (Array.isArray(parsedKeys) && parsedKeys.length > 0) {
+        // Update the DEFAULT_MOCK_ACCOUNTS with the latest nicknames
+        DEFAULT_MOCK_ACCOUNTS.forEach((account) => {
+          const savedKey = parsedKeys.find(
+            (k) => k.api_key_id === account.apiKeyId,
+          );
+          if (savedKey && savedKey.key_nickname) {
+            const oldName = account.name;
+            account.name = savedKey.key_nickname;
+            console.log(
+              `[mockExchangeAccounts] Updated DEFAULT_MOCK_ACCOUNTS nickname for ${account.apiKeyId} from "${oldName}" to "${savedKey.key_nickname}"`,
+            );
+          } else if (account.apiKeyId) {
+            console.log(
+              `[mockExchangeAccounts] No saved key found for account ${account.id} with apiKeyId ${account.apiKeyId}`,
+            );
+          }
+        });
+
+        console.log(
+          '[mockExchangeAccounts] Updated DEFAULT_MOCK_ACCOUNTS:',
+          DEFAULT_MOCK_ACCOUNTS.map((acc) => ({
+            id: acc.id,
+            apiKeyId: acc.apiKeyId,
+            name: acc.name,
+          })),
+        );
+      } else {
+        console.log(
+          '[mockExchangeAccounts] No valid API keys found in localStorage',
+        );
+      }
+    } else {
+      console.log(
+        '[mockExchangeAccounts] No saved API keys found in localStorage',
+      );
+    }
+  } catch (error) {
+    console.error(
+      '[mockExchangeAccounts] Error updating DEFAULT_MOCK_ACCOUNTS:',
+      error,
+    );
+  }
+}
+
+// Browser-specific code wrapped in a function that's called conditionally
+export function initBrowserEvents() {
+  if (typeof window !== 'undefined') {
+    window.addEventListener('apiKeyUpdated', (event: CustomEvent) => {
+      console.log(
+        '[mockExchangeAccounts] API key updated event received, updating DEFAULT_MOCK_ACCOUNTS',
+      );
+
+      // Check if we have specific apiKeyId and nickname in the event
+      const { apiKeyId, nickname } = event.detail || {};
+      if (apiKeyId && nickname) {
+        // Update the specific account directly for immediate effect
+        const account = DEFAULT_MOCK_ACCOUNTS.find(
+          (acc) => acc.apiKeyId === apiKeyId,
+        );
+        if (account) {
+          const oldName = account.name;
+          account.name = nickname;
+          console.log(
+            `[mockExchangeAccounts] Updated DEFAULT_MOCK_ACCOUNTS nickname for ${apiKeyId} from "${oldName}" to "${nickname}"`,
+          );
+        } else {
+          console.log(
+            `[mockExchangeAccounts] No account found in DEFAULT_MOCK_ACCOUNTS with apiKeyId: ${apiKeyId}`,
+          );
+          console.log(
+            '[mockExchangeAccounts] Current DEFAULT_MOCK_ACCOUNTS:',
+            DEFAULT_MOCK_ACCOUNTS.map((acc) => ({
+              id: acc.id,
+              apiKeyId: acc.apiKeyId,
+              name: acc.name,
+            })),
+          );
+        }
+
+        // We don't need to manually update additional accounts here anymore
+        // They will be updated automatically when getExchangeAccounts is called
+        // because it reads from localStorage
+      } else {
+        // Fall back to updating all accounts from localStorage
+        console.log(
+          '[mockExchangeAccounts] No specific apiKeyId/nickname provided, updating all accounts from localStorage',
+        );
+        updateDefaultMockAccounts();
+      }
+
+      // Dispatch a storage event to force components using localStorage to update
+      console.log(
+        '[mockExchangeAccounts] Dispatching storage event for selected-account-storage',
+      );
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: 'selected-account-storage',
+        }),
+      );
+    });
+
+    // Also listen for storage events
+    window.addEventListener('storage', (event) => {
+      if (event.key === 'exchange_api_keys') {
+        console.log(
+          '[mockExchangeAccounts] exchange_api_keys changed in localStorage, updating DEFAULT_MOCK_ACCOUNTS',
+        );
+        updateDefaultMockAccounts();
+      }
+    });
+
+    // Also update on page load
+    updateDefaultMockAccounts();
+  }
+}
+
+// Initialize browser events if we're in a browser environment
+if (typeof window !== 'undefined') {
+  initBrowserEvents();
+}
 
 // For backward compatibility
-const _DEFAULT_MOCK_ACCOUNTS: ExchangeAccount[] = [
+export const _DEFAULT_MOCK_ACCOUNTS: ExchangeAccount[] = [
   {
     id: 'mock-key-1',
     name: 'Kraken Main',

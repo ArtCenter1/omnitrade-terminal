@@ -6,7 +6,9 @@ import {
   Param,
   Body,
   Request,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ExchangeApiKeyService } from './exchange-api-key.service';
 import { CreateExchangeApiKeyDto } from './dto/create-exchange-api-key.dto';
 import { Request as ExpressRequest } from 'express';
@@ -20,6 +22,7 @@ import { UserApiKey } from '../types/prisma.types';
  *  - POST   /exchange-api-keys/:id/test  Test the connection/credentials for a given API key
  */
 @Controller('exchange-api-keys')
+@UseGuards(JwtAuthGuard)
 export class ExchangeApiKeyController {
   constructor(private readonly apiKeyService: ExchangeApiKeyService) {}
 

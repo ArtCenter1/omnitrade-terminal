@@ -51,14 +51,17 @@ const defaultConfig: ExchangeConfig = {
     mock: {
       binance: '/api/mock/binance',
       coinbase: '/api/mock/coinbase',
+      sandbox: '/api/mock/sandbox',
     },
     sandbox: {
       binance: 'https://testnet.binance.vision/api',
       coinbase: 'https://api-public.sandbox.exchange.coinbase.com',
+      sandbox: '/api/sandbox',
     },
     live: {
       binance: 'https://api.binance.com',
       coinbase: 'https://api.exchange.coinbase.com',
+      sandbox: '/api/sandbox',
     },
   },
 };

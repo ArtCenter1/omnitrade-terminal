@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ChevronDown, Star, Search, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,121 +15,242 @@ import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import {
   getTradingPairs,
-  getQuoteAssets,
-  toggleFavoritePair,
-} from '@/services/tradingPairService';
+  subscribeToPriceUpdates,
+} from '../../services/tradingService';
 
-// Define the trading pair interface
-export interface TradingPair {
-  symbol: string;
-  baseAsset: string;
-  quoteAsset: string;
-  price: string;
-  change24h: string;
-  volume24h: string;
-  isFavorite?: boolean;
-}
+// Import the TradingPair interface from shared types
+import { TradingPair } from '@/types/trading';
 
 interface TradingPairSelectorProps {
   onPairSelect: (pair: TradingPair) => void;
+  currentPair?: TradingPair; // Add prop for current pair
 }
 
 export function TradingPairSelector({
   onPairSelect,
+  currentPair,
 }: TradingPairSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedPair, setSelectedPair] = useState<TradingPair>({
-    symbol: 'BTC/USDT',
-    baseAsset: 'BTC',
-    quoteAsset: 'USDT',
-    price: '84,316.58',
-    change24h: '+0.92%',
-    volume24h: '1.62b',
-    isFavorite: true,
-  });
+  const [selectedPair, setSelectedPair] = useState<TradingPair>(
+    currentPair || {
+      symbol: 'BTC/USDT',
+      baseAsset: 'BTC',
+      quoteAsset: 'USDT',
+      price: '84,316.58',
+      change24h: '+0.92%',
+      volume24h: '1.62b',
+      isFavorite: true,
+      priceDecimals: 2,
+      quantityDecimals: 8,
+    },
+  );
   const [activeQuoteAsset, setActiveQuoteAsset] = useState('USDT');
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredPairs, setFilteredPairs] = useState<TradingPair[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { selectedAccount } = useSelectedAccount();
 
-  // Get available quote assets for the selected exchange
-  const [availableQuoteAssets, setAvailableQuoteAssets] = useState<string[]>(
-    [],
-  );
+  // Available quote assets
+  const [availableQuoteAssets, setAvailableQuoteAssets] = useState<string[]>([
+    'USDT',
+    'USD',
+    'BTC',
+    'ETH',
+  ]);
 
   // Update available quote assets when the selected account changes
   useEffect(() => {
-    const exchangeId = selectedAccount?.exchange || 'binance';
-    const assets = getQuoteAssets(exchangeId);
+    // For now, we'll use a static list of quote assets
+    // In the future, we could fetch this from the backend
+    const assets = ['USDT', 'USD', 'BTC', 'ETH'];
     setAvailableQuoteAssets(assets);
 
-    // If the current active quote asset is not available for this exchange,
+    // If the current active quote asset is not available,
     // switch to the first available one
     if (!assets.includes(activeQuoteAsset)) {
       setActiveQuoteAsset(assets[0] || 'USDT');
     }
   }, [selectedAccount, activeQuoteAsset]);
 
-  // Fetch trading pairs when the component mounts or when the active quote asset changes
-  useEffect(() => {
-    const fetchTradingPairs = async () => {
-      setIsLoading(true);
-      try {
-        const exchangeId = selectedAccount?.exchange || 'binance';
-        const pairs = await getTradingPairs(exchangeId, activeQuoteAsset);
-        setFilteredPairs(pairs);
-      } catch (error) {
-        console.error('Error fetching trading pairs:', error);
-        setFilteredPairs([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // This section has been replaced by fetchAndUpdatePairs
 
-    fetchTradingPairs();
-  }, [activeQuoteAsset, selectedAccount]);
+  // Store the original pairs for filtering
+  const [originalPairs, setOriginalPairs] = useState<TradingPair[]>([]);
 
-  // Filter pairs based on search query
-  useEffect(() => {
-    const fetchAndFilterPairs = async () => {
-      if (!searchQuery) return; // Skip if no search query
+  // Fetch trading pairs and update both original and filtered pairs
+  const fetchAndUpdatePairs = useCallback(async () => {
+    console.log(
+      'Fetching trading pairs for',
+      selectedAccount?.exchange || 'binance',
+      'with quote asset',
+      activeQuoteAsset,
+    );
+    setIsLoading(true);
+    try {
+      const exchangeId = selectedAccount?.exchange || 'binance';
+      const backendPairs = await getTradingPairs(exchangeId);
+      console.log('Received trading pairs from backend:', backendPairs);
 
-      setIsLoading(true);
-      try {
-        const exchangeId = selectedAccount?.exchange || 'binance';
-        // Get all pairs from all quote assets for searching
-        const allPairs = [];
-        for (const asset of availableQuoteAssets) {
-          const pairs = await getTradingPairs(exchangeId, asset);
-          allPairs.push(...pairs);
-        }
+      // Filter pairs by the active quote asset
+      const filteredByQuote = backendPairs.filter(
+        (pair) => pair.quoteAsset === activeQuoteAsset,
+      );
+      console.log('Filtered pairs by quote asset:', filteredByQuote);
 
-        const query = searchQuery.toLowerCase();
-        const filtered = allPairs.filter(
-          (pair) =>
-            pair.symbol.toLowerCase().includes(query) ||
-            pair.baseAsset.toLowerCase().includes(query),
+      // If no pairs found for this quote asset, create fallback pairs
+      if (filteredByQuote.length === 0) {
+        console.warn(
+          `No pairs found for ${exchangeId} with quote asset ${activeQuoteAsset}. Creating fallback pairs.`,
         );
-        setFilteredPairs(filtered);
-      } catch (error) {
-        console.error('Error filtering trading pairs:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
 
-    if (searchQuery) {
-      fetchAndFilterPairs();
+        // Create fallback pairs for common cryptocurrencies
+        const fallbackPairs = [
+          {
+            symbol: `BTC/${activeQuoteAsset}`,
+            baseAsset: 'BTC',
+            quoteAsset: activeQuoteAsset,
+            exchangeId,
+            priceDecimals: 2,
+            quantityDecimals: 8,
+            price: '84316.58',
+            change24h: '+0.92%',
+            volume24h: '1.62b',
+            isFavorite: true,
+          },
+          {
+            symbol: `ETH/${activeQuoteAsset}`,
+            baseAsset: 'ETH',
+            quoteAsset: activeQuoteAsset,
+            exchangeId,
+            priceDecimals: 2,
+            quantityDecimals: 8,
+            price: '3452.78',
+            change24h: '+1.08%',
+            volume24h: '963.40m',
+            isFavorite: true,
+          },
+          {
+            symbol: `SOL/${activeQuoteAsset}`,
+            baseAsset: 'SOL',
+            quoteAsset: activeQuoteAsset,
+            exchangeId,
+            priceDecimals: 2,
+            quantityDecimals: 8,
+            price: '176.42',
+            change24h: '+4.92%',
+            volume24h: '688.79m',
+            isFavorite: false,
+          },
+        ];
+
+        // Use the fallback pairs
+        const frontendPairs = fallbackPairs;
+        console.log('Using fallback pairs:', frontendPairs);
+        setOriginalPairs(frontendPairs);
+
+        // Apply search filter if there's a search query
+        if (searchQuery) {
+          const query = searchQuery.toLowerCase();
+          const filtered = frontendPairs.filter(
+            (pair) =>
+              pair.symbol.toLowerCase().includes(query) ||
+              pair.baseAsset.toLowerCase().includes(query),
+          );
+          setFilteredPairs(filtered);
+        } else {
+          setFilteredPairs(frontendPairs);
+        }
+      } else {
+        // Convert backend pairs to frontend format
+        const frontendPairs: TradingPair[] = filteredByQuote.map((pair) => ({
+          symbol: pair.symbol,
+          baseAsset: pair.baseAsset,
+          quoteAsset: pair.quoteAsset,
+          price: pair.price?.toString() || '0.00',
+          change24h: pair.change24h || '+0.00%',
+          volume24h: pair.volume24h || '0',
+          isFavorite: false,
+          exchangeId: pair.exchangeId,
+          priceDecimals: pair.priceDecimals,
+          quantityDecimals: pair.quantityDecimals,
+        }));
+
+        console.log('Setting original and filtered pairs:', frontendPairs);
+        setOriginalPairs(frontendPairs);
+
+        // Apply search filter if there's a search query
+        if (searchQuery) {
+          const query = searchQuery.toLowerCase();
+          const filtered = frontendPairs.filter(
+            (pair) =>
+              pair.symbol.toLowerCase().includes(query) ||
+              pair.baseAsset.toLowerCase().includes(query),
+          );
+          setFilteredPairs(filtered);
+        } else {
+          setFilteredPairs(frontendPairs);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching trading pairs:', error);
+      // Create default pairs as fallback in case of error
+      const defaultPairs = [
+        {
+          symbol: 'BTC/USDT',
+          baseAsset: 'BTC',
+          quoteAsset: 'USDT',
+          price: '84316.58',
+          change24h: '+0.92%',
+          volume24h: '1.62b',
+          isFavorite: true,
+          exchangeId: selectedAccount?.exchange || 'binance',
+          priceDecimals: 2,
+          quantityDecimals: 8,
+        },
+        {
+          symbol: 'ETH/USDT',
+          baseAsset: 'ETH',
+          quoteAsset: 'USDT',
+          price: '3452.78',
+          change24h: '+1.08%',
+          volume24h: '963.40m',
+          isFavorite: true,
+          exchangeId: selectedAccount?.exchange || 'binance',
+          priceDecimals: 2,
+          quantityDecimals: 8,
+        },
+      ];
+      setFilteredPairs(defaultPairs);
+      setOriginalPairs(defaultPairs);
+    } finally {
+      setIsLoading(false);
     }
-  }, [searchQuery, selectedAccount]);
+  }, [activeQuoteAsset, searchQuery, selectedAccount]);
+
+  // Fetch pairs when component mounts or when dependencies change
+  useEffect(() => {
+    fetchAndUpdatePairs();
+  }, [fetchAndUpdatePairs]);
+
+  // Search filtering is now handled in fetchAndUpdatePairs
 
   // Handle pair selection
   const handlePairSelect = (pair: TradingPair) => {
+    console.log(`TradingPairSelector: Selected pair ${pair.symbol}`);
     setSelectedPair(pair);
     onPairSelect(pair);
     setIsOpen(false);
   };
+
+  // Update selectedPair when currentPair changes from parent
+  useEffect(() => {
+    if (currentPair) {
+      console.log(
+        `TradingPairSelector: Updating from parent to ${currentPair.symbol}`,
+      );
+      setSelectedPair(currentPair);
+    }
+  }, [currentPair]);
 
   // Toggle favorite status
   const handleToggleFavorite = async (
@@ -138,8 +259,8 @@ export function TradingPairSelector({
   ) => {
     event.stopPropagation();
     try {
-      const exchangeId = selectedAccount?.exchange || 'binance';
-      const isFavorite = await toggleFavoritePair(exchangeId, pair.symbol);
+      // Toggle the favorite status locally
+      const isFavorite = !pair.isFavorite;
 
       // Update the pair in the filtered list
       setFilteredPairs((prevPairs) =>
@@ -152,6 +273,9 @@ export function TradingPairSelector({
       if (selectedPair.symbol === pair.symbol) {
         setSelectedPair((prev) => ({ ...prev, isFavorite }));
       }
+
+      // In a real implementation, we would save this to the backend
+      // For now, we'll just update the local state
     } catch (error) {
       console.error('Error toggling favorite:', error);
     }
@@ -187,11 +311,23 @@ export function TradingPairSelector({
               className="flex items-center space-x-2 text-white hover:bg-gray-800 px-3 py-2 h-auto"
             >
               <div className="flex items-center">
-                <div className="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center mr-2">
-                  <span className="text-xs font-bold text-white">
-                    {selectedPair.baseAsset.substring(0, 1)}
-                  </span>
-                </div>
+                <img
+                  src={`/crypto-icons/${selectedPair.baseAsset.toLowerCase()}.svg`}
+                  alt={selectedPair.baseAsset}
+                  className="w-6 h-6 mr-2"
+                  onError={(e) => {
+                    // Fallback to letter if icon not found
+                    e.currentTarget.style.display = 'none';
+                    const parent = e.currentTarget.parentElement;
+                    if (parent) {
+                      const fallback = document.createElement('div');
+                      fallback.className =
+                        'w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center mr-2';
+                      fallback.innerHTML = `<span class="text-xs font-bold text-white">${selectedPair.baseAsset.substring(0, 1)}</span>`;
+                      parent.insertBefore(fallback, parent.firstChild);
+                    }
+                  }}
+                />
                 <span className="font-bold">{selectedPair.symbol}</span>
               </div>
               <ChevronDown size={16} className="text-gray-400" />

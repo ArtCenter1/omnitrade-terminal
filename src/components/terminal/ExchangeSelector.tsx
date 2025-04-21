@@ -31,7 +31,11 @@ export function ExchangeSelector() {
   const { selectedAccount, setSelectedAccount } = useSelectedAccount();
 
   // Fetch the user's exchange API keys
-  const { data: apiKeys, isLoading } = useQuery({
+  const {
+    data: apiKeys,
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ['exchangeApiKeys'],
     queryFn: listExchangeApiKeys,
     onSuccess: (data) => {
@@ -60,6 +64,62 @@ export function ExchangeSelector() {
     },
   });
 
+  // Listen for localStorage changes and API key updates to refresh data
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      console.log(
+        `[ExchangeSelector] Storage changed (${e.key}), refreshing exchange selector data`,
+      );
+      // Only refresh if the exchange_api_keys were updated
+      if (e.key === 'exchange_api_keys' || e.key === null) {
+        console.log(
+          '[ExchangeSelector] Refetching API keys due to storage change',
+        );
+        refetch();
+      }
+    };
+
+    // Handle API key updates
+    const handleApiKeyUpdated = (e: CustomEvent) => {
+      const { apiKeyId, nickname } = e.detail || {};
+      console.log(
+        `[ExchangeSelector] API key updated event received for ${apiKeyId} with nickname "${nickname}", refreshing data`,
+      );
+
+      // If this is the currently selected account, update it immediately
+      if (selectedAccount && selectedAccount.apiKeyId === apiKeyId) {
+        console.log(
+          `[ExchangeSelector] Currently selected account (${selectedAccount.name}) matches updated API key, updating immediately`,
+        );
+        // Create a new account object with the updated nickname
+        const updatedAccount = {
+          ...selectedAccount,
+          name: nickname,
+        };
+        // Update the selected account
+        setSelectedAccount(updatedAccount);
+      }
+
+      // Also refetch to ensure all data is in sync
+      console.log('[ExchangeSelector] Refetching API keys');
+      refetch();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener(
+      'apiKeyUpdated',
+      handleApiKeyUpdated as EventListener,
+    );
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener(
+        'apiKeyUpdated',
+        handleApiKeyUpdated as EventListener,
+      );
+    };
+  }, [refetch, selectedAccount, setSelectedAccount]);
+
   // Initialize the selected account only once
   useEffect(() => {
     // Only run this effect when localAccounts changes and we haven't initialized yet
@@ -76,6 +136,31 @@ export function ExchangeSelector() {
       setInitialized(true);
     }
   }, [initialized, localAccounts, selectedAccount, setSelectedAccount]);
+
+  // We already have a storage event listener above
+
+  // Handle Portfolio Total case
+  useEffect(() => {
+    // Check if the selected account is the Portfolio Total (exchangeId: 'all')
+    if (selectedAccount && selectedAccount.exchangeId === 'all') {
+      console.log(
+        'Portfolio Total detected in terminal, switching to default exchange',
+      );
+
+      // Find the first available account that's not Portfolio Total
+      const defaultAccount = localAccounts.find(
+        (account) => account.exchangeId !== 'all',
+      );
+
+      if (defaultAccount) {
+        console.log(
+          'Switching to default exchange account:',
+          defaultAccount.name,
+        );
+        setSelectedAccount(defaultAccount);
+      }
+    }
+  }, [selectedAccount, localAccounts, setSelectedAccount]);
 
   // Render loading state
   const renderLoading = () => (

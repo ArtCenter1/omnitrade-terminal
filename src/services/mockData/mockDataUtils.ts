@@ -75,6 +75,7 @@ export const EXCHANGE_LOGOS: Record<string, string> = {
   bybit: 'https://cryptologos.cc/logos/bybit-logo.png',
   gate: 'https://cryptologos.cc/logos/gate-io-logo.png',
   bitfinex: 'https://cryptologos.cc/logos/bitfinex-logo.png',
+  sandbox: '/exchanges/sandbox.svg',
 };
 
 // Default logo for exchanges not in the EXCHANGE_LOGOS
@@ -116,6 +117,15 @@ export const SUPPORTED_EXCHANGES = [
     website: 'https://www.kucoin.com',
     description:
       'A global cryptocurrency exchange for numerous digital assets and cryptocurrencies.',
+    isActive: true,
+  },
+  {
+    id: 'sandbox',
+    name: 'Sandbox',
+    logo: '/exchanges/sandbox.svg',
+    website: 'https://omnitrade.io/sandbox',
+    description:
+      'Practice trading environment with simulated assets and orders. Perfect for learning and testing strategies.',
     isActive: true,
   },
 ];

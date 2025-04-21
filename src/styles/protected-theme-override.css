@@ -1,0 +1,43 @@
+/* Global text color override for protected pages */
+body:not(.landing-page) .text-white {
+  color: #d1d5db !important; /* text-gray-300 equivalent */
+}
+
+/* Override for hover states */
+body:not(.landing-page) .hover\:text-white:hover {
+  color: #d1d5db !important; /* text-gray-300 equivalent */
+}
+
+/* Override for active states */
+body:not(.landing-page)
+  [data-state='active'].data-\[state\=active\]\:text-white {
+  color: #d1d5db !important; /* text-gray-300 equivalent */
+}
+
+/* Override for tabs */
+body:not(.landing-page) .border-purple-500.text-white {
+  color: #d1d5db !important; /* text-gray-300 equivalent */
+}
+
+/* Override for buttons */
+body:not(.landing-page) button.text-white,
+body:not(.landing-page) .bg-purple-600.text-white,
+body:not(.landing-page) .bg-green-600.text-white,
+body:not(.landing-page) .bg-gray-800.text-white {
+  color: #d1d5db !important; /* text-gray-300 equivalent */
+}
+
+/* Override for inputs */
+body:not(.landing-page) input.text-white {
+  color: #d1d5db !important; /* text-gray-300 equivalent */
+}
+
+/* Override for any other elements with text-white class */
+body:not(.landing-page) h1.text-white,
+body:not(.landing-page) h2.text-white,
+body:not(.landing-page) h3.text-white,
+body:not(.landing-page) p.text-white,
+body:not(.landing-page) span.text-white,
+body:not(.landing-page) div.text-white {
+  color: #d1d5db !important; /* text-gray-300 equivalent */
+}

@@ -32,6 +32,7 @@ import {
   Moon,
   Sun,
   BellOff,
+  Terminal,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRoleBasedAccess, switchRole } from '@/hooks/useRoleBasedAccess';
@@ -335,6 +336,13 @@ export default function Navbar() {
                       >
                         <Users className="mr-2 h-4 w-4" />
                         <span>User & Role Management</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => navigate('/admin/dev-settings')}
+                        className="cursor-pointer hover:bg-red-900 bg-red-950 text-red-300"
+                      >
+                        <Terminal className="mr-2 h-4 w-4" />
+                        <span>Developer Settings</span>
                       </DropdownMenuItem>
                     </>
                   )}

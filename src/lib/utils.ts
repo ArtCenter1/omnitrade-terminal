@@ -29,7 +29,11 @@ export function formatNumber(value: number, decimals = 2) {
   }).format(value);
 }
 
-export function generateChartData(isPositive: boolean) {
+export function generateChartData(isPositive: boolean, symbol?: string) {
+  // Special handling for XRP to ensure it always has positive values
+  if (symbol === 'XRP') {
+    isPositive = true;
+  }
   const trend = isPositive ? 1 : -1;
   const volatility = 1.2; // Increased volatility
   const startValue = 10;
@@ -169,6 +173,15 @@ export const mockAssets = [
     change: '-1.18%',
   },
 ];
+
+/**
+ * Generate a random price change percentage string (e.g., "+1.23%" or "-2.45%")
+ */
+export function getRandomChange(): string {
+  const isPositive = Math.random() > 0.5;
+  const changeValue = (Math.random() * 5).toFixed(2); // Random change between 0% and 5%
+  return `${isPositive ? '+' : '-'}${changeValue}%`;
+}
 
 export const mockBots = [
   {

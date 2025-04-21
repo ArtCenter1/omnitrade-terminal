@@ -39,3 +39,15 @@ A new design checkpoint process has been implemented to ensure consistency and b
 3. Use the pre-implementation checklist to verify your approach
 
 This is especially important for exchange connectivity and API key management, which have specific security and architectural considerations outlined in the checkpoint document.
+
+---
+
+## Upcoming Onboarding Experience
+
+A comprehensive onboarding experience has been added to the roadmap after the Redis Cloud Setup. This will combine:
+
+1. A sandbox/demo environment for risk-free exploration
+2. Guided tutorials using react-joyride
+3. An AI-driven assistant with voice and animations
+
+This solution will improve user retention and provide a better first-time experience while supporting bot building and backtesting features. See `onboarding_experience.md` for details.
