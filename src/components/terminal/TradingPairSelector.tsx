@@ -150,6 +150,16 @@ export function TradingPairSelector({
           },
         ];
 
+        // Log the exchange information for debugging
+        console.log(
+          `Created fallback pairs with exchange: ${exchangeName} (${exchangeId})`,
+        );
+        fallbackPairs.forEach((pair) => {
+          console.log(
+            `Pair ${pair.symbol} has exchange: ${pair.exchange} (${pair.exchangeId})`,
+          );
+        });
+
         // Use the fallback pairs
         const frontendPairs = fallbackPairs;
         console.log('Using fallback pairs:', frontendPairs);
@@ -251,15 +261,19 @@ export function TradingPairSelector({
 
   // Handle pair selection
   const handlePairSelect = (pair: TradingPair) => {
-    // Always use the selected account's exchange information
-    const exchangeId = selectedAccount?.exchangeId || 'binance';
-    const exchangeName = selectedAccount?.exchange || 'Binance';
+    // Get the exchange information from the account
+    const accountExchangeId = selectedAccount?.exchangeId || 'binance';
+    const accountExchangeName = selectedAccount?.exchange || 'Binance';
+
+    // Use the pair's exchange information if it exists, otherwise use the account's
+    const exchangeId = pair.exchangeId || accountExchangeId;
+    const exchangeName = pair.exchange || accountExchangeName;
 
     console.log(
       `TradingPairSelector: Selected pair ${pair.symbol} on ${exchangeName} (${exchangeId})`,
     );
 
-    // Ensure the pair has the correct exchange information from the account
+    // Ensure the pair has exchange information, preserving the pair's original exchange if it exists
     const updatedPair = {
       ...pair,
       exchangeId: exchangeId,
