@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'; // Removed React import
 import { PriceOverview } from './PriceOverview';
 import { TimeframeSelector } from './TimeframeSelector';
-import { TradingPairSelector, TradingPair } from './TradingPairSelector';
+import { TradingPairSelector } from './TradingPairSelector';
+import { TradingPair } from '@/types/trading'; // Correct import path for the type
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import { SandboxNetworkSelector } from '@/components/SandboxNetworkSelector';
 
@@ -50,27 +51,28 @@ interface ChartSectionProps {
 export function ChartSection({
   selectedPair,
   onPairSelect,
-}: ChartSectionProps = {}) {
+}: ChartSectionProps) {
+  // Removed default value {} as props are expected
   const container = useRef<HTMLDivElement>(null);
   const [currentTimeframe, setCurrentTimeframe] = useState<string>('D'); // Default to Daily
   const { selectedAccount } = useSelectedAccount();
 
-  // Use the provided selectedPair or a default
-  const [currentPair, setCurrentPair] = useState<TradingPair>(
-    selectedPair || {
-      symbol: 'BTC/USDT',
-      baseAsset: 'BTC',
-      quoteAsset: 'USDT',
-      price: '84,316.58',
-      change24h: '+0.92%',
-      volume24h: '1.62b',
-      isFavorite: true,
-    },
-  );
-  const widgetInstanceRef = useRef<unknown | null>(null); // To potentially hold widget instance if needed, though direct update is tricky here
+  // No local currentPair state needed, use selectedPair prop directly
+  const widgetInstanceRef = useRef<any | null>(null); // Use 'any' for simplicity
 
   // Helper function to get the correct TradingView symbol format
-  const getTradingViewSymbol = (account: any, pair: TradingPair): string => {
+  // Takes selectedPair prop which might be undefined initially
+  const getTradingViewSymbol = (
+    account: any,
+    pair: TradingPair | undefined,
+  ): string => {
+    // Default if no pair is selected yet
+    if (!pair) {
+      console.warn(
+        'ChartSection: No selected pair provided, defaulting to BINANCE:BTCUSDT',
+      );
+      return 'BINANCE:BTCUSDT';
+    }
     // Handle sandbox mode
     if (account?.exchangeId === 'sandbox') {
       const preferredTestNetwork =
@@ -106,164 +108,129 @@ export function ChartSection({
     return `${tvExchange}:${pair.baseAsset}${pair.quoteAsset}`;
   };
 
+  // Main effect for creating/updating the TradingView widget
   useEffect(() => {
     const currentContainer = container.current;
-    if (!currentContainer) {
+    // Ensure container exists and a pair is selected
+    if (!currentContainer || !selectedPair) {
+      if (currentContainer) currentContainer.innerHTML = ''; // Clear if pair becomes null/undefined
+      widgetInstanceRef.current = null;
       return;
     }
 
-    // Function to create the widget
-    const createWidget = () => {
+    // Function to create or update the widget
+    const createOrUpdateWidget = () => {
+      // Double check TradingView is loaded and selectedPair exists
       if (
         typeof window.TradingView !== 'undefined' &&
-        window.TradingView.widget
+        window.TradingView.widget &&
+        selectedPair
       ) {
-        // Clear previous widget before creating a new one
+        // Clear previous widget before creating a new one for reliability
         currentContainer.innerHTML = '';
 
-        // Get the properly formatted symbol for TradingView
-        const symbolFormat = getTradingViewSymbol(selectedAccount, currentPair);
-        console.log(`Creating TradingView widget with symbol: ${symbolFormat}`);
+        // Get the properly formatted symbol using the selectedPair prop
+        const symbolFormat = getTradingViewSymbol(
+          selectedAccount,
+          selectedPair,
+        );
+        console.log(
+          `ChartSection: Creating/Updating TradingView widget with symbol: ${symbolFormat}, interval: ${currentTimeframe}`,
+        );
 
-        // Create the widget with the correct symbol format
+        // Create the new widget instance
         widgetInstanceRef.current = new window.TradingView.widget({
           autosize: true,
           symbol: symbolFormat,
-          interval: currentTimeframe, // Use state variable
+          interval: currentTimeframe,
           timezone: 'Etc/UTC',
           theme: 'dark',
           style: '1',
           locale: 'en',
           enable_publishing: false,
-          allow_symbol_change: true, // Keep symbol change enabled
-          container_id: currentContainer.id, // Use the container's actual ID
-          hide_side_toolbar: false, // Ensure drawing toolbar is visible
+          allow_symbol_change: true,
+          container_id: currentContainer.id,
+          hide_side_toolbar: false,
         });
+      } else {
+        console.log(
+          'ChartSection: TradingView not ready or no selected pair, clearing widget container.',
+        );
+        if (currentContainer) currentContainer.innerHTML = ''; // Clear if condition not met
+        widgetInstanceRef.current = null;
       }
     };
 
-    // Check if the TradingView script is loaded
+    // Script loading logic
     const scriptId = 'tradingview-widget-script';
     const existingScript = document.getElementById(
       scriptId,
     ) as HTMLScriptElement | null;
 
     if (!existingScript) {
-      // Create and append the TradingView script if it doesn't exist
       const script = document.createElement('script');
       script.id = scriptId;
       script.src = 'https://s3.tradingview.com/tv.js';
       script.type = 'text/javascript';
       script.async = true;
-      script.onload = createWidget; // Create widget once script is loaded
+      script.onload = createOrUpdateWidget; // Use the combined function
       document.body.appendChild(script);
-    } else if (existingScript && typeof window.TradingView !== 'undefined') {
-      // If script exists and TradingView is loaded, create the widget immediately
-      createWidget();
+    } else if (
+      (existingScript as any).readyState === 'complete' || // Use 'any' to bypass TS check if needed, or check specific browser compatibility
+      (existingScript as any).readyState === 'loaded' ||
+      typeof window.TradingView !== 'undefined'
+    ) {
+      // If script exists and TradingView is loaded (or script finished loading), create/update widget
+      createOrUpdateWidget();
     } else {
       // If script exists but TradingView is not loaded yet, wait for onload
-      existingScript.addEventListener('load', createWidget);
+      existingScript.addEventListener('load', createOrUpdateWidget);
     }
 
     // Cleanup function
     return () => {
-      // Remove the event listener if added
       if (existingScript) {
-        existingScript.removeEventListener('load', createWidget);
+        existingScript.removeEventListener('load', createOrUpdateWidget);
       }
-
-      // Just clear the container instead of trying to remove the widget
-      // This avoids the "Cannot read properties of null" error
-      if (currentContainer) {
-        currentContainer.innerHTML = ''; // Clear container on unmount/re-render
-      }
-
-      // Reset the widget instance reference
-      widgetInstanceRef.current = null;
+      // No need to clear innerHTML here as the effect will handle it on next run
+      // Resetting ref is also handled implicitly by the effect re-running
     };
-    // Re-run effect when currentTimeframe, currentPair, or selectedAccount changes
-  }, [currentTimeframe, currentPair, selectedAccount]);
+    // Depend on the selectedPair prop, timeframe, and account
+  }, [selectedPair, currentTimeframe, selectedAccount]);
 
-  // Update currentPair when selectedPair changes
-  useEffect(() => {
-    if (selectedPair) {
-      console.log(
-        `ChartSection: Updating to selected pair ${selectedPair.symbol}`,
-      );
-      setCurrentPair(selectedPair);
-
-      // Force recreation of the TradingView widget with the new symbol
-      const currentContainer = container.current;
-      if (currentContainer) {
-        currentContainer.innerHTML = '';
-
-        // Small delay to ensure the DOM is updated
-        setTimeout(() => {
-          if (
-            typeof window.TradingView !== 'undefined' &&
-            window.TradingView.widget
-          ) {
-            // Get the properly formatted symbol for TradingView
-            const symbolFormat = getTradingViewSymbol(
-              selectedAccount,
-              selectedPair,
-            );
-            console.log(
-              `Recreating TradingView widget with symbol: ${symbolFormat}`,
-            );
-
-            // Create the widget with the correct symbol format
-            widgetInstanceRef.current = new window.TradingView.widget({
-              autosize: true,
-              symbol: symbolFormat,
-              interval: currentTimeframe,
-              timezone: 'Etc/UTC',
-              theme: 'dark',
-              style: '1',
-              locale: 'en',
-              enable_publishing: false,
-              allow_symbol_change: true,
-              container_id: currentContainer.id,
-              hide_side_toolbar: false,
-            });
-            console.log(
-              `TradingView widget recreated with symbol: ${selectedPair.baseAsset}${selectedPair.quoteAsset} on ${symbolFormat}`,
-            );
-          }
-        }, 50);
-      }
-    }
-  }, [selectedPair, selectedAccount, currentTimeframe]);
+  // Removed the redundant useEffect hook that synced selectedPair prop to local state
 
   const handleTimeframeSelect = (timeframe: string) => {
     setCurrentTimeframe(timeframe);
   };
 
-  const handlePairSelect = (pair: TradingPair) => {
-    setCurrentPair(pair);
-    // Call the parent's onPairSelect if provided
-    if (onPairSelect) {
-      onPairSelect(pair);
-    }
-  };
+  // Removed local handlePairSelect function
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 border-b border-gray-800">
+      {/* Header Section */}
+      <div className="flex items-center justify-between px-4 py-1 border-b border-gray-800">
+        {/* Left Side: Pair Selector and Minimal Price */}
         <div className="flex items-center">
+          {/* Pass props directly to TradingPairSelector */}
           <TradingPairSelector
-            onPairSelect={handlePairSelect}
-            currentPair={currentPair}
+            onPairSelect={onPairSelect} // Pass down the handler from Terminal.tsx
+            currentPair={selectedPair} // Pass down the selected pair from Terminal.tsx
           />
-          <PriceOverview selectedPair={currentPair} showPriceOnly={true} />
+          {/* PriceOverview uses the selectedPair prop */}
+          {selectedPair && (
+            <PriceOverview selectedPair={selectedPair} showPriceOnly={true} />
+          )}
         </div>
+        {/* Right Side: Full Price Overview and Sandbox Selector */}
         <div className="flex items-center gap-2">
           <SandboxNetworkSelector />
-          <PriceOverview selectedPair={currentPair} />
+          {/* PriceOverview uses the selectedPair prop */}
+          {selectedPair && <PriceOverview selectedPair={selectedPair} />}
         </div>
       </div>
 
-      {/* TradingView Widget Container - Ensure it has the ID used in options */}
+      {/* TradingView Widget Container */}
       <div
         id="tradingview-widget-container-div"
         ref={container}
