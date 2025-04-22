@@ -133,16 +133,11 @@ export const getTradingPairs = async (
       return generateMockTradingPairs(exchangeId.toLowerCase());
     }
 
-    // Check cache first
+    // Always clear the cache for the current exchange to ensure fresh data
+    // This ensures we don't show stale data when switching exchanges
     if (tradingPairsCache.has(exchangeId)) {
-      const cachedPairs = tradingPairsCache.get(exchangeId) || [];
-
-      // If quoteAsset is specified, filter the cached pairs
-      if (quoteAsset) {
-        return cachedPairs.filter((pair) => pair.quoteAsset === quoteAsset);
-      }
-
-      return cachedPairs;
+      console.log(`Clearing cache for ${exchangeId} to ensure fresh data`);
+      tradingPairsCache.delete(exchangeId);
     }
 
     // Try to get real data from CoinGecko
@@ -552,19 +547,41 @@ export function generateMockTradingPairs(exchangeId: string): TradingPair[] {
 
   const exchangeName = exchangeMap[exchangeId.toLowerCase()] || exchangeId;
 
-  // Common base assets
-  const baseAssets = [
-    'BTC',
-    'ETH',
-    'SOL',
-    'XRP',
-    'ADA',
-    'DOGE',
-    'DOT',
-    'AVAX',
-    'MATIC',
-    'LINK',
-  ];
+  // Define different base assets for different exchanges
+  let baseAssets: string[] = [];
+
+  // Binance has all assets
+  if (exchangeId.toLowerCase() === 'binance') {
+    baseAssets = [
+      'BTC',
+      'ETH',
+      'SOL',
+      'XRP',
+      'ADA',
+      'DOGE',
+      'DOT',
+      'AVAX',
+      'MATIC',
+      'LINK',
+      'BNB',
+      'SHIB',
+    ];
+  }
+  // Coinbase has a different set
+  else if (
+    exchangeId.toLowerCase() === 'coinbase' ||
+    exchangeId.toLowerCase().includes('coinbase')
+  ) {
+    baseAssets = ['BTC', 'ETH', 'SOL', 'XRP', 'ADA', 'DOGE', 'ALGO', 'ATOM'];
+  }
+  // Kraken has another set
+  else if (exchangeId.toLowerCase() === 'kraken') {
+    baseAssets = ['BTC', 'ETH', 'SOL', 'DOT', 'ADA', 'XMR', 'ATOM'];
+  }
+  // Default for other exchanges
+  else {
+    baseAssets = ['BTC', 'ETH', 'SOL', 'XRP', 'ADA'];
+  }
 
   // Quote assets - ensure USDT is always included
   const quoteAssets = ['USDT', 'USD', 'BTC', 'ETH'];
@@ -572,9 +589,9 @@ export function generateMockTradingPairs(exchangeId: string): TradingPair[] {
   // Generate pairs for each quote asset
   const pairs: TradingPair[] = [];
 
-  // Ensure we always have at least BTC/USDT and ETH/USDT pairs for all exchanges
+  // Ensure we always have some guaranteed pairs for each exchange
   // This guarantees that filtering by USDT will always return results
-  const guaranteedPairs = [
+  let guaranteedPairs = [
     {
       baseAsset: 'BTC',
       quoteAsset: 'USDT',
@@ -591,15 +608,70 @@ export function generateMockTradingPairs(exchangeId: string): TradingPair[] {
       volume24h: '963.40m',
       isFavorite: true,
     },
-    {
-      baseAsset: 'SOL',
-      quoteAsset: 'USDT',
-      price: '176.42',
-      change24h: '+4.92%',
-      volume24h: '688.79m',
-      isFavorite: false,
-    },
   ];
+
+  // Add exchange-specific guaranteed pairs
+  if (exchangeId.toLowerCase() === 'binance') {
+    guaranteedPairs.push(
+      {
+        baseAsset: 'BNB',
+        quoteAsset: 'USDT',
+        price: '608.42',
+        change24h: '+2.15%',
+        volume24h: '412.79m',
+        isFavorite: false,
+      },
+      {
+        baseAsset: 'SOL',
+        quoteAsset: 'USDT',
+        price: '176.42',
+        change24h: '+4.92%',
+        volume24h: '688.79m',
+        isFavorite: false,
+      },
+    );
+  } else if (
+    exchangeId.toLowerCase() === 'coinbase' ||
+    exchangeId.toLowerCase().includes('coinbase')
+  ) {
+    guaranteedPairs.push(
+      {
+        baseAsset: 'ALGO',
+        quoteAsset: 'USDT',
+        price: '0.18',
+        change24h: '+1.25%',
+        volume24h: '45.79m',
+        isFavorite: false,
+      },
+      {
+        baseAsset: 'SOL',
+        quoteAsset: 'USDT',
+        price: '176.42',
+        change24h: '+4.92%',
+        volume24h: '688.79m',
+        isFavorite: false,
+      },
+    );
+  } else if (exchangeId.toLowerCase() === 'kraken') {
+    guaranteedPairs.push(
+      {
+        baseAsset: 'XMR',
+        quoteAsset: 'USDT',
+        price: '178.92',
+        change24h: '+0.75%',
+        volume24h: '32.45m',
+        isFavorite: false,
+      },
+      {
+        baseAsset: 'SOL',
+        quoteAsset: 'USDT',
+        price: '176.42',
+        change24h: '+4.92%',
+        volume24h: '688.79m',
+        isFavorite: false,
+      },
+    );
+  }
 
   // Add guaranteed pairs first
   guaranteedPairs.forEach(

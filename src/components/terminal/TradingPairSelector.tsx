@@ -235,7 +235,12 @@ export function TradingPairSelector({
     } finally {
       setIsLoading(false);
     }
-  }, [activeQuoteAsset, searchQuery, selectedAccount]);
+  }, [
+    activeQuoteAsset,
+    searchQuery,
+    selectedAccount,
+    selectedAccount?.exchangeId,
+  ]);
 
   // Fetch pairs when component mounts or when dependencies change
   useEffect(() => {
@@ -246,9 +251,25 @@ export function TradingPairSelector({
 
   // Handle pair selection
   const handlePairSelect = (pair: TradingPair) => {
-    console.log(`TradingPairSelector: Selected pair ${pair.symbol}`);
-    setSelectedPair(pair);
-    onPairSelect(pair);
+    // Always use the selected account's exchange information
+    const exchangeId = selectedAccount?.exchangeId || 'binance';
+    const exchangeName = selectedAccount?.exchange || 'Binance';
+
+    console.log(
+      `TradingPairSelector: Selected pair ${pair.symbol} on ${exchangeName} (${exchangeId})`,
+    );
+
+    // Ensure the pair has the correct exchange information from the account
+    const updatedPair = {
+      ...pair,
+      exchangeId: exchangeId,
+      exchange: exchangeName,
+    };
+
+    console.log('Updated pair with exchange info:', updatedPair);
+
+    setSelectedPair(updatedPair);
+    onPairSelect(updatedPair);
     setIsOpen(false);
   };
 
