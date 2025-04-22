@@ -184,11 +184,8 @@ async function makeApiRequest<T>(
   if (useProApi) {
     // CoinGecko Pro API expects the key in the x_cg_pro_api_key parameter
     config.params.x_cg_pro_api_key = API_KEY;
-
-    // Also add it as a header for better compatibility
-    config.headers = {
-      'x-cg-pro-api-key': API_KEY,
-    };
+    // Remove adding the key as a header, query parameter is standard
+    // config.headers = { 'x-cg-pro-api-key': API_KEY };
   }
 
   try {
@@ -383,7 +380,7 @@ export async function getTopCoins(limit = 100): Promise<CoinGeckoData[]> {
         string,
         { data: CoinGeckoData[]; timestamp: number }
       >,
-      true, // Prefer pro API for this endpoint
+      false, // Prefer pro API for this endpoint (Changed to false for testing)
     );
 
     if (!data || data.length === 0) {
@@ -610,7 +607,7 @@ export async function getCoinTickers(
           string,
           { data: CoinGeckoTickerResponse; timestamp: number }
         >,
-        true, // Prefer pro API for this endpoint
+        false, // Prefer pro API for this endpoint (Changed to false for testing)
       );
 
       console.log(
