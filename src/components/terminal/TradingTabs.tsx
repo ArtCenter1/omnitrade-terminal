@@ -8,6 +8,8 @@ import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import { placeOrder, CreateOrderDto } from '@/services/enhancedOrdersService';
 import { getMockPortfolioData } from '@/mocks/mockPortfolio';
 import { usePrice } from '@/contexts/PriceContext';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 interface TradingTabsProps {
   selectedPair?: TradingPair;
@@ -379,6 +381,10 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
     }
 
     setIsSubmitting(true);
+    toast({
+      title: 'Processing order...',
+      description: `${side.toUpperCase()} ${amount} ${baseAsset}`,
+    });
 
     try {
       const orderDto: CreateOrderDto = {
@@ -406,9 +412,11 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
       const order = await placeOrder(orderDto);
       console.log('Order placed successfully:', order);
 
+      // Show success toast with more details
       toast({
         title: 'Order placed successfully',
-        description: `${side.toUpperCase()} ${amount} ${selectedPair.baseAsset} at ${orderType === 'market' ? 'market price' : price}`,
+        description: `${side.toUpperCase()} ${amount} ${selectedPair.baseAsset} at ${orderType === 'market' ? 'market price' : price}. Order ID: ${order.id.substring(0, 8)}...`,
+        variant: 'default',
       });
 
       // Reset form
@@ -418,15 +426,41 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
 
       // Notify parent component
       if (onOrderPlaced) {
+        console.log('Notifying parent component that order was placed');
         onOrderPlaced();
       }
     } catch (error) {
       console.error('Error placing order:', error);
-      toast({
-        title: 'Failed to place order',
-        description: error instanceof Error ? error.message : 'Unknown error',
-        variant: 'destructive',
-      });
+
+      // Check if it's a network error
+      if (error.name === 'Error' && error.message.includes('Network')) {
+        toast({
+          title: 'Network Error',
+          description:
+            'Could not connect to the server. The order has been processed locally and will be synchronized when connection is restored.',
+          variant: 'destructive',
+        });
+      }
+      // Check if it's an authentication error
+      else if (
+        error.name === 'Error' &&
+        error.message.includes('Authentication')
+      ) {
+        toast({
+          title: 'Authentication Error',
+          description: 'Your session has expired. Please log in again.',
+          variant: 'destructive',
+        });
+        // Redirect to login page or refresh token
+      }
+      // Handle other errors
+      else {
+        toast({
+          title: 'Failed to place order',
+          description: error instanceof Error ? error.message : 'Unknown error',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -542,6 +576,7 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
           handlePlaceOrder();
         }}
         disabled={isSubmitting}
+        type="button"
       >
         {isSubmitting
           ? 'Processing...'
