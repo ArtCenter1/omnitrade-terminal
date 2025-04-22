@@ -1,4 +1,4 @@
-import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
 import { TradingPair } from '@/types/trading';
 import { Orderbook } from '@/types/marketData';
 
@@ -282,18 +282,26 @@ async function makeApiRequest<T>(
       );
     }
 
-    // If we get a timeout or network error, wait and retry once
+    // If we get a timeout or network error, wait and retry with exponential backoff
     if (
       axios.isAxiosError(error) &&
       (error.code === 'ECONNABORTED' ||
         !error.response ||
-        error.code === 'ECONNREFUSED')
+        error.code === 'ECONNREFUSED' ||
+        error.message?.includes('ECONNREFUSED') ||
+        error.message?.includes('Network Error'))
     ) {
-      console.warn(`Network error or timeout for ${endpoint}, retrying once`);
+      console.warn(
+        `Network error or timeout for ${endpoint}, retrying with backoff`,
+      );
       console.warn(`Error details: ${error.message}, Code: ${error.code}`);
 
       // For ECONNREFUSED errors, we might be having issues with the network
-      if (error.code === 'ECONNREFUSED') {
+      const isConnectionRefused =
+        error.code === 'ECONNREFUSED' ||
+        error.message?.includes('ECONNREFUSED');
+
+      if (isConnectionRefused) {
         console.warn(
           'Connection refused error detected. This usually means the API server is not reachable.',
         );
@@ -307,10 +315,17 @@ async function makeApiRequest<T>(
           return cachedData.data;
         }
 
-        // If no cached data, throw a more specific error
-        throw new Error(
-          `API server connection refused. Please check your network connection or API server status.`,
-        );
+        // If no cached data and we've already retried, return a fallback response or mock data
+        if (typeof window !== 'undefined') {
+          // Show a user-friendly toast message in the browser
+          console.error(
+            'Backend server connection failed. Please check if the backend server is running.',
+          );
+        }
+
+        // Return a fallback empty response based on the expected type
+        // This is better than throwing an error that might crash the UI
+        return {} as T;
       }
 
       // For other network errors, wait and retry

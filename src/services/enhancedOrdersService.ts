@@ -267,7 +267,8 @@ export const placeOrder = async (
       const isNetworkError =
         !apiError.response ||
         apiError.code === 'ECONNREFUSED' ||
-        apiError.message.includes('Network Error');
+        apiError.message?.includes('Network Error') ||
+        (apiError.message && apiError.message.includes('ECONNREFUSED'));
 
       // Log the error for debugging
       console.error('API error details:', {
@@ -275,6 +276,8 @@ export const placeOrder = async (
         code: apiError.code,
         hasResponse: !!apiError.response,
         status: apiError.response?.status,
+        name: apiError.name,
+        stack: apiError.stack?.substring(0, 200), // Only log the first part of the stack trace
       });
 
       // Fall back to mock implementation only for network errors

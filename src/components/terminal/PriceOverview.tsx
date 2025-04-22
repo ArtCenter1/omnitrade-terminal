@@ -6,6 +6,7 @@ import {
   getCoinTickers,
 } from '@/services/enhancedCoinGeckoService';
 import { formatCurrency, formatNumber } from '../../utils/formatUtils'; // Assuming you have formatting utils
+import { useFeatureFlags } from '@/config/featureFlags';
 
 interface PriceOverviewProps {
   selectedPair?: TradingPair;
@@ -16,9 +17,11 @@ export function PriceOverview({
   showPriceOnly,
 }: PriceOverviewProps & { showPriceOnly?: boolean } = {}) {
   const { selectedAccount } = useSelectedAccount();
+  const { useMockData } = useFeatureFlags();
   const [marketData, setMarketData] = useState<CoinGeckoTicker | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [usingFallbackData, setUsingFallbackData] = useState(false);
 
   useEffect(() => {
     // Function to fetch ticker data
@@ -106,21 +109,84 @@ export function PriceOverview({
             'Tickers received from API:',
             JSON.stringify(response.tickers, null, 2),
           );
-          setMarketData(null); // Set to null if not found
-          // Optionally set an error message
-          setError(
-            `Market data not found for ${selectedPair.symbol} on ${selectedAccount.name} via CoinGecko.`, // More specific error
-          );
+          console.log('Using fallback data for price overview');
+          setUsingFallbackData(true);
+
+          // Create fallback market data with reasonable values
+          const fallbackData: CoinGeckoTicker = {
+            base: selectedPair.baseAsset.toUpperCase(),
+            target: selectedPair.quoteAsset.toUpperCase(),
+            market: {
+              name: selectedAccount.name,
+              identifier: selectedAccount.exchangeId,
+            },
+            last: parseFloat(selectedPair.price.replace(/,/g, '')) || 40000, // Use pair price or default
+            volume: Math.random() * 1000 + 500, // Random volume between 500-1500
+            converted_last: {
+              btc: Math.random() * 0.01,
+              eth: Math.random() * 0.1,
+              usd: parseFloat(selectedPair.price.replace(/,/g, '')) || 40000,
+            },
+            converted_volume: {
+              btc: Math.random() * 50,
+              eth: Math.random() * 500,
+              usd: Math.random() * 50000000 + 10000000, // Random USD volume
+            },
+            bid_ask_spread_percentage: Math.random() * 0.5,
+            timestamp: new Date().toISOString(),
+            last_traded_at: new Date().toISOString(),
+            last_fetch_at: new Date().toISOString(),
+            is_anomaly: false,
+            is_stale: false,
+            trade_url: '',
+            token_info_url: '',
+            coin_id: selectedPair.baseAsset.toLowerCase(),
+            target_coin_id: selectedPair.quoteAsset.toLowerCase(),
+          };
+
+          setMarketData(fallbackData);
         }
       } catch (err: any) {
         console.error(
           'PriceOverview: Error fetching price overview data:',
           err,
         );
-        setError(
-          `Failed to load market data: ${err.message || 'Unknown error'}`,
-        );
-        setMarketData(null); // Clear data on error
+        console.log('Using fallback data due to error:', err.message);
+        setUsingFallbackData(true);
+
+        // Create fallback market data with reasonable values
+        const fallbackData: CoinGeckoTicker = {
+          base: selectedPair.baseAsset.toUpperCase(),
+          target: selectedPair.quoteAsset.toUpperCase(),
+          market: {
+            name: selectedAccount.name,
+            identifier: selectedAccount.exchangeId,
+          },
+          last: parseFloat(selectedPair.price.replace(/,/g, '')) || 40000, // Use pair price or default
+          volume: Math.random() * 1000 + 500, // Random volume between 500-1500
+          converted_last: {
+            btc: Math.random() * 0.01,
+            eth: Math.random() * 0.1,
+            usd: parseFloat(selectedPair.price.replace(/,/g, '')) || 40000,
+          },
+          converted_volume: {
+            btc: Math.random() * 50,
+            eth: Math.random() * 500,
+            usd: Math.random() * 50000000 + 10000000, // Random USD volume
+          },
+          bid_ask_spread_percentage: Math.random() * 0.5,
+          timestamp: new Date().toISOString(),
+          last_traded_at: new Date().toISOString(),
+          last_fetch_at: new Date().toISOString(),
+          is_anomaly: false,
+          is_stale: false,
+          trade_url: '',
+          token_info_url: '',
+          coin_id: selectedPair.baseAsset.toLowerCase(),
+          target_coin_id: selectedPair.quoteAsset.toLowerCase(),
+        };
+
+        setMarketData(fallbackData);
       } finally {
         setIsLoading(false);
       }
@@ -164,18 +230,12 @@ export function PriceOverview({
 
   // --- Loading and Error States ---
   // Show loading indicator more persistently while loading state is true
-  if (isLoading) {
+  if (isLoading && !marketData) {
     return (
       <div className="p-4 text-center text-gray-400 animate-pulse">
-        Loading...
+        Loading market data...
       </div>
     );
-  }
-
-  // Show error if fetching failed
-  if (error && !marketData) {
-    // Show error only if we don't have any data to display
-    return <div className="p-4 text-center text-red-500">{error}</div>;
   }
 
   // Handle case where no pair/account is selected or data couldn't be found
@@ -212,6 +272,17 @@ export function PriceOverview({
   // Otherwise render the stats grid (only if marketData is available)
   return (
     <div className="p-4">
+      {/* Data source indicator */}
+      {(usingFallbackData || useMockData) && (
+        <div className="flex items-center mb-2 justify-end">
+          <div className="flex items-center gap-1 bg-black bg-opacity-50 px-2 py-1 rounded text-xs">
+            <div className="w-2 h-2 rounded-full bg-yellow-500" />
+            <span className="text-yellow-500">
+              Using {useMockData ? 'mock' : 'fallback'} data
+            </span>
+          </div>
+        </div>
+      )}
       <div className="grid grid-cols-4 gap-8 text-xs">
         <div>
           <div className="text-gray-400">24h Change</div>

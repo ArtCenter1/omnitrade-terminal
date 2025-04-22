@@ -6,7 +6,8 @@ export class RedisService implements OnModuleInit {
   private readonly logger = new Logger(RedisService.name);
   private client: Redis | null = null;
   private isConnected = false;
-  private inMemoryFallback: Record<string, { value: string; expiry: number }> = {};
+  private inMemoryFallback: Record<string, { value: string; expiry: number }> =
+    {};
 
   constructor() {
     this.initializeRedis();
@@ -20,20 +21,22 @@ export class RedisService implements OnModuleInit {
   private initializeRedis() {
     try {
       const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-      
+
       this.logger.log(`Attempting to connect to Redis at ${redisUrl}`);
-      
+
       this.client = new Redis(redisUrl, {
         maxRetriesPerRequest: 3,
         retryStrategy: (times) => {
           const delay = Math.min(times * 200, 3000);
-          this.logger.warn(`Redis connection attempt ${times} failed. Retrying in ${delay}ms...`);
+          this.logger.warn(
+            `Redis connection attempt ${times} failed. Retrying in ${delay}ms...`,
+          );
           return delay;
         },
         reconnectOnError: (err) => {
           this.logger.error(`Redis connection error: ${err.message}`);
           return true; // Always try to reconnect
-        }
+        },
       });
 
       this.client.on('connect', () => {
@@ -68,18 +71,22 @@ export class RedisService implements OnModuleInit {
       if (this.isConnected && this.client) {
         return await this.client.get(key);
       } else {
-        this.logger.warn(`Redis not connected, using in-memory fallback for GET ${key}`);
+        this.logger.warn(
+          `Redis not connected, using in-memory fallback for GET ${key}`,
+        );
         const now = Date.now();
         const item = this.inMemoryFallback[key];
-        
+
         if (item && item.expiry > now) {
           return item.value;
         }
-        
+
         return null;
       }
     } catch (error) {
-      this.logger.error(`Error getting key ${key} from Redis: ${error.message}`);
+      this.logger.error(
+        `Error getting key ${key} from Redis: ${error.message}`,
+      );
       // Fall back to in-memory cache
       const item = this.inMemoryFallback[key];
       return item && item.expiry > Date.now() ? item.value : null;
@@ -98,11 +105,15 @@ export class RedisService implements OnModuleInit {
           await this.client.set(key, value);
         }
       } else {
-        this.logger.warn(`Redis not connected, using in-memory fallback for SET ${key}`);
+        this.logger.warn(
+          `Redis not connected, using in-memory fallback for SET ${key}`,
+        );
         // Store in in-memory fallback
         this.inMemoryFallback[key] = {
           value,
-          expiry: ttlSeconds ? Date.now() + (ttlSeconds * 1000) : Number.MAX_SAFE_INTEGER
+          expiry: ttlSeconds
+            ? Date.now() + ttlSeconds * 1000
+            : Number.MAX_SAFE_INTEGER,
         };
       }
     } catch (error) {
@@ -110,7 +121,9 @@ export class RedisService implements OnModuleInit {
       // Store in in-memory fallback
       this.inMemoryFallback[key] = {
         value,
-        expiry: ttlSeconds ? Date.now() + (ttlSeconds * 1000) : Number.MAX_SAFE_INTEGER
+        expiry: ttlSeconds
+          ? Date.now() + ttlSeconds * 1000
+          : Number.MAX_SAFE_INTEGER,
       };
     }
   }
@@ -123,31 +136,35 @@ export class RedisService implements OnModuleInit {
       if (this.isConnected && this.client) {
         return await this.client.incr(key);
       } else {
-        this.logger.warn(`Redis not connected, using in-memory fallback for INCR ${key}`);
+        this.logger.warn(
+          `Redis not connected, using in-memory fallback for INCR ${key}`,
+        );
         // Increment in in-memory fallback
         const item = this.inMemoryFallback[key];
         const currentValue = item ? parseInt(item.value, 10) || 0 : 0;
         const newValue = currentValue + 1;
-        
+
         this.inMemoryFallback[key] = {
           value: newValue.toString(),
-          expiry: item?.expiry || Number.MAX_SAFE_INTEGER
+          expiry: item?.expiry || Number.MAX_SAFE_INTEGER,
         };
-        
+
         return newValue;
       }
     } catch (error) {
-      this.logger.error(`Error incrementing key ${key} in Redis: ${error.message}`);
+      this.logger.error(
+        `Error incrementing key ${key} in Redis: ${error.message}`,
+      );
       // Increment in in-memory fallback
       const item = this.inMemoryFallback[key];
       const currentValue = item ? parseInt(item.value, 10) || 0 : 0;
       const newValue = currentValue + 1;
-      
+
       this.inMemoryFallback[key] = {
         value: newValue.toString(),
-        expiry: item?.expiry || Number.MAX_SAFE_INTEGER
+        expiry: item?.expiry || Number.MAX_SAFE_INTEGER,
       };
-      
+
       return newValue;
     }
   }
@@ -160,19 +177,23 @@ export class RedisService implements OnModuleInit {
       if (this.isConnected && this.client) {
         await this.client.expire(key, ttlSeconds);
       } else {
-        this.logger.warn(`Redis not connected, using in-memory fallback for EXPIRE ${key}`);
+        this.logger.warn(
+          `Redis not connected, using in-memory fallback for EXPIRE ${key}`,
+        );
         // Set expiry in in-memory fallback
         const item = this.inMemoryFallback[key];
         if (item) {
-          item.expiry = Date.now() + (ttlSeconds * 1000);
+          item.expiry = Date.now() + ttlSeconds * 1000;
         }
       }
     } catch (error) {
-      this.logger.error(`Error setting expiry for key ${key} in Redis: ${error.message}`);
+      this.logger.error(
+        `Error setting expiry for key ${key} in Redis: ${error.message}`,
+      );
       // Set expiry in in-memory fallback
       const item = this.inMemoryFallback[key];
       if (item) {
-        item.expiry = Date.now() + (ttlSeconds * 1000);
+        item.expiry = Date.now() + ttlSeconds * 1000;
       }
     }
   }
@@ -189,5 +210,39 @@ export class RedisService implements OnModuleInit {
    */
   getClient(): Redis | null {
     return this.client;
+  }
+
+  /**
+   * Get a value from Redis or in-memory cache even if it's expired
+   * This is useful for fallback when Redis is down or network errors occur
+   */
+  async getWithoutExpiry(key: string): Promise<string | null> {
+    try {
+      // First try to get from Redis if connected
+      if (this.isConnected && this.client) {
+        const value = await this.client.get(key);
+        if (value) return value;
+      }
+
+      // If not in Redis or Redis is not connected, check in-memory fallback
+      // regardless of expiry
+      const item = this.inMemoryFallback[key];
+      if (item) {
+        this.logger.warn(
+          `Using potentially stale data for key ${key} from in-memory cache`,
+        );
+        return item.value;
+      }
+
+      return null;
+    } catch (error) {
+      this.logger.error(
+        `Error getting key ${key} without expiry: ${error.message}`,
+      );
+
+      // Last resort: check in-memory fallback
+      const item = this.inMemoryFallback[key];
+      return item ? item.value : null;
+    }
   }
 }

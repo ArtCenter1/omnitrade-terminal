@@ -184,6 +184,59 @@ export class CoinGeckoProxyController {
 
       return response.data;
     } catch (error) {
+      // Check for connection errors (ECONNREFUSED, network errors)
+      const isConnectionError =
+        (axios.isAxiosError(error) && !error.response) ||
+        (error.code === 'ECONNREFUSED') ||
+        (error.message && error.message.includes('ECONNREFUSED')) ||
+        (error.message && error.message.includes('Network Error'));
+
+      if (isConnectionError) {
+        this.logger.error(
+          `Connection error to CoinGecko API: ${error.message}. Retry ${retryCount + 1}/${maxRetries}`,
+        );
+
+        // Try to get from cache even if it's expired
+        try {
+          const staleData = await this.redisService.getWithoutExpiry(cacheKey);
+          if (staleData) {
+            this.logger.warn(`Using stale cache data for ${url} due to connection error`);
+            return JSON.parse(staleData);
+          }
+        } catch (cacheError) {
+          this.logger.error(`Failed to retrieve stale cache: ${cacheError.message}`);
+        }
+
+        // Check if we should retry
+        if (retryCount < maxRetries) {
+          // Use exponential backoff
+          const waitTime = initialBackoff * Math.pow(2, retryCount);
+          this.logger.warn(`Retrying after ${waitTime}ms`);
+
+          // Wait for the specified time
+          await new Promise((resolve) => setTimeout(resolve, waitTime));
+
+          // Retry the request
+          return this.makeRequestWithRetry(
+            method,
+            url,
+            params,
+            cacheKey,
+            cacheTtl,
+            retryCount + 1,
+            initialBackoff,
+          );
+        }
+
+        // If we've exhausted retries, return a fallback response
+        return {
+          error: true,
+          status: 503,
+          message: 'Service temporarily unavailable. Could not connect to CoinGecko API.',
+          fallback: true,
+        };
+      }
+
       if (axios.isAxiosError(error) && error.response) {
         // Handle rate limiting (429 Too Many Requests)
         if (error.response.status === 429) {

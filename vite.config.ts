@@ -16,9 +16,41 @@ export default defineConfig(({ mode }) => ({
         changeOrigin: true,
         // Add error handling for proxy
         configure: (proxy, _options) => {
-          proxy.on('error', (err, _req, _res) => {
-            console.log('Proxy error:', err);
+          proxy.on('error', (err, req, res) => {
+            console.error('Proxy error:', err);
+
+            // Only handle API requests that haven't sent headers yet
+            if (!res.headersSent) {
+              // Check if this is a CoinGecko proxy request
+              if (req.url?.includes('/proxy/coingecko')) {
+                console.warn(
+                  'Returning fallback response for CoinGecko request',
+                );
+                res.writeHead(503, { 'Content-Type': 'application/json' });
+                res.end(
+                  JSON.stringify({
+                    error: true,
+                    status: 503,
+                    message:
+                      'Backend service unavailable. Please ensure the backend server is running.',
+                    code: err.code || 'ECONNREFUSED',
+                    fallback: true,
+                  }),
+                );
+              } else {
+                // Generic error for other API requests
+                res.writeHead(503, { 'Content-Type': 'application/json' });
+                res.end(
+                  JSON.stringify({
+                    error: true,
+                    message:
+                      'Backend service unavailable. Please ensure the backend server is running.',
+                  }),
+                );
+              }
+            }
           });
+
           proxy.on('proxyReq', (proxyReq, req, _res) => {
             console.log('Proxying:', req.method, req.url);
           });

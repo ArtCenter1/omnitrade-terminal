@@ -1,4 +1,4 @@
-import { Loader2, RefreshCw } from 'lucide-react';
+import { Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
 import { TradingPair } from '@/types/trading';
 import { Orderbook } from '@/types/marketData';
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
@@ -29,8 +29,10 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
   const [orderbook, setOrderbook] = useState<Orderbook>({ bids: [], asks: [] });
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isError, setIsError] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [refreshInterval, setRefreshInterval] = useState<number>(10000); // 10 seconds
+  const [usingFallbackData, setUsingFallbackData] = useState<boolean>(false);
 
   // Function to fetch orderbook data with debouncing
   const fetchOrderbook = useCallback(async () => {
@@ -54,6 +56,7 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
         console.log('Using mock orderbook data due to feature flags');
         const mockData = getMockOrderbookData(symbol);
         setOrderbook(mockData.orderbook);
+        setUsingFallbackData(true);
         console.log('Mock orderbook data loaded for', symbol);
       } else {
         // Use real data from CoinGecko
@@ -85,6 +88,10 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
           // Fallback to mock data if real data fails
           const mockData = getMockOrderbookData(symbol);
           setOrderbook(mockData.orderbook);
+          setUsingFallbackData(true);
+          setErrorMessage(
+            'Could not fetch real market data. Using fallback data.',
+          );
           console.log('Falling back to mock orderbook data due to API error');
         }
       }
@@ -93,6 +100,9 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
     } catch (error) {
       console.error('Error in fetchOrderbook:', error);
       setIsError(true);
+      setErrorMessage(
+        'Error loading order book data. Using emergency fallback data.',
+      );
 
       // Create a simple fallback orderbook with some basic data
       console.log('Using emergency fallback orderbook data');
@@ -110,6 +120,7 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
       };
 
       setOrderbook(fallbackOrderbook);
+      setUsingFallbackData(true);
     } finally {
       clearTimeout(timeoutId); // Clear the timeout
       setIsLoading(false);
@@ -165,28 +176,42 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
   };
 
   // Show loading state
-  if (isLoading) {
+  if (isLoading && !orderbook.bids.length && !orderbook.asks.length) {
     return (
       <div className={`${className || ''} w-full h-full`}>
         <div className="p-3 border-b border-gray-800">
           <h3 className="text-white font-medium">Order Book</h3>
         </div>
-        <div className="flex justify-center items-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+        <div className="flex flex-col justify-center items-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-purple-500 mb-2" />
+          <div className="text-gray-400 text-sm">Loading order book...</div>
         </div>
       </div>
     );
   }
 
-  // Show error state
-  if (isError || !orderbook) {
+  // Show error state - but only if we don't have any data to display
+  if (
+    (isError || !orderbook) &&
+    !orderbook.bids.length &&
+    !orderbook.asks.length
+  ) {
     return (
       <div className={`${className || ''} w-full h-full`}>
         <div className="p-3 border-b border-gray-800">
           <h3 className="text-white font-medium">Order Book</h3>
         </div>
-        <div className="flex justify-center items-center py-12 text-red-500">
-          Error loading order book
+        <div className="flex flex-col justify-center items-center py-12">
+          <AlertTriangle className="h-8 w-8 text-yellow-500 mb-2" />
+          <div className="text-red-500 mb-2">
+            {errorMessage || 'Error loading order book'}
+          </div>
+          <button
+            onClick={handleRefresh}
+            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 flex items-center justify-center gap-2 mt-2"
+          >
+            <RefreshCw className="w-4 h-4" /> Try Again
+          </button>
         </div>
       </div>
     );
@@ -228,12 +253,14 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
           {/* Data source indicator */}
           <div className="flex items-center mt-1">
             <div
-              className={`w-2 h-2 rounded-full mr-1 ${useMockData || !useRealMarketData ? 'bg-yellow-500' : 'bg-crypto-green'}`}
+              className={`w-2 h-2 rounded-full mr-1 ${useMockData || !useRealMarketData || usingFallbackData ? 'bg-yellow-500' : 'bg-crypto-green'}`}
             />
             <span className="text-xs text-gray-400">
               {useMockData || !useRealMarketData
                 ? 'Using mock data'
-                : 'Using real data'}
+                : usingFallbackData
+                  ? 'Using fallback data'
+                  : 'Using real data'}
             </span>
           </div>
         </div>
@@ -368,12 +395,14 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
             {/* Data source indicator */}
             <div className="flex items-center mt-1">
               <div
-                className={`w-2 h-2 rounded-full mr-1 ${useMockData || !useRealMarketData ? 'bg-yellow-500' : 'bg-crypto-green'}`}
+                className={`w-2 h-2 rounded-full mr-1 ${useMockData || !useRealMarketData || usingFallbackData ? 'bg-yellow-500' : 'bg-crypto-green'}`}
               />
               <span className="text-xs text-gray-400">
                 {useMockData || !useRealMarketData
                   ? 'Using mock data'
-                  : 'Using real data'}
+                  : usingFallbackData
+                    ? 'Using fallback data'
+                    : 'Using real data'}
               </span>
             </div>
           </div>

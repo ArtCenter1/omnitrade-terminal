@@ -432,12 +432,16 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
     } catch (error) {
       console.error('Error placing order:', error);
 
-      // Check if it's a network error
-      if (error.name === 'Error' && error.message.includes('Network')) {
+      // Check if it's a network error or connection refused error
+      if (
+        (error.name === 'Error' && error.message.includes('Network')) ||
+        error.message?.includes('ECONNREFUSED') ||
+        error.code === 'ECONNREFUSED'
+      ) {
         toast({
-          title: 'Network Error',
+          title: 'Server Connection Error',
           description:
-            'Could not connect to the server. The order has been processed locally and will be synchronized when connection is restored.',
+            'Could not connect to the trading server. The order has been processed locally and will be synchronized when connection is restored.',
           variant: 'destructive',
         });
       }
