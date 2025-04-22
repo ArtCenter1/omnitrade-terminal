@@ -5,12 +5,9 @@ import { Orderbook } from '@/types/marketData';
 import { getCoinGeckoApiKey } from '@/utils/env';
 
 // Define the base URLs for CoinGecko APIs
-const PUBLIC_API_URL =
-  import.meta.env.VITE_COINGECKO_PUBLIC_API_URL ||
-  'https://api.coingecko.com/api/v3';
-const PRO_API_URL =
-  import.meta.env.VITE_COINGECKO_PRO_API_URL ||
-  'https://pro-api.coingecko.com/api/v3';
+// Use our backend proxy to avoid CORS issues
+const PUBLIC_API_URL = '/api/proxy/coingecko';
+const PRO_API_URL = '/api/proxy/coingecko';
 
 // Get API key from frontend environment variables
 const API_KEY = getCoinGeckoApiKey();
@@ -211,10 +208,15 @@ async function makeApiRequest<T>(
     }
 
     // Add a timeout to the request
+    console.log(`Making request to: ${baseUrl}${endpoint}`);
+
     const response = await axios.get<T>(`${baseUrl}${endpoint}`, {
       ...config,
       timeout: 10000, // 10 second timeout
     });
+
+    console.log(`Request successful: ${baseUrl}${endpoint}`);
+    console.log(`Response data:`, response.data);
 
     // Cache the response
     cacheMap.set(cacheKey, {
@@ -224,6 +226,18 @@ async function makeApiRequest<T>(
 
     return response.data;
   } catch (error) {
+    // Log detailed error information
+    console.error(`Error making request to ${baseUrl}${endpoint}:`, error);
+    if (axios.isAxiosError(error)) {
+      console.error(`Axios error details:`, {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message,
+        code: error.code,
+      });
+    }
+
     // Check if we have cached data we can return instead
     const cachedData = cacheMap.get(cacheKey);
     if (cachedData) {
@@ -563,8 +577,19 @@ export async function getCoinTickers(
   const cacheKey = `tickers_${coinId}_${exchangeIds.join('_')}`;
 
   try {
-    // If we don't have the coin ID, try to get it from the symbol
-    if (!coinId.includes('-')) {
+    // Handle special cases for exchanges that use different symbols
+    // Kraken uses XBT instead of BTC
+    if (
+      coinId.toLowerCase() === 'btc' &&
+      exchangeIds.some((id) => id.toLowerCase() === 'kraken')
+    ) {
+      console.log('Using bitcoin ID directly for BTC on Kraken');
+      coinId = 'bitcoin';
+    } else if (coinId.toLowerCase() === 'xbt') {
+      console.log('Converting XBT to bitcoin ID');
+      coinId = 'bitcoin';
+    } else if (!coinId.includes('-')) {
+      // If we don't have the coin ID, try to get it from the symbol
       const normalizedSymbol = coinId.toLowerCase();
       if (cache.symbolToId.has(normalizedSymbol)) {
         coinId = cache.symbolToId.get(normalizedSymbol)!;
@@ -765,11 +790,20 @@ export async function getOrderbook(
       }
 
       // Filter tickers for the specific trading pair
-      const filteredTickers = tickerResponse.tickers.filter(
-        (ticker) =>
-          ticker.base.toLowerCase() === baseAsset.toLowerCase() &&
-          ticker.target.toLowerCase() === quoteAsset.toLowerCase(),
-      );
+      // Handle special cases for exchanges that use different symbols
+      const filteredTickers = tickerResponse.tickers.filter((ticker) => {
+        // Handle BTC/XBT case for Kraken
+        const baseMatches =
+          ticker.base.toLowerCase() === baseAsset.toLowerCase() ||
+          (exchangeId.toLowerCase() === 'kraken' &&
+            baseAsset.toLowerCase() === 'btc' &&
+            ticker.base.toLowerCase() === 'xbt');
+
+        const targetMatches =
+          ticker.target.toLowerCase() === quoteAsset.toLowerCase();
+
+        return baseMatches && targetMatches;
+      });
 
       // Check if we have any matching tickers after filtering
       if (filteredTickers.length === 0) {

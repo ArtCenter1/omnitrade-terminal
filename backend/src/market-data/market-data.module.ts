@@ -4,10 +4,11 @@ import { MarketDataController } from './market-data.controller';
 import { MarketDataService } from './market-data.service';
 import { MarketDataGateway } from './market-data.gateway';
 import { RateLimitMiddleware } from './rate-limit.middleware';
+import { CoinGeckoProxyController } from './coingecko-proxy.controller';
 
 @Module({
   imports: [ConfigModule.forRoot()], // Add ConfigModule here
-  controllers: [MarketDataController],
+  controllers: [MarketDataController, CoinGeckoProxyController],
   providers: [MarketDataService, MarketDataGateway],
 })
 export class MarketDataModule implements NestModule {

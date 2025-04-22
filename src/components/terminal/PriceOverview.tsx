@@ -56,9 +56,19 @@ export function PriceOverview({
       try {
         // Use baseAsset as coinId (service handles symbol->id mapping)
         // Use selectedAccount.exchangeId
-        const coinId = selectedPair.baseAsset; // e.g., 'BTC'
+        let coinId = selectedPair.baseAsset; // e.g., 'BTC'
         const exchangeId = selectedAccount.exchangeId; // e.g., 'kraken'
         const quoteAssetLower = selectedPair.quoteAsset.toLowerCase(); // e.g., 'usdt'
+
+        // Handle special cases for exchanges that use different symbols
+        // Kraken uses XBT instead of BTC
+        if (
+          exchangeId.toLowerCase() === 'kraken' &&
+          coinId.toLowerCase() === 'btc'
+        ) {
+          coinId = 'XBT';
+          console.log('PriceOverview: Using XBT instead of BTC for Kraken');
+        }
 
         console.log(
           `PriceOverview: Fetching ticker for ${coinId}/${quoteAssetLower} on ${exchangeId}`,
@@ -68,12 +78,20 @@ export function PriceOverview({
         const response = await getCoinTickers(coinId, [exchangeId]);
 
         // Find the specific ticker matching the quote asset and ensure market identifier matches
-        const specificTicker = response.tickers.find(
-          (ticker) =>
-            ticker.base.toLowerCase() === coinId.toLowerCase() &&
-            ticker.target.toLowerCase() === quoteAssetLower &&
-            ticker.market.identifier.toLowerCase() === exchangeId.toLowerCase(),
-        );
+        // For Kraken, we need to handle both BTC and XBT
+        const specificTicker = response.tickers.find((ticker) => {
+          const baseMatches =
+            ticker.base.toLowerCase() === coinId.toLowerCase() ||
+            (exchangeId.toLowerCase() === 'kraken' &&
+              coinId.toLowerCase() === 'xbt' &&
+              ticker.base.toLowerCase() === 'xbt');
+
+          const targetMatches = ticker.target.toLowerCase() === quoteAssetLower;
+          const exchangeMatches =
+            ticker.market.identifier.toLowerCase() === exchangeId.toLowerCase();
+
+          return baseMatches && targetMatches && exchangeMatches;
+        });
 
         if (specificTicker) {
           console.log('PriceOverview: Found specific ticker:', specificTicker);
