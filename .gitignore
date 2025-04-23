@@ -43,3 +43,10 @@ backend/.env.local
 backend/.env.development
 backend/.env.test
 backend/.env.production
+
+# Knowledge graph files
+omnitrade-knowledge-graph.json
+global-standards-knowledge-graph.json
+*.knowledge-graph.json
+projects.jsonl
+*.jsonl
