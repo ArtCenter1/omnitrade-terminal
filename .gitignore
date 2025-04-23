@@ -29,6 +29,9 @@ omnitrade-firebase-adminsdk.json
 # Temporary directories
 temp/
 
+# Memory directories
+/mcp_servers/
+
 # Root prisma folder (use backend/prisma instead)
 /prisma/
 
