@@ -226,14 +226,28 @@ export const placeOrder = async (
 
       // Make the API call to place the order with proper error handling
       try {
+        console.log(
+          'Making API call to place order with data:',
+          createOrderDto,
+        );
         const response = await api.post<Order>('/orders', createOrderDto, {
           headers,
         });
         console.log('API order placement successful:', response.data);
         return response.data;
       } catch (error) {
+        // Safely extract error information
+        const errorObj = error as any;
+        console.error('Error details in API call:', {
+          name: errorObj?.name,
+          message: errorObj?.message,
+          code: errorObj?.code,
+          status: errorObj?.response?.status,
+          responseData: errorObj?.response?.data,
+        });
+
         // Check if it's a network error
-        if (!error.response) {
+        if (!errorObj?.response) {
           console.error('Network error when placing order:', error);
           throw new Error(
             'Network error. Please check your connection and try again.',
@@ -241,10 +255,10 @@ export const placeOrder = async (
         }
 
         // Check if it's an authentication error
-        if (error.response.status === 401) {
+        if (errorObj?.response?.status === 401) {
           console.error(
             'Authentication error when placing order:',
-            error.response.data,
+            errorObj?.response?.data,
           );
           throw new Error('Authentication failed. Please log in again.');
         }
@@ -252,32 +266,35 @@ export const placeOrder = async (
         // Handle other API errors
         console.error(
           'API error when placing order:',
-          error.response?.data || error,
+          errorObj?.response?.data || error,
         );
         throw new Error(
-          error.response?.data?.message ||
+          errorObj?.response?.data?.message ||
             'Failed to place order. Please try again.',
         );
       }
     } catch (apiError) {
       console.error('Error placing order:', apiError);
 
+      // Safely extract error information
+      const errorObj = apiError as any;
+
       // Check if this is a network error or server unavailable error
       // Only fall back to mock implementation as a last resort
       const isNetworkError =
-        !apiError.response ||
-        apiError.code === 'ECONNREFUSED' ||
-        apiError.message?.includes('Network Error') ||
-        (apiError.message && apiError.message.includes('ECONNREFUSED'));
+        !errorObj?.response ||
+        errorObj?.code === 'ECONNREFUSED' ||
+        errorObj?.message?.includes('Network Error') ||
+        (errorObj?.message && errorObj?.message.includes('ECONNREFUSED'));
 
       // Log the error for debugging
       console.error('API error details:', {
-        message: apiError.message,
-        code: apiError.code,
-        hasResponse: !!apiError.response,
-        status: apiError.response?.status,
-        name: apiError.name,
-        stack: apiError.stack?.substring(0, 200), // Only log the first part of the stack trace
+        message: errorObj?.message || 'Unknown error',
+        code: errorObj?.code,
+        hasResponse: !!errorObj?.response,
+        status: errorObj?.response?.status,
+        name: errorObj?.name,
+        stack: errorObj?.stack?.substring(0, 200), // Only log the first part of the stack trace
       });
 
       // Fall back to mock implementation only for network errors

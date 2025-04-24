@@ -117,9 +117,12 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
 
   const handleTotalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTotal = e.target.value;
-    setTotal(newTotal);
 
+    // Format the total to 2 decimal places if it's a valid number
     if (!isNaN(parseFloat(newTotal))) {
+      // Don't format while user is typing, only store the raw value
+      setTotal(newTotal);
+
       let priceToUse = 0;
 
       if (orderType === 'market' && selectedPair?.price) {
@@ -131,12 +134,17 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
       }
 
       if (priceToUse > 0) {
-        const calculatedAmount = (parseFloat(newTotal) / priceToUse).toFixed(8);
-        setAmount(calculatedAmount);
+        // Calculate the amount with high precision to avoid rounding errors
+        const totalValue = parseFloat(newTotal);
+        const calculatedAmount = (totalValue / priceToUse).toFixed(8);
         console.log(
-          `Calculated amount: ${calculatedAmount} using price: ${priceToUse} and total: ${newTotal}`,
+          `Calculated amount: ${calculatedAmount} using price: ${priceToUse} and total: ${totalValue}`,
         );
+        setAmount(calculatedAmount);
       }
+    } else {
+      // If it's not a valid number, just set the raw value
+      setTotal(newTotal);
     }
   };
 
@@ -146,6 +154,10 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
 
   const handlePercentageClick = (percentage: number) => {
     console.log(`Percentage button clicked: ${percentage}%`);
+    console.log(
+      `Current side: ${side}, baseAsset: ${baseAsset}, quoteAsset: ${quoteAsset}`,
+    );
+
     // Get the available balance for the current asset from the mock portfolio data
     let availableBalance = 0;
     let priceToUse = 0;
@@ -156,9 +168,6 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
       : null;
 
     console.log('Portfolio data:', portfolioData);
-    console.log(
-      `Getting available balance for ${side} order with ${baseAsset}/${quoteAsset} pair`,
-    );
 
     // Get the current price
     if (orderType === 'market' && selectedPair?.price) {
@@ -169,176 +178,142 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
       priceToUse = parseFloat(price);
     }
 
+    console.log(`Using price: ${priceToUse} for calculations`);
+
+    // For buy orders, we need to use the quote asset (e.g., USDT) balance
+    // For sell orders, we need to use the base asset (e.g., BTC) balance
+    const assetToUse = side === 'buy' ? quoteAsset : baseAsset;
+    console.log(`Using ${assetToUse} balance for ${side} order`);
+
+    // Get the balance of the asset we need to use
     if (portfolioData && portfolioData.assets) {
-      if (side === 'buy') {
-        // For buy orders, use the quote asset (e.g., USDT) directly
-        const quoteAssetData = portfolioData.assets.find(
-          (asset) => asset.asset === quoteAsset,
-        );
+      const assetData = portfolioData.assets.find(
+        (asset) => asset.asset === assetToUse,
+      );
 
-        if (quoteAssetData) {
-          // Use the quote asset balance directly
-          availableBalance = quoteAssetData.total;
-          console.log(`Found ${quoteAsset} balance: ${availableBalance}`);
-        } else {
-          console.log(
-            `${quoteAsset} not found in portfolio, using default value`,
-          );
-          availableBalance =
-            quoteAsset === 'USDT' ? 16000 : quoteAsset === 'BTC' ? 0.38 : 10;
-        }
-
-        // Calculate the percentage of the quote asset
-        const quoteAmount = (availableBalance * percentage) / 100;
+      if (assetData) {
+        availableBalance = assetData.total;
+        console.log(`Found ${assetToUse} balance: ${availableBalance}`);
+      } else {
         console.log(
-          `${percentage}% of ${availableBalance} ${quoteAsset} = ${quoteAmount} ${quoteAsset}`,
+          `${assetToUse} not found in portfolio, using default value`,
         );
-
-        // If we have a valid price, convert to the equivalent base asset amount
-        if (priceToUse > 0) {
-          const baseAmount = quoteAmount / priceToUse;
-          console.log(
-            `${quoteAmount} ${quoteAsset} = ${baseAmount} ${baseAsset} at price ${priceToUse}`,
-          );
-
-          // Set the amount to the calculated base asset amount
-          setAmount(baseAmount.toFixed(8));
-
-          // Set the total to the calculated quote asset amount
-          setTotal(quoteAmount.toFixed(2));
-
-          // Return early since we've already set the amount and total
-          return;
-        }
-      } else if (side === 'sell') {
-        // For sell orders, use the base asset (e.g., BTC, ETH, DOT) directly
-        const baseAssetData = portfolioData.assets.find(
-          (asset) => asset.asset === baseAsset,
-        );
-
-        if (baseAssetData) {
-          // Use the base asset balance directly
-          availableBalance = baseAssetData.total;
-          console.log(`Found ${baseAsset} balance: ${availableBalance}`);
-        } else {
-          console.log(
-            `${baseAsset} not found in portfolio, using default value`,
-          );
-          if (baseAsset === 'BTC') availableBalance = 0.28;
-          else if (baseAsset === 'ETH') availableBalance = 2.5;
-          else if (baseAsset === 'DOT') availableBalance = 43.41;
-          else availableBalance = 10; // Default for other assets
-        }
-
-        // Calculate the percentage of the base asset
-        const baseAmount = (availableBalance * percentage) / 100;
-        console.log(
-          `${percentage}% of ${availableBalance} ${baseAsset} = ${baseAmount} ${baseAsset}`,
-        );
-
-        // Set the amount to the calculated base asset amount
-        setAmount(baseAmount.toFixed(8));
-
-        // If we have a valid price, calculate the total in quote asset
-        if (priceToUse > 0) {
-          const quoteAmount = baseAmount * priceToUse;
-          console.log(
-            `${baseAmount} ${baseAsset} = ${quoteAmount} ${quoteAsset} at price ${priceToUse}`,
-          );
-
-          // Set the total to the calculated quote asset amount
-          setTotal(quoteAmount.toFixed(2));
-        } else {
-          // If we don't have a valid price, just set a default total
-          setTotal('0.00');
-        }
-
-        // Return early since we've already set the amount and total
-        return;
+        // Set default balance based on the asset
+        if (assetToUse === 'USDT') availableBalance = 16000;
+        else if (assetToUse === 'BTC') availableBalance = 0.28;
+        else if (assetToUse === 'ETH') availableBalance = 2.5;
+        else if (assetToUse === 'DOT') availableBalance = 43.41;
+        else availableBalance = 10; // Default for other assets
       }
     } else {
-      // Fallback to hardcoded values if portfolio data is not available
       console.log('No portfolio data available, using default values');
-
-      if (side === 'buy') {
-        // For buy orders, use the quote asset (e.g., USDT) directly
-        let quoteBalance = 0;
-
-        // Set default quote asset balance
-        if (quoteAsset === 'USDT') quoteBalance = 16000;
-        else if (quoteAsset === 'BTC') quoteBalance = 0.38;
-        else quoteBalance = 10;
-
-        // Calculate the percentage of the quote asset
-        const quoteAmount = (quoteBalance * percentage) / 100;
-        console.log(
-          `${percentage}% of ${quoteBalance} ${quoteAsset} = ${quoteAmount} ${quoteAsset}`,
-        );
-
-        // If we have a valid price, convert to the equivalent base asset amount
-        if (priceToUse > 0) {
-          const baseAmount = quoteAmount / priceToUse;
-          console.log(
-            `${quoteAmount} ${quoteAsset} = ${baseAmount} ${baseAsset} at price ${priceToUse}`,
-          );
-
-          // Set the amount to the calculated base asset amount
-          setAmount(baseAmount.toFixed(8));
-
-          // Set the total to the calculated quote asset amount
-          setTotal(quoteAmount.toFixed(2));
-
-          // Return early since we've already set the amount and total
-          return;
-        }
-      } else {
-        // For sell orders, use the base asset (e.g., BTC, ETH, DOT) directly
-        let baseBalance = 0;
-
-        // Set default base asset balance
-        if (baseAsset === 'BTC') baseBalance = 0.28;
-        else if (baseAsset === 'ETH') baseBalance = 2.5;
-        else if (baseAsset === 'DOT') baseBalance = 43.41;
-        else baseBalance = 10; // Default for other assets
-
-        // Calculate the percentage of the base asset
-        const baseAmount = (baseBalance * percentage) / 100;
-        console.log(
-          `${percentage}% of ${baseBalance} ${baseAsset} = ${baseAmount} ${baseAsset}`,
-        );
-
-        // Set the amount to the calculated base asset amount
-        setAmount(baseAmount.toFixed(8));
-
-        // If we have a valid price, calculate the total in quote asset
-        if (priceToUse > 0) {
-          const quoteAmount = baseAmount * priceToUse;
-          console.log(
-            `${baseAmount} ${baseAsset} = ${quoteAmount} ${quoteAsset} at price ${priceToUse}`,
-          );
-
-          // Set the total to the calculated quote asset amount
-          setTotal(quoteAmount.toFixed(2));
-        } else {
-          // If we don't have a valid price, just set a default total
-          setTotal('0.00');
-        }
-
-        // Return early since we've already set the amount and total
-        return;
-      }
+      // Set default balance based on the asset
+      if (assetToUse === 'USDT') availableBalance = 16000;
+      else if (assetToUse === 'BTC') availableBalance = 0.28;
+      else if (assetToUse === 'ETH') availableBalance = 2.5;
+      else if (assetToUse === 'DOT') availableBalance = 43.41;
+      else availableBalance = 10; // Default for other assets
     }
 
-    // If we get here, something went wrong, so just set default values
-    console.log('Using fallback calculation');
-    const newAmount = ((availableBalance * percentage) / 100).toFixed(8);
-    console.log(`Setting amount to ${newAmount}`);
-    setAmount(newAmount);
+    // Calculate the percentage of the available balance
+    const assetAmount = (availableBalance * percentage) / 100;
+    console.log(
+      `${percentage}% of ${availableBalance} ${assetToUse} = ${assetAmount} ${assetToUse}`,
+    );
+
+    if (side === 'buy') {
+      // For buy orders, we need to convert the quote asset amount to base asset amount
+      if (priceToUse > 0) {
+        const baseAmount = assetAmount / priceToUse;
+        console.log(
+          `Converting ${assetAmount} ${quoteAsset} to ${baseAmount} ${baseAsset} at price ${priceToUse}`,
+        );
+
+        // Set the amount to the calculated base asset amount (with appropriate precision)
+        let formattedBaseAmount;
+        if (percentage === 100 && priceToUse > 0) {
+          // For 100%, calculate the exact amount to avoid floating point errors
+          formattedBaseAmount = (availableBalance / priceToUse).toFixed(8);
+        } else {
+          formattedBaseAmount = baseAmount.toFixed(8);
+        }
+        console.log(`Setting amount to ${formattedBaseAmount} ${baseAsset}`);
+        setAmount(formattedBaseAmount);
+
+        // Set the total to the quote asset amount
+        // For exact percentages like 100%, use the exact original value to avoid rounding errors
+        let formattedQuoteAmount;
+        if (percentage === 100) {
+          formattedQuoteAmount = availableBalance.toFixed(2);
+        } else {
+          formattedQuoteAmount = assetAmount.toFixed(2);
+        }
+        console.log(`Setting total to ${formattedQuoteAmount} ${quoteAsset}`);
+        setTotal(formattedQuoteAmount);
+      } else {
+        console.error('Invalid price for conversion:', priceToUse);
+        toast({
+          title: 'Invalid price',
+          description: 'Cannot calculate amount with current price.',
+          variant: 'destructive',
+        });
+      }
+    } else {
+      // sell
+      // For sell orders, we use the base asset amount directly
+      // Set the amount to the calculated base asset amount
+      let formattedBaseAmount;
+      if (percentage === 100) {
+        // For 100%, use the exact available balance to avoid floating point errors
+        formattedBaseAmount = availableBalance.toFixed(8);
+      } else {
+        formattedBaseAmount = assetAmount.toFixed(8);
+      }
+      console.log(`Setting amount to ${formattedBaseAmount} ${baseAsset}`);
+      setAmount(formattedBaseAmount);
+
+      // Calculate the total in quote asset if we have a valid price
+      if (priceToUse > 0) {
+        const quoteAmount = assetAmount * priceToUse;
+        console.log(
+          `Converting ${assetAmount} ${baseAsset} to ${quoteAmount} ${quoteAsset} at price ${priceToUse}`,
+        );
+
+        // Set the total to the calculated quote asset amount
+        // For exact percentages, use precise calculation to avoid floating point errors
+        let formattedQuoteAmount;
+        if (percentage === 100) {
+          // For 100% of the base asset, calculate the exact total
+          formattedQuoteAmount = (availableBalance * priceToUse).toFixed(2);
+        } else {
+          formattedQuoteAmount = quoteAmount.toFixed(2);
+        }
+        console.log(`Setting total to ${formattedQuoteAmount} ${quoteAsset}`);
+        setTotal(formattedQuoteAmount);
+      } else {
+        console.log('No valid price available, setting default total');
+        setTotal('0.00');
+      }
+    }
   };
 
   const handlePlaceOrder = async () => {
     console.log('TradingTabs handlePlaceOrder called');
+
+    // Log current state for debugging
+    console.log('Current state:', {
+      selectedAccount,
+      selectedPair,
+      orderType,
+      side,
+      amount,
+      price,
+      total,
+      isSubmitting,
+    });
+
     if (!selectedAccount) {
+      console.log('No exchange selected, showing toast');
       toast({
         title: 'No exchange selected',
         description: 'Please select an exchange account first.',
@@ -348,6 +323,7 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
     }
 
     if (!selectedPair) {
+      console.log('No trading pair selected, showing toast');
       toast({
         title: 'No trading pair selected',
         description: 'Please select a trading pair first.',
@@ -363,6 +339,7 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
       parseFloat(amount),
     );
     if (!amount || parseFloat(amount) <= 0) {
+      console.log('Invalid amount, showing toast');
       toast({
         title: 'Invalid amount',
         description: 'Please enter a valid amount.',
@@ -387,6 +364,22 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
     });
 
     try {
+      console.log('Creating order DTO with account:', selectedAccount);
+
+      // Ensure we have all required data
+      if (!selectedAccount.exchange) {
+        console.error(
+          'Missing exchange ID in selectedAccount:',
+          selectedAccount,
+        );
+        throw new Error('Exchange ID is missing');
+      }
+
+      if (!selectedPair.symbol) {
+        console.error('Missing symbol in selectedPair:', selectedPair);
+        throw new Error('Trading pair symbol is missing');
+      }
+
       const orderDto: CreateOrderDto = {
         exchangeId: selectedAccount.exchange,
         symbol: selectedPair.symbol,
@@ -396,19 +389,30 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
       };
 
       if (orderType === 'limit' || orderType === 'stop') {
+        if (!price || isNaN(parseFloat(price))) {
+          console.error('Invalid price for limit/stop order:', price);
+          throw new Error('Price is required for limit/stop orders');
+        }
         orderDto.price = parseFloat(price);
       } else if (orderType === 'market') {
         // For market orders, use the current pair price
         if (selectedPair?.price) {
-          orderDto.price = parseFloat(selectedPair.price.replace(/,/g, ''));
+          const parsedPrice = parseFloat(selectedPair.price.replace(/,/g, ''));
+          console.log(
+            `Using current pair price: ${parsedPrice} from ${selectedPair.price}`,
+          );
+          orderDto.price = parsedPrice;
         } else {
           // Default price if none is available
-          orderDto.price =
+          const defaultPrice =
             baseAsset === 'BTC' ? 60000 : baseAsset === 'ETH' ? 3000 : 10;
+          console.log(`Using default price: ${defaultPrice} for ${baseAsset}`);
+          orderDto.price = defaultPrice;
         }
       }
 
       console.log('Placing order with data:', orderDto);
+      console.log('Calling placeOrder function...');
       const order = await placeOrder(orderDto);
       console.log('Order placed successfully:', order);
 
@@ -432,11 +436,19 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
     } catch (error) {
       console.error('Error placing order:', error);
 
+      // Safely extract error information
+      const errorObj = error as any; // Type assertion to access properties safely
+      const errorName = errorObj?.name || '';
+      const errorMessage = errorObj?.message || 'Unknown error';
+      const errorCode = errorObj?.code || '';
+
+      console.log('Error details:', { errorName, errorMessage, errorCode });
+
       // Check if it's a network error or connection refused error
       if (
-        (error.name === 'Error' && error.message.includes('Network')) ||
-        error.message?.includes('ECONNREFUSED') ||
-        error.code === 'ECONNREFUSED'
+        (errorName === 'Error' && errorMessage.includes('Network')) ||
+        errorMessage.includes('ECONNREFUSED') ||
+        errorCode === 'ECONNREFUSED'
       ) {
         toast({
           title: 'Server Connection Error',
@@ -447,8 +459,8 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
       }
       // Check if it's an authentication error
       else if (
-        error.name === 'Error' &&
-        error.message.includes('Authentication')
+        errorName === 'Error' &&
+        errorMessage.includes('Authentication')
       ) {
         toast({
           title: 'Authentication Error',
@@ -461,7 +473,7 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
       else {
         toast({
           title: 'Failed to place order',
-          description: error instanceof Error ? error.message : 'Unknown error',
+          description: error instanceof Error ? errorMessage : 'Unknown error',
           variant: 'destructive',
         });
       }
@@ -575,9 +587,14 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
 
       <Button
         className={`w-full ${side === 'buy' ? 'bg-crypto-green hover:bg-crypto-green/90' : 'bg-crypto-red hover:bg-crypto-red/90'} h-8 py-0`}
-        onClick={() => {
+        onClick={(e) => {
+          e.preventDefault();
           console.log('Buy/Sell button clicked');
-          handlePlaceOrder();
+          try {
+            handlePlaceOrder();
+          } catch (err) {
+            console.error('Error in button click handler:', err);
+          }
         }}
         disabled={isSubmitting}
         type="button"
