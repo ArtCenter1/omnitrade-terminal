@@ -1,30 +1,11 @@
 import React, { useEffect, useRef, memo } from 'react';
 
-function TradingViewWidget({ selectedPair, timeframe }) {
+function TradingViewWidget({ selectedPair }) {
   const container = useRef();
 
-  // Map timeframe to TradingView interval
+  // Get the default interval (daily)
   const getInterval = () => {
-    switch (timeframe) {
-      case '1':
-        return '1';
-      case '5':
-        return '5';
-      case '15':
-        return '15';
-      case '30':
-        return '30';
-      case '60':
-        return '60';
-      case '240':
-        return '240';
-      case 'D':
-        return 'D';
-      case 'W':
-        return 'W';
-      default:
-        return 'D'; // Default to daily
-    }
+    return 'D'; // Default to daily
   };
 
   // Get the correct symbol format for TradingView
@@ -54,8 +35,7 @@ function TradingViewWidget({ selectedPair, timeframe }) {
     // Clear previous content
     if (container.current) {
       container.current.innerHTML = `
-        <div class="tradingview-widget-container__widget" style="height: calc(100% - 32px); width: 100%"></div>
-        <div class="tradingview-widget-copyright"><a href="https://www.tradingview.com/" rel="noopener nofollow" target="_blank"><span class="blue-text">Track all markets on TradingView</span></a></div>
+        <div class="tradingview-widget-container__widget" style="height: 100%; width: 100%"></div>
       `;
     }
 
@@ -91,7 +71,7 @@ function TradingViewWidget({ selectedPair, timeframe }) {
         "show_popup_button": true,
         "popup_width": "1000",
         "popup_height": "650",
-        "studies": ["Volume@tv-basicstudies"],
+        "withdateranges": true,
         "enabled_features": [
           "side_toolbar_in_fullscreen_mode",
           "drawing_templates"
@@ -117,7 +97,7 @@ function TradingViewWidget({ selectedPair, timeframe }) {
         }
       }
     };
-  }, [selectedPair, timeframe]); // Re-run when selectedPair or timeframe changes
+  }, [selectedPair]); // Re-run when selectedPair changes
 
   return (
     <div
@@ -127,17 +107,8 @@ function TradingViewWidget({ selectedPair, timeframe }) {
     >
       <div
         className="tradingview-widget-container__widget"
-        style={{ height: 'calc(100% - 32px)', width: '100%' }}
+        style={{ height: '100%', width: '100%' }}
       ></div>
-      <div className="tradingview-widget-copyright">
-        <a
-          href="https://www.tradingview.com/"
-          rel="noopener nofollow"
-          target="_blank"
-        >
-          <span className="blue-text">Track all markets on TradingView</span>
-        </a>
-      </div>
     </div>
   );
 }

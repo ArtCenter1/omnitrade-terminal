@@ -1,6 +1,4 @@
-import { useState } from 'react';
 import { PriceOverview } from './PriceOverview';
-import { TimeframeSelector } from './TimeframeSelector';
 import { TradingPairSelector } from './TradingPairSelector';
 import { TradingPair } from '@/types/trading';
 import { SandboxNetworkSelector } from '@/components/SandboxNetworkSelector';
@@ -15,12 +13,6 @@ export function ChartSection({
   selectedPair,
   onPairSelect,
 }: ChartSectionProps) {
-  const [currentTimeframe, setCurrentTimeframe] = useState<string>('D'); // Default to Daily
-
-  const handleTimeframeSelect = (timeframe: string) => {
-    setCurrentTimeframe(timeframe);
-  };
-
   return (
     <div className="flex flex-col h-full">
       {/* Header Section */}
@@ -47,17 +39,8 @@ export function ChartSection({
 
       {/* TradingView Chart Container */}
       <div className="flex-grow p-0">
-        <TradingViewContainer
-          selectedPair={selectedPair}
-          timeframe={currentTimeframe}
-        />
+        <TradingViewContainer selectedPair={selectedPair} />
       </div>
-
-      {/* Pass state and handler to TimeframeSelector */}
-      <TimeframeSelector
-        currentTimeframe={currentTimeframe}
-        onTimeframeSelect={handleTimeframeSelect}
-      />
     </div>
   );
 }
