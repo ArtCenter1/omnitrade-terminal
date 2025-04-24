@@ -1,7 +1,14 @@
-import { CircleDollarSign, Info, Search, Star } from 'lucide-react';
+import {
+  CircleDollarSign,
+  Info,
+  Search,
+  Star,
+  ChevronUp,
+  ChevronDown,
+} from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useCoingeckoMarkets } from '@/hooks/useCoingeckoMarkets';
 import { useMarkets } from '@/services/marketDataApi';
 import { MarketCoin } from '@/types/marketData';
@@ -107,9 +114,21 @@ const mockMarkets = [
   },
 ];
 
+// Define the sort fields and directions
+type SortField =
+  | 'rank'
+  | 'name'
+  | 'price'
+  | 'change_24h'
+  | 'volume'
+  | 'market_cap';
+type SortDirection = 'asc' | 'desc';
+
 export default function Markets() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredMarkets, setFilteredMarkets] = useState<MarketCoin[]>([]);
+  const [sortField, setSortField] = useState<SortField>('rank');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
   // Try to use the backend API first
   const {
@@ -250,20 +269,88 @@ export default function Markets() {
       ? convertedCoingeckoMarkets
       : mockMarkets;
 
-  // Filter markets based on search query
-  useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredMarkets(marketsData);
+  // Handle sorting
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      // Toggle direction if clicking the same field
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
+      // Set new field and default to ascending for rank, descending for others
+      setSortField(field);
+      setSortDirection(field === 'rank' ? 'asc' : 'desc');
+    }
+  };
+
+  // Render sort indicator
+  const renderSortIndicator = (field: SortField) => {
+    if (sortField !== field) return null;
+
+    return sortDirection === 'asc' ? (
+      <ChevronUp className="inline-block ml-1 w-4 h-4" />
+    ) : (
+      <ChevronDown className="inline-block ml-1 w-4 h-4" />
+    );
+  };
+
+  // Filter and sort markets based on search query and sort settings
+  const sortedAndFilteredMarkets = useMemo(() => {
+    // First filter by search query
+    let result = marketsData;
+    if (searchQuery.trim() !== '') {
       const query = searchQuery.toLowerCase();
-      const filtered = marketsData.filter(
+      result = marketsData.filter(
         (coin) =>
           coin.name.toLowerCase().includes(query) ||
           coin.symbol.toLowerCase().includes(query),
       );
-      setFilteredMarkets(filtered);
     }
-  }, [searchQuery, marketsData]);
+
+    // Then sort the filtered results
+    return [...result].sort((a, b) => {
+      let aValue, bValue;
+
+      switch (sortField) {
+        case 'rank':
+          aValue = a.market_cap_rank || Number.MAX_SAFE_INTEGER;
+          bValue = b.market_cap_rank || Number.MAX_SAFE_INTEGER;
+          break;
+        case 'name':
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          return sortDirection === 'asc'
+            ? aValue.localeCompare(bValue)
+            : bValue.localeCompare(aValue);
+        case 'price':
+          aValue = a.current_price || 0;
+          bValue = b.current_price || 0;
+          break;
+        case 'change_24h':
+          aValue = a.price_change_percentage_24h || 0;
+          bValue = b.price_change_percentage_24h || 0;
+          break;
+        case 'volume':
+          aValue = a.total_volume || 0;
+          bValue = b.total_volume || 0;
+          break;
+        case 'market_cap':
+          aValue = a.market_cap || 0;
+          bValue = b.market_cap || 0;
+          break;
+        default:
+          aValue = 0;
+          bValue = 0;
+      }
+
+      // For string comparison we already returned above
+      // For numeric comparison:
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    });
+  }, [searchQuery, marketsData, sortField, sortDirection]);
+
+  // Update filtered markets when sorted results change
+  useEffect(() => {
+    setFilteredMarkets(sortedAndFilteredMarkets);
+  }, [sortedAndFilteredMarkets]);
 
   // Helper function for sparkline (can be moved to utils)
   function getSparklinePath(
@@ -413,31 +500,55 @@ export default function Markets() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-800">
-                {/* Update table headers */}
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-400 w-10">
-                  #
+                {/* Rank */}
+                <th
+                  className="text-left py-3 px-4 text-sm font-medium text-gray-400 w-10 cursor-pointer hover:text-gray-300"
+                  onClick={() => handleSort('rank')}
+                >
+                  # {renderSortIndicator('rank')}
                 </th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-400 w-8"></th>{' '}
-                {/* Fav */}
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">
-                  Name
+                {/* Favorite (not sortable) */}
+                <th className="text-left py-3 px-4 text-sm font-medium text-gray-400 w-8"></th>
+                {/* Name */}
+                <th
+                  className="text-left py-3 px-4 text-sm font-medium text-gray-400 cursor-pointer hover:text-gray-300"
+                  onClick={() => handleSort('name')}
+                >
+                  Name {renderSortIndicator('name')}
                 </th>
-                <th className="text-right py-3 px-4 text-sm font-medium text-gray-400">
-                  Price
+                {/* Price */}
+                <th
+                  className="text-right py-3 px-4 text-sm font-medium text-gray-400 cursor-pointer hover:text-gray-300"
+                  onClick={() => handleSort('price')}
+                >
+                  Price {renderSortIndicator('price')}
                 </th>
-                <th className="text-right py-3 px-4 text-sm font-medium text-gray-400">
-                  24h %
+                {/* 24h Change % */}
+                <th
+                  className="text-right py-3 px-4 text-sm font-medium text-gray-400 cursor-pointer hover:text-gray-300"
+                  onClick={() => handleSort('change_24h')}
+                >
+                  24h % {renderSortIndicator('change_24h')}
                 </th>
-                <th className="text-right py-3 px-4 text-sm font-medium text-gray-400">
-                  24h Volume
+                {/* 24h Volume */}
+                <th
+                  className="text-right py-3 px-4 text-sm font-medium text-gray-400 cursor-pointer hover:text-gray-300"
+                  onClick={() => handleSort('volume')}
+                >
+                  24h Volume {renderSortIndicator('volume')}
                 </th>
-                <th className="text-right py-3 px-4 text-sm font-medium text-gray-400">
-                  Market Cap
+                {/* Market Cap */}
+                <th
+                  className="text-right py-3 px-4 text-sm font-medium text-gray-400 cursor-pointer hover:text-gray-300"
+                  onClick={() => handleSort('market_cap')}
+                >
+                  Market Cap {renderSortIndicator('market_cap')}
                 </th>
-                {/* <th className="text-right py-3 px-4 text-sm font-medium text-gray-400">Circulating Supply</th> */}
+                {/* 7d Change (not sortable) */}
                 <th className="text-right py-3 px-4 text-sm font-medium text-gray-400">
                   7d Change
                 </th>
+                {/* Action (not sortable) */}
                 <th className="text-center py-3 px-4 text-sm font-medium text-gray-400">
                   Action
                 </th>
