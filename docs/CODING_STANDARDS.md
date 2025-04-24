@@ -75,4 +75,4 @@ This document outlines the essential coding standards for the OmniTrade project.
 - Optimize **bundle size** with code splitting
 - Monitor and address **performance regressions**
 
-For more detailed guidelines, please refer to our [GitHub Wiki](https://github.com/yourusername/omnitrade/wiki).
+For more detailed guidelines, please refer to our [GitHub Wiki](https://github.com/ArtCenter1/omnitrade/wiki).
