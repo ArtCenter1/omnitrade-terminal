@@ -47,12 +47,21 @@ try {
 }
 // --- End Firebase Admin Initialization ---
 
-// Temporarily comment out RBAC middleware to avoid Prisma issues
-// const { loadUserPermissions, checkPermission } = require('./rbacMiddleware');
+// Use feature flag to conditionally enable RBAC middleware
+const { loadUserPermissions, checkPermission } =
+  process.env.ENABLE_RBAC === 'true'
+    ? require('./rbacMiddleware')
+    : {
+        loadUserPermissions: () => (req, res, next) => next(),
+        checkPermission: () => (req, res, next) => next(),
+      };
 
 const app = express();
-// Temporarily comment out Prisma initialization
-// const prisma = new PrismaClient();
+// Use feature flag to conditionally initialize Prisma
+const prisma =
+  process.env.ENABLE_PRISMA === 'true'
+    ? new (require('@prisma/client').PrismaClient)()
+    : null;
 
 // In-memory cache with TTL
 const cache = {};
@@ -131,29 +140,29 @@ function requireRole(roles) {
 }
 
 // Temporarily comment out routes that use RBAC middleware
-/*
-// Example protected route (admin only)
-app.get(
-  '/admin/dashboard',
-  authenticateToken,
-  loadUserPermissions,
-  checkPermission('system_settings:manage'),
-  (req, res) => {
-    res.json({ message: 'Welcome, admin!' });
-  },
-);
+if (process.env.ENABLE_RBAC === 'true') {
+  // Example protected route (admin only)
+  app.get(
+    '/admin/dashboard',
+    authenticateToken,
+    loadUserPermissions,
+    checkPermission('system_settings:manage'),
+    (req, res) => {
+      res.json({ message: 'Welcome, admin!' });
+    },
+  );
 
-// Example protected route (any logged-in user)
-app.get(
-  '/user/profile',
-  authenticateToken,
-  loadUserPermissions,
-  checkPermission('profile:read:own'),
-  (req, res) => {
-    res.json({ message: 'Welcome, user!' });
-  },
-);
-*/
+  // Example protected route (any logged-in user)
+  app.get(
+    '/user/profile',
+    authenticateToken,
+    loadUserPermissions,
+    checkPermission('profile:read:own'),
+    (req, res) => {
+      res.json({ message: 'Welcome, user!' });
+    },
+  );
+}
 
 // Add a simple test route
 app.get('/', (req, res) => {
@@ -161,55 +170,55 @@ app.get('/', (req, res) => {
 });
 
 // Temporarily comment out routes that use Prisma
-/*
-// Password reset request
-app.post('/auth/request-password-reset', async (req, res) => {
-  const { email } = req.body;
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) return res.sendStatus(200); // Don't reveal user existence
+if (process.env.ENABLE_PRISMA === 'true') {
+  // Password reset request
+  app.post('/auth/request-password-reset', async (req, res) => {
+    const { email } = req.body;
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) return res.sendStatus(200); // Don't reveal user existence
 
-  const token = crypto.randomBytes(32).toString('hex');
-  const expiry = new Date(Date.now() + 1000 * 60 * 60); // 1 hour
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiry = new Date(Date.now() + 1000 * 60 * 60); // 1 hour
 
-  await prisma.user.update({
-    where: { email },
-    data: {
-      reset_token: token,
-      reset_token_expiry: expiry,
-    },
+    await prisma.user.update({
+      where: { email },
+      data: {
+        reset_token: token,
+        reset_token_expiry: expiry,
+      },
+    });
+
+    console.log(`Simulated email: Use this token to reset password: ${token}`);
+    res.sendStatus(200);
   });
 
-  console.log(`Simulated email: Use this token to reset password: ${token}`);
-  res.sendStatus(200);
-});
+  // Password reset confirmation
+  app.post('/auth/reset-password', async (req, res) => {
+    const { email, token, newPassword } = req.body;
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (
+      !user ||
+      user.reset_token !== token ||
+      !user.reset_token_expiry ||
+      user.reset_token_expiry < new Date()
+    ) {
+      return res.status(400).json({ error: 'Invalid or expired token' });
+    }
 
-// Password reset confirmation
-app.post('/auth/reset-password', async (req, res) => {
-  const { email, token, newPassword } = req.body;
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (
-    !user ||
-    user.reset_token !== token ||
-    !user.reset_token_expiry ||
-    user.reset_token_expiry < new Date()
-  ) {
-    return res.status(400).json({ error: 'Invalid or expired token' });
-  }
+    const password_hash = await bcrypt.hash(newPassword, 10);
 
-  const password_hash = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { email },
+      data: {
+        password_hash,
+        reset_token: null,
+        reset_token_expiry: null,
+      },
+    });
 
-  await prisma.user.update({
-    where: { email },
-    data: {
-      password_hash,
-      reset_token: null,
-      reset_token_expiry: null,
-    },
+    res.sendStatus(200);
   });
-
-  res.sendStatus(200);
-});
-*/
+}
 
 // Start server
 /**

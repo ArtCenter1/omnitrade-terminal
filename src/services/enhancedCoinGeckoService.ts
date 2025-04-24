@@ -409,7 +409,7 @@ export async function getTopCoins(limit = 100): Promise<CoinGeckoData[]> {
         string,
         { data: CoinGeckoData[]; timestamp: number }
       >,
-      false, // Prefer pro API for this endpoint (Changed to false for testing)
+      false, // Prefer pro API for this endpoint
     );
 
     if (!data || data.length === 0) {
