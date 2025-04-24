@@ -1,21 +1,24 @@
-import {
-  Controller,
-  Get,
-  Query,
-  Param,
-  All,
-  Req,
-  Injectable,
-  Logger,
-} from '@nestjs/common';
+import { Controller, Param, All, Req, Logger } from '@nestjs/common';
 import axios from 'axios';
 import { Request } from 'express';
 import { RedisService } from '../redis/redis.service';
 
+// Define response types
+interface CoinGeckoResponse {
+  [key: string]: any;
+}
+
+interface ErrorResponse {
+  error: boolean;
+  status?: number;
+  message: string;
+  data?: any;
+  fallback?: boolean;
+}
+
 @Controller('proxy/coingecko')
 export class CoinGeckoProxyController {
   private readonly logger = new Logger(CoinGeckoProxyController.name);
-  private readonly defaultCacheTtl = 60; // Default cache TTL in seconds
   private readonly baseUrl =
     process.env.COINGECKO_API_BASE_URL || 'https://api.coingecko.com/api/v3';
   private readonly apiKey = process.env.COINGECKO_API_KEY || '';
@@ -69,7 +72,10 @@ export class CoinGeckoProxyController {
    * Handle all requests to the CoinGecko API
    */
   @All('*path')
-  async proxyRequest(@Req() req: Request, @Param('path') path: string) {
+  async proxyRequest(
+    @Req() req: Request,
+    @Param('path') path: string,
+  ): Promise<CoinGeckoResponse | ErrorResponse> {
     try {
       // Extract the path from the original URL
       const originalUrl = req.originalUrl;
@@ -100,7 +106,7 @@ export class CoinGeckoProxyController {
       const cachedData = await this.redisService.get(cacheKey);
       if (cachedData) {
         this.logger.debug(`Cache hit for ${targetUrl}`);
-        return JSON.parse(cachedData);
+        return JSON.parse(cachedData) as CoinGeckoResponse;
       }
 
       this.logger.log(`Proxying request to: ${targetUrl}`);
@@ -117,25 +123,28 @@ export class CoinGeckoProxyController {
         cacheKey,
         cacheTtl,
       );
-    } catch (error) {
+    } catch (error: unknown) {
+      const err = error as Error;
       this.logger.error(
-        `Error proxying request to CoinGecko: ${error.message}`,
+        `Error proxying request to CoinGecko: ${err.message || 'Unknown error'}`,
       );
 
       // Return error details
       if (axios.isAxiosError(error)) {
-        return {
+        const errorResponse: ErrorResponse = {
           error: true,
           status: error.response?.status || 500,
           message: error.message,
-          data: error.response?.data || null,
+          data: (error.response?.data as Record<string, unknown>) || null,
         };
+        return errorResponse;
       }
 
-      return {
+      const genericError: ErrorResponse = {
         error: true,
-        message: error.message || 'Unknown error',
+        message: err.message || 'Unknown error',
       };
+      return genericError;
     }
   }
 
@@ -150,7 +159,7 @@ export class CoinGeckoProxyController {
     cacheTtl: number,
     retryCount = 0,
     initialBackoff = 1000, // 1 second initial backoff
-  ): Promise<any> {
+  ): Promise<CoinGeckoResponse | ErrorResponse> {
     const maxRetries = 3;
 
     try {
@@ -169,7 +178,7 @@ export class CoinGeckoProxyController {
       // Cache the successful response
       this.redisService
         .set(cacheKey, JSON.stringify(response.data), cacheTtl)
-        .catch((err) =>
+        .catch((err: Error) =>
           this.logger.error(`Failed to cache response: ${err.message}`),
         );
 
@@ -182,29 +191,48 @@ export class CoinGeckoProxyController {
         );
       }
 
-      return response.data;
-    } catch (error) {
+      return response.data as CoinGeckoResponse;
+    } catch (error: unknown) {
       // Check for connection errors (ECONNREFUSED, network errors)
-      const isConnectionError =
-        (axios.isAxiosError(error) && !error.response) ||
-        (error.code === 'ECONNREFUSED') ||
-        (error.message && error.message.includes('ECONNREFUSED')) ||
-        (error.message && error.message.includes('Network Error'));
+      const err = error as Error;
+      let isConnectionError = false;
+
+      if (axios.isAxiosError(error)) {
+        isConnectionError = !error.response || error.code === 'ECONNREFUSED';
+      }
+
+      const hasEconnRefused = Boolean(
+        err.message && err.message.includes('ECONNREFUSED'),
+      );
+      const hasNetworkError = Boolean(
+        err.message && err.message.includes('Network Error'),
+      );
+      isConnectionError =
+        isConnectionError || hasEconnRefused || hasNetworkError;
 
       if (isConnectionError) {
         this.logger.error(
-          `Connection error to CoinGecko API: ${error.message}. Retry ${retryCount + 1}/${maxRetries}`,
+          `Connection error to CoinGecko API: ${
+            err.message || 'Unknown error'
+          }. Retry ${retryCount + 1}/${maxRetries}`,
         );
 
         // Try to get from cache even if it's expired
         try {
           const staleData = await this.redisService.getWithoutExpiry(cacheKey);
           if (staleData) {
-            this.logger.warn(`Using stale cache data for ${url} due to connection error`);
-            return JSON.parse(staleData);
+            this.logger.warn(
+              `Using stale cache data for ${url} due to connection error`,
+            );
+            return JSON.parse(staleData) as CoinGeckoResponse;
           }
-        } catch (cacheError) {
-          this.logger.error(`Failed to retrieve stale cache: ${cacheError.message}`);
+        } catch (cacheError: unknown) {
+          const cErr = cacheError as Error;
+          this.logger.error(
+            `Failed to retrieve stale cache: ${
+              cErr.message || 'Unknown error'
+            }`,
+          );
         }
 
         // Check if we should retry
@@ -232,7 +260,8 @@ export class CoinGeckoProxyController {
         return {
           error: true,
           status: 503,
-          message: 'Service temporarily unavailable. Could not connect to CoinGecko API.',
+          message:
+            'Service temporarily unavailable. Could not connect to CoinGecko API.',
           fallback: true,
         };
       }
@@ -241,7 +270,9 @@ export class CoinGeckoProxyController {
         // Handle rate limiting (429 Too Many Requests)
         if (error.response.status === 429) {
           // Get retry-after header or use exponential backoff
-          const retryAfter = error.response.headers['retry-after'];
+          const retryAfter = error.response.headers['retry-after'] as
+            | string
+            | undefined;
           let waitTime = retryAfter
             ? parseInt(retryAfter, 10) * 1000
             : initialBackoff * Math.pow(2, retryCount);
