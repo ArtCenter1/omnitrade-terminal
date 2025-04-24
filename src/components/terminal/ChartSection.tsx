@@ -4,7 +4,7 @@ import { TimeframeSelector } from './TimeframeSelector';
 import { TradingPairSelector } from './TradingPairSelector';
 import { TradingPair } from '@/types/trading';
 import { SandboxNetworkSelector } from '@/components/SandboxNetworkSelector';
-import { TradingViewChart } from './TradingViewChart';
+import { TradingViewContainer } from './TradingViewContainer';
 
 interface ChartSectionProps {
   selectedPair?: TradingPair;
@@ -47,7 +47,7 @@ export function ChartSection({
 
       {/* TradingView Chart Container */}
       <div className="flex-grow p-0">
-        <TradingViewChart
+        <TradingViewContainer
           selectedPair={selectedPair}
           timeframe={currentTimeframe}
         />
