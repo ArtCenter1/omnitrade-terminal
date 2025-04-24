@@ -101,6 +101,96 @@ const cache = {
   symbolToId: new Map<string, string>(),
 };
 
+// Constants for persistent cache
+const SYMBOL_CACHE_KEY = 'coingecko_symbol_to_id_cache';
+const SYMBOL_CACHE_TIMESTAMP_KEY = 'coingecko_symbol_to_id_cache_timestamp';
+const SYMBOL_CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+
+// Initialize symbol to ID cache from localStorage if available
+function initializeSymbolCache() {
+  try {
+    // Load cached mappings from localStorage
+    const cachedMappings = localStorage.getItem(SYMBOL_CACHE_KEY);
+    const cachedTimestamp = localStorage.getItem(SYMBOL_CACHE_TIMESTAMP_KEY);
+
+    if (cachedMappings && cachedTimestamp) {
+      const timestamp = parseInt(cachedTimestamp, 10);
+      const now = Date.now();
+
+      // Check if cache is still valid
+      if (now - timestamp < SYMBOL_CACHE_DURATION) {
+        const mappings = JSON.parse(cachedMappings);
+        console.log(
+          `Loaded ${Object.keys(mappings).length} symbol mappings from cache`,
+        );
+
+        // Populate the in-memory cache
+        Object.entries(mappings).forEach(([symbol, id]) => {
+          cache.symbolToId.set(symbol, id as string);
+        });
+
+        return true;
+      }
+    }
+
+    return false;
+  } catch (error) {
+    console.error('Error initializing symbol cache:', error);
+    return false;
+  }
+}
+
+// Save the current symbol mappings to localStorage
+function saveSymbolCache() {
+  try {
+    const mappings: Record<string, string> = {};
+    cache.symbolToId.forEach((id, symbol) => {
+      mappings[symbol] = id;
+    });
+
+    localStorage.setItem(SYMBOL_CACHE_KEY, JSON.stringify(mappings));
+    localStorage.setItem(SYMBOL_CACHE_TIMESTAMP_KEY, Date.now().toString());
+
+    console.log(
+      `Saved ${Object.keys(mappings).length} symbol mappings to cache`,
+    );
+  } catch (error) {
+    console.error('Error saving symbol cache:', error);
+  }
+}
+
+// Initialize cache from localStorage or use fallback for common coins
+const cacheInitialized = initializeSymbolCache();
+
+if (!cacheInitialized) {
+  console.log('No valid cache found, initializing with common coins');
+
+  // Initialize common cryptocurrency mappings as a fallback
+  // This ensures we always have mappings for the most common coins
+  cache.symbolToId.set('btc', 'bitcoin');
+  cache.symbolToId.set('eth', 'ethereum');
+  cache.symbolToId.set('usdt', 'tether');
+  cache.symbolToId.set('usdc', 'usd-coin');
+  cache.symbolToId.set('bnb', 'binancecoin');
+  cache.symbolToId.set('xrp', 'ripple');
+  cache.symbolToId.set('sol', 'solana');
+  cache.symbolToId.set('ada', 'cardano');
+  cache.symbolToId.set('doge', 'dogecoin');
+  cache.symbolToId.set('dot', 'polkadot');
+}
+
+// Schedule a background check of the symbol cache health
+// This will refresh the cache if needed (either it's empty or has too few symbols)
+setTimeout(() => {
+  checkSymbolCacheHealth(!cacheInitialized) // Force refresh if cache wasn't initialized
+    .then((symbolCount) => {
+      console.log(`Symbol cache initialized with ${symbolCount} symbols`);
+    })
+    .catch((error) => {
+      console.error('Error checking symbol cache health:', error);
+    });
+}, 1000);
+
 // Rate limiting state
 const rateLimitState = {
   publicLastReset: Date.now(),
@@ -451,24 +541,189 @@ export async function getTopCoins(limit = 100): Promise<CoinGeckoData[]> {
 /**
  * Get coin data by symbol
  */
-export async function getCoinBySymbol(
-  symbol: string,
-): Promise<CoinGeckoData | null> {
-  const normalizedSymbol = symbol.toLowerCase();
+/**
+ * Search for coins by query string
+ * This is useful for finding coins by name or symbol when they're not in the cache
+ */
+export async function searchCoins(query: string): Promise<any[]> {
+  if (!query || query.length < 2) return [];
 
-  // Check if we have the ID for this symbol
-  if (!cache.symbolToId.has(normalizedSymbol)) {
-    // If we don't have the mapping, fetch top coins to populate the cache
-    await getTopCoins();
+  const cacheKey = `search_${query.toLowerCase()}`;
 
-    // If still not found, return null
-    if (!cache.symbolToId.has(normalizedSymbol)) {
-      return null;
+  try {
+    const response = await makeApiRequest<{ coins: any[] }>(
+      '/search',
+      { query },
+      60 * 1000, // Cache for 1 minute
+      cacheKey,
+      new Map<string, { data: { coins: any[] }; timestamp: number }>(),
+      false,
+    );
+
+    if (response.coins && response.coins.length > 0) {
+      // Update the symbol to ID cache with results
+      response.coins.forEach((coin) => {
+        if (coin.symbol && coin.id) {
+          cache.symbolToId.set(coin.symbol.toLowerCase(), coin.id);
+        }
+      });
+
+      // Save the updated cache
+      saveSymbolCache();
+
+      return response.coins;
     }
+
+    return [];
+  } catch (error) {
+    console.error(`Error searching for coins with query "${query}":`, error);
+    return [];
+  }
+}
+
+/**
+ * Helper function to check if a string is likely a CoinGecko ID already
+ * @param str The string to check
+ * @returns True if the string appears to be a CoinGecko ID
+ */
+function isLikelyCoinGeckoId(str: string): boolean {
+  // Common known IDs that don't follow the typical pattern
+  const knownIds = [
+    'bitcoin',
+    'ethereum',
+    'tether',
+    'binancecoin',
+    'ripple',
+    'cardano',
+    'solana',
+    'dogecoin',
+    'polkadot',
+    'usd-coin',
+  ];
+
+  if (knownIds.includes(str)) {
+    return true;
   }
 
-  const coinId = cache.symbolToId.get(normalizedSymbol)!;
+  // Check if it follows CoinGecko ID format:
+  // - lowercase
+  // - may contain hyphens
+  // - no special characters except hyphens
+  // - typically contains hyphens for multi-word names
+  return /^[a-z0-9-]+$/.test(str) && str.includes('-');
+}
+
+/**
+ * Resolve a symbol or ID to a CoinGecko coin ID
+ * This function tries multiple strategies to find the correct ID
+ *
+ * @param input The symbol or ID to resolve (e.g., "BTC", "bitcoin", "binance-coin")
+ * @returns The resolved CoinGecko ID or null if not found
+ */
+export async function resolveSymbolToId(input: string): Promise<string | null> {
+  // Normalize the input to lowercase
+  const normalizedInput = input.toLowerCase();
+
+  // 0. Check if input is already a valid CoinGecko ID
+  if (isLikelyCoinGeckoId(normalizedInput)) {
+    console.log(
+      `Input "${input}" appears to be a CoinGecko ID already, using as is`,
+    );
+    return normalizedInput;
+  }
+
+  // 1. Check for special cases that need direct mapping
+  if (normalizedInput === 'btc' || normalizedInput === 'xbt') return 'bitcoin';
+  if (normalizedInput === 'eth') return 'ethereum';
+  if (normalizedInput === 'usdt') return 'tether';
+  if (normalizedInput === 'usdc') return 'usd-coin';
+  if (normalizedInput === 'bnb') return 'binancecoin';
+  if (normalizedInput === 'xrp') return 'ripple';
+  if (normalizedInput === 'sol') return 'solana';
+  if (normalizedInput === 'ada') return 'cardano';
+  if (normalizedInput === 'doge') return 'dogecoin';
+  if (normalizedInput === 'dot') return 'polkadot';
+
+  // 2. Check in-memory cache
+  if (cache.symbolToId.has(normalizedInput)) {
+    const id = cache.symbolToId.get(normalizedInput)!;
+    console.log(`Found symbol "${input}" in cache, resolved to "${id}"`);
+    return id;
+  }
+
+  // 3. Try to fetch top coins to populate the cache
+  try {
+    console.log(`Symbol "${input}" not found in cache, fetching top coins...`);
+    await getTopCoins(250);
+
+    if (cache.symbolToId.has(normalizedInput)) {
+      const id = cache.symbolToId.get(normalizedInput)!;
+      console.log(`After fetching top coins, resolved "${input}" to "${id}"`);
+      return id;
+    }
+  } catch (error) {
+    console.error(`Error fetching top coins for symbol resolution:`, error);
+  }
+
+  // 4. Try to search for the coin
+  try {
+    console.log(`Symbol "${input}" not found in top coins, searching...`);
+    const searchResults = await searchCoins(input);
+
+    // Look for exact symbol match
+    const exactMatch = searchResults.find(
+      (coin) => coin.symbol.toLowerCase() === normalizedInput,
+    );
+
+    if (exactMatch) {
+      console.log(`Found exact match for "${input}": "${exactMatch.id}"`);
+      return exactMatch.id;
+    }
+
+    // If no exact match but we have results, use the first one
+    if (searchResults.length > 0) {
+      console.warn(
+        `No exact match for "${input}", using best match: "${searchResults[0].id}"`,
+      );
+      return searchResults[0].id;
+    }
+  } catch (error) {
+    console.error(`Error searching for coin with input "${input}":`, error);
+  }
+
+  // 5. No resolution found
+  console.error(
+    `Could not resolve "${input}" to a CoinGecko ID after trying all methods`,
+  );
+  return null;
+}
+
+/**
+ * Get coin data by symbol or ID
+ *
+ * @param symbolOrId The symbol or ID of the coin (e.g., "BTC", "bitcoin")
+ * @returns The coin data or null if not found
+ */
+export async function getCoinBySymbol(
+  symbolOrId: string,
+): Promise<CoinGeckoData | null> {
+  // First, resolve the input to a valid CoinGecko ID
+  const resolvedId = await resolveSymbolToId(symbolOrId);
+
+  if (!resolvedId) {
+    console.error(
+      `getCoinBySymbol: Could not resolve "${symbolOrId}" to a valid CoinGecko ID`,
+    );
+    return null;
+  }
+
+  // Use the resolved ID for the cache key and API call
+  const coinId = resolvedId;
   const cacheKey = `coin_${coinId}`;
+
+  console.log(
+    `getCoinBySymbol: Using resolved ID "${coinId}" for "${symbolOrId}"`,
+  );
 
   try {
     return await makeApiRequest<CoinGeckoData>(
@@ -486,7 +741,10 @@ export async function getCoinBySymbol(
       false, // Use public API first for this endpoint
     );
   } catch (error) {
-    console.error(`Error fetching coin data for ${symbol}:`, error);
+    console.error(
+      `Error fetching coin data for ${symbolOrId} (ID: ${coinId}):`,
+      error,
+    );
     return null;
   }
 }
@@ -494,25 +752,55 @@ export async function getCoinBySymbol(
 /**
  * Get current price for a trading pair
  */
+/**
+ * Get current price for a trading pair
+ *
+ * @param baseAsset The base asset symbol or ID (e.g., "BTC", "bitcoin")
+ * @param quoteAsset The quote asset symbol or ID (e.g., "USD", "USDT")
+ * @returns The current price or 0 if not found
+ */
 export async function getCurrentPrice(
   baseAsset: string,
   quoteAsset: string = 'usd',
 ): Promise<number> {
   try {
-    const coin = await getCoinBySymbol(baseAsset);
-    if (!coin) return 0;
+    console.log(
+      `getCurrentPrice: Getting price for ${baseAsset}/${quoteAsset}`,
+    );
 
+    // Get the base coin data
+    const coin = await getCoinBySymbol(baseAsset);
+    if (!coin) {
+      console.error(
+        `getCurrentPrice: Could not get data for base asset "${baseAsset}"`,
+      );
+      return 0;
+    }
+
+    // For USD or USDT, return the price directly
     if (
       quoteAsset.toLowerCase() === 'usd' ||
       quoteAsset.toLowerCase() === 'usdt'
     ) {
+      console.log(
+        `getCurrentPrice: ${baseAsset}/${quoteAsset} price is ${coin.current_price}`,
+      );
       return coin.current_price;
     } else {
-      // For other quote assets, we need to calculate the relative price
+      // For other quote assets, calculate the relative price
       const quoteCoin = await getCoinBySymbol(quoteAsset);
-      if (!quoteCoin || quoteCoin.current_price === 0) return 0;
+      if (!quoteCoin || quoteCoin.current_price === 0) {
+        console.error(
+          `getCurrentPrice: Could not get data for quote asset "${quoteAsset}"`,
+        );
+        return 0;
+      }
 
-      return coin.current_price / quoteCoin.current_price;
+      const relativePrice = coin.current_price / quoteCoin.current_price;
+      console.log(
+        `getCurrentPrice: ${baseAsset}/${quoteAsset} price is ${relativePrice}`,
+      );
+      return relativePrice;
     }
   } catch (error) {
     console.error(
@@ -586,49 +874,28 @@ export async function getTradingPairs(
  * @returns A response containing tickers for the coin
  */
 export async function getCoinTickers(
-  coinId: string,
+  coinIdOrSymbol: string,
   exchangeIds: string[] = [],
 ): Promise<CoinGeckoTickerResponse> {
+  // First, resolve the input to a valid CoinGecko ID
+  const resolvedId = await resolveSymbolToId(coinIdOrSymbol);
+
+  if (!resolvedId) {
+    console.error(
+      `getCoinTickers: Could not resolve "${coinIdOrSymbol}" to a valid CoinGecko ID`,
+    );
+    return { name: '', tickers: [] };
+  }
+
+  // Use the resolved ID for the cache key and API call
+  const coinId = resolvedId;
   const cacheKey = `tickers_${coinId}_${exchangeIds.join('_')}`;
 
-  try {
-    // Handle special cases for exchanges that use different symbols
-    // Kraken uses XBT instead of BTC
-    if (
-      coinId.toLowerCase() === 'btc' &&
-      exchangeIds.some((id) => id.toLowerCase() === 'kraken')
-    ) {
-      console.log('Using bitcoin ID directly for BTC on Kraken');
-      coinId = 'bitcoin';
-    } else if (coinId.toLowerCase() === 'xbt') {
-      console.log('Converting XBT to bitcoin ID');
-      coinId = 'bitcoin';
-    } else if (!coinId.includes('-')) {
-      // If we don't have the coin ID, try to get it from the symbol
-      const normalizedSymbol = coinId.toLowerCase();
-      if (cache.symbolToId.has(normalizedSymbol)) {
-        coinId = cache.symbolToId.get(normalizedSymbol)!;
-        console.log(`Resolved symbol ${normalizedSymbol} to coin ID ${coinId}`);
-      } else {
-        // Try to fetch top coins to populate the cache
-        console.log(
-          `Symbol ${normalizedSymbol} not found in cache, fetching top coins`,
-        );
-        await getTopCoins();
-        if (cache.symbolToId.has(normalizedSymbol)) {
-          coinId = cache.symbolToId.get(normalizedSymbol)!;
-          console.log(
-            `After fetching top coins, resolved symbol ${normalizedSymbol} to coin ID ${coinId}`,
-          );
-        } else {
-          console.warn(
-            `Could not resolve symbol ${normalizedSymbol} to a coin ID`,
-          );
-          return { name: '', tickers: [] };
-        }
-      }
-    }
+  console.log(
+    `getCoinTickers: Using resolved ID "${coinId}" for "${coinIdOrSymbol}"`,
+  );
 
+  try {
     // Prepare params
     const params: Record<string, any> = {};
     if (exchangeIds.length > 0) {
@@ -764,32 +1031,17 @@ export async function getOrderbook(
       return generateFallbackOrderbook(symbol, depth);
     }
 
-    // Get the coin ID for the base asset
-    let coinId = '';
-    if (cache.symbolToId.has(baseAsset.toLowerCase())) {
-      coinId = cache.symbolToId.get(baseAsset.toLowerCase())!;
-    } else {
-      // Try to fetch top coins to populate the cache
-      console.log(`Fetching top coins to find ID for ${baseAsset}`);
-      try {
-        await getTopCoins();
-        if (cache.symbolToId.has(baseAsset.toLowerCase())) {
-          coinId = cache.symbolToId.get(baseAsset.toLowerCase())!;
-          console.log(`Found coin ID for ${baseAsset}: ${coinId}`);
-        } else {
-          console.warn(
-            `Could not find coin ID for ${baseAsset}, using fallback data`,
-          );
-          return generateFallbackOrderbook(symbol, depth);
-        }
-      } catch (topCoinsError) {
-        console.error(
-          `Error fetching top coins for ${baseAsset}:`,
-          topCoinsError,
-        );
-        return generateFallbackOrderbook(symbol, depth);
-      }
+    // Get the coin ID for the base asset using our comprehensive resolution system
+    const coinId = await resolveSymbolToId(baseAsset);
+
+    if (!coinId) {
+      console.warn(
+        `getOrderbook: Could not resolve symbol ${baseAsset} to a coin ID, using fallback data`,
+      );
+      return generateFallbackOrderbook(symbol, depth);
     }
+
+    console.log(`getOrderbook: Resolved ${baseAsset} to coin ID: ${coinId}`);
 
     // Get tickers for the coin
     console.log(`Fetching tickers for ${coinId} on ${exchangeId}`);
@@ -952,27 +1204,29 @@ function generateFallbackOrderbook(
  * Get historical price data for a specific coin
  */
 export async function getHistoricalPriceData(
-  coinId: string,
+  coinIdOrSymbol: string,
   days: number = 7,
   interval: string = 'daily',
 ): Promise<{ prices: [number, number][] }> {
+  // First, resolve the input to a valid CoinGecko ID
+  const resolvedId = await resolveSymbolToId(coinIdOrSymbol);
+
+  if (!resolvedId) {
+    console.error(
+      `getHistoricalPriceData: Could not resolve "${coinIdOrSymbol}" to a valid CoinGecko ID`,
+    );
+    return { prices: [] };
+  }
+
+  // Use the resolved ID for the cache key and API call
+  const coinId = resolvedId;
   const cacheKey = `historical_${coinId}_${days}_${interval}`;
 
-  try {
-    // If we don't have the coin ID, try to get it from the symbol
-    if (!coinId.includes('-')) {
-      const normalizedSymbol = coinId.toLowerCase();
-      if (cache.symbolToId.has(normalizedSymbol)) {
-        coinId = cache.symbolToId.get(normalizedSymbol)!;
-      } else {
-        // Try to fetch top coins to populate the cache
-        await getTopCoins();
-        if (cache.symbolToId.has(normalizedSymbol)) {
-          coinId = cache.symbolToId.get(normalizedSymbol)!;
-        }
-      }
-    }
+  console.log(
+    `getHistoricalPriceData: Using resolved ID "${coinId}" for "${coinIdOrSymbol}"`,
+  );
 
+  try {
     // Use a custom cache map for historical data
     const historicalCache = new Map<
       string,
@@ -1032,4 +1286,48 @@ export function getCacheStats(): Record<string, number> {
     publicRequestCount: rateLimitState.publicRequestCount,
     proRequestCount: rateLimitState.proRequestCount,
   };
+}
+
+/**
+ * Check the health of the symbol cache and refresh it if needed
+ * This is useful to call periodically to ensure the cache is up-to-date
+ *
+ * @param forceRefresh Whether to force a refresh regardless of cache state
+ * @returns The number of symbols in the cache after the check
+ */
+export async function checkSymbolCacheHealth(
+  forceRefresh: boolean = false,
+): Promise<number> {
+  // Check if we have a reasonable number of symbols in the cache
+  const minExpectedSymbols = 100; // We should have at least this many symbols
+  const currentSymbolCount = cache.symbolToId.size;
+
+  console.log(
+    `Symbol cache health check: ${currentSymbolCount} symbols in cache`,
+  );
+
+  // Check if we need to refresh the cache
+  const needsRefresh = forceRefresh || currentSymbolCount < minExpectedSymbols;
+
+  if (needsRefresh) {
+    console.log(
+      `Refreshing symbol cache (current size: ${currentSymbolCount}, minimum expected: ${minExpectedSymbols})`,
+    );
+
+    try {
+      // Fetch a large number of coins to populate the cache
+      await getTopCoins(250);
+
+      // Save the updated cache to localStorage
+      saveSymbolCache();
+
+      console.log(`Symbol cache refreshed, new size: ${cache.symbolToId.size}`);
+    } catch (error) {
+      console.error('Error refreshing symbol cache:', error);
+    }
+  } else {
+    console.log('Symbol cache is healthy, no refresh needed');
+  }
+
+  return cache.symbolToId.size;
 }
