@@ -141,8 +141,16 @@ export default function Terminal() {
 
   // Handler for when an order is placed
   const handleOrderPlaced = () => {
+    console.log('Terminal: Order placed, refreshing components...');
+
     // Increment the refresh trigger to cause a refresh of components that depend on it
     setRefreshTrigger((prev) => prev + 1);
+
+    // Add a second refresh after a delay to ensure market orders that are filled after a delay are shown
+    setTimeout(() => {
+      console.log('Terminal: Delayed refresh for market orders...');
+      setRefreshTrigger((prev) => prev + 1);
+    }, 2500); // Slightly longer than the market order fill delay (2000ms)
   };
 
   return (

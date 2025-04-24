@@ -3,7 +3,11 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
-import { getOrders, cancelOrder, Order } from '../../services/ordersService';
+import {
+  getOrders,
+  cancelOrder,
+  Order,
+} from '../../services/enhancedOrdersService';
 import { Loader2, X } from 'lucide-react';
 
 interface OrdersTableProps {
@@ -41,30 +45,54 @@ export function OrdersTable({
       refreshTrigger,
     });
 
-    if (selectedAccount) {
+    // Always fetch orders, even if selectedAccount is null
+    // This ensures we clear the orders list when no account is selected
+    fetchOrders();
+
+    // Set up a timer to refresh orders periodically
+    const intervalId = setInterval(() => {
+      console.log('Periodic refresh of orders');
       fetchOrders();
-    }
+    }, 5000); // Refresh every 5 seconds
+
+    // Clean up the interval when the component unmounts
+    return () => {
+      clearInterval(intervalId);
+    };
   }, [selectedAccount, activeTab, selectedSymbol, refreshTrigger]);
 
   // Fetch orders from the API
   const fetchOrders = async () => {
-    console.log('OrdersTable fetchOrders called');
+    console.log(
+      'OrdersTable fetchOrders called with refreshTrigger:',
+      refreshTrigger,
+    );
     setIsLoading(true);
     try {
+      // For open orders tab, get new and partially filled orders
+      // For history tab, get all orders (undefined status)
       const status = activeTab === 'open' ? 'new,partially_filled' : undefined;
+
       console.log('Fetching orders with params:', {
         exchange: selectedAccount?.exchange,
         symbol: selectedSymbol,
         status,
+        activeTab,
       });
 
+      if (!selectedAccount) {
+        console.warn('No selected account, cannot fetch orders');
+        setOrders([]);
+        return;
+      }
+
       const orders = await getOrders(
-        selectedAccount?.exchange,
+        selectedAccount.exchange,
         selectedSymbol,
         status,
       );
 
-      console.log('Orders received:', orders);
+      console.log(`Orders received (${orders.length}):`, orders);
 
       // Sort orders by creation date (newest first)
       const sortedOrders = [...orders].sort(
@@ -72,6 +100,7 @@ export function OrdersTable({
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
 
+      console.log('Sorted orders:', sortedOrders);
       setOrders(sortedOrders);
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -80,6 +109,8 @@ export function OrdersTable({
         description: 'Please try again later.',
         variant: 'destructive',
       });
+      // Set empty orders array on error
+      setOrders([]);
     } finally {
       setIsLoading(false);
     }

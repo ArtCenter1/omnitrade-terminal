@@ -428,10 +428,13 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
       setPrice('');
       setTotal('');
 
-      // Notify parent component
+      // Notify parent component to refresh orders
       if (onOrderPlaced) {
         console.log('Notifying parent component that order was placed');
-        onOrderPlaced();
+        // Add a small delay to ensure the order is saved before refreshing
+        setTimeout(() => {
+          onOrderPlaced();
+        }, 500);
       }
     } catch (error) {
       console.error('Error placing order:', error);

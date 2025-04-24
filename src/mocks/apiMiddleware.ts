@@ -88,8 +88,9 @@ async function handleApiWithMockData(
   // Add a small delay to simulate network latency
   await new Promise((resolve) => setTimeout(resolve, 200));
 
-  // Health check endpoint
-  if (url.startsWith('/api/health')) {
+  // Health check endpoints
+  if (url.startsWith('/api/health') || url.startsWith('/api/health1')) {
+    console.log(`Handling health check request: ${url}`);
     return new Response(JSON.stringify({ status: 'ok', mode: 'mock' }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },

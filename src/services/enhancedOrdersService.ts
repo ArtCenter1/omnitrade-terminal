@@ -34,13 +34,103 @@ export interface CreateOrderDto {
 }
 
 // Mock orders for testing
-const mockOrders: Order[] = [];
+// Use a more persistent approach with localStorage to prevent orders from being lost on page refresh
+export const getMockOrders = (): Order[] => {
+  try {
+    const storedOrders = localStorage.getItem('omnitrade_mock_orders');
+    if (storedOrders) {
+      // Parse the stored orders and convert date strings back to Date objects
+      const parsedOrders = JSON.parse(storedOrders);
+      return parsedOrders.map((order: any) => ({
+        ...order,
+        createdAt: new Date(order.createdAt),
+        updatedAt: new Date(order.updatedAt),
+      }));
+    }
+  } catch (error) {
+    console.error('Error retrieving mock orders from localStorage:', error);
+  }
+  return [];
+};
+
+// Save mock orders to localStorage
+export const saveMockOrders = (orders: Order[]) => {
+  try {
+    localStorage.setItem('omnitrade_mock_orders', JSON.stringify(orders));
+  } catch (error) {
+    console.error('Error saving mock orders to localStorage:', error);
+  }
+};
+
+// Get the current mock orders
+export const mockOrders: Order[] = getMockOrders();
 
 // Add a mock order
-const addMockOrder = (order: Order) => {
+export const addMockOrder = (order: Order) => {
   console.log('Adding mock order to mockOrders array:', order);
   mockOrders.push(order);
   console.log('mockOrders array now has', mockOrders.length, 'orders');
+
+  // Save the updated orders to localStorage
+  saveMockOrders(mockOrders);
+};
+
+// Helper function to create a mock order directly
+export const createMockOrder = (createOrderDto: CreateOrderDto): Order => {
+  console.log('Creating mock order directly from:', createOrderDto);
+
+  const mockOrder: Order = {
+    id: uuidv4(),
+    userId: 'mock-user',
+    exchangeId: createOrderDto.exchangeId,
+    symbol: createOrderDto.symbol,
+    side: createOrderDto.side,
+    type: createOrderDto.type,
+    status: 'new',
+    price: createOrderDto.price,
+    stopPrice: createOrderDto.stopPrice,
+    quantity: createOrderDto.quantity,
+    filledQuantity: 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  // Add to mock orders
+  addMockOrder(mockOrder);
+  console.log('Mock order created and added to mock orders:', mockOrder);
+
+  // For market orders, simulate immediate fill after a delay
+  if (createOrderDto.type === 'market') {
+    console.log('Scheduling market order fill in 2 seconds...');
+    setTimeout(() => {
+      // Get the latest mock orders
+      const currentMockOrders = getMockOrders();
+
+      // Find the order in the current mock orders
+      const index = currentMockOrders.findIndex(
+        (order) => order.id === mockOrder.id,
+      );
+
+      if (index !== -1) {
+        // Update the order
+        currentMockOrders[index] = {
+          ...currentMockOrders[index],
+          status: 'filled',
+          filledQuantity: createOrderDto.quantity,
+          updatedAt: new Date(),
+        };
+
+        // Save the updated orders back to localStorage
+        saveMockOrders(currentMockOrders);
+
+        console.log('Market order filled:', currentMockOrders[index]);
+      } else {
+        console.error('Could not find order to fill:', mockOrder.id);
+      }
+    }, 2000);
+  }
+
+  return mockOrder;
 };
 
 /**
@@ -197,7 +287,21 @@ export const placeOrder = async (
         ? featureFlags.useRealMarketData
         : false;
 
-    console.log('Feature flags:', { useMockData, useRealMarketData });
+    // In development mode, always use mock implementation for easier testing
+    const forceMockImplementation = process.env.NODE_ENV === 'development';
+
+    console.log('Feature flags:', {
+      useMockData,
+      useRealMarketData,
+      forceMockImplementation,
+      nodeEnv: process.env.NODE_ENV,
+    });
+
+    // If we're forcing mock implementation, create a mock order directly
+    if (forceMockImplementation) {
+      console.log('Forcing mock implementation in development mode');
+      return createMockOrder(createOrderDto);
+    }
 
     // Validate the order
     const validation = await validateOrder(
@@ -281,7 +385,9 @@ export const placeOrder = async (
 
       // Check if this is a network error or server unavailable error
       // Only fall back to mock implementation as a last resort
+      // In development, we'll always use the mock implementation for easier testing
       const isNetworkError =
+        process.env.NODE_ENV === 'development' ||
         !errorObj?.response ||
         errorObj?.code === 'ECONNREFUSED' ||
         errorObj?.message?.includes('Network Error') ||
@@ -326,17 +432,30 @@ export const placeOrder = async (
         if (createOrderDto.type === 'market') {
           console.log('Scheduling market order fill in 2 seconds...');
           setTimeout(() => {
-            const index = mockOrders.findIndex(
+            // Get the latest mock orders
+            const currentMockOrders = getMockOrders();
+
+            // Find the order in the current mock orders
+            const index = currentMockOrders.findIndex(
               (order) => order.id === mockOrder.id,
             );
+
             if (index !== -1) {
-              mockOrders[index] = {
-                ...mockOrders[index],
+              // Update the order
+              currentMockOrders[index] = {
+                ...currentMockOrders[index],
                 status: 'filled',
                 filledQuantity: createOrderDto.quantity,
                 updatedAt: new Date(),
               };
-              console.log('Market order filled:', mockOrders[index]);
+
+              // Save the updated orders back to localStorage
+              saveMockOrders(currentMockOrders);
+
+              console.log('Market order filled:', currentMockOrders[index]);
+              console.log('Updated mock orders in localStorage');
+            } else {
+              console.error('Could not find order to fill:', mockOrder.id);
             }
           }, 2000);
         }
@@ -378,13 +497,27 @@ export const getOrders = async (
         apiError,
       );
 
+      // Get the latest mock orders from localStorage
+      const latestMockOrders = getMockOrders();
+
+      console.log('Retrieved mock orders for filtering:', latestMockOrders);
+
       // Filter mock orders based on parameters
-      return mockOrders.filter((order) => {
+      const filteredOrders = latestMockOrders.filter((order) => {
         if (exchangeId && order.exchangeId !== exchangeId) return false;
         if (symbol && order.symbol !== symbol) return false;
-        if (status && order.status !== status) return false;
+
+        // Handle status filtering with comma-separated values
+        if (status) {
+          const statusList = status.split(',');
+          if (!statusList.includes(order.status)) return false;
+        }
+
         return true;
       });
+
+      console.log('Filtered mock orders:', filteredOrders);
+      return filteredOrders;
     }
   } catch (error) {
     console.error('Error getting orders:', error);
@@ -406,14 +539,28 @@ export const cancelOrder = async (orderId: string): Promise<boolean> => {
         apiError,
       );
 
-      // Find the order in mock orders
-      const index = mockOrders.findIndex((order) => order.id === orderId);
+      // Get the latest mock orders
+      const currentMockOrders = getMockOrders();
+
+      // Find the order in the current mock orders
+      const index = currentMockOrders.findIndex(
+        (order) => order.id === orderId,
+      );
+
       if (index !== -1) {
-        mockOrders[index] = {
-          ...mockOrders[index],
+        // Update the order
+        currentMockOrders[index] = {
+          ...currentMockOrders[index],
           status: 'canceled',
           updatedAt: new Date(),
         };
+
+        // Save the updated orders back to localStorage
+        saveMockOrders(currentMockOrders);
+
+        console.log('Order canceled:', currentMockOrders[index]);
+        console.log('Updated mock orders in localStorage');
+
         return true;
       }
 
