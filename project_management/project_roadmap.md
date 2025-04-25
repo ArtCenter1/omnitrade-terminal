@@ -120,6 +120,7 @@ Refer to [Onboarding Experience](onboarding_experience.md) for detailed implemen
 - Implement analytics
 - Develop marketing website
 - Create onboarding materials
+- **Rotate all sensitive API keys and credentials** (Firebase, CoinGecko, etc.)
 - Launch beta version
 
 ## Phase 9: Post-Launch Improvements
