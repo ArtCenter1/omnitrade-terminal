@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { api } from '@/lib/api';
 import { useFeatureFlags } from '@/config/featureFlags';
 import * as enhancedCoinGeckoService from './enhancedCoinGeckoService';
+import { mockExchangeService } from './mockExchangeService';
 
 // Define the Order interface
 export interface Order {
@@ -172,6 +173,21 @@ export const createMockOrder = (createOrderDto: CreateOrderDto): Order => {
   }
 
   console.log(`Using symbol: ${symbol} for mock order`);
+
+  // If price is not provided for a market order, get it from our centralized mock exchange service
+  if (
+    createOrderDto.type === 'market' &&
+    (!createOrderDto.price || createOrderDto.price <= 0)
+  ) {
+    const currentPrice = mockExchangeService.getCurrentPrice(
+      createOrderDto.exchangeId,
+      symbol,
+    );
+    console.log(
+      `Using current price from mockExchangeService: ${currentPrice}`,
+    );
+    createOrderDto.price = parseFloat(currentPrice);
+  }
 
   // Generate a unique ID for the order
   const orderId = uuidv4();

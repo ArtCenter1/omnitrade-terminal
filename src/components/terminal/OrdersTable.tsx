@@ -80,17 +80,12 @@ export function OrdersTable({
         activeTab,
       });
 
-      if (!selectedAccount) {
-        console.warn('No selected account, cannot fetch orders');
-        setOrders([]);
-        return;
-      }
+      // Even if there's no selected account, we'll try to get mock orders
+      // This allows us to show orders that were created before an account was selected
+      const exchangeId = selectedAccount?.exchange || 'binance'; // Default to binance if no account selected
+      console.log(`Using exchange ID: ${exchangeId} for fetching orders`);
 
-      const orders = await getOrders(
-        selectedAccount.exchange,
-        selectedSymbol,
-        status,
-      );
+      const orders = await getOrders(exchangeId, selectedSymbol, status);
 
       console.log(`Orders received (${orders.length}):`, orders);
 

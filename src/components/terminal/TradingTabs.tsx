@@ -2,14 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { OrderTypeSelector } from './OrderTypeSelector';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { TradingPair } from './TradingPairSelector';
+import { TradingPair } from '@/types/trading';
 import { useToast } from '@/components/ui/use-toast';
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
-import { placeOrder, CreateOrderDto } from '@/services/enhancedOrdersService';
+import {
+  placeOrder,
+  CreateOrderDto,
+  Order,
+} from '@/services/enhancedOrdersService';
 import { getMockPortfolioData } from '@/mocks/mockPortfolio';
 import { usePrice } from '@/contexts/PriceContext';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
+import { mockExchangeService } from '@/services/mockExchangeService';
 
 interface TradingTabsProps {
   selectedPair?: TradingPair;
@@ -28,11 +31,21 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
 
   const { toast } = useToast();
   const { selectedAccount } = useSelectedAccount();
-  const { selectedPrice } = usePrice();
+  const { selectedPrice, setCurrentPairSymbol, getBestPrice } = usePrice();
 
   // Use the selected pair or default to BTC/USDT
   const baseAsset = selectedPair?.baseAsset || 'BTC';
   const quoteAsset = selectedPair?.quoteAsset || 'USDT';
+
+  // Update the current pair symbol in the PriceContext when it changes
+  useEffect(() => {
+    if (selectedPair?.symbol) {
+      console.log(
+        `TradingTabs: Updating currentPairSymbol to ${selectedPair.symbol}`,
+      );
+      setCurrentPairSymbol(selectedPair.symbol);
+    }
+  }, [selectedPair?.symbol, setCurrentPairSymbol]);
 
   // Set initial price based on selected pair when component mounts or pair changes
   useEffect(() => {
@@ -48,7 +61,21 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
         // For other pairs, use the price from the pair data
         const currentPrice = selectedPair.price.replace(/,/g, '');
         setPrice(currentPrice);
+      } else {
+        // If no price is available, use a default price based on the asset
+        const defaultPrice =
+          selectedPair.baseAsset === 'BTC'
+            ? 60000
+            : selectedPair.baseAsset === 'ETH'
+              ? 3000
+              : 10;
+        console.log(
+          `No price in selectedPair, using default price: ${defaultPrice} for ${selectedPair.baseAsset}`,
+        );
+        setPrice(defaultPrice.toString());
       }
+
+      console.log(`Initial price set to: ${price} for ${selectedPair.symbol}`);
     }
   }, [selectedPair]);
 
@@ -100,7 +127,7 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
         const rawTotal = parseFloat(amount) * priceToUse;
 
         // Format based on quote asset
-        let calculatedTotal;
+        let calculatedTotal: string;
         if (quoteAsset === 'USDT' || quoteAsset === 'USD') {
           // For USDT and USD, use 2 decimal places and ensure precision
           const roundedTotal = Math.floor(rawTotal * 100) / 100;
@@ -194,13 +221,54 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
 
     console.log('Portfolio data:', portfolioData);
 
-    // Get the current price
-    if (orderType === 'market' && selectedPair?.price) {
-      // For market orders, use the current pair price
-      priceToUse = parseFloat(selectedPair.price.replace(/,/g, ''));
-    } else if (price && !isNaN(parseFloat(price))) {
-      // For limit/stop orders, use the entered price
+    // Get the best price to use from the PriceContext
+    const bestPrice = getBestPrice();
+    console.log(`Best price from PriceContext: ${bestPrice}`);
+
+    // For limit/stop orders, use the entered price if available
+    if (orderType !== 'market' && price && !isNaN(parseFloat(price))) {
       priceToUse = parseFloat(price);
+      console.log(
+        `Using manually entered price: ${priceToUse} for limit/stop order`,
+      );
+    } else {
+      // For market orders or if no price is entered, try to get price from mockExchangeService
+      const exchangeId = selectedAccount?.exchangeId || 'binance';
+      const pairSymbol = selectedPair?.symbol || `${baseAsset}/${quoteAsset}`;
+      const currentPrice = mockExchangeService.getCurrentPrice(
+        exchangeId,
+        pairSymbol,
+      );
+      console.log(`Got price from mockExchangeService: ${currentPrice}`);
+
+      // Use the price from mockExchangeService if available, otherwise fall back to PriceContext
+      if (currentPrice && parseFloat(currentPrice) > 0) {
+        priceToUse = parseFloat(currentPrice);
+        console.log(`Using price from mockExchangeService: ${priceToUse}`);
+      } else {
+        // Fall back to PriceContext
+        priceToUse = parseFloat(bestPrice);
+        console.log(`Falling back to PriceContext price: ${priceToUse}`);
+      }
+
+      // Also update the price state so it's available for the order
+      if (priceToUse > 0 && (!price || price === '0' || price === '0.00')) {
+        setPrice(priceToUse.toString());
+      }
+    }
+
+    // Final check to ensure we have a valid price
+    if (priceToUse <= 0) {
+      // Default price if none is available
+      const defaultPrice =
+        baseAsset === 'BTC' ? 60000 : baseAsset === 'ETH' ? 3000 : 10;
+      console.log(
+        `No valid price available, using default price: ${defaultPrice} for ${baseAsset}`,
+      );
+      priceToUse = defaultPrice;
+
+      // Also update the price state so it's available for the order
+      setPrice(defaultPrice.toString());
     }
 
     console.log(`Using price: ${priceToUse} for calculations`);
@@ -430,31 +498,108 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
         }
         orderDto.price = parseFloat(price);
       } else if (orderType === 'market') {
-        // For market orders, use the current pair price
-        if (selectedPair?.price) {
-          const parsedPrice = parseFloat(selectedPair.price.replace(/,/g, ''));
-          console.log(
-            `Using current pair price: ${parsedPrice} from ${selectedPair.price}`,
-          );
+        // For market orders, try to get price from mockExchangeService first
+        const exchangeId = selectedAccount?.exchangeId || 'binance';
+        const pairSymbol = selectedPair?.symbol || `${baseAsset}/${quoteAsset}`;
+        const currentPrice = mockExchangeService.getCurrentPrice(
+          exchangeId,
+          pairSymbol,
+        );
+        console.log(`Got price from mockExchangeService: ${currentPrice}`);
+
+        if (currentPrice && parseFloat(currentPrice) > 0) {
+          // Use the price from mockExchangeService
+          const parsedPrice = parseFloat(currentPrice);
+          console.log(`Using price from mockExchangeService: ${parsedPrice}`);
           orderDto.price = parsedPrice;
         } else {
-          // Default price if none is available
-          const defaultPrice =
-            baseAsset === 'BTC' ? 60000 : baseAsset === 'ETH' ? 3000 : 10;
-          console.log(`Using default price: ${defaultPrice} for ${baseAsset}`);
-          orderDto.price = defaultPrice;
+          // Fall back to PriceContext
+          const bestPrice = getBestPrice();
+          console.log(`Falling back to PriceContext price: ${bestPrice}`);
+
+          if (bestPrice && bestPrice !== '0' && bestPrice !== '0.00') {
+            const parsedPrice = parseFloat(bestPrice);
+            console.log(`Using price from PriceContext: ${parsedPrice}`);
+            orderDto.price = parsedPrice;
+          } else if (selectedPair?.price) {
+            // Fallback to selectedPair price if PriceContext doesn't have a valid price
+            const parsedPrice = parseFloat(
+              selectedPair.price.replace(/,/g, ''),
+            );
+            console.log(
+              `Using current pair price: ${parsedPrice} from ${selectedPair.price}`,
+            );
+            orderDto.price = parsedPrice;
+          } else {
+            // Default price if none is available
+            const defaultPrice =
+              baseAsset === 'BTC' ? 60000 : baseAsset === 'ETH' ? 3000 : 10;
+            console.log(
+              `Using default price: ${defaultPrice} for ${baseAsset}`,
+            );
+            orderDto.price = defaultPrice;
+          }
         }
+      }
+
+      // Final check to ensure we have a valid price
+      if (!orderDto.price || orderDto.price <= 0) {
+        console.log('No valid price in orderDto, using default price');
+        const defaultPrice =
+          baseAsset === 'BTC' ? 60000 : baseAsset === 'ETH' ? 3000 : 10;
+        console.log(`Using default price: ${defaultPrice} for ${baseAsset}`);
+        orderDto.price = defaultPrice;
       }
 
       console.log('Placing order with data:', orderDto);
       console.log('Calling placeOrder function...');
-      const order = await placeOrder(orderDto);
-      console.log('Order placed successfully:', order);
+
+      // Declare the order variable outside the try block so it's accessible in the toast
+      let order: Order;
+
+      try {
+        // Force the use of mock implementation in development mode
+        order = await placeOrder(orderDto);
+        console.log('Order placed successfully:', order);
+
+        // Manually trigger localStorage save to ensure the order is persisted
+        const currentOrders = JSON.parse(
+          localStorage.getItem('omnitrade_mock_orders') || '[]',
+        );
+        console.log(`Current orders in localStorage: ${currentOrders.length}`);
+
+        // Check if the order is already in localStorage
+        const orderExists = currentOrders.some((o: any) => o.id === order.id);
+        if (!orderExists) {
+          console.log('Order not found in localStorage, adding it manually');
+          currentOrders.push({
+            ...order,
+            createdAt:
+              order.createdAt instanceof Date
+                ? order.createdAt.toISOString()
+                : order.createdAt,
+            updatedAt:
+              order.updatedAt instanceof Date
+                ? order.updatedAt.toISOString()
+                : order.updatedAt,
+          });
+          localStorage.setItem(
+            'omnitrade_mock_orders',
+            JSON.stringify(currentOrders),
+          );
+          console.log(
+            `Updated localStorage with ${currentOrders.length} orders`,
+          );
+        }
+      } catch (orderError) {
+        console.error('Error in placeOrder function:', orderError);
+        throw orderError;
+      }
 
       // Show success toast with more details
       toast({
         title: 'Order placed successfully',
-        description: `${side.toUpperCase()} ${amount} ${selectedPair.baseAsset} at ${orderType === 'market' ? 'market price' : price}. Order ID: ${order.id.substring(0, 8)}...`,
+        description: `${side.toUpperCase()} ${amount} ${selectedPair.baseAsset} at ${orderType === 'market' ? 'market price' : price}${order ? `. Order ID: ${order.id.substring(0, 8)}...` : ''}`,
         variant: 'default',
       });
 

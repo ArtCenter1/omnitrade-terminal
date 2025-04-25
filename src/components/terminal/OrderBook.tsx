@@ -5,8 +5,8 @@ import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import { usePrice } from '@/contexts/PriceContext';
 import { useFeatureFlags } from '@/config/featureFlags';
 import { useState, useEffect, useCallback } from 'react';
-import { getMockOrderbookData } from '@/mocks/mockOrderbook';
 import * as enhancedCoinGeckoService from '@/services/enhancedCoinGeckoService';
+import { mockExchangeService } from '@/services/mockExchangeService';
 
 interface OrderBookProps {
   selectedPair?: TradingPair;
@@ -16,7 +16,8 @@ interface OrderBookProps {
 export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
   // Get selected account for exchange-specific data
   const { selectedAccount } = useSelectedAccount();
-  const { setSelectedPrice } = usePrice();
+  const { setSelectedPrice, setCurrentMarketPrice, setCurrentPairSymbol } =
+    usePrice();
   const exchangeName = selectedAccount?.exchange || 'Binance';
   const { useMockData, useRealMarketData } = useFeatureFlags();
 
@@ -24,6 +25,14 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
   const symbol = selectedPair?.symbol || 'BTC/USDT';
   const baseAsset = selectedPair?.baseAsset || 'BTC';
   const quoteAsset = selectedPair?.quoteAsset || 'USDT';
+
+  // Update the current pair symbol in the PriceContext
+  useEffect(() => {
+    if (symbol) {
+      console.log(`OrderBook: Updating currentPairSymbol to ${symbol}`);
+      setCurrentPairSymbol(symbol);
+    }
+  }, [symbol, setCurrentPairSymbol]);
 
   // State for orderbook data
   const [orderbook, setOrderbook] = useState<Orderbook>({ bids: [], asks: [] });
@@ -38,9 +47,16 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
   const fetchOrderbook = useCallback(async () => {
     // Set a timeout to prevent infinite loading
     const timeoutId = setTimeout(() => {
-      console.warn('Orderbook fetch timeout - forcing fallback to mock data');
-      const mockData = getMockOrderbookData(symbol);
-      setOrderbook(mockData.orderbook);
+      console.warn(
+        'Orderbook fetch timeout - forcing fallback to mockExchangeService',
+      );
+      const exchangeId =
+        selectedAccount?.exchangeId || exchangeName.toLowerCase();
+      const mockOrderbook = mockExchangeService.getOrderbook(
+        exchangeId,
+        symbol,
+      );
+      setOrderbook(mockOrderbook);
       setIsLoading(false);
       setLastUpdated(new Date());
     }, 5000); // 5 second timeout
@@ -52,10 +68,15 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
 
       // Check feature flags to determine data source
       if (useMockData || !useRealMarketData) {
-        // Use mock data
-        console.log('Using mock orderbook data due to feature flags');
-        const mockData = getMockOrderbookData(symbol);
-        setOrderbook(mockData.orderbook);
+        // Use mock data from our centralized mock exchange service
+        console.log('Using mock orderbook data from mockExchangeService');
+        const exchangeId =
+          selectedAccount?.exchangeId || exchangeName.toLowerCase();
+        const mockOrderbook = mockExchangeService.getOrderbook(
+          exchangeId,
+          symbol,
+        );
+        setOrderbook(mockOrderbook);
         setUsingFallbackData(true);
         console.log('Mock orderbook data loaded for', symbol);
       } else {
@@ -85,14 +106,19 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
           }
         } catch (apiError) {
           console.error('Error fetching real orderbook data:', apiError);
-          // Fallback to mock data if real data fails
-          const mockData = getMockOrderbookData(symbol);
-          setOrderbook(mockData.orderbook);
+          // Fallback to mock data from our centralized mock exchange service
+          console.log('Falling back to mockExchangeService due to API error');
+          const exchangeId =
+            selectedAccount?.exchangeId || exchangeName.toLowerCase();
+          const mockOrderbook = mockExchangeService.getOrderbook(
+            exchangeId,
+            symbol,
+          );
+          setOrderbook(mockOrderbook);
           setUsingFallbackData(true);
           setErrorMessage(
             'Could not fetch real market data. Using fallback data.',
           );
-          console.log('Falling back to mock orderbook data due to API error');
         }
       }
 
@@ -104,20 +130,14 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
         'Error loading order book data. Using emergency fallback data.',
       );
 
-      // Create a simple fallback orderbook with some basic data
-      console.log('Using emergency fallback orderbook data');
-      const fallbackOrderbook: Orderbook = {
-        bids: [
-          ['40000.00', '0.50000000'],
-          ['39900.00', '1.20000000'],
-          ['39800.00', '0.75000000'],
-        ],
-        asks: [
-          ['40100.00', '0.40000000'],
-          ['40200.00', '0.90000000'],
-          ['40300.00', '0.60000000'],
-        ],
-      };
+      // Use our centralized mock exchange service for emergency fallback
+      console.log('Using emergency fallback from mockExchangeService');
+      const exchangeId =
+        selectedAccount?.exchangeId || exchangeName.toLowerCase();
+      const fallbackOrderbook = mockExchangeService.getOrderbook(
+        exchangeId,
+        symbol,
+      );
 
       setOrderbook(fallbackOrderbook);
       setUsingFallbackData(true);
@@ -175,47 +195,11 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
     return (priceNum * quantityNum).toFixed(5);
   };
 
-  // Show loading state
-  if (isLoading && !orderbook.bids.length && !orderbook.asks.length) {
-    return (
-      <div className={`${className || ''} w-full h-full`}>
-        <div className="p-3 border-b border-gray-800">
-          <h3 className="text-white font-medium">Order Book</h3>
-        </div>
-        <div className="flex flex-col justify-center items-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-purple-500 mb-2" />
-          <div className="text-gray-400 text-sm">Loading order book...</div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show error state - but only if we don't have any data to display
-  if (
-    (isError || !orderbook) &&
-    !orderbook.bids.length &&
-    !orderbook.asks.length
-  ) {
-    return (
-      <div className={`${className || ''} w-full h-full`}>
-        <div className="p-3 border-b border-gray-800">
-          <h3 className="text-white font-medium">Order Book</h3>
-        </div>
-        <div className="flex flex-col justify-center items-center py-12">
-          <AlertTriangle className="h-8 w-8 text-yellow-500 mb-2" />
-          <div className="text-red-500 mb-2">
-            {errorMessage || 'Error loading order book'}
-          </div>
-          <button
-            onClick={handleRefresh}
-            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 flex items-center justify-center gap-2 mt-2"
-          >
-            <RefreshCw className="w-4 h-4" /> Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Calculate rendering state variables - don't use early returns
+  const showLoading =
+    isLoading && !orderbook.bids.length && !orderbook.asks.length;
+  const showError =
+    (isError || !orderbook) && !orderbook.bids.length && !orderbook.asks.length;
 
   // Get the current price (middle of the book)
   const currentPrice =
@@ -226,6 +210,17 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
       ? (parseFloat(orderbook.bids[0][0]) + parseFloat(orderbook.asks[0][0])) /
         2
       : 0;
+
+  // Update the current market price in the PriceContext whenever it changes
+  useEffect(() => {
+    if (currentPrice > 0) {
+      const formattedPrice = currentPrice.toFixed(2);
+      console.log(
+        `OrderBook: Updating currentMarketPrice to ${formattedPrice}`,
+      );
+      setCurrentMarketPrice(formattedPrice);
+    }
+  }, [currentPrice, setCurrentMarketPrice]);
 
   // Determine price trend based on recent trades (simplified for demo)
   // In a real app, this would be based on actual price history
@@ -242,7 +237,7 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
   const maxBidVolume = Math.max(...bidVolumes, 0.1); // Prevent division by zero
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className={`${className || ''} w-full h-full`}>
       {/* Order Book Header */}
       <div className="p-3 border-b border-gray-800 flex justify-between items-center">
         <div>
@@ -282,222 +277,261 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
         </div>
       </div>
 
-      {/* Order Book Column Headers */}
-      <div className="px-2 py-2 grid grid-cols-3 gap-x-0 text-xs text-gray-400">
-        <div>Amount ({baseAsset})</div>
-        <div className="text-center">Price ({quoteAsset})</div>
-        <div className="text-right">Total</div>
-      </div>
+      {/* Loading State */}
+      {showLoading && (
+        <div className="flex flex-col justify-center items-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-purple-500 mb-2" />
+          <div className="text-gray-400 text-sm">Loading order book...</div>
+        </div>
+      )}
 
-      {/* Order Book Content - Scrollable */}
-      <div className="px-2 py-2 flex-1 overflow-hidden flex flex-col">
-        {/* Asks (Sell Orders) */}
-        <div className="flex-1 overflow-y-auto scrollbar-thin">
-          <div className="space-y-1">
-            {orderbook.asks
-              ?.slice(0, 10)
-              .reverse()
-              .map((ask, i) => {
-                // Calculate volume percentage for the bar width
-                const volume = parseFloat(ask[1]);
-                const volumePercentage = (volume / maxAskVolume) * 100;
+      {/* Error State */}
+      {showError && (
+        <div className="flex flex-col justify-center items-center py-12">
+          <AlertTriangle className="h-8 w-8 text-yellow-500 mb-2" />
+          <div className="text-red-500 mb-2">
+            {errorMessage || 'Error loading order book'}
+          </div>
+          <button
+            onClick={handleRefresh}
+            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 flex items-center justify-center gap-2 mt-2"
+          >
+            <RefreshCw className="w-4 h-4" /> Try Again
+          </button>
+        </div>
+      )}
+
+      {/* Main Order Book Content - Only show when not loading or error */}
+      {!showLoading && !showError && (
+        <div className="flex flex-col h-full">
+          {/* Order Book Column Headers */}
+          <div className="px-2 py-2 grid grid-cols-3 gap-x-0 text-xs text-gray-400">
+            <div>Amount ({baseAsset})</div>
+            <div className="text-center">Price ({quoteAsset})</div>
+            <div className="text-right">Total</div>
+          </div>
+
+          {/* Order Book Content - Scrollable */}
+          <div className="px-2 py-2 flex-1 overflow-hidden flex flex-col">
+            {/* Asks (Sell Orders) */}
+            <div className="flex-1 overflow-y-auto scrollbar-thin">
+              <div className="space-y-1">
+                {orderbook.asks
+                  ?.slice(0, 10)
+                  .reverse()
+                  .map((ask, i) => {
+                    // Calculate volume percentage for the bar width
+                    const volume = parseFloat(ask[1]);
+                    const volumePercentage = (volume / maxAskVolume) * 100;
+
+                    return (
+                      <div
+                        key={`sell-${i}`}
+                        className="grid grid-cols-3 gap-x-0 text-xs relative py-0.5"
+                      >
+                        {/* Volume bar - positioned absolutely behind the text */}
+                        <div
+                          className="absolute top-0 right-0 h-full bg-crypto-red opacity-30"
+                          style={{
+                            width: `${volumePercentage}%`,
+                            maxWidth: '95%',
+                          }}
+                        />
+                        {/* Content - positioned on top of the volume bar */}
+                        <div className="text-white relative z-10">
+                          {formatQuantity(ask[1])}
+                        </div>
+                        <div
+                          className="text-crypto-red text-center relative z-10 cursor-pointer hover:text-crypto-red/80"
+                          onClick={() => setSelectedPrice(formatPrice(ask[0]))}
+                          title="Click to set price"
+                        >
+                          {formatPrice(ask[0])}
+                        </div>
+                        <div className="text-white text-right relative z-10">
+                          {calculateTotal(ask[0], ask[1])}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+
+            {/* Current Price */}
+            <div className="py-2 border-y border-gray-800">
+              <div className="grid grid-cols-2 gap-x-0 text-sm">
+                <div
+                  className={`font-medium ${isPriceUp ? 'text-crypto-green' : 'text-crypto-red'}`}
+                >
+                  {currentPrice.toFixed(2)}
+                </div>
+                <div
+                  className={`font-medium ${isPriceUp ? 'text-crypto-green' : 'text-crypto-red'} text-right`}
+                >
+                  ${currentPrice.toFixed(2)}
+                </div>
+              </div>
+            </div>
+
+            {/* Bids (Buy Orders) */}
+            <div className="flex-1 overflow-y-auto scrollbar-thin">
+              <div className="space-y-1">
+                {orderbook.bids?.slice(0, 10).map((bid, i) => {
+                  // Calculate volume percentage for the bar width
+                  const volume = parseFloat(bid[1]);
+                  const volumePercentage = (volume / maxBidVolume) * 100;
+
+                  return (
+                    <div
+                      key={`buy-${i}`}
+                      className="grid grid-cols-3 gap-x-0 text-xs relative py-0.5"
+                    >
+                      {/* Volume bar - positioned absolutely behind the text */}
+                      <div
+                        className="absolute top-0 left-0 h-full bg-crypto-green opacity-30"
+                        style={{
+                          width: `${volumePercentage}%`,
+                          maxWidth: '95%',
+                        }}
+                      />
+                      {/* Content - positioned on top of the volume bar */}
+                      <div className="text-white relative z-10">
+                        {formatQuantity(bid[1])}
+                      </div>
+                      <div
+                        className="text-crypto-green text-center relative z-10 cursor-pointer hover:text-crypto-green/80"
+                        onClick={() => setSelectedPrice(formatPrice(bid[0]))}
+                        title="Click to set price"
+                      >
+                        {formatPrice(bid[0])}
+                      </div>
+                      <div className="text-white text-right relative z-10">
+                        {calculateTotal(bid[0], bid[1])}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Recent Trades Section */}
+          <div className="p-2 border-t border-gray-800 h-[35%] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center mb-2">
+              <div>
+                <h3 className="text-white font-medium">Recent Trades</h3>
+                {/* Data source indicator */}
+                <div className="flex items-center mt-1">
+                  <div
+                    className={`w-2 h-2 rounded-full mr-1 ${useMockData || !useRealMarketData || usingFallbackData ? 'bg-yellow-500' : 'bg-crypto-green'}`}
+                  />
+                  <span className="text-xs text-gray-400">
+                    {useMockData || !useRealMarketData
+                      ? 'Using mock data'
+                      : usingFallbackData
+                        ? 'Using fallback data'
+                        : 'Using real data'}
+                  </span>
+                </div>
+              </div>
+              <div className="text-xs text-gray-400">
+                Last updated: {lastUpdated.toLocaleTimeString()}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-x-0 text-xs text-gray-400 mb-2">
+              <div>Amount ({baseAsset})</div>
+              <div className="text-center">Price ({quoteAsset})</div>
+              <div className="text-right">Time</div>
+            </div>
+
+            <div className="space-y-2 overflow-y-auto flex-1 scrollbar-thin">
+              {[...Array(10)].map((_, i) => {
+                // Generate trade data based on the current orderbook
+                const price = parseFloat(orderbook.bids[0]?.[0] || '0');
+
+                // Use slightly different logic for real vs mock data
+                let quantity: string = '0';
+                let priceWithVariation: string = '0';
+                let timeString: string = '';
+                let isBuy: boolean = false;
+
+                if (useMockData && !useRealMarketData) {
+                  // Generate completely random data for mock mode
+                  quantity = (Math.random() * 0.01).toFixed(8);
+                  priceWithVariation = (
+                    price *
+                    (1 + (Math.random() * 0.002 - 0.001))
+                  ).toFixed(2);
+                  const now = new Date();
+                  const minutes = now.getMinutes() - i;
+                  const seconds = Math.floor(Math.random() * 60);
+                  timeString = `${now.getHours()}:${minutes < 10 ? '0' + minutes : minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
+                  isBuy = Math.random() > 0.5;
+                } else {
+                  // Generate semi-random data based on real orderbook
+                  // This simulates trades that would happen at prices in the orderbook
+                  const bidPrice = parseFloat(
+                    orderbook.bids[
+                      Math.min(i, orderbook.bids.length - 1)
+                    ]?.[0] || '0',
+                  );
+                  const askPrice = parseFloat(
+                    orderbook.asks[
+                      Math.min(i, orderbook.asks.length - 1)
+                    ]?.[0] || '0',
+                  );
+
+                  // Alternate between buys and sells
+                  isBuy = i % 2 === 0;
+                  priceWithVariation = (isBuy ? bidPrice : askPrice).toFixed(2);
+
+                  // Generate a realistic quantity based on the orderbook
+                  const bidQty = parseFloat(
+                    orderbook.bids[
+                      Math.min(i, orderbook.bids.length - 1)
+                    ]?.[1] || '0.001',
+                  );
+                  const askQty = parseFloat(
+                    orderbook.asks[
+                      Math.min(i, orderbook.asks.length - 1)
+                    ]?.[1] || '0.001',
+                  );
+                  const calculatedQty =
+                    (isBuy ? bidQty : askQty) * (0.1 + Math.random() * 0.5);
+                  quantity = calculatedQty.toFixed(8);
+
+                  // Generate a realistic timestamp
+                  const now = new Date();
+                  now.setSeconds(
+                    now.getSeconds() - i * 15 - Math.floor(Math.random() * 30),
+                  );
+                  timeString = now.toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                  });
+                }
 
                 return (
                   <div
-                    key={`sell-${i}`}
-                    className="grid grid-cols-3 gap-x-0 text-xs relative py-0.5"
+                    key={`trade-${i}`}
+                    className="grid grid-cols-3 gap-x-0 text-xs"
                   >
-                    {/* Volume bar - positioned absolutely behind the text */}
+                    <div className="text-white">{quantity}</div>
                     <div
-                      className="absolute top-0 right-0 h-full bg-crypto-red opacity-30"
-                      style={{ width: `${volumePercentage}%`, maxWidth: '95%' }}
-                    />
-                    {/* Content - positioned on top of the volume bar */}
-                    <div className="text-white relative z-10">
-                      {formatQuantity(ask[1])}
-                    </div>
-                    <div
-                      className="text-crypto-red text-center relative z-10 cursor-pointer hover:text-crypto-red/80"
-                      onClick={() => setSelectedPrice(formatPrice(ask[0]))}
-                      title="Click to set price"
+                      className={`${isBuy ? 'text-crypto-green' : 'text-crypto-red'} text-center`}
                     >
-                      {formatPrice(ask[0])}
+                      {priceWithVariation}
                     </div>
-                    <div className="text-white text-right relative z-10">
-                      {calculateTotal(ask[0], ask[1])}
-                    </div>
+                    <div className="text-gray-400 text-right">{timeString}</div>
                   </div>
                 );
               })}
-          </div>
-        </div>
-
-        {/* Current Price */}
-        <div className="py-2 border-y border-gray-800">
-          <div className="grid grid-cols-2 gap-x-0 text-sm">
-            <div
-              className={`font-medium ${isPriceUp ? 'text-crypto-green' : 'text-crypto-red'}`}
-            >
-              {currentPrice.toFixed(2)}
-            </div>
-            <div
-              className={`font-medium ${isPriceUp ? 'text-crypto-green' : 'text-crypto-red'} text-right`}
-            >
-              ${currentPrice.toFixed(2)}
             </div>
           </div>
         </div>
-
-        {/* Bids (Buy Orders) */}
-        <div className="flex-1 overflow-y-auto scrollbar-thin">
-          <div className="space-y-1">
-            {orderbook.bids?.slice(0, 10).map((bid, i) => {
-              // Calculate volume percentage for the bar width
-              const volume = parseFloat(bid[1]);
-              const volumePercentage = (volume / maxBidVolume) * 100;
-
-              return (
-                <div
-                  key={`buy-${i}`}
-                  className="grid grid-cols-3 gap-x-0 text-xs relative py-0.5"
-                >
-                  {/* Volume bar - positioned absolutely behind the text */}
-                  <div
-                    className="absolute top-0 left-0 h-full bg-crypto-green opacity-30"
-                    style={{ width: `${volumePercentage}%`, maxWidth: '95%' }}
-                  />
-                  {/* Content - positioned on top of the volume bar */}
-                  <div className="text-white relative z-10">
-                    {formatQuantity(bid[1])}
-                  </div>
-                  <div
-                    className="text-crypto-green text-center relative z-10 cursor-pointer hover:text-crypto-green/80"
-                    onClick={() => setSelectedPrice(formatPrice(bid[0]))}
-                    title="Click to set price"
-                  >
-                    {formatPrice(bid[0])}
-                  </div>
-                  <div className="text-white text-right relative z-10">
-                    {calculateTotal(bid[0], bid[1])}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Trades Section */}
-      <div className="p-2 border-t border-gray-800 h-[35%] overflow-hidden flex flex-col">
-        <div className="flex justify-between items-center mb-2">
-          <div>
-            <h3 className="text-white font-medium">Recent Trades</h3>
-            {/* Data source indicator */}
-            <div className="flex items-center mt-1">
-              <div
-                className={`w-2 h-2 rounded-full mr-1 ${useMockData || !useRealMarketData || usingFallbackData ? 'bg-yellow-500' : 'bg-crypto-green'}`}
-              />
-              <span className="text-xs text-gray-400">
-                {useMockData || !useRealMarketData
-                  ? 'Using mock data'
-                  : usingFallbackData
-                    ? 'Using fallback data'
-                    : 'Using real data'}
-              </span>
-            </div>
-          </div>
-          <div className="text-xs text-gray-400">
-            Last updated: {lastUpdated.toLocaleTimeString()}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-x-0 text-xs text-gray-400 mb-2">
-          <div>Amount ({baseAsset})</div>
-          <div className="text-center">Price ({quoteAsset})</div>
-          <div className="text-right">Time</div>
-        </div>
-
-        <div className="space-y-2 overflow-y-auto flex-1 scrollbar-thin">
-          {[...Array(10)].map((_, i) => {
-            // Generate trade data based on the current orderbook
-            const price = parseFloat(orderbook.bids[0]?.[0] || '0');
-
-            // Use slightly different logic for real vs mock data
-            let quantity: string = '0';
-            let priceWithVariation: string = '0';
-            let timeString: string = '';
-            let isBuy: boolean = false;
-
-            if (useMockData && !useRealMarketData) {
-              // Generate completely random data for mock mode
-              quantity = (Math.random() * 0.01).toFixed(8);
-              priceWithVariation = (
-                price *
-                (1 + (Math.random() * 0.002 - 0.001))
-              ).toFixed(2);
-              const now = new Date();
-              const minutes = now.getMinutes() - i;
-              const seconds = Math.floor(Math.random() * 60);
-              timeString = `${now.getHours()}:${minutes < 10 ? '0' + minutes : minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
-              isBuy = Math.random() > 0.5;
-            } else {
-              // Generate semi-random data based on real orderbook
-              // This simulates trades that would happen at prices in the orderbook
-              const bidPrice = parseFloat(
-                orderbook.bids[Math.min(i, orderbook.bids.length - 1)]?.[0] ||
-                  '0',
-              );
-              const askPrice = parseFloat(
-                orderbook.asks[Math.min(i, orderbook.asks.length - 1)]?.[0] ||
-                  '0',
-              );
-
-              // Alternate between buys and sells
-              isBuy = i % 2 === 0;
-              priceWithVariation = (isBuy ? bidPrice : askPrice).toFixed(2);
-
-              // Generate a realistic quantity based on the orderbook
-              const bidQty = parseFloat(
-                orderbook.bids[Math.min(i, orderbook.bids.length - 1)]?.[1] ||
-                  '0.001',
-              );
-              const askQty = parseFloat(
-                orderbook.asks[Math.min(i, orderbook.asks.length - 1)]?.[1] ||
-                  '0.001',
-              );
-              const calculatedQty =
-                (isBuy ? bidQty : askQty) * (0.1 + Math.random() * 0.5);
-              quantity = calculatedQty.toFixed(8);
-
-              // Generate a realistic timestamp
-              const now = new Date();
-              now.setSeconds(
-                now.getSeconds() - i * 15 - Math.floor(Math.random() * 30),
-              );
-              timeString = now.toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-              });
-            }
-
-            return (
-              <div
-                key={`trade-${i}`}
-                className="grid grid-cols-3 gap-x-0 text-xs"
-              >
-                <div className="text-white">{quantity}</div>
-                <div
-                  className={`${isBuy ? 'text-crypto-green' : 'text-crypto-red'} text-center`}
-                >
-                  {priceWithVariation}
-                </div>
-                <div className="text-gray-400 text-right">{timeString}</div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      )}
     </div>
   );
 }
