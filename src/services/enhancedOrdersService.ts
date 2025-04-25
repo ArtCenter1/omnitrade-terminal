@@ -4,6 +4,7 @@ import { api } from '@/lib/api';
 import { useFeatureFlags } from '@/config/featureFlags';
 import * as enhancedCoinGeckoService from './enhancedCoinGeckoService';
 import { mockExchangeService } from './mockExchangeService';
+import logger from '@/utils/logger';
 
 // Define the Order interface
 export interface Order {
@@ -152,7 +153,14 @@ export const addMockOrder = (order: Order) => {
 
 // Helper function to create a mock order directly
 export const createMockOrder = (createOrderDto: CreateOrderDto): Order => {
-  console.log('Creating mock order directly from:', createOrderDto);
+  logger.info('Creating mock order directly', {
+    component: 'enhancedOrdersService',
+    method: 'createMockOrder',
+    data: {
+      createOrderDto,
+      timestamp: new Date().toISOString(),
+    },
+  });
 
   // Ensure the symbol is in the correct format (BASE/QUOTE)
   let symbol = createOrderDto.symbol;
@@ -164,34 +172,60 @@ export const createMockOrder = (createOrderDto: CreateOrderDto): Order => {
       if (symbol.endsWith(quote)) {
         const base = symbol.slice(0, -quote.length);
         symbol = `${base}/${quote}`;
-        console.log(
-          `Reformatted symbol from ${createOrderDto.symbol} to ${symbol}`,
-        );
+        logger.debug('Reformatted symbol', {
+          component: 'enhancedOrdersService',
+          method: 'createMockOrder',
+          data: {
+            originalSymbol: createOrderDto.symbol,
+            formattedSymbol: symbol,
+          },
+        });
         break;
       }
     }
   }
 
-  console.log(`Using symbol: ${symbol} for mock order`);
+  logger.debug('Using symbol for mock order', {
+    component: 'enhancedOrdersService',
+    method: 'createMockOrder',
+    data: { symbol },
+  });
 
   // If price is not provided for a market order, get it from our centralized mock exchange service
   if (
     createOrderDto.type === 'market' &&
     (!createOrderDto.price || createOrderDto.price <= 0)
   ) {
+    logger.debug('Getting price from mockExchangeService for market order', {
+      component: 'enhancedOrdersService',
+      method: 'createMockOrder',
+      data: {
+        exchangeId: createOrderDto.exchangeId,
+        symbol,
+      },
+    });
+
     const currentPrice = mockExchangeService.getCurrentPrice(
       createOrderDto.exchangeId,
       symbol,
     );
-    console.log(
-      `Using current price from mockExchangeService: ${currentPrice}`,
-    );
+
+    logger.debug('Using current price from mockExchangeService', {
+      component: 'enhancedOrdersService',
+      method: 'createMockOrder',
+      data: { currentPrice },
+    });
+
     createOrderDto.price = parseFloat(currentPrice);
   }
 
   // Generate a unique ID for the order
   const orderId = uuidv4();
-  console.log(`Generated order ID: ${orderId}`);
+  logger.debug('Generated order ID', {
+    component: 'enhancedOrdersService',
+    method: 'createMockOrder',
+    data: { orderId },
+  });
 
   const mockOrder: Order = {
     id: orderId,
@@ -210,15 +244,47 @@ export const createMockOrder = (createOrderDto: CreateOrderDto): Order => {
   };
 
   // Add to mock orders
+  logger.debug('Adding mock order to mock orders', {
+    component: 'enhancedOrdersService',
+    method: 'createMockOrder',
+    data: { mockOrder },
+  });
+
   addMockOrder(mockOrder);
-  console.log('Mock order created and added to mock orders:', mockOrder);
+
+  logger.info('Mock order created and added to mock orders', {
+    component: 'enhancedOrdersService',
+    method: 'createMockOrder',
+    data: {
+      mockOrder,
+      orderId: mockOrder.id,
+      status: 'created',
+    },
+  });
 
   // For market orders, simulate immediate fill after a delay
   if (createOrderDto.type === 'market') {
-    console.log('Scheduling market order fill in 2 seconds...');
+    logger.debug('Scheduling market order fill in 2 seconds', {
+      component: 'enhancedOrdersService',
+      method: 'createMockOrder',
+      data: { orderId: mockOrder.id },
+    });
+
     setTimeout(() => {
+      logger.debug('Executing scheduled market order fill', {
+        component: 'enhancedOrdersService',
+        method: 'createMockOrder',
+        data: { orderId: mockOrder.id },
+      });
+
       // Get the latest mock orders
       const currentMockOrders = getMockOrders();
+
+      logger.debug('Retrieved current mock orders for filling', {
+        component: 'enhancedOrdersService',
+        method: 'createMockOrder',
+        data: { count: currentMockOrders.length },
+      });
 
       // Find the order in the current mock orders
       const index = currentMockOrders.findIndex(
@@ -226,6 +292,16 @@ export const createMockOrder = (createOrderDto: CreateOrderDto): Order => {
       );
 
       if (index !== -1) {
+        logger.debug('Found order to fill', {
+          component: 'enhancedOrdersService',
+          method: 'createMockOrder',
+          data: {
+            orderId: mockOrder.id,
+            orderIndex: index,
+            orderBeforeUpdate: currentMockOrders[index],
+          },
+        });
+
         // Update the order
         currentMockOrders[index] = {
           ...currentMockOrders[index],
@@ -235,11 +311,32 @@ export const createMockOrder = (createOrderDto: CreateOrderDto): Order => {
         };
 
         // Save the updated orders back to localStorage
+        logger.debug('Saving updated orders to localStorage', {
+          component: 'enhancedOrdersService',
+          method: 'createMockOrder',
+          data: { count: currentMockOrders.length },
+        });
+
         saveMockOrders(currentMockOrders);
 
-        console.log('Market order filled:', currentMockOrders[index]);
+        logger.info('Market order filled', {
+          component: 'enhancedOrdersService',
+          method: 'createMockOrder',
+          data: {
+            filledOrder: currentMockOrders[index],
+            orderId: mockOrder.id,
+            status: 'filled',
+          },
+        });
       } else {
-        console.error('Could not find order to fill:', mockOrder.id);
+        logger.error('Could not find order to fill', {
+          component: 'enhancedOrdersService',
+          method: 'createMockOrder',
+          data: {
+            orderId: mockOrder.id,
+            availableOrderIds: currentMockOrders.map((o) => o.id),
+          },
+        });
       }
     }, 2000);
   }
@@ -385,7 +482,14 @@ export const placeOrder = async (
   createOrderDto: CreateOrderDto,
 ): Promise<Order> => {
   try {
-    console.log('placeOrder called with:', createOrderDto);
+    logger.info('placeOrder called', {
+      component: 'enhancedOrdersService',
+      method: 'placeOrder',
+      data: {
+        createOrderDto,
+        timestamp: new Date().toISOString(),
+      },
+    });
 
     // Get feature flags
     const featureFlags =
@@ -404,37 +508,64 @@ export const placeOrder = async (
     // In development mode, always use mock implementation for easier testing
     const forceMockImplementation = process.env.NODE_ENV === 'development';
 
-    console.log('Feature flags:', {
-      useMockData,
-      useRealMarketData,
-      forceMockImplementation,
-      nodeEnv: process.env.NODE_ENV,
+    logger.debug('Feature flags', {
+      component: 'enhancedOrdersService',
+      method: 'placeOrder',
+      data: {
+        useMockData,
+        useRealMarketData,
+        forceMockImplementation,
+        nodeEnv: process.env.NODE_ENV,
+      },
     });
 
     // If we're forcing mock implementation, create a mock order directly
     if (forceMockImplementation) {
-      console.log('Forcing mock implementation in development mode');
+      logger.info('Forcing mock implementation in development mode', {
+        component: 'enhancedOrdersService',
+        method: 'placeOrder',
+      });
       return createMockOrder(createOrderDto);
     }
 
     // Validate the order
+    logger.debug('Validating order', {
+      component: 'enhancedOrdersService',
+      method: 'placeOrder',
+      data: { createOrderDto },
+    });
+
     const validation = await validateOrder(
       createOrderDto,
       useMockData,
       useRealMarketData,
     );
-    console.log('Order validation result:', validation);
+
+    logger.debug('Order validation result', {
+      component: 'enhancedOrdersService',
+      method: 'placeOrder',
+      data: { validation },
+    });
 
     if (!validation.valid) {
+      logger.warn('Order validation failed', {
+        component: 'enhancedOrdersService',
+        method: 'placeOrder',
+        data: {
+          message: validation.message,
+          createOrderDto,
+        },
+      });
       throw new Error(validation.message);
     }
 
     try {
       // Try to place the order through the API
-      console.log(
-        'Attempting to place order via API at:',
-        `${api.defaults.baseURL}/orders`,
-      );
+      logger.debug('Attempting to place order via API', {
+        component: 'enhancedOrdersService',
+        method: 'placeOrder',
+        data: { apiUrl: `${api.defaults.baseURL}/orders` },
+      });
 
       // Set proper headers for the API call
       const headers = {
@@ -444,29 +575,52 @@ export const placeOrder = async (
 
       // Make the API call to place the order with proper error handling
       try {
-        console.log(
-          'Making API call to place order with data:',
-          createOrderDto,
-        );
+        logger.debug('Making API call to place order', {
+          component: 'enhancedOrdersService',
+          method: 'placeOrder',
+          data: { createOrderDto, headers },
+        });
+
+        const startTime = Date.now();
         const response = await api.post<Order>('/orders', createOrderDto, {
           headers,
         });
-        console.log('API order placement successful:', response.data);
+        const endTime = Date.now();
+
+        logger.info('API order placement successful', {
+          component: 'enhancedOrdersService',
+          method: 'placeOrder',
+          data: {
+            response: response.data,
+            executionTimeMs: endTime - startTime,
+            orderId: response.data.id,
+            status: 'success',
+          },
+        });
+
         return response.data;
       } catch (error) {
         // Safely extract error information
         const errorObj = error as any;
-        console.error('Error details in API call:', {
-          name: errorObj?.name,
-          message: errorObj?.message,
-          code: errorObj?.code,
-          status: errorObj?.response?.status,
-          responseData: errorObj?.response?.data,
+        logger.error('Error details in API call', {
+          component: 'enhancedOrdersService',
+          method: 'placeOrder',
+          data: {
+            name: errorObj?.name,
+            message: errorObj?.message,
+            code: errorObj?.code,
+            status: errorObj?.response?.status,
+            responseData: errorObj?.response?.data,
+          },
         });
 
         // Check if it's a network error
         if (!errorObj?.response) {
-          console.error('Network error when placing order:', error);
+          logger.error('Network error when placing order', {
+            component: 'enhancedOrdersService',
+            method: 'placeOrder',
+            data: { error },
+          });
           throw new Error(
             'Network error. Please check your connection and try again.',
           );
@@ -474,25 +628,31 @@ export const placeOrder = async (
 
         // Check if it's an authentication error
         if (errorObj?.response?.status === 401) {
-          console.error(
-            'Authentication error when placing order:',
-            errorObj?.response?.data,
-          );
+          logger.error('Authentication error when placing order', {
+            component: 'enhancedOrdersService',
+            method: 'placeOrder',
+            data: { responseData: errorObj?.response?.data },
+          });
           throw new Error('Authentication failed. Please log in again.');
         }
 
         // Handle other API errors
-        console.error(
-          'API error when placing order:',
-          errorObj?.response?.data || error,
-        );
+        logger.error('API error when placing order', {
+          component: 'enhancedOrdersService',
+          method: 'placeOrder',
+          data: { responseData: errorObj?.response?.data || error },
+        });
         throw new Error(
           errorObj?.response?.data?.message ||
             'Failed to place order. Please try again.',
         );
       }
     } catch (apiError) {
-      console.error('Error placing order:', apiError);
+      logger.error('Error placing order', {
+        component: 'enhancedOrdersService',
+        method: 'placeOrder',
+        data: { apiError },
+      });
 
       // Safely extract error information
       const errorObj = apiError as any;
@@ -508,19 +668,32 @@ export const placeOrder = async (
         (errorObj?.message && errorObj?.message.includes('ECONNREFUSED'));
 
       // Log the error for debugging
-      console.error('API error details:', {
-        message: errorObj?.message || 'Unknown error',
-        code: errorObj?.code,
-        hasResponse: !!errorObj?.response,
-        status: errorObj?.response?.status,
-        name: errorObj?.name,
-        stack: errorObj?.stack?.substring(0, 200), // Only log the first part of the stack trace
+      logger.error('API error details', {
+        component: 'enhancedOrdersService',
+        method: 'placeOrder',
+        data: {
+          message: errorObj?.message || 'Unknown error',
+          code: errorObj?.code,
+          hasResponse: !!errorObj?.response,
+          status: errorObj?.response?.status,
+          name: errorObj?.name,
+          stack: errorObj?.stack?.substring(0, 200), // Only log the first part of the stack trace
+        },
       });
 
       // Fall back to mock implementation only for network errors
       if (isNetworkError) {
-        console.log('Falling back to mock implementation due to error');
-        console.log('Creating mock order...');
+        logger.info('Falling back to mock implementation due to error', {
+          component: 'enhancedOrdersService',
+          method: 'placeOrder',
+        });
+
+        logger.debug('Creating mock order', {
+          component: 'enhancedOrdersService',
+          method: 'placeOrder',
+          data: { createOrderDto },
+        });
+
         const mockOrder: Order = {
           id: uuidv4(),
           userId: 'mock-user',
@@ -538,16 +711,47 @@ export const placeOrder = async (
         };
 
         // Add to mock orders
+        logger.debug('Adding mock order to mock orders', {
+          component: 'enhancedOrdersService',
+          method: 'placeOrder',
+          data: { mockOrder },
+        });
+
         addMockOrder(mockOrder);
-        console.log('Mock order created and added to mock orders:', mockOrder);
-        console.log('Current mock orders:', mockOrders);
+
+        logger.info('Mock order created and added to mock orders', {
+          component: 'enhancedOrdersService',
+          method: 'placeOrder',
+          data: {
+            mockOrder,
+            orderId: mockOrder.id,
+            status: 'created',
+          },
+        });
 
         // For market orders, simulate immediate fill after a delay
         if (createOrderDto.type === 'market') {
-          console.log('Scheduling market order fill in 2 seconds...');
+          logger.debug('Scheduling market order fill in 2 seconds', {
+            component: 'enhancedOrdersService',
+            method: 'placeOrder',
+            data: { orderId: mockOrder.id },
+          });
+
           setTimeout(() => {
+            logger.debug('Executing scheduled market order fill', {
+              component: 'enhancedOrdersService',
+              method: 'placeOrder',
+              data: { orderId: mockOrder.id },
+            });
+
             // Get the latest mock orders
             const currentMockOrders = getMockOrders();
+
+            logger.debug('Retrieved current mock orders for filling', {
+              component: 'enhancedOrdersService',
+              method: 'placeOrder',
+              data: { count: currentMockOrders.length },
+            });
 
             // Find the order in the current mock orders
             const index = currentMockOrders.findIndex(
@@ -555,6 +759,16 @@ export const placeOrder = async (
             );
 
             if (index !== -1) {
+              logger.debug('Found order to fill', {
+                component: 'enhancedOrdersService',
+                method: 'placeOrder',
+                data: {
+                  orderId: mockOrder.id,
+                  orderIndex: index,
+                  orderBeforeUpdate: currentMockOrders[index],
+                },
+              });
+
               // Update the order
               currentMockOrders[index] = {
                 ...currentMockOrders[index],
@@ -564,12 +778,32 @@ export const placeOrder = async (
               };
 
               // Save the updated orders back to localStorage
+              logger.debug('Saving updated orders to localStorage', {
+                component: 'enhancedOrdersService',
+                method: 'placeOrder',
+                data: { count: currentMockOrders.length },
+              });
+
               saveMockOrders(currentMockOrders);
 
-              console.log('Market order filled:', currentMockOrders[index]);
-              console.log('Updated mock orders in localStorage');
+              logger.info('Market order filled', {
+                component: 'enhancedOrdersService',
+                method: 'placeOrder',
+                data: {
+                  filledOrder: currentMockOrders[index],
+                  orderId: mockOrder.id,
+                  status: 'filled',
+                },
+              });
             } else {
-              console.error('Could not find order to fill:', mockOrder.id);
+              logger.error('Could not find order to fill', {
+                component: 'enhancedOrdersService',
+                method: 'placeOrder',
+                data: {
+                  orderId: mockOrder.id,
+                  availableOrderIds: currentMockOrders.map((o) => o.id),
+                },
+              });
             }
           }, 2000);
         }
@@ -577,12 +811,20 @@ export const placeOrder = async (
         return mockOrder;
       } else {
         // In production mode, throw the error to be handled by the UI
-        console.log('Not a network error, propagating to UI for handling');
+        logger.warn('Not a network error, propagating to UI for handling', {
+          component: 'enhancedOrdersService',
+          method: 'placeOrder',
+          data: { apiError },
+        });
         throw apiError;
       }
     }
   } catch (error) {
-    console.error('Error placing order:', error);
+    logger.error('Error placing order', {
+      component: 'enhancedOrdersService',
+      method: 'placeOrder',
+      data: { error },
+    });
     throw error;
   }
 };
