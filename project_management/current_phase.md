@@ -18,6 +18,16 @@ The project is now in the "Frontend-Backend Integration" phase. The primary focu
 
 Detailed tasks and progress for this phase are tracked in [`frontend_backend_integration_checklist.md`](./frontend_backend_integration_checklist.md).
 
+## Binance Testnet Integration
+
+A new initiative has been started to integrate Binance Testnet with our existing Sandbox mode. This will provide a real matching engine for testing without having to implement a custom solution. The integration is currently in Phase 1 (Setup & Authentication).
+
+Detailed plan and progress for this initiative are tracked in:
+
+- [`binance-testnet-integration-plan.md`](./binance-testnet-integration-plan.md)
+- [`binance-testnet-integration-checklist.md`](./binance-testnet-integration-checklist.md)
+- [`binance-testnet-integration-status.md`](./binance-testnet-integration-status.md)
+
 ---
 
 ## Next Step
@@ -27,6 +37,8 @@ Detailed tasks and progress for this phase are tracked in [`frontend_backend_int
 The first actionable step is to design and build backend API endpoints for managing user exchange API keys. This includes functionality to add, list, delete, and test connection/credentials for exchange API keys. These endpoints do not currently exist and must be implemented from scratch.
 
 This foundational work will enable secure integration between user accounts and external exchanges, supporting future trading and data features.
+
+**For Binance Testnet Integration**: Begin implementing the configuration and authentication components as outlined in Phase 1 of the integration plan.
 
 ---
 
