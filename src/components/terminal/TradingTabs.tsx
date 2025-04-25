@@ -97,14 +97,26 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
 
       if (priceToUse > 0) {
         // Calculate total (amount * price)
-        const calculatedTotal = (parseFloat(amount) * priceToUse).toFixed(8);
+        const rawTotal = parseFloat(amount) * priceToUse;
+
+        // Format based on quote asset
+        let calculatedTotal;
+        if (quoteAsset === 'USDT' || quoteAsset === 'USD') {
+          // For USDT and USD, use 2 decimal places and ensure precision
+          const roundedTotal = Math.floor(rawTotal * 100) / 100;
+          calculatedTotal = roundedTotal.toFixed(2);
+        } else {
+          // For other assets, use 8 decimal places
+          calculatedTotal = rawTotal.toFixed(8);
+        }
+
         setTotal(calculatedTotal);
         console.log(
           `Calculated total: ${calculatedTotal} ${selectedPair?.quoteAsset} using price: ${priceToUse} and amount: ${amount} ${selectedPair?.baseAsset}`,
         );
       }
     }
-  }, [amount, price, orderType, selectedPair]);
+  }, [amount, price, orderType, selectedPair, quoteAsset]);
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     console.log('Amount changed to:', e.target.value);
@@ -120,8 +132,21 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
 
     // Format the total to 2 decimal places if it's a valid number
     if (!isNaN(parseFloat(newTotal))) {
-      // Don't format while user is typing, only store the raw value
-      setTotal(newTotal);
+      // For USDT and USD, ensure we have exactly 2 decimal places
+      if (quoteAsset === 'USDT' || quoteAsset === 'USD') {
+        // Don't format while user is typing, only store the raw value
+        // But ensure we're not adding extra decimal places
+        if (newTotal.includes('.') && newTotal.split('.')[1].length > 2) {
+          // If user entered more than 2 decimal places, truncate to 2
+          const truncated = Math.floor(parseFloat(newTotal) * 100) / 100;
+          setTotal(truncated.toFixed(2));
+        } else {
+          setTotal(newTotal);
+        }
+      } else {
+        // For other assets, allow up to 8 decimal places
+        setTotal(newTotal);
+      }
 
       let priceToUse = 0;
 
@@ -230,7 +255,7 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
         );
 
         // Set the amount to the calculated base asset amount (with appropriate precision)
-        let formattedBaseAmount;
+        let formattedBaseAmount: string;
         if (percentage === 100 && priceToUse > 0) {
           // For 100%, calculate the exact amount to avoid floating point errors
           formattedBaseAmount = (availableBalance / priceToUse).toFixed(8);
@@ -242,9 +267,14 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
 
         // Set the total to the quote asset amount
         // For exact percentages like 100%, use the exact original value to avoid rounding errors
-        let formattedQuoteAmount;
+        let formattedQuoteAmount: string;
         if (percentage === 100) {
-          formattedQuoteAmount = availableBalance.toFixed(2);
+          // For 100%, use Math.floor to ensure we get a whole number without any decimal issues
+          const exactAmount = Math.floor(availableBalance * 100) / 100;
+          formattedQuoteAmount = exactAmount.toFixed(2);
+          console.log(
+            `Using exact amount for 100%: ${exactAmount} → ${formattedQuoteAmount}`,
+          );
         } else {
           formattedQuoteAmount = assetAmount.toFixed(2);
         }
@@ -262,7 +292,7 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
       // sell
       // For sell orders, we use the base asset amount directly
       // Set the amount to the calculated base asset amount
-      let formattedBaseAmount;
+      let formattedBaseAmount: string;
       if (percentage === 100) {
         // For 100%, use the exact available balance to avoid floating point errors
         formattedBaseAmount = availableBalance.toFixed(8);
@@ -281,12 +311,17 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
 
         // Set the total to the calculated quote asset amount
         // For exact percentages, use precise calculation to avoid floating point errors
-        let formattedQuoteAmount;
+        let formattedQuoteAmount: string;
         if (percentage === 100) {
           // For 100% of the base asset, calculate the exact total
-          formattedQuoteAmount = (availableBalance * priceToUse).toFixed(2);
+          // Use Math.floor to ensure we get a clean number without floating point issues
+          const exactAmount =
+            Math.floor(availableBalance * priceToUse * 100) / 100;
+          formattedQuoteAmount = exactAmount.toFixed(2);
         } else {
-          formattedQuoteAmount = quoteAmount.toFixed(2);
+          // Round to 2 decimal places for USDT/USD
+          const roundedAmount = Math.floor(quoteAmount * 100) / 100;
+          formattedQuoteAmount = roundedAmount.toFixed(2);
         }
         console.log(`Setting total to ${formattedQuoteAmount} ${quoteAsset}`);
         setTotal(formattedQuoteAmount);

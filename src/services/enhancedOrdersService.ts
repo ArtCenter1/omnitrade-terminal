@@ -37,26 +37,83 @@ export interface CreateOrderDto {
 // Use a more persistent approach with localStorage to prevent orders from being lost on page refresh
 export const getMockOrders = (): Order[] => {
   try {
+    console.log('Getting mock orders from localStorage');
     const storedOrders = localStorage.getItem('omnitrade_mock_orders');
+
     if (storedOrders) {
-      // Parse the stored orders and convert date strings back to Date objects
-      const parsedOrders = JSON.parse(storedOrders);
-      return parsedOrders.map((order: any) => ({
-        ...order,
-        createdAt: new Date(order.createdAt),
-        updatedAt: new Date(order.updatedAt),
-      }));
+      console.log('Found stored orders in localStorage');
+
+      try {
+        // Parse the stored orders and convert date strings back to Date objects
+        const parsedOrders = JSON.parse(storedOrders);
+        console.log(
+          `Successfully parsed ${parsedOrders.length} orders from localStorage`,
+        );
+
+        const orders = parsedOrders.map((order: any) => ({
+          ...order,
+          createdAt: new Date(order.createdAt),
+          updatedAt: new Date(order.updatedAt),
+        }));
+
+        console.log('Returning orders with converted dates:', orders);
+        return orders;
+      } catch (parseError) {
+        console.error('Error parsing orders JSON:', parseError);
+        console.log('Invalid JSON:', storedOrders);
+
+        // If there's an error parsing the JSON, clear the localStorage item
+        localStorage.removeItem('omnitrade_mock_orders');
+        console.log('Cleared invalid orders from localStorage');
+
+        return [];
+      }
+    } else {
+      console.log('No stored orders found in localStorage');
     }
   } catch (error) {
     console.error('Error retrieving mock orders from localStorage:', error);
   }
+
+  console.log('Returning empty orders array');
   return [];
 };
 
 // Save mock orders to localStorage
 export const saveMockOrders = (orders: Order[]) => {
   try {
-    localStorage.setItem('omnitrade_mock_orders', JSON.stringify(orders));
+    console.log(`Saving ${orders.length} mock orders to localStorage`);
+
+    // Create a serializable version of the orders
+    const serializableOrders = orders.map((order) => ({
+      ...order,
+      // Ensure dates are serialized as ISO strings
+      createdAt:
+        order.createdAt instanceof Date
+          ? order.createdAt.toISOString()
+          : order.createdAt,
+      updatedAt:
+        order.updatedAt instanceof Date
+          ? order.updatedAt.toISOString()
+          : order.updatedAt,
+    }));
+
+    const ordersJson = JSON.stringify(serializableOrders);
+    localStorage.setItem('omnitrade_mock_orders', ordersJson);
+
+    console.log('Successfully saved orders to localStorage');
+
+    // Verify the save was successful
+    const savedOrders = localStorage.getItem('omnitrade_mock_orders');
+    if (savedOrders) {
+      console.log(
+        `Verified ${JSON.parse(savedOrders).length} orders in localStorage`,
+      );
+    } else {
+      console.error(
+        'Failed to verify saved orders - localStorage item is null',
+      );
+    }
   } catch (error) {
     console.error('Error saving mock orders to localStorage:', error);
   }
@@ -68,22 +125,63 @@ export const mockOrders: Order[] = getMockOrders();
 // Add a mock order
 export const addMockOrder = (order: Order) => {
   console.log('Adding mock order to mockOrders array:', order);
-  mockOrders.push(order);
-  console.log('mockOrders array now has', mockOrders.length, 'orders');
+
+  // Get the latest orders from localStorage to avoid overwriting other orders
+  const currentOrders = getMockOrders();
+  console.log(
+    `Retrieved ${currentOrders.length} existing orders from localStorage`,
+  );
+
+  // Add the new order
+  currentOrders.push(order);
+  console.log(`Added new order. Total orders: ${currentOrders.length}`);
+
+  // Update the in-memory array
+  mockOrders.length = 0; // Clear the array
+  mockOrders.push(...currentOrders); // Add all orders back
+  console.log('Updated in-memory mockOrders array');
 
   // Save the updated orders to localStorage
-  saveMockOrders(mockOrders);
+  saveMockOrders(currentOrders);
+  console.log('Saved updated orders to localStorage');
+
+  // Return the updated orders array
+  return currentOrders;
 };
 
 // Helper function to create a mock order directly
 export const createMockOrder = (createOrderDto: CreateOrderDto): Order => {
   console.log('Creating mock order directly from:', createOrderDto);
 
+  // Ensure the symbol is in the correct format (BASE/QUOTE)
+  let symbol = createOrderDto.symbol;
+  if (!symbol.includes('/')) {
+    // Try to infer the format from the symbol (e.g., BTCUSDT -> BTC/USDT)
+    // This is a simple heuristic and might not work for all symbols
+    const commonQuoteAssets = ['USDT', 'USD', 'BTC', 'ETH', 'BNB'];
+    for (const quote of commonQuoteAssets) {
+      if (symbol.endsWith(quote)) {
+        const base = symbol.slice(0, -quote.length);
+        symbol = `${base}/${quote}`;
+        console.log(
+          `Reformatted symbol from ${createOrderDto.symbol} to ${symbol}`,
+        );
+        break;
+      }
+    }
+  }
+
+  console.log(`Using symbol: ${symbol} for mock order`);
+
+  // Generate a unique ID for the order
+  const orderId = uuidv4();
+  console.log(`Generated order ID: ${orderId}`);
+
   const mockOrder: Order = {
-    id: uuidv4(),
+    id: orderId,
     userId: 'mock-user',
     exchangeId: createOrderDto.exchangeId,
-    symbol: createOrderDto.symbol,
+    symbol: symbol,
     side: createOrderDto.side,
     type: createOrderDto.type,
     status: 'new',
