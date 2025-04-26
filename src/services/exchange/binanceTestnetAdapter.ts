@@ -92,12 +92,61 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
   private async getApiCredentials(
     apiKeyId: string,
   ): Promise<{ apiKey: string; apiSecret: string }> {
-    // In a real implementation, this would retrieve the API key and secret from a secure storage
-    // For now, we'll use mock data
-    return {
-      apiKey: 'testnet_api_key',
-      apiSecret: 'testnet_api_secret',
-    };
+    try {
+      // Import the ApiKeyManager
+      const { ApiKeyManager } = await import(
+        '@/services/apiKeys/apiKeyManager'
+      );
+
+      // Get the API key manager instance
+      const apiKeyManager = ApiKeyManager.getInstance();
+
+      // Try to get the API key by ID first
+      let apiKeyPair = await apiKeyManager.getApiKeyById(apiKeyId);
+
+      // If not found by ID, try to get the default key for Binance Testnet
+      if (!apiKeyPair) {
+        apiKeyPair = await apiKeyManager.getDefaultApiKey('binance_testnet');
+      }
+
+      // If we found a key, update the last used timestamp and return it
+      if (apiKeyPair) {
+        await apiKeyManager.updateLastUsed(apiKeyPair.id);
+
+        return {
+          apiKey: apiKeyPair.apiKey,
+          apiSecret: apiKeyPair.apiSecret,
+        };
+      }
+
+      // Check if we have environment variables for API keys
+      const envApiKey = import.meta.env.VITE_BINANCE_TESTNET_API_KEY;
+      const envApiSecret = import.meta.env.VITE_BINANCE_TESTNET_API_SECRET;
+
+      if (envApiKey && envApiSecret) {
+        return {
+          apiKey: envApiKey,
+          apiSecret: envApiSecret,
+        };
+      }
+
+      // If we still don't have credentials, use mock data
+      console.warn(
+        'No API credentials found for Binance Testnet. Using mock data.',
+      );
+      return {
+        apiKey: 'testnet_api_key',
+        apiSecret: 'testnet_api_secret',
+      };
+    } catch (error) {
+      console.error('Error getting API credentials:', error);
+
+      // Fallback to mock data
+      return {
+        apiKey: 'testnet_api_key',
+        apiSecret: 'testnet_api_secret',
+      };
+    }
   }
 
   /**
