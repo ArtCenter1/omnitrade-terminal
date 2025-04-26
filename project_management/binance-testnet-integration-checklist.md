@@ -1,17 +1,35 @@
 # Binance Testnet Integration Checklist
 
-## Prerequisites
+## Critical Context
 
-- [ ] Binance Testnet account created
-- [ ] API keys generated and secured
-- [ ] Testnet endpoints documented
+**IMPORTANT**: The Binance Testnet integration is a critical component of our application:
+
+- We do not have a built-in matching engine
+- Binance Testnet serves as our default matching engine
+- Order placement testing is blocked until we successfully connect to Binance Testnet
+- All trading functionality depends on this integration
+
+## Prerequisites (CRITICAL)
+
+- [ ] **CRITICAL**: Binance Testnet account created
+- [ ] **CRITICAL**: API keys generated and secured
+- [ ] Testnet endpoints documented (COMPLETED)
 - [ ] Rate limits understood and documented
-- [ ] Existing Sandbox mode functionality reviewed
+- [ ] Existing Sandbox mode functionality reviewed (COMPLETED)
 
-## Phase 1: Setup & Authentication
+## Phase 1: Setup & Authentication (HIGHEST PRIORITY)
+
+### Critical Path Items (MUST COMPLETE FIRST)
+
+- [ ] **CRITICAL**: Environment variables set up for API keys and secrets
+- [ ] **CRITICAL**: Secure storage implemented for API keys
+- [ ] **CRITICAL**: Connection status tracking implemented with clear UI indicators
+- [ ] **CRITICAL**: Guided setup process created for API key configuration
+- [ ] **CRITICAL**: Basic authenticated request tested with real API keys
+
+### Completed Items
 
 - [x] Configuration file created for Binance Testnet endpoints
-- [ ] Environment variables set up for API keys and secrets
 - [x] Switching mechanism configured between mock and Binance Testnet
 - [x] Feature flags updated to include `useBinanceTestnet` option
 - [x] `BinanceTestnetAdapter` class created extending `BaseExchangeAdapter`
@@ -19,12 +37,13 @@
 - [x] Authentication header builder function created
 - [x] API key validation test function implemented
 - [x] Timestamp and recvWindow parameters added to requests
-- [ ] Connection status tracking implemented
+
+### Remaining Items
+
 - [ ] Reconnection logic created with exponential backoff
 - [ ] Connection health check mechanism added
 - [ ] API request throttling implemented to respect rate limits
 - [ ] Tests created for API key validation
-- [ ] Basic authenticated request tested
 - [ ] Signature generation verified
 - [ ] Error handling tested for invalid credentials
 
@@ -97,18 +116,26 @@
 
 ## Phase 5: Integration with Existing Sandbox Mode
 
+### Critical Path Items (HIGH PRIORITY)
+
+- [ ] **CRITICAL**: Connection status indicator added with clear visual feedback
+- [ ] **CRITICAL**: Error display implemented for Testnet connection issues
+- [ ] **CRITICAL**: End-to-end order flow validated with Testnet
+
+### Completed Items
+
 - [x] `ExchangeFactory` updated to support Binance Testnet
 - [x] `SandboxAdapter` modified to use Binance Testnet
 - [x] Fallback mechanism created to mock implementation
 - [x] Feature flag checking implemented
-- [ ] Exchange selection UI updated to show Binance Testnet
-- [ ] Connection status indicator added
 - [x] Settings created for Testnet configuration
-- [ ] Error display implemented for Testnet issues
+
+### Remaining Items
+
+- [ ] Exchange selection UI updated to show Binance Testnet
 - [ ] Switching between mock and Testnet modes tested
 - [ ] UI updates verified
 - [ ] Error handling and fallbacks tested
-- [ ] End-to-end order flow validated
 
 ## Phase 6: Testing & Documentation
 
@@ -127,9 +154,18 @@
 
 ## Final Verification
 
+### Critical Success Criteria
+
+- [ ] **CRITICAL**: Successful connection to Binance Testnet with real API keys
+- [ ] **CRITICAL**: Order placement and execution working through Testnet
+- [ ] **CRITICAL**: Clear UI indicators showing connection status
+- [ ] **CRITICAL**: Fallback to mock data working when Testnet unavailable
+
+### Additional Verification
+
 - [ ] All tests passing
 - [ ] Documentation complete
 - [ ] Performance acceptable
 - [ ] Error handling comprehensive
 - [ ] User experience smooth
-- [ ] Fallback mechanisms working
+- [ ] Guided setup process working correctly
