@@ -169,27 +169,88 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       // Get API credentials
       const { apiKey, apiSecret } = await this.getApiCredentials(apiKeyId);
 
+      // Check if we're using mock credentials
+      const isMockCredentials =
+        apiKey === 'testnet_api_key' ||
+        apiSecret === 'testnet_api_secret' ||
+        apiKey === 'invalid_api_key' ||
+        apiSecret === 'invalid_api_secret';
+
+      if (isMockCredentials) {
+        console.warn(
+          'Using mock credentials for authenticated request. This will not work with real Binance Testnet API.',
+        );
+        throw new Error(
+          'Invalid API credentials: Using mock or invalid API keys',
+        );
+      }
+
       // Add signature
       const signedParams = this.addSignature(params, apiSecret);
 
       // Build URL
       const url = `${this.baseUrl}${endpoint}`;
 
-      // Make request with rate limiting
-      return await makeApiRequest<T>(this.exchangeId, url, {
-        method,
-        weight,
-        body: method !== 'GET' ? signedParams : undefined,
-        headers: this.buildAuthHeaders(apiKey),
-        parseJson: true,
-        retries: 3,
-        retryDelay: 1000,
-      });
+      try {
+        // Make request with rate limiting
+        return await makeApiRequest<T>(this.exchangeId, url, {
+          method,
+          weight,
+          body: method !== 'GET' ? signedParams : undefined,
+          headers: this.buildAuthHeaders(apiKey),
+          parseJson: true,
+          retries: 3,
+          retryDelay: 1000,
+        });
+      } catch (requestError: any) {
+        // Check for authentication errors
+        const errorMessage =
+          requestError instanceof Error
+            ? requestError.message
+            : String(requestError);
+        const responseText = requestError.responseText || '';
+
+        // Handle specific authentication errors
+        if (
+          errorMessage.includes('Invalid API-key') ||
+          errorMessage.includes('API-key format invalid') ||
+          errorMessage.includes('Signature') ||
+          errorMessage.includes('authorization') ||
+          errorMessage.includes('authenticate') ||
+          errorMessage.includes('API key') ||
+          responseText.includes('Invalid API-key') ||
+          responseText.includes('Signature')
+        ) {
+          console.error('Authentication error:', errorMessage);
+          throw new Error(`Authentication failed: ${errorMessage}`);
+        }
+
+        // Re-throw other errors
+        throw requestError;
+      }
     } catch (error) {
       console.error(
         `Error making authenticated request to ${endpoint}:`,
         error,
       );
+
+      // Enhance error message for authentication errors
+      if (error instanceof Error) {
+        const errorMessage = error.message;
+        if (
+          errorMessage.includes('Invalid API-key') ||
+          errorMessage.includes('API-key format invalid') ||
+          errorMessage.includes('Signature') ||
+          errorMessage.includes('authorization') ||
+          errorMessage.includes('authenticate') ||
+          errorMessage.includes('API key')
+        ) {
+          throw new Error(
+            `Authentication failed: ${errorMessage}. Please check your API key and secret.`,
+          );
+        }
+      }
+
       throw error;
     }
   }

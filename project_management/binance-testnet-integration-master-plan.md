@@ -58,7 +58,7 @@
 - [x] Create test for API key validation
 - [x] **CRITICAL**: Test basic authenticated request with real API keys
 - [x] Verify signature generation
-- [ ] Test error handling for invalid credentials
+- [x] Test error handling for invalid credentials
 
 ## Phase 2: Market Data Integration
 
@@ -292,3 +292,19 @@
 6. Account balances accurately reflected
 7. Seamless switching between mock and Testnet modes
 8. Comprehensive error handling and user feedback
+
+## Next Steps
+
+1. Implement Market Data Integration (Phase 2):
+
+   - Implement exchange information endpoint (`/api/v3/exchangeInfo`)
+   - Create trading pairs retrieval (`/api/v3/ticker/24hr`)
+   - Implement order book data fetching (`/api/v3/depth`)
+   - Add recent trades retrieval (`/api/v3/trades`)
+   - Implement klines/candlestick data (`/api/v3/klines`)
+
+2. Add WebSocket connection for real-time market data
+
+3. Only after Market Data Integration is complete, proceed to Order Management (Phase 3)
+
+Note: The guided setup wizard for Binance Testnet API keys has been moved to the Comprehensive Onboarding Experience roadmap to be integrated with the user onboarding tour.

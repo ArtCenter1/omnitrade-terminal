@@ -26,6 +26,10 @@ export function BinanceTestnetTest() {
   const [usingMockData, setUsingMockData] = useState<boolean>(false);
   const [pairs, setPairs] = useState<TradingPair[]>([]);
   const [authTestResult, setAuthTestResult] = useState<string | null>(null);
+  const [invalidCredentialsTestResult, setInvalidCredentialsTestResult] =
+    useState<string | null>(null);
+  const [invalidCredentialsLoading, setInvalidCredentialsLoading] =
+    useState(false);
 
   // Get API keys
   const { hasKeys, loading: loadingKeys } = useApiKeys('binance_testnet');
@@ -111,6 +115,104 @@ export function BinanceTestnetTest() {
       await checkConnection('binance_testnet');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Test invalid credentials
+  const handleTestInvalidCredentials = async () => {
+    setInvalidCredentialsLoading(true);
+    setInvalidCredentialsTestResult(null);
+
+    try {
+      // Get the Binance Testnet adapter
+      const adapter = ExchangeFactory.getAdapter('binance_testnet');
+
+      // Create a test function that uses invalid credentials
+      const testInvalidCredentials = async () => {
+        // Create a temporary API key with invalid credentials
+        const tempApiKeyId = 'temp_invalid_test_key';
+
+        // Mock the ApiKeyManager to return invalid credentials for this specific key
+        const apiKeyManager = ApiKeyManager.getInstance();
+        const originalGetApiKeyById = apiKeyManager.getApiKeyById;
+
+        // Override the getApiKeyById method to return invalid credentials for our test key
+        apiKeyManager.getApiKeyById = async (keyId: string) => {
+          if (keyId === tempApiKeyId) {
+            return {
+              id: tempApiKeyId,
+              name: 'Invalid Test Key',
+              exchangeId: 'binance_testnet',
+              apiKey: 'invalid_api_key',
+              apiSecret: 'invalid_api_secret',
+              permissions: ['trade'],
+              createdAt: new Date(),
+              lastUsed: new Date(),
+            };
+          }
+
+          // For all other keys, use the original method
+          return originalGetApiKeyById.call(apiKeyManager, keyId);
+        };
+
+        try {
+          // Try to get portfolio with invalid credentials
+          await adapter.getPortfolio(tempApiKeyId);
+
+          // If we get here, the test failed because it didn't throw an error
+          return {
+            success: false,
+            message: 'Test failed: Invalid credentials did not cause an error',
+          };
+        } catch (error) {
+          // Check if the error is related to invalid credentials
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          const isAuthError =
+            errorMessage.includes('Invalid API-key') ||
+            errorMessage.includes('API-key format invalid') ||
+            errorMessage.includes('Signature') ||
+            errorMessage.includes('authorization') ||
+            errorMessage.includes('authenticate') ||
+            errorMessage.includes('API key');
+
+          if (isAuthError) {
+            // Success - we correctly detected invalid credentials
+            return {
+              success: true,
+              message: `Successfully detected invalid credentials: ${errorMessage}`,
+              error,
+            };
+          } else {
+            // Failed - we got an error, but it wasn't related to authentication
+            return {
+              success: false,
+              message: `Test failed: Error occurred but wasn't related to authentication: ${errorMessage}`,
+              error,
+            };
+          }
+        } finally {
+          // Restore the original method
+          apiKeyManager.getApiKeyById = originalGetApiKeyById;
+        }
+      };
+
+      // Run the test
+      const result = await testInvalidCredentials();
+
+      // Set the result
+      if (result.success) {
+        setInvalidCredentialsTestResult(`✅ ${result.message}`);
+      } else {
+        setInvalidCredentialsTestResult(`❌ ${result.message}`);
+      }
+    } catch (err) {
+      console.error('Error testing invalid credentials:', err);
+      setInvalidCredentialsTestResult(
+        `❌ Error running invalid credentials test: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    } finally {
+      setInvalidCredentialsLoading(false);
     }
   };
 
@@ -204,6 +306,20 @@ export function BinanceTestnetTest() {
           </Alert>
         )}
 
+        {invalidCredentialsTestResult && (
+          <Alert
+            variant="default"
+            className={`mb-4 ${
+              invalidCredentialsTestResult.includes('✅')
+                ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900/50'
+                : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900/50'
+            }`}
+          >
+            <AlertTitle>Invalid Credentials Test</AlertTitle>
+            <AlertDescription>{invalidCredentialsTestResult}</AlertDescription>
+          </Alert>
+        )}
+
         {pairs.length > 0 && (
           <div className="mt-4">
             <h3 className="text-sm font-medium mb-2">Sample Trading Pairs:</h3>
@@ -217,9 +333,19 @@ export function BinanceTestnetTest() {
           </div>
         )}
       </CardContent>
-      <CardFooter>
+      <CardFooter className="flex flex-col gap-2">
         <Button onClick={handleTest} disabled={loading} className="w-full">
           {loading ? 'Testing...' : 'Test Connection'}
+        </Button>
+        <Button
+          onClick={handleTestInvalidCredentials}
+          disabled={invalidCredentialsLoading}
+          variant="outline"
+          className="w-full"
+        >
+          {invalidCredentialsLoading
+            ? 'Testing...'
+            : 'Test Invalid Credentials Handling'}
         </Button>
       </CardFooter>
     </Card>
