@@ -4,7 +4,9 @@ import { ExchangeAdapter } from '@/types/exchange';
 import { BinanceAdapter } from './binanceAdapter';
 import { CoinbaseAdapter } from './coinbaseAdapter';
 import { SandboxAdapter } from './sandboxAdapter';
+import { BinanceTestnetAdapter } from './binanceTestnetAdapter';
 import { SUPPORTED_EXCHANGES } from '../mockData/mockDataUtils';
+import { getFeatureFlags } from '@/config/featureFlags';
 
 /**
  * Factory class for creating exchange adapters.
@@ -28,6 +30,9 @@ export class ExchangeFactory {
     // Create a new adapter based on the exchange ID
     let adapter: ExchangeAdapter;
 
+    // Get feature flags to check if Binance Testnet is enabled
+    const featureFlags = getFeatureFlags();
+
     switch (exchangeId.toLowerCase()) {
       case 'binance':
         adapter = new BinanceAdapter();
@@ -36,7 +41,15 @@ export class ExchangeFactory {
         adapter = new CoinbaseAdapter();
         break;
       case 'sandbox':
-        adapter = new SandboxAdapter();
+        // If Binance Testnet is enabled, use it for the sandbox
+        if (featureFlags.useBinanceTestnet) {
+          adapter = new BinanceTestnetAdapter();
+        } else {
+          adapter = new SandboxAdapter();
+        }
+        break;
+      case 'binance_testnet':
+        adapter = new BinanceTestnetAdapter();
         break;
       default:
         // Check if the exchange is supported
@@ -63,6 +76,13 @@ export class ExchangeFactory {
    * @returns An array of exchange IDs
    */
   public static getSupportedExchanges(): string[] {
-    return SUPPORTED_EXCHANGES.map((exchange) => exchange.id);
+    const baseExchanges = SUPPORTED_EXCHANGES.map((exchange) => exchange.id);
+
+    // Add Binance Testnet if it's not already included
+    if (!baseExchanges.includes('binance_testnet')) {
+      baseExchanges.push('binance_testnet');
+    }
+
+    return baseExchanges;
   }
 }

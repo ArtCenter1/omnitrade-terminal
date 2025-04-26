@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import * as enhancedCoinGeckoService from '@/services/enhancedCoinGeckoService';
+import { BinanceTestnetSettings } from '@/components/settings/BinanceTestnetSettings';
 
 /**
  * Developer tools component
@@ -143,6 +144,35 @@ export function DevTools() {
           </CardHeader>
           <CardContent className="pt-0">
             <ApiExplorer />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Exchange Settings */}
+      <div className="mt-4">
+        <Card className="w-full p-0">
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-1">
+              <CardTitle className="text-lg">Exchange Settings</CardTitle>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">
+                      Configure exchange-specific settings and test connections
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <CardDescription>
+              Exchange configuration and testing
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <ExchangeSettings />
           </CardContent>
         </Card>
       </div>
@@ -432,6 +462,25 @@ function ApiExplorer() {
         <p className="text-sm text-muted-foreground">
           API Explorer coming soon...
         </p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Exchange Settings component
+ * Allows configuring exchange-specific settings
+ */
+function ExchangeSettings() {
+  const flags = useFeatureFlagsContext();
+
+  return (
+    <div className="space-y-4">
+      <div className="border rounded-lg p-2">
+        <h3 className="text-sm font-medium text-muted-foreground mb-2">
+          Binance Testnet
+        </h3>
+        <BinanceTestnetSettings />
       </div>
     </div>
   );

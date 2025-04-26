@@ -14,22 +14,35 @@ import {
 // Import test network adapters
 import { BinanceAdapter } from './binanceAdapter';
 import { CoinbaseAdapter } from './coinbaseAdapter';
+import { BinanceTestnetAdapter } from './binanceTestnetAdapter';
+import { getFeatureFlags } from '@/config/featureFlags';
 
 /**
  * Sandbox exchange adapter for practice trading
  */
 export class SandboxAdapter extends BaseExchangeAdapter {
   private readonly mockDataService: MockDataService;
-  private readonly binanceTestAdapter: BinanceAdapter;
+  private readonly binanceTestAdapter: BinanceAdapter | BinanceTestnetAdapter;
   private readonly coinbaseTestAdapter: CoinbaseAdapter;
   private readonly preferredTestNetwork: string = 'binance'; // Default to Binance test network
+  private readonly useBinanceTestnet: boolean;
 
   constructor() {
     super('sandbox');
     this.mockDataService = new MockDataService();
 
+    // Check if Binance Testnet is enabled
+    const featureFlags = getFeatureFlags();
+    this.useBinanceTestnet = featureFlags.useBinanceTestnet;
+
     // Initialize test network adapters
-    this.binanceTestAdapter = new BinanceAdapter();
+    if (this.useBinanceTestnet) {
+      console.log('[SandboxAdapter] Using Binance Testnet adapter');
+      this.binanceTestAdapter = new BinanceTestnetAdapter();
+    } else {
+      this.binanceTestAdapter = new BinanceAdapter();
+    }
+
     this.coinbaseTestAdapter = new CoinbaseAdapter();
 
     // Try to get preferred test network from localStorage
@@ -41,7 +54,9 @@ export class SandboxAdapter extends BaseExchangeAdapter {
     }
 
     console.log(
-      `[SandboxAdapter] Using ${this.preferredTestNetwork} test network as primary data source`,
+      `[SandboxAdapter] Using ${this.preferredTestNetwork} test network as primary data source${
+        this.useBinanceTestnet ? ' (Binance Testnet enabled)' : ''
+      }`,
     );
   }
 
@@ -49,20 +64,31 @@ export class SandboxAdapter extends BaseExchangeAdapter {
    * Get basic information about the Sandbox exchange.
    */
   public async getExchangeInfo(): Promise<Exchange> {
+    // If Binance Testnet is enabled, show that in the name and description
+    const name = this.useBinanceTestnet
+      ? 'Sandbox (Binance Testnet)'
+      : 'Sandbox';
+    const description = this.useBinanceTestnet
+      ? 'Practice trading environment using Binance Testnet API.'
+      : 'Practice trading environment with simulated assets and orders.';
+
     return {
       id: this.exchangeId,
-      name: 'Sandbox',
-      url: 'https://omnitrade.io/sandbox',
-      description:
-        'Practice trading environment with simulated assets and orders.',
+      name,
+      url: this.useBinanceTestnet
+        ? 'https://testnet.binance.vision'
+        : 'https://omnitrade.io/sandbox',
+      description,
       features: ['spot', 'margin', 'futures'],
       fees: {
         maker: 0.0, // No fees in sandbox
         taker: 0.0, // No fees in sandbox
       },
-      requiredCredentials: [],
+      requiredCredentials: this.useBinanceTestnet ? ['apiKey', 'secret'] : [],
       countries: ['*'], // Available worldwide
-      logo: '/exchanges/sandbox.svg',
+      logo: this.useBinanceTestnet
+        ? '/exchanges/binance.svg'
+        : '/exchanges/sandbox.svg',
     };
   }
 
