@@ -23,7 +23,9 @@ export function BinanceTestnetTest() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [usingMockData, setUsingMockData] = useState<boolean>(false);
   const [pairs, setPairs] = useState<TradingPair[]>([]);
+  const [authTestResult, setAuthTestResult] = useState<string | null>(null);
 
   // Get API keys
   const { hasKeys, loading: loadingKeys } = useApiKeys('binance_testnet');
@@ -36,16 +38,17 @@ export function BinanceTestnetTest() {
     setError(null);
     setSuccess(null);
     setPairs([]);
+    setAuthTestResult(null);
 
     try {
       // Get the Binance Testnet adapter
       const adapter = ExchangeFactory.getAdapter('binance_testnet');
 
-      // Test getting exchange info
+      // Test getting exchange info (unauthenticated)
       const exchangeInfo = await adapter.getExchangeInfo();
       console.log('Exchange info:', exchangeInfo);
 
-      // Test getting trading pairs
+      // Test getting trading pairs (unauthenticated)
       const tradingPairs = await adapter.getTradingPairs();
       console.log('Trading pairs:', tradingPairs);
       setPairs(tradingPairs.slice(0, 5)); // Show first 5 pairs
@@ -55,12 +58,43 @@ export function BinanceTestnetTest() {
         exchangeInfo.name === 'Mock Exchange' ||
         exchangeInfo.name.includes('Mock');
 
+      setUsingMockData(usingMock);
+
       if (usingMock) {
         setSuccess(
           'Connected using mock data. To use real Binance Testnet data, please add API keys.',
         );
       } else {
         setSuccess('Successfully connected to Binance Testnet API');
+      }
+
+      // Test authenticated endpoint if we have API keys
+      if (hasKeys) {
+        try {
+          // Test getting portfolio (authenticated)
+          const portfolio = await adapter.getPortfolio('default');
+          console.log('Portfolio:', portfolio);
+
+          // Check if we're using mock data for authenticated requests
+          const usingMockAuth =
+            portfolio.balances.length === 0 ||
+            portfolio.balances.some((b) => b.asset.includes('MOCK'));
+
+          if (usingMockAuth) {
+            setAuthTestResult(
+              'Authenticated test: Using mock data for authenticated requests. Please check your API keys.',
+            );
+          } else {
+            setAuthTestResult(
+              `Authenticated test: Success! Found ${portfolio.balances.length} assets in your portfolio.`,
+            );
+          }
+        } catch (authErr) {
+          console.error('Error testing authenticated endpoint:', authErr);
+          setAuthTestResult(
+            `Authenticated test failed: ${authErr instanceof Error ? authErr.message : 'Unknown error'}`,
+          );
+        }
       }
 
       // Update connection status by checking the connection
@@ -155,6 +189,20 @@ export function BinanceTestnetTest() {
         <div className="text-xs text-muted-foreground mb-4">
           Last checked: {formatDate(getStatus('binance_testnet').lastChecked)}
         </div>
+
+        {authTestResult && (
+          <Alert
+            variant="default"
+            className={`mb-4 ${
+              authTestResult.includes('Success')
+                ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900/50'
+                : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-900/50'
+            }`}
+          >
+            <AlertTitle>Authenticated API Test</AlertTitle>
+            <AlertDescription>{authTestResult}</AlertDescription>
+          </Alert>
+        )}
 
         {pairs.length > 0 && (
           <div className="mt-4">

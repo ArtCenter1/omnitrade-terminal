@@ -20,13 +20,11 @@ Detailed tasks and progress for this phase are tracked in [`frontend_backend_int
 
 ## Binance Testnet Integration
 
-A new initiative has been started to integrate Binance Testnet with our existing Sandbox mode. This will provide a real matching engine for testing without having to implement a custom solution. The integration is currently in Phase 1 (Setup & Authentication).
+The Binance Testnet integration with our existing Sandbox mode is progressing well. Phase 1 (Setup & Authentication) is nearly complete, with successful connection to the Binance Testnet API and implementation of rate limit handling. This integration provides a real matching engine for testing without having to implement a custom solution. The next phase will focus on order placement testing.
 
 Detailed plan and progress for this initiative are tracked in:
 
-- [`binance-testnet-integration-plan.md`](./binance-testnet-integration-plan.md)
-- [`binance-testnet-integration-checklist.md`](./binance-testnet-integration-checklist.md)
-- [`binance-testnet-integration-status.md`](./binance-testnet-integration-status.md)
+- [`binance-testnet-integration-master-plan.md`](./binance-testnet-integration-master-plan.md)
 
 ---
 
@@ -38,7 +36,7 @@ The first actionable step is to design and build backend API endpoints for manag
 
 This foundational work will enable secure integration between user accounts and external exchanges, supporting future trading and data features.
 
-**For Binance Testnet Integration**: Begin implementing the configuration and authentication components as outlined in Phase 1 of the integration plan.
+**For Binance Testnet Integration**: Implement order placement testing as outlined in the Next Steps section of the master plan. This is the next priority after successfully completing the authentication and connection testing.
 
 ---
 
@@ -61,5 +59,6 @@ A comprehensive onboarding experience has been added to the roadmap after the Re
 1. A sandbox/demo environment for risk-free exploration
 2. Guided tutorials using react-joyride
 3. An AI-driven assistant with voice and animations
+4. Guided setup wizard for Binance Testnet API keys
 
-This solution will improve user retention and provide a better first-time experience while supporting bot building and backtesting features. See `onboarding_experience.md` for details.
+This solution will improve user retention and provide a better first-time experience while supporting bot building and backtesting features. The Binance Testnet API key setup wizard has been moved from the Binance Testnet integration plan to this onboarding experience to provide a more integrated user experience. See `onboarding_experience.md` for details.

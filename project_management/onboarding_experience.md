@@ -162,6 +162,8 @@ src/
 - Create sandbox mode indicator
 - Add virtual trading functionality
 - Implement sandbox persistence
+- Create guided setup wizard for Binance Testnet API keys
+- Implement Binance Testnet connection status indicators
 
 ### Phase 2: Tutorial System
 
