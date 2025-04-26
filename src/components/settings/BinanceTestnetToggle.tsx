@@ -8,6 +8,12 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { Info } from 'lucide-react';
 import { ConnectionStatusIndicator } from '@/components/connection/ConnectionStatusIndicator';
 import { useConnectionStatus } from '@/contexts/connectionStatusContext';
@@ -17,7 +23,7 @@ import { useConnectionStatus } from '@/contexts/connectionStatusContext';
  */
 export function BinanceTestnetToggle() {
   const featureFlags = useFeatureFlags();
-  const { getStatus, checkConnection } = useConnectionStatus();
+  const { checkConnection } = useConnectionStatus(); // Only using checkConnection
 
   const handleToggle = (checked: boolean) => {
     setFeatureFlag('useBinanceTestnet', checked);
@@ -36,7 +42,18 @@ export function BinanceTestnetToggle() {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             Binance Testnet Integration
-            <Info className="h-4 w-4 text-muted-foreground" />
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs">
+                    Master toggle for Binance Testnet functionality
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </CardTitle>
           {featureFlags.useBinanceTestnet && (
             <ConnectionStatusIndicator exchangeId="binance_testnet" size="md" />
@@ -53,8 +70,11 @@ export function BinanceTestnetToggle() {
             checked={featureFlags.useBinanceTestnet}
             onCheckedChange={handleToggle}
           />
-          <Label htmlFor="binance-testnet">
+          <Label htmlFor="binance-testnet" className="font-medium">
             {featureFlags.useBinanceTestnet ? 'Enabled' : 'Disabled'}
+            <span className="ml-2 text-xs text-muted-foreground">
+              (Master Toggle)
+            </span>
           </Label>
         </div>
 

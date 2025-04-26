@@ -21,10 +21,12 @@ The API Key Manager is a critical component that allows you to securely store an
 ### Accessing the API Key Manager
 
 1. **Navigate to Developer Settings**:
+
    - Go to `/admin/dev-settings` or access it through the Admin Dashboard
 
 2. **Enable Binance Testnet**:
-   - In the Feature Flags section, toggle "Use Binance Testnet" to ON
+
+   - In the Binance Testnet Integration section, toggle the switch to "Enabled"
 
 3. **Access the Exchange Settings**:
    - Scroll down to the "Exchange Settings" section
@@ -79,9 +81,9 @@ async function addTestnetKey() {
     const id = await apiKeyManager.addTestApiKey(
       'binance_testnet',
       'YOUR_API_KEY_HERE',
-      'YOUR_API_SECRET_HERE'
+      'YOUR_API_SECRET_HERE',
     );
-    
+
     console.log('Added API key with ID:', id);
     return id;
   } catch (error) {
@@ -100,7 +102,7 @@ async function addFullTestnetKey() {
       isTestnet: true,
       isDefault: true,
     });
-    
+
     console.log('Added API key with ID:', id);
     return id;
   } catch (error) {
@@ -199,6 +201,7 @@ After adding your keys, verify they're working:
 
 1. Go to the "Connection Test" tab in the Binance Testnet settings
 2. Check the connection status indicator:
+
    - **Green "Connected"**: Successfully connected to Binance Testnet
    - **Yellow "Using Mock Data"**: Connected but using mock data
    - **Red "Disconnected"**: Failed to connect
@@ -213,10 +216,12 @@ After adding your keys, verify they're working:
 ### Common Issues
 
 1. **"No API Keys Found" Warning**
+
    - You need to add API keys in the API Keys tab
    - Follow the instructions to get keys from Binance Testnet
 
 2. **"Using Mock Data" Status**
+
    - Your API keys may be invalid or expired
    - The application is falling back to mock data
    - Try generating new API keys

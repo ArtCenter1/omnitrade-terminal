@@ -7,6 +7,7 @@ import { useFeatureFlags } from '@/config/featureFlags';
 import { useState, useEffect, useCallback } from 'react';
 import * as enhancedCoinGeckoService from '@/services/enhancedCoinGeckoService';
 import { mockExchangeService } from '@/services/mockExchangeService';
+import { ExchangeFactory } from '@/services/exchange/exchangeFactory';
 
 interface OrderBookProps {
   selectedPair?: TradingPair;
@@ -19,7 +20,8 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
   const { setSelectedPrice, setCurrentMarketPrice, setCurrentPairSymbol } =
     usePrice();
   const exchangeName = selectedAccount?.exchange || 'Binance';
-  const { useMockData, useRealMarketData } = useFeatureFlags();
+  const { useMockData, useRealMarketData, useBinanceTestnet } =
+    useFeatureFlags();
 
   // Use the selected pair or default to BTC/USDT
   const symbol = selectedPair?.symbol || 'BTC/USDT';
@@ -66,10 +68,59 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
       setIsError(false);
       console.log(`Fetching orderbook for ${symbol} on ${exchangeName}`);
 
-      // Check feature flags to determine data source
-      if (useMockData || !useRealMarketData) {
-        // Use mock data from our centralized mock exchange service
-        console.log('Using mock orderbook data from mockExchangeService');
+      // Use the ExchangeFactory to get the appropriate adapter
+      try {
+        console.log(
+          `OrderBook: Getting adapter for ${selectedAccount?.exchangeId || 'sandbox'}`,
+        );
+
+        // Get the appropriate adapter based on the selected account
+        const exchangeId = selectedAccount?.isSandbox
+          ? 'sandbox' // This will use BinanceTestnetAdapter when useBinanceTestnet is true
+          : selectedAccount?.exchangeId || 'sandbox';
+
+        const adapter = ExchangeFactory.getAdapter(exchangeId);
+
+        // Get order book from the adapter
+        console.log(
+          `OrderBook: Fetching order book for ${symbol} using ${adapter.constructor.name}`,
+        );
+        const orderBookData = await adapter.getOrderBook(symbol, 10);
+
+        // Convert to the format expected by the component
+        const formattedOrderbook: Orderbook = {
+          bids: orderBookData.bids.map((entry) => [
+            entry.price.toString(),
+            entry.quantity.toString(),
+          ]),
+          asks: orderBookData.asks.map((entry) => [
+            entry.price.toString(),
+            entry.quantity.toString(),
+          ]),
+        };
+
+        // Check if we got valid data
+        if (
+          formattedOrderbook.bids.length > 0 &&
+          formattedOrderbook.asks.length > 0
+        ) {
+          setOrderbook(formattedOrderbook);
+
+          // Set usingFallbackData based on whether we're using Binance Testnet
+          const usingTestnet = useBinanceTestnet && selectedAccount?.isSandbox;
+          setUsingFallbackData(!usingTestnet);
+
+          console.log(
+            `Successfully loaded order book data for ${symbol} using ${adapter.constructor.name}`,
+          );
+        } else {
+          throw new Error('Received empty or invalid orderbook data');
+        }
+      } catch (error) {
+        console.error('Error fetching order book data:', error);
+
+        // Fallback to mock data
+        console.log('Falling back to mockExchangeService due to error');
         const exchangeId =
           selectedAccount?.exchangeId || exchangeName.toLowerCase();
         const mockOrderbook = mockExchangeService.getOrderbook(
@@ -78,48 +129,9 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
         );
         setOrderbook(mockOrderbook);
         setUsingFallbackData(true);
-        console.log('Mock orderbook data loaded for', symbol);
-      } else {
-        // Use real data from CoinGecko
-        try {
-          console.log(
-            `Attempting to fetch real orderbook data from CoinGecko for ${symbol}`,
-          );
-          const realOrderbook = await enhancedCoinGeckoService.getOrderbook(
-            symbol,
-            exchangeName.toLowerCase(),
-            10,
-          );
-
-          // Check if we got valid data
-          if (
-            realOrderbook &&
-            realOrderbook.bids &&
-            realOrderbook.asks &&
-            realOrderbook.bids.length > 0 &&
-            realOrderbook.asks.length > 0
-          ) {
-            setOrderbook(realOrderbook);
-            console.log('Successfully loaded real orderbook data for', symbol);
-          } else {
-            throw new Error('Received empty or invalid orderbook data');
-          }
-        } catch (apiError) {
-          console.error('Error fetching real orderbook data:', apiError);
-          // Fallback to mock data from our centralized mock exchange service
-          console.log('Falling back to mockExchangeService due to API error');
-          const exchangeId =
-            selectedAccount?.exchangeId || exchangeName.toLowerCase();
-          const mockOrderbook = mockExchangeService.getOrderbook(
-            exchangeId,
-            symbol,
-          );
-          setOrderbook(mockOrderbook);
-          setUsingFallbackData(true);
-          setErrorMessage(
-            'Could not fetch real market data. Using fallback data.',
-          );
-        }
+        setErrorMessage(
+          'Could not fetch real market data. Using fallback data.',
+        );
       }
 
       setLastUpdated(new Date());
@@ -145,7 +157,14 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
       clearTimeout(timeoutId); // Clear the timeout
       setIsLoading(false);
     }
-  }, [symbol, useMockData, useRealMarketData, exchangeName]);
+  }, [
+    symbol,
+    useMockData,
+    useRealMarketData,
+    useBinanceTestnet,
+    exchangeName,
+    selectedAccount,
+  ]);
 
   // Fetch orderbook data on mount and when dependencies change
   useEffect(() => {
@@ -248,14 +267,24 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
           {/* Data source indicator */}
           <div className="flex items-center mt-1">
             <div
-              className={`w-2 h-2 rounded-full mr-1 ${useMockData || !useRealMarketData || usingFallbackData ? 'bg-yellow-500' : 'bg-crypto-green'}`}
+              className={`w-2 h-2 rounded-full mr-1 ${
+                useBinanceTestnet &&
+                selectedAccount?.isSandbox &&
+                !usingFallbackData
+                  ? 'bg-crypto-green'
+                  : 'bg-yellow-500'
+              }`}
             />
             <span className="text-xs text-gray-400">
-              {useMockData || !useRealMarketData
-                ? 'Using mock data'
-                : usingFallbackData
-                  ? 'Using fallback data'
-                  : 'Using real data'}
+              {useBinanceTestnet &&
+              selectedAccount?.isSandbox &&
+              !usingFallbackData
+                ? 'Using Binance Testnet data'
+                : useMockData || !useRealMarketData
+                  ? 'Using mock data'
+                  : usingFallbackData
+                    ? 'Using fallback data'
+                    : 'Using real data'}
             </span>
           </div>
         </div>
@@ -423,14 +452,24 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
                 {/* Data source indicator */}
                 <div className="flex items-center mt-1">
                   <div
-                    className={`w-2 h-2 rounded-full mr-1 ${useMockData || !useRealMarketData || usingFallbackData ? 'bg-yellow-500' : 'bg-crypto-green'}`}
+                    className={`w-2 h-2 rounded-full mr-1 ${
+                      useBinanceTestnet &&
+                      selectedAccount?.isSandbox &&
+                      !usingFallbackData
+                        ? 'bg-crypto-green'
+                        : 'bg-yellow-500'
+                    }`}
                   />
                   <span className="text-xs text-gray-400">
-                    {useMockData || !useRealMarketData
-                      ? 'Using mock data'
-                      : usingFallbackData
-                        ? 'Using fallback data'
-                        : 'Using real data'}
+                    {useBinanceTestnet &&
+                    selectedAccount?.isSandbox &&
+                    !usingFallbackData
+                      ? 'Using Binance Testnet data'
+                      : useMockData || !useRealMarketData
+                        ? 'Using mock data'
+                        : usingFallbackData
+                          ? 'Using fallback data'
+                          : 'Using real data'}
                   </span>
                 </div>
               </div>

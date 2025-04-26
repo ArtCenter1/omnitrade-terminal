@@ -13,6 +13,7 @@ import {
   OrderStatus,
   PerformanceMetrics,
   Exchange,
+  Trade,
 } from '@/types/exchange';
 
 import {
@@ -182,6 +183,102 @@ export class MockDataService {
       asks,
       timestamp: Date.now(),
     };
+  }
+
+  // Generate ticker statistics
+  public generateTickerStats(exchangeId: string, symbol: string): TickerStats {
+    const currentPrice = this.getCurrentPrice(exchangeId, symbol);
+
+    // Generate random price change (±5%)
+    const priceChangePercent = randomInRange(-5, 5);
+    const priceChange = roundToDecimals(
+      (currentPrice * priceChangePercent) / 100,
+      2,
+    );
+
+    // Generate other random values
+    const openPrice = roundToDecimals(currentPrice - priceChange, 2);
+    const highPrice = roundToDecimals(
+      Math.max(currentPrice, openPrice) * (1 + randomInRange(0, 2) / 100),
+      2,
+    );
+    const lowPrice = roundToDecimals(
+      Math.min(currentPrice, openPrice) * (1 - randomInRange(0, 2) / 100),
+      2,
+    );
+    const volume = roundToDecimals(randomInRange(100, 10000), 2);
+    const lastQty = roundToDecimals(randomInRange(0.1, 5), 6);
+
+    // Generate bid and ask prices
+    const bidPrice = roundToDecimals(currentPrice * 0.999, 2); // Slightly below current price
+    const askPrice = roundToDecimals(currentPrice * 1.001, 2); // Slightly above current price
+
+    // Current time and 24 hours ago
+    const closeTime = Date.now();
+    const openTime = closeTime - 24 * 60 * 60 * 1000;
+
+    return {
+      symbol: symbol,
+      exchangeId: exchangeId,
+      priceChange: priceChange,
+      priceChangePercent: priceChangePercent,
+      weightedAvgPrice: roundToDecimals((openPrice + currentPrice) / 2, 2),
+      prevClosePrice: openPrice,
+      lastPrice: currentPrice,
+      lastQty: lastQty,
+      bidPrice: bidPrice,
+      bidQty: roundToDecimals(randomInRange(1, 10), 6),
+      askPrice: askPrice,
+      askQty: roundToDecimals(randomInRange(1, 10), 6),
+      openPrice: openPrice,
+      highPrice: highPrice,
+      lowPrice: lowPrice,
+      volume: volume,
+      quoteVolume: roundToDecimals(volume * currentPrice, 2),
+      openTime: openTime,
+      closeTime: closeTime,
+      count: randomIntInRange(100, 5000), // Number of trades
+    };
+  }
+
+  // Generate recent trades
+  public generateTrades(
+    exchangeId: string,
+    symbol: string,
+    limit: number = 500,
+  ): Trade[] {
+    const trades: Trade[] = [];
+    const currentPrice = this.getCurrentPrice(exchangeId, symbol);
+
+    // Generate random trades around the current price
+    for (let i = 0; i < limit; i++) {
+      // Random price variation within ±1%
+      const priceVariation = randomInRange(-0.01, 0.01);
+      const price = roundToDecimals(currentPrice * (1 + priceVariation), 2);
+
+      // Random quantity between 0.001 and 5
+      const quantity = roundToDecimals(randomInRange(0.001, 5), 6);
+
+      // Random timestamp within the last hour
+      const timestamp = Date.now() - randomIntInRange(0, 60 * 60 * 1000);
+
+      // Random buyer/seller
+      const isBuyerMaker = Math.random() > 0.5;
+
+      trades.push({
+        id: (1000000 + i).toString(),
+        price,
+        quantity,
+        timestamp,
+        isBuyerMaker,
+        isBestMatch: Math.random() > 0.8, // 20% chance of being best match
+      });
+    }
+
+    // Sort by timestamp (newest first)
+    trades.sort((a, b) => b.timestamp - a.timestamp);
+
+    return trades;
   }
 
   // Generate klines (candlestick data)

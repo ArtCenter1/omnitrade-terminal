@@ -15,6 +15,7 @@ import { TradingPair } from '@/types/exchange';
 import { useApiKeys } from '@/hooks/useApiKeys';
 import { useConnectionStatus } from '@/contexts/connectionStatusContext';
 import { ConnectionStatusIndicator } from '@/components/connection/ConnectionStatusIndicator';
+import { ApiKeyManager } from '@/services/apiKeys/apiKeyManager';
 
 /**
  * Component for testing the Binance Testnet integration
@@ -81,8 +82,8 @@ export function BinanceTestnetTest() {
 
           // Check if we're using mock data for authenticated requests
           const usingMockAuth =
-            portfolio.balances.length === 0 ||
-            portfolio.balances.some((b) => b.asset.includes('MOCK'));
+            portfolio.assets.length === 0 ||
+            portfolio.assets.some((b) => b.asset.includes('MOCK'));
 
           if (usingMockAuth) {
             setAuthTestResult(
@@ -90,7 +91,7 @@ export function BinanceTestnetTest() {
             );
           } else {
             setAuthTestResult(
-              `Authenticated test: Success! Found ${portfolio.balances.length} assets in your portfolio.`,
+              `Authenticated test: Success! Found ${portfolio.assets.length} assets in your portfolio.`,
             );
           }
         } catch (authErr) {

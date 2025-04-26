@@ -1,7 +1,6 @@
 import { PriceOverview } from './PriceOverview';
 import { TradingPairSelector } from './TradingPairSelector';
 import { TradingPair } from '@/types/trading';
-import { SandboxNetworkSelector } from '@/components/SandboxNetworkSelector';
 import { TradingViewContainer } from './TradingViewContainer';
 
 interface ChartSectionProps {
@@ -29,9 +28,8 @@ export function ChartSection({
             <PriceOverview selectedPair={selectedPair} showPriceOnly={true} />
           )}
         </div>
-        {/* Right Side: Full Price Overview and Sandbox Selector */}
+        {/* Right Side: Full Price Overview */}
         <div className="flex items-center gap-2">
-          <SandboxNetworkSelector />
           {/* PriceOverview uses the selectedPair prop */}
           {selectedPair && <PriceOverview selectedPair={selectedPair} />}
         </div>

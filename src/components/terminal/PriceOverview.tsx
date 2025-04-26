@@ -7,6 +7,7 @@ import {
 } from '@/services/enhancedCoinGeckoService';
 import { formatCurrency, formatNumber } from '../../utils/formatUtils'; // Assuming you have formatting utils
 import { useFeatureFlags } from '@/config/featureFlags';
+import { ExchangeFactory } from '@/services/exchange/exchangeFactory';
 
 interface PriceOverviewProps {
   selectedPair?: TradingPair;
@@ -17,7 +18,8 @@ export function PriceOverview({
   showPriceOnly,
 }: PriceOverviewProps & { showPriceOnly?: boolean } = {}) {
   const { selectedAccount } = useSelectedAccount();
-  const { useMockData, useRealMarketData } = useFeatureFlags();
+  const { useMockData, useRealMarketData, useBinanceTestnet } =
+    useFeatureFlags();
   const [marketData, setMarketData] = useState<CoinGeckoTicker | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +53,69 @@ export function PriceOverview({
         setError('Select a specific exchange account.');
         console.log('PriceOverview: "All Exchanges" selected, skipping fetch.');
         return;
+      }
+
+      // Use the ExchangeFactory to get the appropriate adapter
+      try {
+        // Get the appropriate adapter based on the selected account
+        const exchangeId = selectedAccount?.isSandbox
+          ? 'sandbox' // This will use BinanceTestnetAdapter when useBinanceTestnet is true
+          : selectedAccount?.exchangeId || 'sandbox';
+
+        console.log(`PriceOverview: Getting adapter for ${exchangeId}`);
+        const adapter = ExchangeFactory.getAdapter(exchangeId);
+
+        // Get ticker stats for the selected pair
+        console.log(
+          `PriceOverview: Fetching ticker stats for ${selectedPair.symbol} using ${adapter.constructor.name}`,
+        );
+        const tickerStats = await adapter.getTickerStats(selectedPair.symbol);
+
+        // Convert to CoinGeckoTicker format
+        const adapterData: CoinGeckoTicker = {
+          base: selectedPair.baseAsset.toUpperCase(),
+          target: selectedPair.quoteAsset.toUpperCase(),
+          market: {
+            name: selectedAccount?.name || 'Exchange',
+            identifier: exchangeId,
+          },
+          last: tickerStats.lastPrice,
+          volume: tickerStats.volume,
+          converted_last: {
+            btc: 0, // Not available from exchange adapter
+            eth: 0, // Not available from exchange adapter
+            usd: tickerStats.lastPrice, // Assuming USDT = USD for simplicity
+          },
+          converted_volume: {
+            btc: 0, // Not available from exchange adapter
+            eth: 0, // Not available from exchange adapter
+            usd: tickerStats.quoteVolume,
+          },
+          bid_ask_spread_percentage:
+            ((tickerStats.askPrice - tickerStats.bidPrice) /
+              tickerStats.askPrice) *
+            100,
+          timestamp: new Date(tickerStats.closeTime).toISOString(),
+          last_traded_at: new Date(tickerStats.closeTime).toISOString(),
+          last_fetch_at: new Date().toISOString(),
+          is_anomaly: false,
+          is_stale: false,
+          trade_url: '',
+          token_info_url: '',
+          coin_id: selectedPair.baseAsset.toLowerCase(),
+          target_coin_id: selectedPair.quoteAsset.toLowerCase(),
+        };
+
+        setMarketData(adapterData);
+
+        // Set usingFallbackData based on whether we're using Binance Testnet
+        const usingTestnet = useBinanceTestnet && selectedAccount?.isSandbox;
+        setUsingFallbackData(!usingTestnet);
+
+        return;
+      } catch (error) {
+        console.error('Error fetching data from exchange adapter:', error);
+        // Fall through to other data sources
       }
 
       // Check feature flags to determine data source
@@ -295,13 +360,31 @@ export function PriceOverview({
   // If showPriceOnly is true, only render the price
   if (showPriceOnly && marketData) {
     return (
-      <div className="ml-2">
+      <div className="ml-2 relative group">
         <div
           className={`text-xl font-bold ${isPositiveChange ? 'text-crypto-green' : 'text-crypto-red'}`}
         >
           {/* Display formatted fetched price */}
           {formatNumber(currentPrice)}
         </div>
+
+        {/* Small indicator dot showing data source */}
+        <div
+          className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${
+            useBinanceTestnet &&
+            selectedAccount?.isSandbox &&
+            !usingFallbackData
+              ? 'bg-crypto-green'
+              : 'bg-yellow-500'
+          }`}
+          title={
+            useBinanceTestnet &&
+            selectedAccount?.isSandbox &&
+            !usingFallbackData
+              ? 'Using Binance Testnet data'
+              : `Using ${useMockData ? 'mock' : 'fallback'} data`
+          }
+        />
       </div>
     );
   } else if (showPriceOnly) {
@@ -313,16 +396,27 @@ export function PriceOverview({
   return (
     <div className="p-4">
       {/* Data source indicator */}
-      {(usingFallbackData || useMockData) && (
-        <div className="flex items-center mb-2 justify-end">
-          <div className="flex items-center gap-1 bg-black bg-opacity-50 px-2 py-1 rounded text-xs">
-            <div className="w-2 h-2 rounded-full bg-yellow-500" />
-            <span className="text-yellow-500">
-              Using {useMockData ? 'mock' : 'fallback'} data
-            </span>
-          </div>
+      <div className="flex items-center mb-2 justify-end">
+        <div className="flex items-center gap-1 bg-black bg-opacity-50 px-2 py-1 rounded text-xs">
+          {useBinanceTestnet &&
+          selectedAccount?.isSandbox &&
+          !usingFallbackData ? (
+            <>
+              <div className="w-2 h-2 rounded-full bg-crypto-green" />
+              <span className="text-crypto-green">
+                Using Binance Testnet data
+              </span>
+            </>
+          ) : (
+            <>
+              <div className="w-2 h-2 rounded-full bg-yellow-500" />
+              <span className="text-yellow-500">
+                Using {useMockData ? 'mock' : 'fallback'} data
+              </span>
+            </>
+          )}
         </div>
-      )}
+      </div>
       <div className="grid grid-cols-4 gap-8 text-xs">
         <div>
           <div className="text-gray-400">24h Change</div>

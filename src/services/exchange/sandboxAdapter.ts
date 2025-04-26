@@ -13,7 +13,6 @@ import {
 
 // Import test network adapters
 import { BinanceAdapter } from './binanceAdapter';
-import { CoinbaseAdapter } from './coinbaseAdapter';
 import { BinanceTestnetAdapter } from './binanceTestnetAdapter';
 import { getFeatureFlags } from '@/config/featureFlags';
 
@@ -23,8 +22,6 @@ import { getFeatureFlags } from '@/config/featureFlags';
 export class SandboxAdapter extends BaseExchangeAdapter {
   private readonly mockDataService: MockDataService;
   private readonly binanceTestAdapter: BinanceAdapter | BinanceTestnetAdapter;
-  private readonly coinbaseTestAdapter: CoinbaseAdapter;
-  private readonly preferredTestNetwork: string = 'binance'; // Default to Binance test network
   private readonly useBinanceTestnet: boolean;
 
   constructor() {
@@ -35,7 +32,7 @@ export class SandboxAdapter extends BaseExchangeAdapter {
     const featureFlags = getFeatureFlags();
     this.useBinanceTestnet = featureFlags.useBinanceTestnet;
 
-    // Initialize test network adapters
+    // Initialize Binance Testnet adapter
     if (this.useBinanceTestnet) {
       console.log('[SandboxAdapter] Using Binance Testnet adapter');
       this.binanceTestAdapter = new BinanceTestnetAdapter();
@@ -43,20 +40,10 @@ export class SandboxAdapter extends BaseExchangeAdapter {
       this.binanceTestAdapter = new BinanceAdapter();
     }
 
-    this.coinbaseTestAdapter = new CoinbaseAdapter();
-
-    // Try to get preferred test network from localStorage
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const savedNetwork = window.localStorage.getItem('sandbox_test_network');
-      if (savedNetwork && ['binance', 'coinbase'].includes(savedNetwork)) {
-        this.preferredTestNetwork = savedNetwork;
-      }
-    }
-
     console.log(
-      `[SandboxAdapter] Using ${this.preferredTestNetwork} test network as primary data source${
-        this.useBinanceTestnet ? ' (Binance Testnet enabled)' : ''
-      }`,
+      `[SandboxAdapter] Using Binance${
+        this.useBinanceTestnet ? ' Testnet' : ''
+      } as primary data source`,
     );
   }
 
@@ -97,19 +84,15 @@ export class SandboxAdapter extends BaseExchangeAdapter {
    */
   public async getTradingPairs(): Promise<TradingPair[]> {
     try {
-      // First try to get trading pairs from the preferred test network
-      let testPairs: TradingPair[] = [];
+      // Try to get trading pairs from Binance Testnet
+      const testPairs = await this.binanceTestAdapter.getTradingPairs();
 
-      if (this.preferredTestNetwork === 'binance') {
-        testPairs = await this.binanceTestAdapter.getTradingPairs();
-      } else if (this.preferredTestNetwork === 'coinbase') {
-        testPairs = await this.coinbaseTestAdapter.getTradingPairs();
-      }
-
-      // If we got pairs from the test network, use them but mark them as sandbox
+      // If we got pairs from Binance, use them but mark them as sandbox
       if (testPairs && testPairs.length > 0) {
         console.log(
-          `[SandboxAdapter] Using ${testPairs.length} trading pairs from ${this.preferredTestNetwork} test network`,
+          `[SandboxAdapter] Using ${testPairs.length} trading pairs from Binance${
+            this.useBinanceTestnet ? ' Testnet' : ''
+          }`,
         );
 
         // Mark the pairs as sandbox pairs
@@ -121,12 +104,14 @@ export class SandboxAdapter extends BaseExchangeAdapter {
       }
     } catch (error) {
       console.error(
-        `[SandboxAdapter] Error getting trading pairs from test network:`,
+        `[SandboxAdapter] Error getting trading pairs from Binance${
+          this.useBinanceTestnet ? ' Testnet' : ''
+        }:`,
         error,
       );
     }
 
-    // Fallback to mock data if test network fails
+    // Fallback to mock data if Binance fails
     console.log(`[SandboxAdapter] Falling back to mock trading pairs`);
     return this.mockDataService.generateTradingPairs(this.exchangeId, 100);
   }
@@ -139,28 +124,21 @@ export class SandboxAdapter extends BaseExchangeAdapter {
     limit: number = 20,
   ): Promise<OrderBook> {
     try {
-      // First try to get order book from the preferred test network
-      let testOrderBook: OrderBook | null = null;
+      // Try to get order book from Binance Testnet
+      const testOrderBook = await this.binanceTestAdapter.getOrderBook(
+        symbol,
+        limit,
+      );
 
-      if (this.preferredTestNetwork === 'binance') {
-        testOrderBook = await this.binanceTestAdapter.getOrderBook(
-          symbol,
-          limit,
-        );
-      } else if (this.preferredTestNetwork === 'coinbase') {
-        testOrderBook = await this.coinbaseTestAdapter.getOrderBook(
-          symbol,
-          limit,
-        );
-      }
-
-      // If we got an order book from the test network, use it but mark it as sandbox
+      // If we got an order book from Binance, use it but mark it as sandbox
       if (
         testOrderBook &&
         (testOrderBook.bids.length > 0 || testOrderBook.asks.length > 0)
       ) {
         console.log(
-          `[SandboxAdapter] Using order book from ${this.preferredTestNetwork} test network for ${symbol}`,
+          `[SandboxAdapter] Using order book from Binance${
+            this.useBinanceTestnet ? ' Testnet' : ''
+          } for ${symbol}`,
         );
 
         return {
@@ -170,12 +148,14 @@ export class SandboxAdapter extends BaseExchangeAdapter {
       }
     } catch (error) {
       console.error(
-        `[SandboxAdapter] Error getting order book from test network:`,
+        `[SandboxAdapter] Error getting order book from Binance${
+          this.useBinanceTestnet ? ' Testnet' : ''
+        }:`,
         error,
       );
     }
 
-    // Fallback to mock data if test network fails
+    // Fallback to mock data if Binance fails
     console.log(
       `[SandboxAdapter] Falling back to mock order book for ${symbol}`,
     );
@@ -197,42 +177,34 @@ export class SandboxAdapter extends BaseExchangeAdapter {
     limit: number = 500,
   ): Promise<Kline[]> {
     try {
-      // First try to get klines from the preferred test network
-      let testKlines: Kline[] = [];
+      // Try to get klines from Binance Testnet
+      const testKlines = await this.binanceTestAdapter.getKlines(
+        symbol,
+        interval,
+        startTime,
+        endTime,
+        limit,
+      );
 
-      if (this.preferredTestNetwork === 'binance') {
-        testKlines = await this.binanceTestAdapter.getKlines(
-          symbol,
-          interval,
-          startTime,
-          endTime,
-          limit,
-        );
-      } else if (this.preferredTestNetwork === 'coinbase') {
-        testKlines = await this.coinbaseTestAdapter.getKlines(
-          symbol,
-          interval,
-          startTime,
-          endTime,
-          limit,
-        );
-      }
-
-      // If we got klines from the test network, use them
+      // If we got klines from Binance, use them
       if (testKlines && testKlines.length > 0) {
         console.log(
-          `[SandboxAdapter] Using ${testKlines.length} klines from ${this.preferredTestNetwork} test network for ${symbol}`,
+          `[SandboxAdapter] Using ${testKlines.length} klines from Binance${
+            this.useBinanceTestnet ? ' Testnet' : ''
+          } for ${symbol}`,
         );
         return testKlines;
       }
     } catch (error) {
       console.error(
-        `[SandboxAdapter] Error getting klines from test network:`,
+        `[SandboxAdapter] Error getting klines from Binance${
+          this.useBinanceTestnet ? ' Testnet' : ''
+        }:`,
         error,
       );
     }
 
-    // Fallback to mock data if test network fails
+    // Fallback to mock data if Binance fails
     console.log(`[SandboxAdapter] Falling back to mock klines for ${symbol}`);
     return this.mockDataService.generateKlines(
       this.exchangeId,

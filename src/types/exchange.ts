@@ -55,6 +55,40 @@ export interface OrderBookEntry {
   quantity: number;
 }
 
+// Recent trade
+export interface Trade {
+  id: string;
+  price: number;
+  quantity: number;
+  timestamp: number;
+  isBuyerMaker: boolean;
+  isBestMatch?: boolean;
+}
+
+// 24hr ticker price statistics
+export interface TickerStats {
+  symbol: string;
+  exchangeId: string;
+  priceChange: number;
+  priceChangePercent: number;
+  weightedAvgPrice: number;
+  prevClosePrice: number;
+  lastPrice: number;
+  lastQty: number;
+  bidPrice: number;
+  bidQty: number;
+  askPrice: number;
+  askQty: number;
+  openPrice: number;
+  highPrice: number;
+  lowPrice: number;
+  volume: number;
+  quoteVolume: number;
+  openTime: number;
+  closeTime: number;
+  count: number; // Number of trades
+}
+
 // Full order book
 export interface OrderBook {
   symbol: string;
@@ -132,6 +166,8 @@ export interface ExchangeAdapter {
     endTime?: number,
     limit?: number,
   ): Promise<Kline[]>;
+  getRecentTrades(symbol: string, limit?: number): Promise<Trade[]>;
+  getTickerStats(symbol?: string): Promise<TickerStats | TickerStats[]>;
 
   // Account data
   getPortfolio(apiKeyId: string): Promise<Portfolio>;

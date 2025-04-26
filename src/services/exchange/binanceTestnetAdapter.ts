@@ -8,6 +8,8 @@ import {
   Portfolio,
   Order,
   PerformanceMetrics,
+  Trade,
+  TickerStats,
 } from '@/types/exchange';
 
 import { BaseExchangeAdapter } from './baseExchangeAdapter';
@@ -462,6 +464,176 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
   }
 
   /**
+   * Get 24hr ticker price statistics for a specific trading pair or all pairs on Binance Testnet.
+   */
+  public async getTickerStats(
+    symbol?: string,
+  ): Promise<TickerStats | TickerStats[]> {
+    try {
+      // If symbol is provided, get stats for that symbol only
+      if (symbol) {
+        // Convert symbol format from BTC/USDT to BTCUSDT
+        const formattedSymbol = symbol.replace('/', '');
+
+        // Make request to 24hr ticker endpoint
+        const response = await this.makeUnauthenticatedRequest(
+          '/api/v3/ticker/24hr',
+          {
+            symbol: formattedSymbol,
+          },
+          1, // Weight: 1 for a single symbol
+        );
+
+        // Format response
+        return this.formatTickerStats(response, symbol);
+      } else {
+        // Get stats for all symbols
+        // Make request to 24hr ticker endpoint
+        const response = await this.makeUnauthenticatedRequest(
+          '/api/v3/ticker/24hr',
+          {},
+          40, // Weight: 40 for all symbols
+        );
+
+        // Format response
+        return (response as any[]).map((ticker: any) => {
+          // Convert symbol format from BTCUSDT to BTC/USDT
+          const formattedSymbol = this.formatSymbol(ticker.symbol);
+          return this.formatTickerStats(ticker, formattedSymbol);
+        });
+      }
+    } catch (error) {
+      console.error(
+        `Error getting ticker stats for ${symbol || 'all symbols'}:`,
+        error,
+      );
+
+      // Fallback to mock data
+      if (symbol) {
+        return this.mockDataService.generateTickerStats(
+          this.exchangeId,
+          symbol,
+        );
+      } else {
+        // Generate stats for a few common pairs
+        const pairs = [
+          'BTC/USDT',
+          'ETH/USDT',
+          'BNB/USDT',
+          'SOL/USDT',
+          'XRP/USDT',
+        ];
+        return pairs.map((pair) =>
+          this.mockDataService.generateTickerStats(this.exchangeId, pair),
+        );
+      }
+    }
+  }
+
+  /**
+   * Format symbol from Binance format (BTCUSDT) to standard format (BTC/USDT)
+   */
+  private formatSymbol(binanceSymbol: string): string {
+    // Common quote assets to check
+    const quoteAssets = [
+      'USDT',
+      'BUSD',
+      'BTC',
+      'ETH',
+      'BNB',
+      'USD',
+      'EUR',
+      'GBP',
+    ];
+
+    // Try to find a matching quote asset
+    for (const quote of quoteAssets) {
+      if (binanceSymbol.endsWith(quote)) {
+        const base = binanceSymbol.substring(
+          0,
+          binanceSymbol.length - quote.length,
+        );
+        return `${base}/${quote}`;
+      }
+    }
+
+    // If no match found, make a best guess (assume last 4 characters are the quote asset)
+    const base = binanceSymbol.substring(0, binanceSymbol.length - 4);
+    const quote = binanceSymbol.substring(binanceSymbol.length - 4);
+    return `${base}/${quote}`;
+  }
+
+  /**
+   * Format ticker statistics from Binance response
+   */
+  private formatTickerStats(response: any, symbol: string): TickerStats {
+    return {
+      symbol: symbol,
+      exchangeId: this.exchangeId,
+      priceChange: parseFloat(response.priceChange),
+      priceChangePercent: parseFloat(response.priceChangePercent),
+      weightedAvgPrice: parseFloat(response.weightedAvgPrice),
+      prevClosePrice: parseFloat(response.prevClosePrice),
+      lastPrice: parseFloat(response.lastPrice),
+      lastQty: parseFloat(response.lastQty),
+      bidPrice: parseFloat(response.bidPrice),
+      bidQty: parseFloat(response.bidQty),
+      askPrice: parseFloat(response.askPrice),
+      askQty: parseFloat(response.askQty),
+      openPrice: parseFloat(response.openPrice),
+      highPrice: parseFloat(response.highPrice),
+      lowPrice: parseFloat(response.lowPrice),
+      volume: parseFloat(response.volume),
+      quoteVolume: parseFloat(response.quoteVolume),
+      openTime: response.openTime,
+      closeTime: response.closeTime,
+      count: response.count,
+    };
+  }
+
+  /**
+   * Get recent trades for a specific trading pair on Binance Testnet.
+   */
+  public async getRecentTrades(
+    symbol: string,
+    limit: number = 500,
+  ): Promise<Trade[]> {
+    try {
+      // Convert symbol format from BTC/USDT to BTCUSDT
+      const formattedSymbol = symbol.replace('/', '');
+
+      // Make request to recent trades endpoint
+      const response = await this.makeUnauthenticatedRequest(
+        '/api/v3/trades',
+        {
+          symbol: formattedSymbol,
+          limit: Math.min(limit, 1000), // Maximum 1000 trades
+        },
+        1, // Weight: 1
+      );
+
+      // Format response
+      return response.map((trade: any) => ({
+        id: trade.id.toString(),
+        price: parseFloat(trade.price),
+        quantity: parseFloat(trade.qty),
+        timestamp: trade.time,
+        isBuyerMaker: trade.isBuyerMaker,
+        isBestMatch: trade.isBestMatch,
+      }));
+    } catch (error) {
+      console.error(`Error getting recent trades for ${symbol}:`, error);
+
+      // Fallback to mock data
+      return this.mockDataService.generateTrades(
+        this.exchangeId,
+        symbol,
+        limit,
+      );
+    }
+  }
+
+  /**
    * Get candlestick/kline data for a specific trading pair on Binance Testnet.
    */
   public async getKlines(
@@ -551,7 +723,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       );
 
       // Format response
-      const balances = response.balances
+      const assets = response.balances
         .filter(
           (balance: any) =>
             parseFloat(balance.free) > 0 || parseFloat(balance.locked) > 0,
@@ -561,13 +733,13 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
           free: parseFloat(balance.free),
           locked: parseFloat(balance.locked),
           total: parseFloat(balance.free) + parseFloat(balance.locked),
+          usdValue: 0, // This would be calculated based on current prices
         }));
 
       return {
-        exchangeId: this.exchangeId,
-        balances,
-        totalValueUSD: 0, // This would be calculated based on current prices
-        timestamp: Date.now(),
+        totalUsdValue: 0, // This would be calculated based on current prices
+        assets,
+        lastUpdated: new Date(),
       };
     } catch (error) {
       console.error('Error getting portfolio:', error);
@@ -865,27 +1037,5 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
     };
 
     return statusMap[binanceStatus] || 'new';
-  }
-
-  /**
-   * Format symbol from BTCUSDT to BTC/USDT
-   */
-  private formatSymbol(binanceSymbol: string): string {
-    // This is a simplified implementation
-    // In a real implementation, we would need to know the base and quote assets
-    // For now, we'll assume common patterns
-
-    if (binanceSymbol.endsWith('USDT')) {
-      return `${binanceSymbol.slice(0, -4)}/USDT`;
-    } else if (binanceSymbol.endsWith('BTC')) {
-      return `${binanceSymbol.slice(0, -3)}/BTC`;
-    } else if (binanceSymbol.endsWith('ETH')) {
-      return `${binanceSymbol.slice(0, -3)}/ETH`;
-    } else if (binanceSymbol.endsWith('BNB')) {
-      return `${binanceSymbol.slice(0, -3)}/BNB`;
-    } else {
-      // Default fallback
-      return binanceSymbol;
-    }
   }
 }

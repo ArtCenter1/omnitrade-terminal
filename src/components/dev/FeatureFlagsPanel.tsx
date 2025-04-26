@@ -182,31 +182,7 @@ export function FeatureFlagsPanel() {
             />
           </div>
 
-          <div className="flex items-center justify-between">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center gap-1 cursor-help">
-                  <Label htmlFor="use-binance-testnet">
-                    Use Binance Testnet
-                  </Label>
-                  <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="max-w-xs">
-                  Use Binance Testnet API for sandbox trading with real market
-                  data
-                </p>
-              </TooltipContent>
-            </Tooltip>
-            <Switch
-              id="use-binance-testnet"
-              checked={flags.useBinanceTestnet}
-              onCheckedChange={(checked) =>
-                handleToggle('useBinanceTestnet', checked)
-              }
-            />
-          </div>
+          {/* Binance Testnet toggle removed - now controlled exclusively by the Binance Testnet Integration component */}
 
           <div className="flex items-center justify-between">
             <Tooltip>
