@@ -9,24 +9,39 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Info } from 'lucide-react';
+import { ConnectionStatusIndicator } from '@/components/connection/ConnectionStatusIndicator';
+import { useConnectionStatus } from '@/contexts/connectionStatusContext';
 
 /**
  * Component for toggling the Binance Testnet feature flag
  */
 export function BinanceTestnetToggle() {
   const featureFlags = useFeatureFlags();
+  const { getStatus, checkConnection } = useConnectionStatus();
 
   const handleToggle = (checked: boolean) => {
     setFeatureFlag('useBinanceTestnet', checked);
+
+    // Check connection status after toggling
+    if (checked) {
+      setTimeout(() => {
+        checkConnection('binance_testnet');
+      }, 500);
+    }
   };
 
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          Binance Testnet Integration
-          <Info className="h-4 w-4 text-muted-foreground" />
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            Binance Testnet Integration
+            <Info className="h-4 w-4 text-muted-foreground" />
+          </CardTitle>
+          {featureFlags.useBinanceTestnet && (
+            <ConnectionStatusIndicator exchangeId="binance_testnet" size="md" />
+          )}
+        </div>
         <CardDescription>
           Use Binance Testnet API for sandbox trading with real market data
         </CardDescription>

@@ -30,7 +30,7 @@ const defaultFeatureFlags: FeatureFlags = {
   connectionMode: import.meta.env.DEV ? 'mock' : 'sandbox', // Use mock in dev, sandbox in prod
   enableSandboxAccount: true, // Always enable sandbox account
   enableDebugTools: import.meta.env.DEV, // Only enable debug tools in development
-  useBinanceTestnet: false, // Don't use Binance Testnet by default
+  useBinanceTestnet: import.meta.env.DEV, // Use Binance Testnet in development by default
   showPerformanceMetrics: false, // Don't show performance metrics by default
 };
 

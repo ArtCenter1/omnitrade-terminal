@@ -13,9 +13,9 @@ import {
 import { BaseExchangeAdapter } from './baseExchangeAdapter';
 import { getExchangeEndpoint } from '@/config/exchangeConfig';
 import { SUPPORTED_EXCHANGES } from '../mockData/mockDataUtils';
-import axios from 'axios';
 import HmacSHA256 from 'crypto-js/hmac-sha256';
 import Hex from 'crypto-js/enc-hex';
+import { makeApiRequest } from '@/utils/apiUtils';
 
 /**
  * Adapter for the Binance Testnet exchange.
@@ -155,6 +155,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
    * @param method The HTTP method
    * @param apiKeyId The API key ID
    * @param params The query parameters
+   * @param weight The request weight
    * @returns The response data
    */
   private async makeAuthenticatedRequest<T>(
@@ -162,6 +163,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
     method: 'GET' | 'POST' | 'DELETE',
     apiKeyId: string,
     params: Record<string, string | number> = {},
+    weight: number = 1,
   ): Promise<T> {
     try {
       // Get API credentials
@@ -173,16 +175,16 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       // Build URL
       const url = `${this.baseUrl}${endpoint}`;
 
-      // Make request
-      const response = await axios({
+      // Make request with rate limiting
+      return await makeApiRequest<T>(this.exchangeId, url, {
         method,
-        url,
-        params: method === 'GET' ? signedParams : undefined,
-        data: method !== 'GET' ? signedParams : undefined,
+        weight,
+        body: method !== 'GET' ? signedParams : undefined,
         headers: this.buildAuthHeaders(apiKey),
+        parseJson: true,
+        retries: 3,
+        retryDelay: 1000,
       });
-
-      return response.data;
     } catch (error) {
       console.error(
         `Error making authenticated request to ${endpoint}:`,
@@ -196,24 +198,28 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
    * Make an unauthenticated request to the Binance API
    * @param endpoint The API endpoint
    * @param params The query parameters
+   * @param weight The request weight
    * @returns The response data
    */
   private async makeUnauthenticatedRequest<T>(
     endpoint: string,
     params: Record<string, string | number> = {},
+    weight: number = 1,
   ): Promise<T> {
     try {
       // Build URL
       const url = `${this.baseUrl}${endpoint}`;
 
-      // Make request
-      const response = await axios({
+      // Make request with rate limiting
+      return await makeApiRequest<T>(this.exchangeId, url, {
         method: 'GET',
-        url,
-        params,
+        weight,
+        body: undefined,
+        headers: {},
+        parseJson: true,
+        retries: 3,
+        retryDelay: 1000,
       });
-
-      return response.data;
     } catch (error) {
       console.error(
         `Error making unauthenticated request to ${endpoint}:`,
@@ -232,6 +238,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       const response = await this.makeUnauthenticatedRequest(
         '/api/v3/exchangeInfo',
         {},
+        10, // Weight: 10
       );
 
       // Return formatted exchange info
@@ -270,6 +277,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       const response = await this.makeUnauthenticatedRequest(
         '/api/v3/exchangeInfo',
         {},
+        10, // Weight: 10
       );
 
       // Extract and format trading pairs
@@ -347,10 +355,24 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       const formattedSymbol = symbol.replace('/', '');
 
       // Make request to order book endpoint
-      const response = await this.makeUnauthenticatedRequest('/api/v3/depth', {
-        symbol: formattedSymbol,
-        limit,
-      });
+      // Weight varies based on limit: 1 for limit ≤ 100, 5 for limit ≤ 500, 10 for limit ≤ 1000, 50 for limit > 1000
+      let weight = 1;
+      if (limit > 1000) {
+        weight = 50;
+      } else if (limit > 500) {
+        weight = 10;
+      } else if (limit > 100) {
+        weight = 5;
+      }
+
+      const response = await this.makeUnauthenticatedRequest(
+        '/api/v3/depth',
+        {
+          symbol: formattedSymbol,
+          limit,
+        },
+        weight,
+      );
 
       // Format response
       return {
@@ -426,6 +448,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       const response = await this.makeUnauthenticatedRequest(
         '/api/v3/klines',
         params,
+        1, // Weight: 1
       );
 
       // Format response
@@ -462,6 +485,8 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
         '/api/v3/account',
         'GET',
         apiKeyId,
+        {},
+        10, // Weight: 10
       );
 
       // Format response
@@ -535,6 +560,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
         'POST',
         apiKeyId,
         params,
+        1, // Weight: 1
       );
 
       // Format response
@@ -571,10 +597,16 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       const formattedSymbol = symbol.replace('/', '');
 
       // Make authenticated request to cancel order endpoint
-      await this.makeAuthenticatedRequest('/api/v3/order', 'DELETE', apiKeyId, {
-        symbol: formattedSymbol,
-        orderId,
-      });
+      await this.makeAuthenticatedRequest(
+        '/api/v3/order',
+        'DELETE',
+        apiKeyId,
+        {
+          symbol: formattedSymbol,
+          orderId,
+        },
+        1,
+      ); // Weight: 1
 
       return true;
     } catch (error) {
@@ -602,11 +634,15 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       }
 
       // Make authenticated request to open orders endpoint
+      // Weight: 3 for a single symbol, 40 for all symbols
+      const weight = symbol ? 3 : 40;
+
       const response = await this.makeAuthenticatedRequest(
         '/api/v3/openOrders',
         'GET',
         apiKeyId,
         params,
+        weight,
       );
 
       // Format response
@@ -659,6 +695,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
           symbol: formattedSymbol,
           limit,
         },
+        10, // Weight: 10
       );
 
       // Format response
