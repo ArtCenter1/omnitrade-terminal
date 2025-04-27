@@ -1,11 +1,11 @@
 /**
  * WebSocket Connection Manager
- * 
+ *
  * Manages WebSocket connections to exchanges, handles reconnection,
  * message parsing, and subscription management.
  */
 
-import { ConnectionManager } from './connectionManager';
+import { ConnectionManager, ConnectionStatus } from './connectionManager';
 
 // Define WebSocket message types
 export type WebSocketMessage = {
@@ -14,7 +14,12 @@ export type WebSocketMessage = {
 };
 
 // Define subscription types
-export type SubscriptionType = 'ticker' | 'depth' | 'trades' | 'klines' | 'userdata';
+export type SubscriptionType =
+  | 'ticker'
+  | 'depth'
+  | 'trades'
+  | 'klines'
+  | 'userdata';
 
 // Define subscription parameters
 export type SubscriptionParams = {
@@ -98,7 +103,9 @@ export class WebSocketManager {
     }
 
     // Update connection status
-    this.connectionManager.updateConnectionStatus(exchangeId, 'connecting');
+    this.connectionManager.setStatus(exchangeId, {
+      status: ConnectionStatus.CONNECTING,
+    });
 
     return ws;
   }
@@ -110,13 +117,15 @@ export class WebSocketManager {
    */
   private handleOpen(exchangeId: string, ws: WebSocket): void {
     console.log(`WebSocket connection opened for ${exchangeId}`);
-    
+
     // Reset reconnect attempts
     this.reconnectAttempts.set(exchangeId, 0);
     this.isReconnecting.set(exchangeId, false);
-    
+
     // Update connection status
-    this.connectionManager.updateConnectionStatus(exchangeId, 'connected');
+    this.connectionManager.setStatus(exchangeId, {
+      status: ConnectionStatus.CONNECTED,
+    });
 
     // Resubscribe to all subscriptions for this exchange
     const subs = this.subscriptions.get(exchangeId) || [];
@@ -134,7 +143,7 @@ export class WebSocketManager {
     try {
       // Parse message
       const message = JSON.parse(event.data);
-      
+
       // Process message based on exchange
       if (exchangeId === 'binance_testnet') {
         this.processBinanceMessage(exchangeId, message);
@@ -142,7 +151,10 @@ export class WebSocketManager {
         console.warn(`Unsupported exchange: ${exchangeId}`);
       }
     } catch (error) {
-      console.error(`Error handling WebSocket message for ${exchangeId}:`, error);
+      console.error(
+        `Error handling WebSocket message for ${exchangeId}:`,
+        error,
+      );
     }
   }
 
@@ -152,15 +164,25 @@ export class WebSocketManager {
    * @param event The close event
    * @param url The WebSocket URL to reconnect to
    */
-  private handleClose(exchangeId: string, event: CloseEvent, url: string): void {
-    console.log(`WebSocket connection closed for ${exchangeId}:`, event.code, event.reason);
-    
+  private handleClose(
+    exchangeId: string,
+    event: CloseEvent,
+    url: string,
+  ): void {
+    console.log(
+      `WebSocket connection closed for ${exchangeId}:`,
+      event.code,
+      event.reason,
+    );
+
     // Update connection status
-    this.connectionManager.updateConnectionStatus(exchangeId, 'disconnected');
-    
+    this.connectionManager.setStatus(exchangeId, {
+      status: ConnectionStatus.DISCONNECTED,
+    });
+
     // Remove from connections map
     this.connections.delete(exchangeId);
-    
+
     // Attempt to reconnect if not closing cleanly
     if (event.code !== 1000 && event.code !== 1001) {
       this.scheduleReconnect(exchangeId, url);
@@ -174,9 +196,12 @@ export class WebSocketManager {
    */
   private handleError(exchangeId: string, error: Event): void {
     console.error(`WebSocket error for ${exchangeId}:`, error);
-    
+
     // Update connection status
-    this.connectionManager.updateConnectionStatus(exchangeId, 'error');
+    this.connectionManager.setStatus(exchangeId, {
+      status: ConnectionStatus.ERROR,
+      error: error instanceof Error ? error : new Error(String(error)),
+    });
   }
 
   /**
@@ -189,39 +214,44 @@ export class WebSocketManager {
     if (this.isReconnecting.get(exchangeId)) {
       return;
     }
-    
+
     // Set reconnecting flag
     this.isReconnecting.set(exchangeId, true);
-    
+
     // Get current reconnect attempts
     const attempts = this.reconnectAttempts.get(exchangeId) || 0;
-    
+
     // Check if max attempts reached
     if (attempts >= this.maxReconnectAttempts) {
       console.error(`Max reconnect attempts reached for ${exchangeId}`);
-      this.connectionManager.updateConnectionStatus(exchangeId, 'failed');
+      this.connectionManager.setStatus(exchangeId, {
+        status: ConnectionStatus.ERROR,
+        message: `Max reconnect attempts (${this.maxReconnectAttempts}) reached`,
+      });
       return;
     }
-    
+
     // Increment reconnect attempts
     this.reconnectAttempts.set(exchangeId, attempts + 1);
-    
+
     // Calculate backoff delay with exponential backoff
     const delay = this.baseReconnectDelay * Math.pow(2, attempts);
-    
-    console.log(`Scheduling reconnect for ${exchangeId} in ${delay}ms (attempt ${attempts + 1}/${this.maxReconnectAttempts})`);
-    
+
+    console.log(
+      `Scheduling reconnect for ${exchangeId} in ${delay}ms (attempt ${attempts + 1}/${this.maxReconnectAttempts})`,
+    );
+
     // Clear any existing timeout
     if (this.reconnectTimeouts.has(exchangeId)) {
       clearTimeout(this.reconnectTimeouts.get(exchangeId)!);
     }
-    
+
     // Schedule reconnect
     const timeout = setTimeout(() => {
       console.log(`Attempting to reconnect to ${exchangeId}`);
       this.createConnection(exchangeId, url);
     }, delay);
-    
+
     // Store timeout
     this.reconnectTimeouts.set(exchangeId, timeout);
   }
@@ -290,7 +320,8 @@ export class WebSocketManager {
     subs.forEach((subscription) => {
       if (
         subscription.type === 'ticker' &&
-        (!subscription.params.symbol || this.formatBinanceSymbol(message.s) === subscription.params.symbol)
+        (!subscription.params.symbol ||
+          this.formatBinanceSymbol(message.s) === subscription.params.symbol)
       ) {
         subscription.callback(ticker);
       }
@@ -328,7 +359,8 @@ export class WebSocketManager {
     subs.forEach((subscription) => {
       if (
         subscription.type === 'depth' &&
-        (!subscription.params.symbol || this.formatBinanceSymbol(message.s) === subscription.params.symbol)
+        (!subscription.params.symbol ||
+          this.formatBinanceSymbol(message.s) === subscription.params.symbol)
       ) {
         subscription.callback(depth);
       }
@@ -361,7 +393,8 @@ export class WebSocketManager {
     subs.forEach((subscription) => {
       if (
         subscription.type === 'trades' &&
-        (!subscription.params.symbol || this.formatBinanceSymbol(message.s) === subscription.params.symbol)
+        (!subscription.params.symbol ||
+          this.formatBinanceSymbol(message.s) === subscription.params.symbol)
       ) {
         subscription.callback(trade);
       }
@@ -375,7 +408,7 @@ export class WebSocketManager {
    */
   private handleKlineMessage(exchangeId: string, message: any): void {
     const kline = message.k;
-    
+
     // Format the kline data
     const formattedKline = {
       symbol: this.formatBinanceSymbol(message.s),
@@ -400,8 +433,10 @@ export class WebSocketManager {
     subs.forEach((subscription) => {
       if (
         subscription.type === 'klines' &&
-        (!subscription.params.symbol || this.formatBinanceSymbol(message.s) === subscription.params.symbol) &&
-        (!subscription.params.interval || kline.i === subscription.params.interval)
+        (!subscription.params.symbol ||
+          this.formatBinanceSymbol(message.s) === subscription.params.symbol) &&
+        (!subscription.params.interval ||
+          kline.i === subscription.params.interval)
       ) {
         subscription.callback(formattedKline);
       }
@@ -459,7 +494,7 @@ export class WebSocketManager {
   ): string {
     // Generate subscription ID
     const id = `${exchangeId}_${type}_${JSON.stringify(params)}_${Date.now()}`;
-    
+
     // Create subscription object
     const subscription: Subscription = {
       id,
@@ -467,18 +502,18 @@ export class WebSocketManager {
       params,
       callback,
     };
-    
+
     // Add to subscriptions
     const subs = this.subscriptions.get(exchangeId) || [];
     subs.push(subscription);
     this.subscriptions.set(exchangeId, subs);
-    
+
     // Send subscription message if connected
     const connection = this.connections.get(exchangeId);
     if (connection && connection.readyState === WebSocket.OPEN) {
       this.sendSubscriptionMessage(exchangeId, subscription);
     }
-    
+
     return id;
   }
 
@@ -494,21 +529,21 @@ export class WebSocketManager {
       if (index !== -1) {
         // Get the subscription
         const subscription = subs[index];
-        
+
         // Remove from subscriptions
         subs.splice(index, 1);
         this.subscriptions.set(exchangeId, subs);
-        
+
         // Send unsubscription message if connected
         const connection = this.connections.get(exchangeId);
         if (connection && connection.readyState === WebSocket.OPEN) {
           this.sendUnsubscriptionMessage(exchangeId, subscription);
         }
-        
+
         return true;
       }
     }
-    
+
     return false;
   }
 
@@ -517,7 +552,10 @@ export class WebSocketManager {
    * @param exchangeId The exchange ID
    * @param subscription The subscription
    */
-  private sendSubscriptionMessage(exchangeId: string, subscription: Subscription): void {
+  private sendSubscriptionMessage(
+    exchangeId: string,
+    subscription: Subscription,
+  ): void {
     const connection = this.connections.get(exchangeId);
     if (!connection || connection.readyState !== WebSocket.OPEN) {
       return;
@@ -535,7 +573,10 @@ export class WebSocketManager {
    * @param exchangeId The exchange ID
    * @param subscription The subscription
    */
-  private sendUnsubscriptionMessage(exchangeId: string, subscription: Subscription): void {
+  private sendUnsubscriptionMessage(
+    exchangeId: string,
+    subscription: Subscription,
+  ): void {
     const connection = this.connections.get(exchangeId);
     if (!connection || connection.readyState !== WebSocket.OPEN) {
       return;
@@ -553,12 +594,17 @@ export class WebSocketManager {
    * @param connection The WebSocket connection
    * @param subscription The subscription
    */
-  private sendBinanceSubscriptionMessage(connection: WebSocket, subscription: Subscription): void {
+  private sendBinanceSubscriptionMessage(
+    connection: WebSocket,
+    subscription: Subscription,
+  ): void {
     const { type, params } = subscription;
-    const symbol = params.symbol ? params.symbol.replace('/', '').toLowerCase() : '';
-    
+    const symbol = params.symbol
+      ? params.symbol.replace('/', '').toLowerCase()
+      : '';
+
     let streams: string[] = [];
-    
+
     switch (type) {
       case 'ticker':
         streams.push(`${symbol}@ticker`);
@@ -585,7 +631,7 @@ export class WebSocketManager {
         console.warn(`Unsupported subscription type: ${type}`);
         return;
     }
-    
+
     // Send subscription message
     if (streams.length > 0) {
       const message = {
@@ -593,7 +639,7 @@ export class WebSocketManager {
         params: streams,
         id: Date.now(),
       };
-      
+
       connection.send(JSON.stringify(message));
     }
   }
@@ -603,12 +649,17 @@ export class WebSocketManager {
    * @param connection The WebSocket connection
    * @param subscription The subscription
    */
-  private sendBinanceUnsubscriptionMessage(connection: WebSocket, subscription: Subscription): void {
+  private sendBinanceUnsubscriptionMessage(
+    connection: WebSocket,
+    subscription: Subscription,
+  ): void {
     const { type, params } = subscription;
-    const symbol = params.symbol ? params.symbol.replace('/', '').toLowerCase() : '';
-    
+    const symbol = params.symbol
+      ? params.symbol.replace('/', '').toLowerCase()
+      : '';
+
     let streams: string[] = [];
-    
+
     switch (type) {
       case 'ticker':
         streams.push(`${symbol}@ticker`);
@@ -635,7 +686,7 @@ export class WebSocketManager {
         console.warn(`Unsupported subscription type: ${type}`);
         return;
     }
-    
+
     // Send unsubscription message
     if (streams.length > 0) {
       const message = {
@@ -643,7 +694,7 @@ export class WebSocketManager {
         params: streams,
         id: Date.now(),
       };
-      
+
       connection.send(JSON.stringify(message));
     }
   }
@@ -660,18 +711,21 @@ export class WebSocketManager {
         clearTimeout(this.reconnectTimeouts.get(exchangeId)!);
         this.reconnectTimeouts.delete(exchangeId);
       }
-      
+
       // Close the connection
       connection.close(1000, 'Closed by user');
-      
+
       // Remove from connections map
       this.connections.delete(exchangeId);
-      
+
       // Clear subscriptions
       this.subscriptions.set(exchangeId, []);
-      
+
       // Update connection status
-      this.connectionManager.updateConnectionStatus(exchangeId, 'disconnected');
+      this.connectionManager.setStatus(exchangeId, {
+        status: ConnectionStatus.DISCONNECTED,
+        message: 'Connection closed by user',
+      });
     }
   }
 
@@ -705,7 +759,7 @@ export class WebSocketManager {
    * @param exchangeId The exchange ID
    * @returns The connection status
    */
-  public getConnectionStatus(exchangeId: string): string {
-    return this.connectionManager.getConnectionStatus(exchangeId);
+  public getConnectionStatus(exchangeId: string): ConnectionStatus {
+    return this.connectionManager.getStatus(exchangeId).status;
   }
 }
