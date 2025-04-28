@@ -90,7 +90,7 @@
 - [x] Test REST API endpoints with sample requests
 - [x] Verify WebSocket data streams
 - [x] Test data normalization
-- [ ] Benchmark performance and latency
+- [ ] **PRIORITY**: Benchmark performance and latency (Phase 1 - Basic Metrics)
 
 ## Phase 3: Order Management (IN PROGRESS)
 
@@ -305,7 +305,18 @@
    - ✅ Add reconnection and error handling
    - ✅ Implement data caching for connection drops
 
-3. Proceed to Order Management (Phase 3)
+3. **PRIORITY**: Complete Phase 1 of performance benchmarking for Market Data Integration:
+
+   - Implement basic performance logging in the `BinanceTestnetAdapter`
+   - Measure latency for key REST API endpoints (order book, recent trades, ticker)
+   - Track rate limit utilization metrics (weight usage, order count)
+   - Document baseline performance metrics
+
+   See [Binance Testnet Basic Benchmarking](binance-testnet-basic-benchmarking.md) for Phase 1 approach.
+
+   Note: Phase 2 (comprehensive benchmarking and visualization) will be deferred until after MVP. See [Binance Testnet Benchmarking Plan](binance-testnet-benchmarking-plan.md) for the full approach.
+
+4. Proceed to Order Management (Phase 3)
 
 Note: The guided setup wizard for Binance Testnet API keys has been moved to the Comprehensive Onboarding Experience roadmap to be integrated with the user onboarding tour.
 
@@ -328,3 +339,5 @@ This scaling work has been added to the project roadmap under "Post-MVP Scaling 
 - [Binance Testnet Documentation](https://testnet.binance.vision/)
 - [Binance API Documentation](https://binance-docs.github.io/apidocs/spot/en/)
 - [Existing Demo Implementation](src/services/exchange/sandboxAdapter.ts)
+- [Basic Benchmarking Plan (Phase 1)](binance-testnet-basic-benchmarking.md)
+- [Comprehensive Benchmarking Plan (Phase 2)](binance-testnet-benchmarking-plan.md)
