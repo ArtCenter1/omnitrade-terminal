@@ -18,6 +18,7 @@ export interface FeatureFlags {
   enableDemoAccount: boolean;
   enableDebugTools: boolean;
   useBinanceTestnet: boolean;
+  enableBinanceTestnetBenchmark: boolean;
 
   // UI flags
   showPerformanceMetrics: boolean;
@@ -31,6 +32,7 @@ const defaultFeatureFlags: FeatureFlags = {
   enableDemoAccount: true, // Always enable demo account
   enableDebugTools: import.meta.env.DEV, // Only enable debug tools in development
   useBinanceTestnet: import.meta.env.DEV, // Use Binance Testnet in development by default
+  enableBinanceTestnetBenchmark: false, // Disable benchmark by default
   showPerformanceMetrics: false, // Don't show performance metrics by default
 };
 

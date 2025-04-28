@@ -5,6 +5,8 @@ import { BinanceTestnetBenchmarkAdapter } from '@/services/exchange/binanceTestn
 import { useFeatureFlagsContext, setFeatureFlag } from '@/config/featureFlags';
 import { useConnectionStatus } from '@/contexts/connectionStatusContext';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   Card,
   CardContent,
@@ -15,13 +17,7 @@ import {
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import {
-  Loader2,
-  CheckCircle2,
-  AlertCircle,
-  Download,
-  RefreshCw,
-} from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, Download } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import {
   Table,
@@ -90,7 +86,6 @@ const BinanceTestnetBenchmark: React.FC = () => {
   const [adapter, setAdapter] = useState<BinanceTestnetBenchmarkAdapter | null>(
     null,
   );
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
@@ -289,7 +284,6 @@ const BinanceTestnetBenchmark: React.FC = () => {
     }
 
     console.log('Starting benchmark run...');
-    setLoading(true);
     setBenchmarkRunning(true);
     setBenchmarkCompleted(false);
     setProgress(0);
@@ -340,7 +334,6 @@ const BinanceTestnetBenchmark: React.FC = () => {
         `Failed to run benchmarks: ${err instanceof Error ? err.message : 'Unknown error'}`,
       );
     } finally {
-      setLoading(false);
       setBenchmarkRunning(false);
       setProgress(100);
     }
@@ -415,51 +408,47 @@ const BinanceTestnetBenchmark: React.FC = () => {
           </Alert>
         )}
 
+        {!featureFlags.enableBinanceTestnetBenchmark && (
+          <Alert
+            variant="default"
+            className="mb-4 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-900/50"
+          >
+            <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+            <AlertTitle>Benchmark Feature Disabled</AlertTitle>
+            <AlertDescription>
+              The benchmark feature is currently disabled. Enable it using the
+              toggle below to run benchmarks.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="space-y-4">
-          {/* Connection Status */}
+          {/* Benchmark Toggle */}
           <div className="flex items-center justify-between mb-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-md">
             <div>
-              <h3 className="text-sm font-medium">
-                Binance Testnet Connection Status
-              </h3>
-              <div className="flex items-center mt-1">
-                <div
-                  className={`w-3 h-3 rounded-full mr-2 ${
-                    getStatus('binance_testnet').status === 'connected'
-                      ? 'bg-green-500'
-                      : getStatus('binance_testnet').status === 'connecting'
-                        ? 'bg-yellow-500'
-                        : 'bg-red-500'
-                  }`}
-                ></div>
-                <span className="text-sm">
-                  {getStatus('binance_testnet').status === 'connected'
-                    ? 'Connected'
-                    : getStatus('binance_testnet').status === 'connecting'
-                      ? 'Connecting...'
-                      : 'Disconnected'}
-                </span>
-                <span className="text-xs text-gray-500 ml-2">
-                  {getStatus('binance_testnet').type === 'mock'
-                    ? '(Using Mock Data)'
-                    : ''}
-                </span>
-              </div>
+              <h3 className="text-sm font-medium">Benchmark Feature</h3>
               <p className="text-xs text-gray-500 mt-1">
-                Last checked:{' '}
-                {new Date(
-                  getStatus('binance_testnet').lastChecked,
-                ).toLocaleTimeString()}
+                Enable or disable performance benchmarking for Binance Testnet
+                API
               </p>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => checkConnection('binance_testnet')}
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Check Connection
-            </Button>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="benchmark-toggle"
+                checked={featureFlags.enableBinanceTestnetBenchmark}
+                onCheckedChange={(checked) => {
+                  setFeatureFlag('enableBinanceTestnetBenchmark', checked);
+                  if (adapter) {
+                    adapter.enablePerformanceLogging(checked);
+                  }
+                }}
+              />
+              <Label htmlFor="benchmark-toggle" className="font-medium">
+                {featureFlags.enableBinanceTestnetBenchmark
+                  ? 'Enabled'
+                  : 'Disabled'}
+              </Label>
+            </div>
           </div>
 
           <div className="flex items-center gap-4">
@@ -491,9 +480,14 @@ const BinanceTestnetBenchmark: React.FC = () => {
               disabled={
                 !adapter ||
                 benchmarkRunning ||
-                getStatus('binance_testnet').status !== 'connected'
+                !featureFlags.enableBinanceTestnetBenchmark
               }
               className="mt-auto"
+              title={
+                getStatus('binance_testnet').status !== 'connected'
+                  ? 'Binance Testnet must be connected to run benchmarks'
+                  : ''
+              }
             >
               {benchmarkRunning ? (
                 <>

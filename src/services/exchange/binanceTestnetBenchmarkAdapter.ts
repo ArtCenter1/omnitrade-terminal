@@ -3,6 +3,7 @@
 import { BinanceTestnetAdapter } from './binanceTestnetAdapter';
 import PerformanceLogger from '@/utils/performanceLogger';
 import * as apiUtils from '@/utils/apiUtils';
+import { getFeatureFlags } from '@/config/featureFlags';
 
 // We're now overriding specific methods instead of trying to intercept all API calls
 
@@ -16,14 +17,18 @@ export class BinanceTestnetBenchmarkAdapter extends BinanceTestnetAdapter {
     super();
     this.performanceLogger = PerformanceLogger.getInstance();
 
-    // Enable performance logging by default
-    this.performanceLogger.setEnabled(true);
+    // Check if benchmark is enabled via feature flag
+    const featureFlags = getFeatureFlags();
+    const isBenchmarkEnabled = featureFlags.enableBinanceTestnetBenchmark;
+
+    // Enable performance logging based on feature flag
+    this.performanceLogger.setEnabled(isBenchmarkEnabled);
 
     // We can't override the module's makeApiRequest directly as it's read-only
     // Instead, we'll use our own implementation for API calls
 
     console.log(
-      'BinanceTestnetBenchmarkAdapter initialized with performance logging',
+      `BinanceTestnetBenchmarkAdapter initialized with performance logging ${isBenchmarkEnabled ? 'enabled' : 'disabled'}`,
     );
   }
 
@@ -317,9 +322,16 @@ export class BinanceTestnetBenchmarkAdapter extends BinanceTestnetAdapter {
 
   /**
    * Enable or disable performance logging
+   * Also updates the feature flag to persist the setting
    */
   public enablePerformanceLogging(enabled: boolean): void {
     this.performanceLogger.setEnabled(enabled);
+
+    // Update the feature flag to persist the setting
+    import('@/config/featureFlags').then(({ setFeatureFlag }) => {
+      setFeatureFlag('enableBinanceTestnetBenchmark', enabled);
+    });
+
     console.log(`Performance logging ${enabled ? 'enabled' : 'disabled'}`);
   }
 

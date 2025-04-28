@@ -188,6 +188,31 @@ export function FeatureFlagsPanel() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="flex items-center gap-1 cursor-help">
+                  <Label htmlFor="enable-binance-testnet-benchmark">
+                    Enable Binance Testnet Benchmark
+                  </Label>
+                  <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="max-w-xs">
+                  Enable performance benchmarking for Binance Testnet API
+                </p>
+              </TooltipContent>
+            </Tooltip>
+            <Switch
+              id="enable-binance-testnet-benchmark"
+              checked={flags.enableBinanceTestnetBenchmark}
+              onCheckedChange={(checked) =>
+                handleToggle('enableBinanceTestnetBenchmark', checked)
+              }
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-1 cursor-help">
                   <Label htmlFor="enable-debug-tools">Enable Debug Tools</Label>
                   <HelpCircle className="h-4 w-4 text-muted-foreground" />
                 </div>

@@ -16,6 +16,7 @@ import { useApiKeys } from '@/hooks/useApiKeys';
 import { useConnectionStatus } from '@/contexts/connectionStatusContext';
 import { ConnectionStatusIndicator } from '@/components/connection/ConnectionStatusIndicator';
 import { ApiKeyManager } from '@/services/apiKeys/apiKeyManager';
+import { useFeatureFlags } from '@/config/featureFlags';
 
 /**
  * Component for testing the Binance Testnet integration
@@ -38,12 +39,24 @@ export function BinanceTestnetTest() {
   // Get connection status
   const { getStatus, checkConnection } = useConnectionStatus();
 
+  // Get feature flags
+  const featureFlags = useFeatureFlags();
+
   const handleTest = async () => {
     setLoading(true);
     setError(null);
     setSuccess(null);
     setPairs([]);
     setAuthTestResult(null);
+
+    // Check if Binance Testnet is enabled
+    if (!featureFlags.useBinanceTestnet) {
+      setError(
+        'Binance Testnet is currently disabled. Please enable it in the settings first.',
+      );
+      setLoading(false);
+      return;
+    }
 
     try {
       // Get the Binance Testnet adapter
@@ -123,6 +136,15 @@ export function BinanceTestnetTest() {
   const handleTestInvalidCredentials = async () => {
     setInvalidCredentialsLoading(true);
     setInvalidCredentialsTestResult(null);
+
+    // Check if Binance Testnet is enabled
+    if (!featureFlags.useBinanceTestnet) {
+      setInvalidCredentialsTestResult(
+        '❌ Binance Testnet is currently disabled. Please enable it in the settings first.',
+      );
+      setInvalidCredentialsLoading(false);
+      return;
+    }
 
     try {
       // Get the Binance Testnet adapter
