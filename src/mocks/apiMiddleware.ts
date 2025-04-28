@@ -96,9 +96,203 @@ async function handleApiWithMockData(
     // Special case for exchangeInfo endpoint
     if (url.includes('exchangeInfo')) {
       console.log('Handling exchangeInfo request with direct proxy');
-      return window.originalFetch(
-        'https://testnet.binance.vision/api/v3/exchangeInfo',
-      );
+
+      // Check if we have cached data
+      const cacheKey = 'binance_testnet_exchangeInfo';
+      const cachedData = sessionStorage.getItem(cacheKey);
+      const cacheExpiry = sessionStorage.getItem(`${cacheKey}_expiry`);
+
+      // Use cached data if available and not expired (cache for 5 minutes)
+      if (cachedData && cacheExpiry && parseInt(cacheExpiry) > Date.now()) {
+        console.log('Using cached exchangeInfo data');
+        return new Response(cachedData, {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      try {
+        // Make the direct API call with a timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+        return window
+          .originalFetch('https://testnet.binance.vision/api/v3/exchangeInfo', {
+            signal: controller.signal,
+          })
+          .then(async (response) => {
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+              throw new Error(
+                `API returned ${response.status}: ${response.statusText}`,
+              );
+            }
+
+            // Get the response data
+            const data = await response.text();
+
+            // Cache the response
+            try {
+              sessionStorage.setItem(cacheKey, data);
+              sessionStorage.setItem(
+                `${cacheKey}_expiry`,
+                (Date.now() + 300000).toString(),
+              ); // 5 minute cache
+            } catch (e) {
+              console.warn('Failed to cache exchangeInfo data:', e);
+            }
+
+            return new Response(data, {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          })
+          .catch((error) => {
+            clearTimeout(timeoutId);
+            console.error(
+              'Error fetching exchangeInfo from Binance Testnet API:',
+              error,
+            );
+
+            // If we have stale cached data, use it as a fallback
+            if (cachedData) {
+              console.warn(
+                'Using stale cached exchangeInfo data due to API error',
+              );
+              return new Response(cachedData, {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              });
+            }
+
+            // Fall back to mock data
+            console.warn('Falling back to mock exchangeInfo data');
+            const mockData = {
+              timezone: 'UTC',
+              serverTime: Date.now(),
+              rateLimits: [
+                {
+                  rateLimitType: 'REQUEST_WEIGHT',
+                  interval: 'MINUTE',
+                  intervalNum: 1,
+                  limit: 1200,
+                },
+              ],
+              symbols: [
+                {
+                  symbol: 'BTCUSDT',
+                  status: 'TRADING',
+                  baseAsset: 'BTC',
+                  baseAssetPrecision: 8,
+                  quoteAsset: 'USDT',
+                  quotePrecision: 8,
+                  filters: [
+                    {
+                      filterType: 'PRICE_FILTER',
+                      minPrice: '0.01000000',
+                      maxPrice: '1000000.00000000',
+                      tickSize: '0.01000000',
+                    },
+                    {
+                      filterType: 'LOT_SIZE',
+                      minQty: '0.00000100',
+                      maxQty: '9000.00000000',
+                      stepSize: '0.00000100',
+                    },
+                    {
+                      filterType: 'MIN_NOTIONAL',
+                      minNotional: '10.00000000',
+                    },
+                  ],
+                },
+                {
+                  symbol: 'ETHUSDT',
+                  status: 'TRADING',
+                  baseAsset: 'ETH',
+                  baseAssetPrecision: 8,
+                  quoteAsset: 'USDT',
+                  quotePrecision: 8,
+                  filters: [
+                    {
+                      filterType: 'PRICE_FILTER',
+                      minPrice: '0.01000000',
+                      maxPrice: '100000.00000000',
+                      tickSize: '0.01000000',
+                    },
+                    {
+                      filterType: 'LOT_SIZE',
+                      minQty: '0.00001000',
+                      maxQty: '9000.00000000',
+                      stepSize: '0.00001000',
+                    },
+                    {
+                      filterType: 'MIN_NOTIONAL',
+                      minNotional: '10.00000000',
+                    },
+                  ],
+                },
+              ],
+            };
+
+            return new Response(JSON.stringify(mockData), {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          });
+      } catch (error) {
+        console.error('Error in exchangeInfo request handler:', error);
+
+        // Fall back to mock data
+        console.warn(
+          'Falling back to mock exchangeInfo data due to unexpected error',
+        );
+        const mockData = {
+          timezone: 'UTC',
+          serverTime: Date.now(),
+          rateLimits: [
+            {
+              rateLimitType: 'REQUEST_WEIGHT',
+              interval: 'MINUTE',
+              intervalNum: 1,
+              limit: 1200,
+            },
+          ],
+          symbols: [
+            {
+              symbol: 'BTCUSDT',
+              status: 'TRADING',
+              baseAsset: 'BTC',
+              baseAssetPrecision: 8,
+              quoteAsset: 'USDT',
+              quotePrecision: 8,
+              filters: [
+                {
+                  filterType: 'PRICE_FILTER',
+                  minPrice: '0.01000000',
+                  maxPrice: '1000000.00000000',
+                  tickSize: '0.01000000',
+                },
+                {
+                  filterType: 'LOT_SIZE',
+                  minQty: '0.00000100',
+                  maxQty: '9000.00000000',
+                  stepSize: '0.00000100',
+                },
+                {
+                  filterType: 'MIN_NOTIONAL',
+                  minNotional: '10.00000000',
+                },
+              ],
+            },
+          ],
+        };
+
+        return new Response(JSON.stringify(mockData), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     // Special case for depth endpoint (order book)
@@ -117,8 +311,102 @@ async function handleApiWithMockData(
         }
       }
 
+      // Create a cache key based on the URL
+      const cacheKey = `binance_testnet_depth_${symbol}_${limit || 'default'}`;
+      const cachedData = sessionStorage.getItem(cacheKey);
+      const cacheExpiry = sessionStorage.getItem(`${cacheKey}_expiry`);
+
+      // Use cached data if available and not expired (cache for 10 seconds for order book)
+      if (cachedData && cacheExpiry && parseInt(cacheExpiry) > Date.now()) {
+        console.log('Using cached depth data');
+        return new Response(cachedData, {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
       console.log('Handling depth request with direct proxy:', realUrl);
-      return window.originalFetch(realUrl);
+
+      try {
+        // Make the direct API call with a timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+        return window
+          .originalFetch(realUrl, { signal: controller.signal })
+          .then(async (response) => {
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+              throw new Error(
+                `API returned ${response.status}: ${response.statusText}`,
+              );
+            }
+
+            // Get the response data
+            const data = await response.text();
+
+            // Cache the response (short cache time for order book data)
+            try {
+              sessionStorage.setItem(cacheKey, data);
+              sessionStorage.setItem(
+                `${cacheKey}_expiry`,
+                (Date.now() + 10000).toString(),
+              ); // 10 second cache
+            } catch (e) {
+              console.warn('Failed to cache depth data:', e);
+            }
+
+            return new Response(data, {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          })
+          .catch((error) => {
+            clearTimeout(timeoutId);
+            console.error(
+              'Error fetching depth data from Binance Testnet API:',
+              error,
+            );
+
+            // If we have stale cached data, use it as a fallback
+            if (cachedData) {
+              console.warn('Using stale cached depth data due to API error');
+              return new Response(cachedData, {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              });
+            }
+
+            // Fall back to mock data
+            console.warn('Falling back to mock depth data');
+            const mockData = mockDataService.generateOrderBook(
+              'binance_testnet',
+              symbol || 'BTCUSDT',
+              limit ? parseInt(limit) : 20,
+            );
+
+            return new Response(JSON.stringify(mockData), {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          });
+      } catch (error) {
+        console.error('Error in depth request handler:', error);
+
+        // Fall back to mock data
+        console.warn('Falling back to mock depth data due to unexpected error');
+        const mockData = mockDataService.generateOrderBook(
+          'binance_testnet',
+          symbol || 'BTCUSDT',
+          limit ? parseInt(limit) : 20,
+        );
+
+        return new Response(JSON.stringify(mockData), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     // Special case for ticker endpoint
@@ -133,8 +421,192 @@ async function handleApiWithMockData(
         realUrl += `?symbol=${symbol}`;
       }
 
+      // Create a cache key based on the URL
+      const cacheKey = `binance_testnet_ticker_${symbol || 'all'}`;
+      const cachedData = sessionStorage.getItem(cacheKey);
+      const cacheExpiry = sessionStorage.getItem(`${cacheKey}_expiry`);
+
+      // Use cached data if available and not expired (cache for 30 seconds for ticker data)
+      if (cachedData && cacheExpiry && parseInt(cacheExpiry) > Date.now()) {
+        console.log('Using cached ticker data');
+        return new Response(cachedData, {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
       console.log('Handling ticker request with direct proxy:', realUrl);
-      return window.originalFetch(realUrl);
+
+      try {
+        // Make the direct API call with a timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+        return window
+          .originalFetch(realUrl, { signal: controller.signal })
+          .then(async (response) => {
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+              throw new Error(
+                `API returned ${response.status}: ${response.statusText}`,
+              );
+            }
+
+            // Get the response data
+            const data = await response.text();
+
+            // Cache the response
+            try {
+              sessionStorage.setItem(cacheKey, data);
+              sessionStorage.setItem(
+                `${cacheKey}_expiry`,
+                (Date.now() + 30000).toString(),
+              ); // 30 second cache
+            } catch (e) {
+              console.warn('Failed to cache ticker data:', e);
+            }
+
+            return new Response(data, {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          })
+          .catch((error) => {
+            clearTimeout(timeoutId);
+            console.error(
+              'Error fetching ticker data from Binance Testnet API:',
+              error,
+            );
+
+            // If we have stale cached data, use it as a fallback
+            if (cachedData) {
+              console.warn('Using stale cached ticker data due to API error');
+              return new Response(cachedData, {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              });
+            }
+
+            // Fall back to mock data
+            console.warn('Falling back to mock ticker data');
+            const mockData = symbol
+              ? {
+                  symbol: symbol,
+                  priceChange: (Math.random() * 1000 - 500).toFixed(2),
+                  priceChangePercent: (Math.random() * 10 - 5).toFixed(2),
+                  weightedAvgPrice: (Math.random() * 50000 + 1000).toFixed(2),
+                  prevClosePrice: (Math.random() * 50000 + 1000).toFixed(2),
+                  lastPrice: (Math.random() * 50000 + 1000).toFixed(2),
+                  lastQty: (Math.random() * 10).toFixed(4),
+                  bidPrice: (Math.random() * 50000 + 1000).toFixed(2),
+                  bidQty: (Math.random() * 10).toFixed(4),
+                  askPrice: (Math.random() * 50000 + 1000).toFixed(2),
+                  askQty: (Math.random() * 10).toFixed(4),
+                  openPrice: (Math.random() * 50000 + 1000).toFixed(2),
+                  highPrice: (Math.random() * 50000 + 1000).toFixed(2),
+                  lowPrice: (Math.random() * 50000 + 1000).toFixed(2),
+                  volume: (Math.random() * 1000).toFixed(4),
+                  quoteVolume: (Math.random() * 10000000).toFixed(2),
+                  openTime: Date.now() - 86400000,
+                  closeTime: Date.now(),
+                  firstId: 1,
+                  lastId: 1000,
+                  count: 1000,
+                }
+              : [
+                  {
+                    symbol: 'BTCUSDT',
+                    priceChange: (Math.random() * 1000 - 500).toFixed(2),
+                    priceChangePercent: (Math.random() * 10 - 5).toFixed(2),
+                    weightedAvgPrice: (Math.random() * 50000 + 1000).toFixed(2),
+                    prevClosePrice: (Math.random() * 50000 + 1000).toFixed(2),
+                    lastPrice: (Math.random() * 50000 + 1000).toFixed(2),
+                    lastQty: (Math.random() * 10).toFixed(4),
+                    bidPrice: (Math.random() * 50000 + 1000).toFixed(2),
+                    bidQty: (Math.random() * 10).toFixed(4),
+                    askPrice: (Math.random() * 50000 + 1000).toFixed(2),
+                    askQty: (Math.random() * 10).toFixed(4),
+                    openPrice: (Math.random() * 50000 + 1000).toFixed(2),
+                    highPrice: (Math.random() * 50000 + 1000).toFixed(2),
+                    lowPrice: (Math.random() * 50000 + 1000).toFixed(2),
+                    volume: (Math.random() * 1000).toFixed(4),
+                    quoteVolume: (Math.random() * 10000000).toFixed(2),
+                    openTime: Date.now() - 86400000,
+                    closeTime: Date.now(),
+                    firstId: 1,
+                    lastId: 1000,
+                    count: 1000,
+                  },
+                ];
+
+            return new Response(JSON.stringify(mockData), {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          });
+      } catch (error) {
+        console.error('Error in ticker request handler:', error);
+
+        // Fall back to mock data
+        console.warn(
+          'Falling back to mock ticker data due to unexpected error',
+        );
+        const mockData = symbol
+          ? {
+              symbol: symbol,
+              priceChange: (Math.random() * 1000 - 500).toFixed(2),
+              priceChangePercent: (Math.random() * 10 - 5).toFixed(2),
+              weightedAvgPrice: (Math.random() * 50000 + 1000).toFixed(2),
+              prevClosePrice: (Math.random() * 50000 + 1000).toFixed(2),
+              lastPrice: (Math.random() * 50000 + 1000).toFixed(2),
+              lastQty: (Math.random() * 10).toFixed(4),
+              bidPrice: (Math.random() * 50000 + 1000).toFixed(2),
+              bidQty: (Math.random() * 10).toFixed(4),
+              askPrice: (Math.random() * 50000 + 1000).toFixed(2),
+              askQty: (Math.random() * 10).toFixed(4),
+              openPrice: (Math.random() * 50000 + 1000).toFixed(2),
+              highPrice: (Math.random() * 50000 + 1000).toFixed(2),
+              lowPrice: (Math.random() * 50000 + 1000).toFixed(2),
+              volume: (Math.random() * 1000).toFixed(4),
+              quoteVolume: (Math.random() * 10000000).toFixed(2),
+              openTime: Date.now() - 86400000,
+              closeTime: Date.now(),
+              firstId: 1,
+              lastId: 1000,
+              count: 1000,
+            }
+          : [
+              {
+                symbol: 'BTCUSDT',
+                priceChange: (Math.random() * 1000 - 500).toFixed(2),
+                priceChangePercent: (Math.random() * 10 - 5).toFixed(2),
+                weightedAvgPrice: (Math.random() * 50000 + 1000).toFixed(2),
+                prevClosePrice: (Math.random() * 50000 + 1000).toFixed(2),
+                lastPrice: (Math.random() * 50000 + 1000).toFixed(2),
+                lastQty: (Math.random() * 10).toFixed(4),
+                bidPrice: (Math.random() * 50000 + 1000).toFixed(2),
+                bidQty: (Math.random() * 10).toFixed(4),
+                askPrice: (Math.random() * 50000 + 1000).toFixed(2),
+                askQty: (Math.random() * 10).toFixed(4),
+                openPrice: (Math.random() * 50000 + 1000).toFixed(2),
+                highPrice: (Math.random() * 50000 + 1000).toFixed(2),
+                lowPrice: (Math.random() * 50000 + 1000).toFixed(2),
+                volume: (Math.random() * 1000).toFixed(4),
+                quoteVolume: (Math.random() * 10000000).toFixed(2),
+                openTime: Date.now() - 86400000,
+                closeTime: Date.now(),
+                firstId: 1,
+                lastId: 1000,
+                count: 1000,
+              },
+            ];
+
+        return new Response(JSON.stringify(mockData), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     // Special case for trades endpoint
@@ -216,8 +688,8 @@ async function handleApiWithMockData(
     }
   }
 
-  // Add a small delay to simulate network latency
-  await new Promise((resolve) => setTimeout(resolve, 200));
+  // Add a delay to simulate network latency and avoid overwhelming the API
+  await new Promise((resolve) => setTimeout(resolve, 500));
 
   // Health check endpoints
   if (url.startsWith('/api/health') || url.startsWith('/api/health1')) {

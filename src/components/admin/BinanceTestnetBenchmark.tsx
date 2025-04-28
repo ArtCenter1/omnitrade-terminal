@@ -216,8 +216,8 @@ const BinanceTestnetBenchmark: React.FC = () => {
             return Math.min(newProgress, 100);
           });
 
-          // Small delay to avoid overwhelming the API
-          await new Promise((resolve) => setTimeout(resolve, 200));
+          // Longer delay to avoid overwhelming the API and respect rate limits
+          await new Promise((resolve) => setTimeout(resolve, 1000));
         } catch (err) {
           console.error(
             `Error in benchmark iteration ${i + 1}/${iterations} for ${endpoint.name}:`,
