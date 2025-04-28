@@ -11,6 +11,7 @@ import {
   ChevronDown,
   ChevronUp,
   Terminal,
+  Activity,
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -222,17 +223,14 @@ export default function AdminDashboard() {
 
             <Link
               to="/admin/analytics"
-              className="bg-gray-800 p-4 rounded-lg hover:bg-gray-700 transition-colors relative"
+              className="bg-gray-800 p-4 rounded-lg hover:bg-gray-700 transition-colors"
             >
-              <div className="absolute -top-2 -right-2 bg-yellow-600 text-xs px-2 py-1 rounded-full text-white">
-                Coming Soon
-              </div>
               <div className="flex items-center mb-2">
                 <BarChart3 className="h-5 w-5 mr-2 text-purple-500" />
                 <h3 className="font-medium">Analytics</h3>
               </div>
               <p className="text-sm text-gray-400">
-                View system-wide analytics and reports
+                View system-wide analytics and performance metrics
               </p>
             </Link>
 

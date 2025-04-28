@@ -43,6 +43,12 @@ export function setupApiMiddleware() {
       return handleApiWithMockData(url, init);
     }
 
+    // Check if this is a Binance Testnet request and if Binance Testnet is disabled
+    if (url.includes('/api/mock/binance_testnet') && !flags.useBinanceTestnet) {
+      console.log(`Binance Testnet is disabled. Using mock data for: ${url}`);
+      return handleApiWithMockData(url, init);
+    }
+
     try {
       // First try the original fetch
       const response = await originalFetch(input, init);
@@ -55,6 +61,19 @@ export function setupApiMiddleware() {
       // If we get here, the request failed but the server responded
       console.warn(`API request failed with status ${response.status}: ${url}`);
 
+      // If it's the specific Binance Testnet exchangeInfo endpoint and it returned 404,
+      // treat it as unavailable and use the proxy/mock logic.
+      // This might be bypassed if RateLimitManager throws an error instead of returning the response.
+      if (
+        response.status === 404 &&
+        url.includes('/api/mock/binance_testnet/api/v3/exchangeInfo')
+      ) {
+        console.log(
+          `Middleware: Detected 404 for ${url}, falling back to direct proxy/mock.`,
+        );
+        return handleApiWithMockData(url, init);
+      }
+
       // For 5xx errors, we'll provide mock data
       if (response.status >= 500) {
         console.log(
@@ -66,10 +85,22 @@ export function setupApiMiddleware() {
       // For other errors, return the original response
       return response;
     } catch (error) {
-      // Network error or server not available
-      console.warn(`API request failed (server unavailable): ${url}`, error);
-      console.log('Falling back to mock data due to network error');
-      return handleApiWithMockData(url, init);
+      // Network error, server not available, or error thrown by RateLimitManager
+      console.warn(`API request failed for ${url}:`, error);
+
+      // Explicitly check if the failed request was for the specific endpoint
+      if (url.includes('/api/mock/binance_testnet/api/v3/exchangeInfo')) {
+        console.log(
+          `Middleware catch block: Falling back to proxy/mock for ${url} due to error.`,
+        );
+        return handleApiWithMockData(url, init);
+      }
+
+      // Generic fallback for other errors if backend is unavailable
+      console.log(
+        `Middleware catch block: Falling back to generic mock data for ${url} due to error.`,
+      );
+      return handleApiWithMockData(url, init); // Or potentially re-throw for non-mocked endpoints?
     }
   };
 
@@ -85,203 +116,838 @@ async function handleApiWithMockData(
   url: string,
   init?: RequestInit,
 ): Promise<Response> {
-  // Add a small delay to simulate network latency
-  await new Promise((resolve) => setTimeout(resolve, 200));
+  // Special case for Binance Testnet API - proxy to the real API
+  if (url.startsWith('/api/mock/binance_testnet')) {
+    // Get current feature flags
+    const flags = getFeatureFlags();
 
-  // Health check endpoints
-  if (url.startsWith('/api/health') || url.startsWith('/api/health1')) {
-    console.log(`Handling health check request: ${url}`);
-    return new Response(JSON.stringify({ status: 'ok', mode: 'mock' }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    // Check if Binance Testnet is enabled
+    if (!flags.useBinanceTestnet) {
+      console.log(`Binance Testnet is disabled. Using mock data for: ${url}`);
+
+      // If the request is for exchangeInfo, return mock data
+      if (url.includes('exchangeInfo')) {
+        const mockData = {
+          timezone: 'UTC',
+          serverTime: Date.now(),
+          rateLimits: [
+            {
+              rateLimitType: 'REQUEST_WEIGHT',
+              interval: 'MINUTE',
+              intervalNum: 1,
+              limit: 1200,
+            },
+          ],
+          symbols: [
+            {
+              symbol: 'BTCUSDT',
+              status: 'TRADING',
+              baseAsset: 'BTC',
+              baseAssetPrecision: 8,
+              quoteAsset: 'USDT',
+              quotePrecision: 8,
+              filters: [
+                {
+                  filterType: 'PRICE_FILTER',
+                  minPrice: '0.01000000',
+                  maxPrice: '1000000.00000000',
+                  tickSize: '0.01000000',
+                },
+                {
+                  filterType: 'LOT_SIZE',
+                  minQty: '0.00000100',
+                  maxQty: '9000.00000000',
+                  stepSize: '0.00000100',
+                },
+                {
+                  filterType: 'MIN_NOTIONAL',
+                  minNotional: '10.00000000',
+                },
+              ],
+            },
+            {
+              symbol: 'ETHUSDT',
+              status: 'TRADING',
+              baseAsset: 'ETH',
+              baseAssetPrecision: 8,
+              quoteAsset: 'USDT',
+              quotePrecision: 8,
+              filters: [
+                {
+                  filterType: 'PRICE_FILTER',
+                  minPrice: '0.01000000',
+                  maxPrice: '100000.00000000',
+                  tickSize: '0.01000000',
+                },
+                {
+                  filterType: 'LOT_SIZE',
+                  minQty: '0.00001000',
+                  maxQty: '9000.00000000',
+                  stepSize: '0.00001000',
+                },
+                {
+                  filterType: 'MIN_NOTIONAL',
+                  minNotional: '10.00000000',
+                },
+              ],
+            },
+          ],
+        };
+
+        return new Response(JSON.stringify(mockData), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      // For other endpoints, use the appropriate mock data generator
+      if (url.includes('depth')) {
+        const urlObj = new URL(url, window.location.origin);
+        const symbol = urlObj.searchParams.get('symbol') || 'BTCUSDT';
+        const limit = parseInt(urlObj.searchParams.get('limit') || '20');
+        const mockData = mockDataService.generateOrderBook(
+          'binance_testnet',
+          symbol,
+          limit,
+        );
+
+        return new Response(JSON.stringify(mockData), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (url.includes('ticker/24hr')) {
+        const urlObj = new URL(url, window.location.origin);
+        const symbol = urlObj.searchParams.get('symbol') || 'BTCUSDT';
+        const mockData = mockDataService.generateTickerStats(
+          'binance_testnet',
+          symbol,
+        );
+
+        return new Response(JSON.stringify(mockData), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (url.includes('klines')) {
+        const urlObj = new URL(url, window.location.origin);
+        const symbol = urlObj.searchParams.get('symbol') || 'BTCUSDT';
+        const interval = urlObj.searchParams.get('interval') || '1h';
+        const limit = parseInt(urlObj.searchParams.get('limit') || '100');
+        const mockData = mockDataService.generateKlines(
+          'binance_testnet',
+          symbol,
+          interval,
+          undefined,
+          undefined,
+          limit,
+        );
+
+        return new Response(JSON.stringify(mockData), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Default fallback for unhandled endpoints
+      return new Response(
+        JSON.stringify({
+          message: 'Mock endpoint not found (Binance Testnet is disabled)',
+        }),
+        {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+    }
+
+    console.log(`Proxying Binance Testnet request to real API: ${url}`);
+
+    // Extract the path after /api/mock/binance_testnet
+    const pathMatch = url.match(/\/api\/mock\/binance_testnet\/(.*)/);
+    const path = pathMatch ? pathMatch[1] : '';
+
+    // Special case for exchangeInfo endpoint
+    if (url.includes('exchangeInfo')) {
+      console.log('Handling exchangeInfo request with direct proxy');
+
+      // Check if we have cached data
+      const cacheKey = 'binance_testnet_exchangeInfo';
+      const cachedData = sessionStorage.getItem(cacheKey);
+      const cacheExpiry = sessionStorage.getItem(`${cacheKey}_expiry`);
+
+      // Use cached data if available and not expired (cache for 5 minutes)
+      if (cachedData && cacheExpiry && parseInt(cacheExpiry) > Date.now()) {
+        console.log('Using cached exchangeInfo data');
+        return new Response(cachedData, {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      try {
+        // Make the direct API call with a timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+        return window
+          .originalFetch('https://testnet.binance.vision/api/v3/exchangeInfo', {
+            signal: controller.signal,
+          })
+          .then(async (response) => {
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+              throw new Error(
+                `API returned ${response.status}: ${response.statusText}`,
+              );
+            }
+
+            // Get the response data
+            const data = await response.text();
+
+            // Cache the response
+            try {
+              sessionStorage.setItem(cacheKey, data);
+              sessionStorage.setItem(
+                `${cacheKey}_expiry`,
+                (Date.now() + 300000).toString(),
+              ); // 5 minute cache
+            } catch (e) {
+              console.warn('Failed to cache exchangeInfo data:', e);
+            }
+
+            return new Response(data, {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          })
+          .catch((error) => {
+            clearTimeout(timeoutId);
+            console.error(
+              'Error fetching exchangeInfo from Binance Testnet API:',
+              error,
+            );
+
+            // If we have stale cached data, use it as a fallback
+            if (cachedData) {
+              console.warn(
+                'Using stale cached exchangeInfo data due to API error',
+              );
+              return new Response(cachedData, {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              });
+            }
+
+            // Fall back to mock data
+            console.warn('Falling back to mock exchangeInfo data');
+            const mockData = {
+              timezone: 'UTC',
+              serverTime: Date.now(),
+              rateLimits: [
+                {
+                  rateLimitType: 'REQUEST_WEIGHT',
+                  interval: 'MINUTE',
+                  intervalNum: 1,
+                  limit: 1200,
+                },
+              ],
+              symbols: [
+                {
+                  symbol: 'BTCUSDT',
+                  status: 'TRADING',
+                  baseAsset: 'BTC',
+                  baseAssetPrecision: 8,
+                  quoteAsset: 'USDT',
+                  quotePrecision: 8,
+                  filters: [
+                    {
+                      filterType: 'PRICE_FILTER',
+                      minPrice: '0.01000000',
+                      maxPrice: '1000000.00000000',
+                      tickSize: '0.01000000',
+                    },
+                    {
+                      filterType: 'LOT_SIZE',
+                      minQty: '0.00000100',
+                      maxQty: '9000.00000000',
+                      stepSize: '0.00000100',
+                    },
+                    {
+                      filterType: 'MIN_NOTIONAL',
+                      minNotional: '10.00000000',
+                    },
+                  ],
+                },
+                {
+                  symbol: 'ETHUSDT',
+                  status: 'TRADING',
+                  baseAsset: 'ETH',
+                  baseAssetPrecision: 8,
+                  quoteAsset: 'USDT',
+                  quotePrecision: 8,
+                  filters: [
+                    {
+                      filterType: 'PRICE_FILTER',
+                      minPrice: '0.01000000',
+                      maxPrice: '100000.00000000',
+                      tickSize: '0.01000000',
+                    },
+                    {
+                      filterType: 'LOT_SIZE',
+                      minQty: '0.00001000',
+                      maxQty: '9000.00000000',
+                      stepSize: '0.00001000',
+                    },
+                    {
+                      filterType: 'MIN_NOTIONAL',
+                      minNotional: '10.00000000',
+                    },
+                  ],
+                },
+              ],
+            };
+
+            return new Response(JSON.stringify(mockData), {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          });
+      } catch (error) {
+        console.error('Error in exchangeInfo request handler:', error);
+
+        // Fall back to mock data
+        console.warn(
+          'Falling back to mock exchangeInfo data due to unexpected error',
+        );
+        const mockData = {
+          timezone: 'UTC',
+          serverTime: Date.now(),
+          rateLimits: [
+            {
+              rateLimitType: 'REQUEST_WEIGHT',
+              interval: 'MINUTE',
+              intervalNum: 1,
+              limit: 1200,
+            },
+          ],
+          symbols: [
+            {
+              symbol: 'BTCUSDT',
+              status: 'TRADING',
+              baseAsset: 'BTC',
+              baseAssetPrecision: 8,
+              quoteAsset: 'USDT',
+              quotePrecision: 8,
+              filters: [
+                {
+                  filterType: 'PRICE_FILTER',
+                  minPrice: '0.01000000',
+                  maxPrice: '1000000.00000000',
+                  tickSize: '0.01000000',
+                },
+                {
+                  filterType: 'LOT_SIZE',
+                  minQty: '0.00000100',
+                  maxQty: '9000.00000000',
+                  stepSize: '0.00000100',
+                },
+                {
+                  filterType: 'MIN_NOTIONAL',
+                  minNotional: '10.00000000',
+                },
+              ],
+            },
+          ],
+        };
+
+        return new Response(JSON.stringify(mockData), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    // Special case for depth endpoint (order book)
+    if (url.includes('depth')) {
+      // Parse the URL to extract parameters
+      const urlObj = new URL(url, window.location.origin);
+      const symbol = urlObj.searchParams.get('symbol');
+      const limit = urlObj.searchParams.get('limit');
+
+      // Construct the real Binance Testnet API URL with parameters
+      let realUrl = 'https://testnet.binance.vision/api/v3/depth';
+      if (symbol) {
+        realUrl += `?symbol=${symbol}`;
+        if (limit) {
+          realUrl += `&limit=${limit}`;
+        }
+      }
+
+      // Create a cache key based on the URL
+      const cacheKey = `binance_testnet_depth_${symbol}_${limit || 'default'}`;
+      const cachedData = sessionStorage.getItem(cacheKey);
+      const cacheExpiry = sessionStorage.getItem(`${cacheKey}_expiry`);
+
+      // Use cached data if available and not expired (cache for 10 seconds for order book)
+      if (cachedData && cacheExpiry && parseInt(cacheExpiry) > Date.now()) {
+        console.log('Using cached depth data');
+        return new Response(cachedData, {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      console.log('Handling depth request with direct proxy:', realUrl);
+
+      try {
+        // Make the direct API call with a timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+        return window
+          .originalFetch(realUrl, { signal: controller.signal })
+          .then(async (response) => {
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+              throw new Error(
+                `API returned ${response.status}: ${response.statusText}`,
+              );
+            }
+
+            // Get the response data
+            const data = await response.text();
+
+            // Cache the response (short cache time for order book data)
+            try {
+              sessionStorage.setItem(cacheKey, data);
+              sessionStorage.setItem(
+                `${cacheKey}_expiry`,
+                (Date.now() + 10000).toString(),
+              ); // 10 second cache
+            } catch (e) {
+              console.warn('Failed to cache depth data:', e);
+            }
+
+            return new Response(data, {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          })
+          .catch((error) => {
+            clearTimeout(timeoutId);
+            console.error(
+              'Error fetching depth data from Binance Testnet API:',
+              error,
+            );
+
+            // If we have stale cached data, use it as a fallback
+            if (cachedData) {
+              console.warn('Using stale cached depth data due to API error');
+              return new Response(cachedData, {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              });
+            }
+
+            // Fall back to mock data
+            console.warn('Falling back to mock depth data');
+            const mockData = mockDataService.generateOrderBook(
+              'binance_testnet',
+              symbol || 'BTCUSDT',
+              limit ? parseInt(limit) : 20,
+            );
+
+            return new Response(JSON.stringify(mockData), {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          });
+      } catch (error) {
+        console.error('Error in depth request handler:', error);
+
+        // Fall back to mock data
+        console.warn('Falling back to mock depth data due to unexpected error');
+        const mockData = mockDataService.generateOrderBook(
+          'binance_testnet',
+          symbol || 'BTCUSDT',
+          limit ? parseInt(limit) : 20,
+        );
+
+        return new Response(JSON.stringify(mockData), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    // Special case for ticker endpoint
+    if (url.includes('ticker/24hr')) {
+      // Parse the URL to extract parameters
+      const urlObj = new URL(url, window.location.origin);
+      const symbol = urlObj.searchParams.get('symbol');
+
+      // Construct the real Binance Testnet API URL with parameters
+      let realUrl = 'https://testnet.binance.vision/api/v3/ticker/24hr';
+      if (symbol) {
+        realUrl += `?symbol=${symbol}`;
+      }
+
+      // Create a cache key based on the URL
+      const cacheKey = `binance_testnet_ticker_${symbol || 'all'}`;
+      const cachedData = sessionStorage.getItem(cacheKey);
+      const cacheExpiry = sessionStorage.getItem(`${cacheKey}_expiry`);
+
+      // Use cached data if available and not expired (cache for 30 seconds for ticker data)
+      if (cachedData && cacheExpiry && parseInt(cacheExpiry) > Date.now()) {
+        console.log('Using cached ticker data');
+        return new Response(cachedData, {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      console.log('Handling ticker request with direct proxy:', realUrl);
+
+      try {
+        // Make the direct API call with a timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+        return window
+          .originalFetch(realUrl, { signal: controller.signal })
+          .then(async (response) => {
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+              throw new Error(
+                `API returned ${response.status}: ${response.statusText}`,
+              );
+            }
+
+            // Get the response data
+            const data = await response.text();
+
+            // Cache the response
+            try {
+              sessionStorage.setItem(cacheKey, data);
+              sessionStorage.setItem(
+                `${cacheKey}_expiry`,
+                (Date.now() + 30000).toString(),
+              ); // 30 second cache
+            } catch (e) {
+              console.warn('Failed to cache ticker data:', e);
+            }
+
+            return new Response(data, {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          })
+          .catch((error) => {
+            clearTimeout(timeoutId);
+            console.error(
+              'Error fetching ticker data from Binance Testnet API:',
+              error,
+            );
+
+            // If we have stale cached data, use it as a fallback
+            if (cachedData) {
+              console.warn('Using stale cached ticker data due to API error');
+              return new Response(cachedData, {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              });
+            }
+
+            // Fall back to mock data
+            console.warn('Falling back to mock ticker data');
+            const mockData = mockDataService.generateTickerStats(
+              // Corrected method name
+              'binance_testnet',
+              symbol || 'BTCUSDT',
+            );
+
+            return new Response(JSON.stringify(mockData), {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          });
+      } catch (error) {
+        console.error('Error in ticker request handler:', error);
+
+        // Fall back to mock data
+        console.warn(
+          'Falling back to mock ticker data due to unexpected error',
+        );
+        const mockData = mockDataService.generateTickerStats(
+          // Corrected method name
+          'binance_testnet',
+          symbol || 'BTCUSDT',
+        );
+
+        return new Response(JSON.stringify(mockData), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    // Special case for klines endpoint
+    if (url.includes('klines')) {
+      // Parse the URL to extract parameters
+      const urlObj = new URL(url, window.location.origin);
+      const symbol = urlObj.searchParams.get('symbol');
+      const interval = urlObj.searchParams.get('interval');
+      const limit = urlObj.searchParams.get('limit');
+
+      // Construct the real Binance Testnet API URL with parameters
+      let realUrl = 'https://testnet.binance.vision/api/v3/klines';
+      const params = new URLSearchParams();
+      if (symbol) params.append('symbol', symbol);
+      if (interval) params.append('interval', interval);
+      if (limit) params.append('limit', limit);
+      realUrl += `?${params.toString()}`;
+
+      // Create a cache key based on the URL
+      const cacheKey = `binance_testnet_klines_${symbol}_${interval}_${limit || 'default'}`;
+      const cachedData = sessionStorage.getItem(cacheKey);
+      const cacheExpiry = sessionStorage.getItem(`${cacheKey}_expiry`);
+
+      // Use cached data if available and not expired (cache for 1 minute for klines)
+      if (cachedData && cacheExpiry && parseInt(cacheExpiry) > Date.now()) {
+        console.log('Using cached klines data');
+        return new Response(cachedData, {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      console.log('Handling klines request with direct proxy:', realUrl);
+
+      try {
+        // Make the direct API call with a timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+        return window
+          .originalFetch(realUrl, { signal: controller.signal })
+          .then(async (response) => {
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+              throw new Error(
+                `API returned ${response.status}: ${response.statusText}`,
+              );
+            }
+
+            // Get the response data
+            const data = await response.text();
+
+            // Cache the response
+            try {
+              sessionStorage.setItem(cacheKey, data);
+              sessionStorage.setItem(
+                `${cacheKey}_expiry`,
+                (Date.now() + 60000).toString(),
+              ); // 1 minute cache
+            } catch (e) {
+              console.warn('Failed to cache klines data:', e);
+            }
+
+            return new Response(data, {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          })
+          .catch((error) => {
+            clearTimeout(timeoutId);
+            console.error(
+              'Error fetching klines data from Binance Testnet API:',
+              error,
+            );
+
+            // If we have stale cached data, use it as a fallback
+            if (cachedData) {
+              console.warn('Using stale cached klines data due to API error');
+              return new Response(cachedData, {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              });
+            }
+
+            // Fall back to mock data
+            console.warn('Falling back to mock klines data');
+            const mockData = mockDataService.generateKlines(
+              'binance_testnet',
+              symbol || 'BTCUSDT',
+              interval || '1h',
+              undefined, // startTime
+              undefined, // endTime
+              limit ? parseInt(limit) : 100, // Correct position for limit
+            );
+
+            return new Response(JSON.stringify(mockData), {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          });
+      } catch (error) {
+        console.error('Error in klines request handler:', error);
+
+        // Fall back to mock data
+        console.warn(
+          'Falling back to mock klines data due to unexpected error',
+        );
+        const mockData = mockDataService.generateKlines(
+          'binance_testnet',
+          symbol || 'BTCUSDT',
+          interval || '1h',
+          undefined, // startTime
+          undefined, // endTime
+          limit ? parseInt(limit) : 100, // Correct position for limit
+        );
+
+        return new Response(JSON.stringify(mockData), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    // Fallback for other Binance Testnet endpoints (return 404 or basic mock)
+    console.warn(`Unhandled Binance Testnet mock request: ${url}`);
+    return new Response(
+      JSON.stringify({ message: 'Mock endpoint not found' }),
+      {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
   }
 
-  // Portfolio endpoint
+  // Handle other mock API requests
   if (url.startsWith('/api/portfolio')) {
     return handlePortfolioRequest(url);
   }
-
-  // Trading pairs endpoint
   if (url.startsWith('/api/trading-pairs')) {
     return handleTradingPairsRequest(url);
   }
-
-  // Order book endpoint
-  if (url.startsWith('/api/order-book')) {
+  if (url.startsWith('/api/orderbook')) {
     return handleOrderBookRequest(url);
   }
-
-  // Klines endpoint
   if (url.startsWith('/api/klines')) {
     return handleKlinesRequest(url);
   }
-
-  // Orders endpoint
   if (url.startsWith('/api/orders')) {
     return handleOrdersRequest(url, init);
   }
 
-  // Admin API endpoints
-  if (
-    url.startsWith('/api/users') ||
-    url.startsWith('/api/roles') ||
-    url.startsWith('/api/permissions')
-  ) {
-    // Forward to mockAdminApi
-    console.log('Forwarding admin API request to mockAdminApi:', url);
-
-    // For admin endpoints, we'll let the mockAdminApi handle it
-    // We need to pass the original input to avoid 'input is not defined' errors
-    return originalFetch(input, init);
-  }
-
-  // For unhandled endpoints, return a 404 response
-  return new Response(JSON.stringify({ error: 'Not found' }), {
+  // Default fallback for unhandled API requests when mocking
+  console.warn(`Unhandled mock API request: ${url}`);
+  return new Response(JSON.stringify({ message: 'Mock endpoint not found' }), {
     status: 404,
     headers: { 'Content-Type': 'application/json' },
   });
 }
 
+// --- Specific Mock Handlers ---
+
 /**
- * Handles portfolio requests with mock data
+ * Handles mock portfolio requests
  */
 function handlePortfolioRequest(url: string): Response {
-  // Extract exchange_id from query params if present
-  const exchangeId = new URL(url, window.location.origin).searchParams.get(
-    'exchange_id',
-  );
-
-  // Generate a consistent API key ID based on the exchange ID
-  const apiKeyId = exchangeId ? `mock-key-${exchangeId}` : 'portfolio-overview';
-
-  // Get mock portfolio data
-  const portfolioData = getMockPortfolioData(apiKeyId).data;
-
-  return new Response(JSON.stringify(portfolioData), {
+  const mockData = getMockPortfolioData();
+  return new Response(JSON.stringify(mockData), {
     status: 200,
     headers: { 'Content-Type': 'application/json' },
   });
 }
 
 /**
- * Handles trading pairs requests with mock data
+ * Handles mock trading pairs requests
  */
 function handleTradingPairsRequest(url: string): Response {
-  // Extract exchange_id from query params if present
-  const exchangeId =
-    new URL(url, window.location.origin).searchParams.get('exchange_id') ||
-    'binance';
-
-  // Get mock trading pairs
-  const tradingPairs = mockDataService.getTradingPairs(exchangeId);
-
-  return new Response(JSON.stringify(tradingPairs), {
+  const mockData = mockDataService.generateTradingPairs('mock'); // Corrected method name
+  return new Response(JSON.stringify(mockData), {
     status: 200,
     headers: { 'Content-Type': 'application/json' },
   });
 }
 
 /**
- * Handles order book requests with mock data
+ * Handles mock order book requests
  */
 function handleOrderBookRequest(url: string): Response {
-  // Extract parameters from query
   const urlObj = new URL(url, window.location.origin);
-  const exchangeId = urlObj.searchParams.get('exchange_id') || 'binance';
-  const symbol = urlObj.searchParams.get('symbol') || 'BTC/USDT';
+  const symbol = urlObj.searchParams.get('symbol') || 'BTCUSDT';
   const limit = parseInt(urlObj.searchParams.get('limit') || '20');
-
-  // Get mock order book
-  const orderBook = mockDataService.getOrderBook(exchangeId, symbol, limit);
-
-  return new Response(JSON.stringify(orderBook), {
+  const mockData = mockDataService.generateOrderBook('mock', symbol, limit);
+  return new Response(JSON.stringify(mockData), {
     status: 200,
     headers: { 'Content-Type': 'application/json' },
   });
 }
 
 /**
- * Handles klines requests with mock data
+ * Handles mock klines requests
  */
 function handleKlinesRequest(url: string): Response {
-  // Extract parameters from query
   const urlObj = new URL(url, window.location.origin);
-  const exchangeId = urlObj.searchParams.get('exchange_id') || 'binance';
-  const symbol = urlObj.searchParams.get('symbol') || 'BTC/USDT';
+  const symbol = urlObj.searchParams.get('symbol') || 'BTCUSDT';
   const interval = urlObj.searchParams.get('interval') || '1h';
-  const startTime = urlObj.searchParams.get('start_time')
-    ? parseInt(urlObj.searchParams.get('start_time')!)
-    : undefined;
-  const endTime = urlObj.searchParams.get('end_time')
-    ? parseInt(urlObj.searchParams.get('end_time')!)
-    : undefined;
   const limit = parseInt(urlObj.searchParams.get('limit') || '100');
-
-  // Get mock klines
-  const klines = mockDataService.generateKlines(
-    exchangeId,
+  const mockData = mockDataService.generateKlines(
+    'mock',
     symbol,
     interval,
-    startTime,
-    endTime,
-    limit,
+    undefined, // startTime
+    undefined, // endTime
+    limit, // Correct position for limit
   );
-
-  return new Response(JSON.stringify(klines), {
+  return new Response(JSON.stringify(mockData), {
     status: 200,
     headers: { 'Content-Type': 'application/json' },
   });
 }
 
 /**
- * Handles orders requests with mock data
+ * Handles mock orders requests
  */
 function handleOrdersRequest(url: string, init?: RequestInit): Response {
-  // Extract parameters from query
-  const urlObj = new URL(url, window.location.origin);
-  const exchangeId = urlObj.searchParams.get('exchange_id') || 'binance';
-  const symbol = urlObj.searchParams.get('symbol') || 'BTC/USDT';
-
-  // For GET requests, return mock orders
-  if (!init || init.method === 'GET' || init.method === undefined) {
-    const orders = mockDataService.getOrders(
-      'mock-user-id',
-      exchangeId,
-      symbol,
+  if (init?.method === 'POST') {
+    // Mock order creation
+    const body = init.body ? JSON.parse(init.body.toString()) : {};
+    const newOrder = {
+      orderId: `mock-${Date.now()}`,
+      symbol: body.symbol,
+      side: body.side,
+      type: body.type,
+      quantity: body.quantity,
+      price: body.price,
+      status: 'NEW',
+      timestamp: Date.now(),
+    };
+    return new Response(JSON.stringify(newOrder), {
+      status: 201,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } else {
+    // Mock fetching orders
+    // Corrected arguments: userId, exchangeId, symbol, count
+    const mockData = mockDataService.generateOrders(
+      'mock',
+      'mock',
+      'BTCUSDT',
+      10,
     );
-
-    return new Response(JSON.stringify(orders), {
+    return new Response(JSON.stringify(mockData), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
   }
-
-  // For POST requests (placing an order)
-  if (init.method === 'POST' && init.body) {
-    try {
-      const orderData = JSON.parse(init.body.toString());
-      const order = mockDataService.placeOrder('mock-user-id', {
-        exchangeId,
-        symbol,
-        ...orderData,
-      });
-
-      return new Response(JSON.stringify(order), {
-        status: 201,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    } catch (error) {
-      return new Response(JSON.stringify({ error: 'Invalid order data' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-  }
-
-  // For other methods
-  return new Response(JSON.stringify({ error: 'Method not supported' }), {
-    status: 405,
-    headers: { 'Content-Type': 'application/json' },
-  });
 }

@@ -53,7 +53,10 @@ export class RateLimitManager {
    * @param exchangeId The exchange ID
    * @param rateLimitInfo The rate limit information
    */
-  private initializeRateLimits(exchangeId: string, rateLimitInfo: RateLimitInfo): void {
+  private initializeRateLimits(
+    exchangeId: string,
+    rateLimitInfo: RateLimitInfo,
+  ): void {
     this.rateLimits.set(exchangeId, rateLimitInfo);
     this.requestQueues.set(exchangeId, []);
     this.processingQueues.set(exchangeId, false);
@@ -182,7 +185,10 @@ export class RateLimitManager {
    * @param exchangeId The exchange ID
    * @param weight The request weight
    */
-  private async processQueue(exchangeId: string, weight: number = 1): Promise<void> {
+  private async processQueue(
+    exchangeId: string,
+    weight: number = 1,
+  ): Promise<void> {
     // If already processing, return
     if (this.processingQueues.get(exchangeId)) {
       return;
@@ -198,7 +204,9 @@ export class RateLimitManager {
           // Wait until we can make requests again
           const rateLimitInfo = this.getRateLimitInfo(exchangeId);
           const waitTime = rateLimitInfo.resetTime.getTime() - Date.now();
-          await new Promise(resolve => setTimeout(resolve, waitTime > 0 ? waitTime : 1000));
+          await new Promise((resolve) =>
+            setTimeout(resolve, waitTime > 0 ? waitTime : 1000),
+          );
           continue;
         }
 
@@ -214,7 +222,10 @@ export class RateLimitManager {
           try {
             await request();
           } catch (error) {
-            console.error(`Error processing queued request for ${exchangeId}:`, error);
+            console.error(
+              `Error processing queued request for ${exchangeId}:`,
+              error,
+            );
           }
         }
       }
@@ -264,32 +275,56 @@ export class RateLimitManager {
             // Check if rate limited
             if (response.status === 429 || response.status === 418) {
               const retryAfter = parseInt(headers['retry-after'] || '60');
-              throw new Error(`Rate limited. Retry after ${retryAfter} seconds.`);
+              throw new Error(
+                `Rate limited. Retry after ${retryAfter} seconds.`,
+              );
             }
 
             // Check for other errors
             if (!response.ok) {
-              const errorText = await response.text();
-              throw new Error(`API error (${response.status}): ${errorText}`);
+              // Don't throw here for non-OK responses like 404.
+              // Let the original response propagate so middleware can handle it.
+              // const errorText = await response.text(); // Avoid consuming body here
+              // throw new Error(`API error (${response.status}): ${errorText}`);
+              console.warn(
+                `RateLimitManager: Received non-OK response (${response.status}). Passing response through.`,
+              );
             }
 
-            // Parse response
+            // Parse response if it was OK, otherwise return the response object itself
+            if (response.ok && parseJson) {
+              return (await response.json()) as T;
+            } else if (response.ok) {
+              return (await response.text()) as unknown as T;
+            } else {
+              // Return the raw Response object for non-OK statuses
+              return response as unknown as T;
+            }
+            /* Original parsing logic:
             if (parseJson) {
               return await response.json() as T;
             } else {
               return await response.text() as unknown as T;
             }
+*/
           } catch (error) {
-            lastError = error instanceof Error ? error : new Error(String(error));
+            lastError =
+              error instanceof Error ? error : new Error(String(error));
 
             // If rate limited, wait for the specified time
             if (lastError.message.includes('Rate limited')) {
-              const retryAfterMatch = lastError.message.match(/Retry after (\d+) seconds/);
-              const retryAfter = retryAfterMatch ? parseInt(retryAfterMatch[1]) * 1000 : retryDelay;
-              await new Promise(resolve => setTimeout(resolve, retryAfter));
+              const retryAfterMatch = lastError.message.match(
+                /Retry after (\d+) seconds/,
+              );
+              const retryAfter = retryAfterMatch
+                ? parseInt(retryAfterMatch[1]) * 1000
+                : retryDelay;
+              await new Promise((resolve) => setTimeout(resolve, retryAfter));
             } else if (attempt < retries) {
               // For other errors, use exponential backoff
-              await new Promise(resolve => setTimeout(resolve, retryDelay * Math.pow(2, attempt)));
+              await new Promise((resolve) =>
+                setTimeout(resolve, retryDelay * Math.pow(2, attempt)),
+              );
             }
 
             attempt++;
