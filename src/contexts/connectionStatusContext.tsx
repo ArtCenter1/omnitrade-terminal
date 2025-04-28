@@ -34,13 +34,15 @@ const ConnectionStatusContext = createContext<ConnectionStatusContextType>({
 /**
  * Provider component for connection status
  */
-export const ConnectionStatusProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  const [statuses, setStatuses] = useState<Map<string, ConnectionStatusInfo>>(new Map());
+export const ConnectionStatusProvider: React.FC<{
+  children: React.ReactNode;
+}> = ({ children }) => {
+  const [statuses, setStatuses] = useState<Map<string, ConnectionStatusInfo>>(
+    new Map(),
+  );
   const connectionManager = ConnectionManager.getInstance();
   const flags = useFeatureFlagsContext();
-  
+
   // Initialize connection status tracking
   useEffect(() => {
     // Function to check Binance Testnet connection
@@ -48,21 +50,22 @@ export const ConnectionStatusProvider: React.FC<{ children: React.ReactNode }> =
       try {
         // Get the adapter
         const adapter = ExchangeFactory.getAdapter('binance_testnet');
-        
+
         // Try to get exchange info
         const exchangeInfo = await adapter.getExchangeInfo();
-        
+
         // Determine if we're using mock data
-        const usingMock = exchangeInfo.name === 'Mock Exchange' || 
-                          exchangeInfo.name.includes('Mock');
-        
+        const usingMock =
+          exchangeInfo.name === 'Mock Exchange' ||
+          exchangeInfo.name.includes('Mock');
+
         return {
           status: ConnectionStatus.CONNECTED,
           type: usingMock ? ConnectionType.MOCK : ConnectionType.TESTNET,
           exchangeId: 'binance_testnet',
           lastChecked: new Date(),
-          message: usingMock 
-            ? 'Connected using mock data' 
+          message: usingMock
+            ? 'Connected using mock data'
             : 'Connected to Binance Testnet',
         };
       } catch (error) {
@@ -76,19 +79,26 @@ export const ConnectionStatusProvider: React.FC<{ children: React.ReactNode }> =
         };
       }
     };
-    
+
     // Subscribe to connection status changes
-    const unsubscribe = connectionManager.subscribe('binance_testnet', (status) => {
-      setStatuses((prev) => {
-        const newStatuses = new Map(prev);
-        newStatuses.set(status.exchangeId, status);
-        return newStatuses;
-      });
-    });
-    
+    const unsubscribe = connectionManager.subscribe(
+      'binance_testnet',
+      (status) => {
+        setStatuses((prev) => {
+          const newStatuses = new Map(prev);
+          newStatuses.set(status.exchangeId, status);
+          return newStatuses;
+        });
+      },
+    );
+
     // Start checking connection status if Binance Testnet is enabled
     if (flags.useBinanceTestnet) {
-      connectionManager.startChecking('binance_testnet', checkBinanceTestnet, 60000);
+      connectionManager.startChecking(
+        'binance_testnet',
+        checkBinanceTestnet,
+        60000,
+      );
     } else {
       // Set status to mock if Binance Testnet is disabled
       connectionManager.setStatus('binance_testnet', {
@@ -97,38 +107,39 @@ export const ConnectionStatusProvider: React.FC<{ children: React.ReactNode }> =
         message: 'Binance Testnet is disabled',
       });
     }
-    
+
     // Clean up on unmount
     return () => {
       unsubscribe();
       connectionManager.stopChecking('binance_testnet');
     };
   }, [flags.useBinanceTestnet]);
-  
+
   // Get status for a specific exchange
   const getStatus = (exchangeId: string): ConnectionStatusInfo => {
     return connectionManager.getStatus(exchangeId);
   };
-  
+
   // Check connection for a specific exchange
   const checkConnection = async (exchangeId: string): Promise<void> => {
     if (exchangeId === 'binance_testnet') {
       // Get the adapter
       const adapter = ExchangeFactory.getAdapter('binance_testnet');
-      
+
       try {
         // Try to get exchange info
         const exchangeInfo = await adapter.getExchangeInfo();
-        
+
         // Determine if we're using mock data
-        const usingMock = exchangeInfo.name === 'Mock Exchange' || 
-                          exchangeInfo.name.includes('Mock');
-        
+        const usingMock =
+          exchangeInfo.name === 'Mock Exchange' ||
+          exchangeInfo.name.includes('Mock');
+
         connectionManager.setStatus('binance_testnet', {
           status: ConnectionStatus.CONNECTED,
           type: usingMock ? ConnectionType.MOCK : ConnectionType.TESTNET,
-          message: usingMock 
-            ? 'Connected using mock data' 
+          message: usingMock
+            ? 'Connected using mock data'
             : 'Connected to Binance Testnet',
         });
       } catch (error) {
@@ -141,19 +152,19 @@ export const ConnectionStatusProvider: React.FC<{ children: React.ReactNode }> =
       }
     }
   };
-  
+
   // Check if connected to a specific exchange
   const isConnected = (exchangeId: string): boolean => {
     const status = getStatus(exchangeId);
     return status.status === ConnectionStatus.CONNECTED;
   };
-  
+
   // Check if using mock data for a specific exchange
   const isMockData = (exchangeId: string): boolean => {
     const status = getStatus(exchangeId);
     return status.type === ConnectionType.MOCK;
   };
-  
+
   const value = {
     statuses,
     getStatus,
@@ -161,7 +172,7 @@ export const ConnectionStatusProvider: React.FC<{ children: React.ReactNode }> =
     isConnected,
     isMockData,
   };
-  
+
   return (
     <ConnectionStatusContext.Provider value={value}>
       {children}
@@ -175,7 +186,9 @@ export const ConnectionStatusProvider: React.FC<{ children: React.ReactNode }> =
 export const useConnectionStatus = () => {
   const context = useContext(ConnectionStatusContext);
   if (context === undefined) {
-    throw new Error('useConnectionStatus must be used within a ConnectionStatusProvider');
+    throw new Error(
+      'useConnectionStatus must be used within a ConnectionStatusProvider',
+    );
   }
   return context;
 };

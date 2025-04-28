@@ -85,6 +85,137 @@ async function handleApiWithMockData(
   url: string,
   init?: RequestInit,
 ): Promise<Response> {
+  // Special case for Binance Testnet API - proxy to the real API
+  if (url.startsWith('/api/mock/binance_testnet')) {
+    console.log(`Proxying Binance Testnet request to real API: ${url}`);
+
+    // Extract the path after /api/mock/binance_testnet
+    const pathMatch = url.match(/\/api\/mock\/binance_testnet\/(.*)/);
+    const path = pathMatch ? pathMatch[1] : '';
+
+    // Special case for exchangeInfo endpoint
+    if (url.includes('exchangeInfo')) {
+      console.log('Handling exchangeInfo request with direct proxy');
+      return window.originalFetch(
+        'https://testnet.binance.vision/api/v3/exchangeInfo',
+      );
+    }
+
+    // Special case for depth endpoint (order book)
+    if (url.includes('depth')) {
+      // Parse the URL to extract parameters
+      const urlObj = new URL(url, window.location.origin);
+      const symbol = urlObj.searchParams.get('symbol');
+      const limit = urlObj.searchParams.get('limit');
+
+      // Construct the real Binance Testnet API URL with parameters
+      let realUrl = 'https://testnet.binance.vision/api/v3/depth';
+      if (symbol) {
+        realUrl += `?symbol=${symbol}`;
+        if (limit) {
+          realUrl += `&limit=${limit}`;
+        }
+      }
+
+      console.log('Handling depth request with direct proxy:', realUrl);
+      return window.originalFetch(realUrl);
+    }
+
+    // Special case for ticker endpoint
+    if (url.includes('ticker/24hr')) {
+      // Parse the URL to extract parameters
+      const urlObj = new URL(url, window.location.origin);
+      const symbol = urlObj.searchParams.get('symbol');
+
+      // Construct the real Binance Testnet API URL with parameters
+      let realUrl = 'https://testnet.binance.vision/api/v3/ticker/24hr';
+      if (symbol) {
+        realUrl += `?symbol=${symbol}`;
+      }
+
+      console.log('Handling ticker request with direct proxy:', realUrl);
+      return window.originalFetch(realUrl);
+    }
+
+    // Special case for trades endpoint
+    if (url.includes('trades')) {
+      // Parse the URL to extract parameters
+      const urlObj = new URL(url, window.location.origin);
+      const symbol = urlObj.searchParams.get('symbol');
+      const limit = urlObj.searchParams.get('limit');
+
+      // Construct the real Binance Testnet API URL with parameters
+      let realUrl = 'https://testnet.binance.vision/api/v3/trades';
+      if (symbol) {
+        realUrl += `?symbol=${symbol}`;
+        if (limit) {
+          realUrl += `&limit=${limit}`;
+        }
+      }
+
+      console.log('Handling trades request with direct proxy:', realUrl);
+      return window.originalFetch(realUrl);
+    }
+
+    // Special case for klines endpoint
+    if (url.includes('klines')) {
+      // Parse the URL to extract parameters
+      const urlObj = new URL(url, window.location.origin);
+      const symbol = urlObj.searchParams.get('symbol');
+      const interval = urlObj.searchParams.get('interval');
+      const startTime = urlObj.searchParams.get('startTime');
+      const endTime = urlObj.searchParams.get('endTime');
+      const limit = urlObj.searchParams.get('limit');
+
+      // Construct the real Binance Testnet API URL with parameters
+      let realUrl = 'https://testnet.binance.vision/api/v3/klines';
+      let params = [];
+
+      if (symbol) params.push(`symbol=${symbol}`);
+      if (interval) params.push(`interval=${interval}`);
+      if (startTime) params.push(`startTime=${startTime}`);
+      if (endTime) params.push(`endTime=${endTime}`);
+      if (limit) params.push(`limit=${limit}`);
+
+      if (params.length > 0) {
+        realUrl += '?' + params.join('&');
+      }
+
+      console.log('Handling klines request with direct proxy:', realUrl);
+      return window.originalFetch(realUrl);
+    }
+
+    // Construct the real Binance Testnet API URL for other endpoints
+    const realUrl = `https://testnet.binance.vision/api/${path}`;
+    console.log(`Proxying to: ${realUrl}`);
+
+    try {
+      // Forward the request to the real Binance Testnet API
+      const response = await window.originalFetch(realUrl, init);
+      console.log(`Proxy response status: ${response.status}`);
+
+      // Clone the response to read it
+      const clonedResponse = response.clone();
+      try {
+        const data = await clonedResponse.json();
+        console.log(`Proxy response data:`, data);
+      } catch (e) {
+        console.log(`Couldn't parse response as JSON`);
+      }
+
+      return response;
+    } catch (error) {
+      console.error(`Error proxying to Binance Testnet API:`, error);
+      return new Response(
+        JSON.stringify({ error: 'Proxy error', message: error.message }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+    }
+  }
+
   // Add a small delay to simulate network latency
   await new Promise((resolve) => setTimeout(resolve, 200));
 

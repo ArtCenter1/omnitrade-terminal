@@ -9,6 +9,8 @@ import { Toaster } from '@/components/ui/sonner';
 import UserRoleManagement from './pages/admin/UserRoleManagement';
 import ComingSoon from './pages/admin/ComingSoon';
 import DevSettings from './pages/admin/DevSettings';
+import BinanceTestnetBenchmarkPage from './pages/admin/BinanceTestnetBenchmarkPage';
+import AnalyticsDashboard from './pages/admin/AnalyticsDashboard';
 import { ScrollToTop } from './components/ScrollToTop';
 import Index from './pages/Index';
 import AuthPage from './pages/auth/AuthPage';
@@ -262,6 +264,28 @@ function App() {
                 redirectTo="/dashboard"
               >
                 <DevSettings />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/analytics"
+            element={
+              <RoleProtectedRoute
+                allowedRoles={['admin']}
+                redirectTo="/dashboard"
+              >
+                <AnalyticsDashboard />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/analytics/binance-benchmark"
+            element={
+              <RoleProtectedRoute
+                allowedRoles={['admin']}
+                redirectTo="/dashboard"
+              >
+                <BinanceTestnetBenchmarkPage />
               </RoleProtectedRoute>
             }
           />
