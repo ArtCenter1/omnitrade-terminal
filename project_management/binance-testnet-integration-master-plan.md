@@ -308,3 +308,9 @@
 3. Proceed to Order Management (Phase 3)
 
 Note: The guided setup wizard for Binance Testnet API keys has been moved to the Comprehensive Onboarding Experience roadmap to be integrated with the user onboarding tour.
+
+## Resources
+
+- [Binance Testnet Documentation](https://testnet.binance.vision/)
+- [Binance API Documentation](https://binance-docs.github.io/apidocs/spot/en/)
+- [Existing Sandbox Implementation](src/services/exchange/sandboxAdapter.ts)

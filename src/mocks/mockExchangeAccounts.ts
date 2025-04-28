@@ -68,7 +68,8 @@ export function generateMockExchangeAccounts(
   // Default logo if exchange not found
   const defaultLogo = '/placeholder.svg';
 
-  return latestApiKeys.map((key, index) => {
+  // Map API keys to accounts
+  const apiKeyAccounts = latestApiKeys.map((key, index) => {
     // Generate a portfolio for this API key to get the total value
     const portfolio = generateMockPortfolio(
       key.exchange_id,
@@ -110,6 +111,18 @@ export function generateMockExchangeAccounts(
       apiKeyId: key.api_key_id,
     };
   });
+
+  // Always include the Sandbox account
+  const sandboxAccount = DEFAULT_MOCK_ACCOUNTS.find(
+    (account) => account.isSandbox,
+  );
+
+  if (sandboxAccount) {
+    console.log('Adding Sandbox account to the list of accounts');
+    return [...apiKeyAccounts, sandboxAccount];
+  }
+
+  return apiKeyAccounts;
 }
 
 // Default mock accounts to use if no API keys are available
@@ -232,18 +245,35 @@ export function getExchangeAccounts(): ExchangeAccount[] {
     }
   }
 
-  const allAccounts = [...DEFAULT_MOCK_ACCOUNTS, ...additionalAccounts];
+  // Make sure we don't have duplicate accounts (especially for Sandbox)
+  const uniqueAccounts = [];
+  const accountIds = new Set();
+
+  // First add all DEFAULT_MOCK_ACCOUNTS
+  for (const account of DEFAULT_MOCK_ACCOUNTS) {
+    uniqueAccounts.push(account);
+    accountIds.add(account.id);
+  }
+
+  // Then add additional accounts if they don't already exist
+  for (const account of additionalAccounts) {
+    if (!accountIds.has(account.id)) {
+      uniqueAccounts.push(account);
+      accountIds.add(account.id);
+    }
+  }
 
   console.log(
     '[mockExchangeAccounts] Returning all accounts:',
-    allAccounts.map((acc) => ({
+    uniqueAccounts.map((acc) => ({
       id: acc.id,
       apiKeyId: acc.apiKeyId,
       name: acc.name,
+      isSandbox: acc.isSandbox,
     })),
   );
 
-  return allAccounts;
+  return uniqueAccounts;
 }
 
 // Function to update the default mock accounts with the latest nicknames
