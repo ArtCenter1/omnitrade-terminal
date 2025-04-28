@@ -112,10 +112,27 @@ export function OrdersTable({
   };
 
   // Handle order cancellation
-  const handleCancelOrder = async (orderId: string) => {
+  const handleCancelOrder = async (orderId: string, symbol?: string) => {
     setIsCancelling((prev) => ({ ...prev, [orderId]: true }));
     try {
-      const result = await cancelOrder(orderId);
+      // Find the order to get the symbol if not provided
+      const order = orders.find((o) => o.id === orderId);
+      const orderSymbol = symbol || order?.symbol;
+
+      if (!orderSymbol) {
+        throw new Error('Symbol not found for order');
+      }
+
+      // Get the exchange ID from the selected account
+      const exchangeId = selectedAccount?.isSandbox
+        ? 'sandbox' // This will be converted to binance_testnet if needed
+        : selectedAccount?.exchange || 'binance';
+
+      console.log(
+        `Canceling order ${orderId} on ${exchangeId} for ${orderSymbol}`,
+      );
+      const result = await cancelOrder(orderId, exchangeId, orderSymbol);
+
       if (result) {
         toast({
           title: 'Order cancelled',
@@ -249,7 +266,9 @@ export function OrdersTable({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleCancelOrder(order.id)}
+                        onClick={() =>
+                          handleCancelOrder(order.id, order.symbol)
+                        }
                         disabled={isCancelling[order.id]}
                         className="h-8 w-8 p-0"
                       >

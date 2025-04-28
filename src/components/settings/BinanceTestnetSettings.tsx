@@ -2,6 +2,7 @@ import { BinanceTestnetToggle } from './BinanceTestnetToggle';
 import { BinanceTestnetTest } from './BinanceTestnetTest';
 import { BinanceTestnetApiKeyManager } from './BinanceTestnetApiKeyManager';
 import { BinanceTestnetMarketDataTest } from './BinanceTestnetMarketDataTest';
+import { BinanceTestnetOrderTest } from './BinanceTestnetOrderTest';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 /**
@@ -13,7 +14,7 @@ export function BinanceTestnetSettings() {
       <BinanceTestnetToggle />
 
       <Tabs defaultValue="api-keys" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="api-keys" id="api-keys-tab">
             API Keys
           </TabsTrigger>
@@ -21,7 +22,10 @@ export function BinanceTestnetSettings() {
             Connection Test
           </TabsTrigger>
           <TabsTrigger value="market-data-test" id="market-data-test-tab">
-            Market Data Test
+            Market Data
+          </TabsTrigger>
+          <TabsTrigger value="order-test" id="order-test-tab">
+            Order Placement
           </TabsTrigger>
         </TabsList>
         <TabsContent value="api-keys">
@@ -32,6 +36,9 @@ export function BinanceTestnetSettings() {
         </TabsContent>
         <TabsContent value="market-data-test">
           <BinanceTestnetMarketDataTest />
+        </TabsContent>
+        <TabsContent value="order-test">
+          <BinanceTestnetOrderTest />
         </TabsContent>
       </Tabs>
     </div>

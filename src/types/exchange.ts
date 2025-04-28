@@ -128,6 +128,7 @@ export interface Order {
   type: OrderType;
   status: OrderStatus;
   price?: number; // Required for limit orders
+  stopPrice?: number; // Required for stop orders
   quantity: number;
   executed: number; // Quantity executed
   remaining: number; // Quantity remaining

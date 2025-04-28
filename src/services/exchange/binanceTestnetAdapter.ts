@@ -752,39 +752,71 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
 
   /**
    * Place a new order on Binance Testnet.
+   * Supports market, limit, stop_limit, and stop_market orders.
+   *
+   * @param apiKeyId The API key ID to use for authentication
+   * @param order The order details
+   * @returns The created order
    */
   public async placeOrder(
     apiKeyId: string,
     order: Partial<Order>,
   ): Promise<Order> {
     try {
+      // Validate required parameters
       if (!order.symbol || !order.side || !order.type) {
-        throw new Error('Missing required order parameters');
+        throw new Error(
+          'Missing required order parameters: symbol, side, or type',
+        );
+      }
+
+      if (order.type === 'limit' && !order.price) {
+        throw new Error('Price is required for limit orders');
+      }
+
+      if (!order.quantity) {
+        throw new Error('Quantity is required for all order types');
       }
 
       // Convert symbol format from BTC/USDT to BTCUSDT
       const formattedSymbol = order.symbol.replace('/', '');
 
-      // Prepare params
+      // Prepare base params
       const params: Record<string, string | number> = {
         symbol: formattedSymbol,
         side: order.side.toUpperCase(),
-        type: order.type.toUpperCase(),
       };
 
-      // Add quantity
-      if (order.quantity) {
-        params.quantity = order.quantity;
-      }
+      // Handle different order types
+      switch (order.type) {
+        case 'market':
+          params.type = 'MARKET';
+          params.quantity = order.quantity;
+          break;
 
-      // Add price for limit orders
-      if (order.type === 'limit' && order.price) {
-        params.price = order.price;
-      }
+        case 'limit':
+          params.type = 'LIMIT';
+          params.quantity = order.quantity;
+          params.price = order.price as number;
+          params.timeInForce = 'GTC'; // Good Till Canceled
+          break;
 
-      // Add timeInForce for limit orders
-      if (order.type === 'limit') {
-        params.timeInForce = 'GTC'; // Good Till Canceled
+        case 'stop_limit':
+          params.type = 'STOP_LOSS_LIMIT';
+          params.quantity = order.quantity;
+          params.price = order.price as number;
+          params.stopPrice = order.stopPrice || order.price; // Use price as stopPrice if not provided
+          params.timeInForce = 'GTC'; // Good Till Canceled
+          break;
+
+        case 'stop_market':
+          params.type = 'STOP_LOSS';
+          params.quantity = order.quantity;
+          params.stopPrice = order.stopPrice || (order.price as number); // Use price as stopPrice if not provided
+          break;
+
+        default:
+          throw new Error(`Unsupported order type: ${order.type}`);
       }
 
       // Make authenticated request to order endpoint
@@ -796,29 +828,66 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
         1, // Weight: 1
       );
 
-      // Format response
+      // Format response to match our Order interface
       return {
-        orderId: response.orderId.toString(),
-        symbol: order.symbol,
+        id: response.orderId.toString(),
         exchangeId: this.exchangeId,
+        symbol: order.symbol,
         side: order.side,
         type: order.type,
+        status: this.mapOrderStatus(response.status),
         price: parseFloat(response.price) || order.price || 0,
         quantity: parseFloat(response.origQty),
-        filledQuantity: parseFloat(response.executedQty),
-        status: this.mapOrderStatus(response.status),
+        executed: parseFloat(response.executedQty),
+        remaining:
+          parseFloat(response.origQty) - parseFloat(response.executedQty),
+        cost: parseFloat(response.cummulativeQuoteQty) || 0,
         timestamp: response.transactTime,
+        lastUpdated: response.updateTime || response.transactTime,
       };
     } catch (error) {
       console.error('Error placing order:', error);
 
-      // Fallback to mock data
+      // Enhance error message for user feedback
+      if (error instanceof Error) {
+        const errorMessage = error.message;
+
+        // Check for specific Binance error messages
+        if (errorMessage.includes('MIN_NOTIONAL')) {
+          throw new Error(
+            'Order value is too small. Please increase the quantity or price.',
+          );
+        }
+
+        if (errorMessage.includes('LOT_SIZE')) {
+          throw new Error(
+            'Invalid quantity. Please check the minimum and maximum quantity limits.',
+          );
+        }
+
+        if (errorMessage.includes('PRICE_FILTER')) {
+          throw new Error(
+            'Invalid price. Please check the minimum and maximum price limits.',
+          );
+        }
+
+        if (errorMessage.includes('INSUFFICIENT_BALANCE')) {
+          throw new Error('Insufficient balance to place this order.');
+        }
+      }
+
+      // If we get here, use mock data as fallback
       return this.mockDataService.createOrder(apiKeyId, this.exchangeId, order);
     }
   }
 
   /**
    * Cancel an existing order on Binance Testnet.
+   *
+   * @param apiKeyId The API key ID to use for authentication
+   * @param orderId The ID of the order to cancel
+   * @param symbol The trading pair symbol (e.g., BTC/USDT)
+   * @returns True if the order was successfully canceled, false otherwise
    */
   public async cancelOrder(
     apiKeyId: string,
@@ -826,11 +895,19 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
     symbol: string,
   ): Promise<boolean> {
     try {
+      if (!symbol) {
+        throw new Error('Symbol is required for canceling an order');
+      }
+
+      if (!orderId) {
+        throw new Error('Order ID is required for canceling an order');
+      }
+
       // Convert symbol format from BTC/USDT to BTCUSDT
       const formattedSymbol = symbol.replace('/', '');
 
       // Make authenticated request to cancel order endpoint
-      await this.makeAuthenticatedRequest(
+      const response = await this.makeAuthenticatedRequest(
         '/api/v3/order',
         'DELETE',
         apiKeyId,
@@ -841,9 +918,20 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
         1,
       ); // Weight: 1
 
+      console.log('Cancel order response:', response);
       return true;
     } catch (error) {
       console.error('Error canceling order:', error);
+
+      // Check for specific error messages
+      if (error instanceof Error) {
+        const errorMessage = error.message;
+
+        // If the order does not exist or is already canceled
+        if (errorMessage.includes('UNKNOWN_ORDER')) {
+          throw new Error('Order not found or already canceled');
+        }
+      }
 
       // Fallback to mock data
       return this.mockDataService.cancelOrder(apiKeyId, orderId);
@@ -852,6 +940,10 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
 
   /**
    * Get all open orders for the user on Binance Testnet.
+   *
+   * @param apiKeyId The API key ID to use for authentication
+   * @param symbol Optional symbol to filter orders
+   * @returns Array of open orders
    */
   public async getOpenOrders(
     apiKeyId: string,
@@ -878,19 +970,41 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
         weight,
       );
 
-      // Format response
-      return response.map((order: any) => ({
-        orderId: order.orderId.toString(),
-        symbol: this.formatSymbol(order.symbol),
-        exchangeId: this.exchangeId,
-        side: order.side.toLowerCase(),
-        type: order.type.toLowerCase(),
-        price: parseFloat(order.price),
-        quantity: parseFloat(order.origQty),
-        filledQuantity: parseFloat(order.executedQty),
-        status: this.mapOrderStatus(order.status),
-        timestamp: order.time,
-      }));
+      // Format response to match our Order interface
+      return response.map((order: any) => {
+        // Map Binance order type to our order type
+        let orderType: 'market' | 'limit' | 'stop_limit' | 'stop_market' =
+          'limit';
+
+        if (order.type === 'MARKET') {
+          orderType = 'market';
+        } else if (order.type === 'LIMIT') {
+          orderType = 'limit';
+        } else if (order.type === 'STOP_LOSS_LIMIT') {
+          orderType = 'stop_limit';
+        } else if (order.type === 'STOP_LOSS') {
+          orderType = 'stop_market';
+        }
+
+        const origQty = parseFloat(order.origQty);
+        const executedQty = parseFloat(order.executedQty);
+
+        return {
+          id: order.orderId.toString(),
+          symbol: this.formatSymbol(order.symbol),
+          exchangeId: this.exchangeId,
+          side: order.side.toLowerCase() as 'buy' | 'sell',
+          type: orderType,
+          price: parseFloat(order.price),
+          quantity: origQty,
+          executed: executedQty,
+          remaining: origQty - executedQty,
+          cost: parseFloat(order.cummulativeQuoteQty) || 0,
+          status: this.mapOrderStatus(order.status),
+          timestamp: order.time,
+          lastUpdated: order.updateTime || order.time,
+        };
+      });
     } catch (error) {
       console.error('Error getting open orders:', error);
 
@@ -905,6 +1019,11 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
 
   /**
    * Get order history for the user on Binance Testnet.
+   *
+   * @param apiKeyId The API key ID to use for authentication
+   * @param symbol Symbol to filter orders (required by Binance)
+   * @param limit Maximum number of orders to return (default: 50)
+   * @returns Array of historical orders
    */
   public async getOrderHistory(
     apiKeyId: string,
@@ -913,7 +1032,9 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
   ): Promise<Order[]> {
     try {
       if (!symbol) {
-        throw new Error('Symbol is required for order history');
+        throw new Error(
+          'Symbol is required for order history on Binance Testnet',
+        );
       }
 
       // Convert symbol format from BTC/USDT to BTCUSDT
@@ -931,19 +1052,41 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
         10, // Weight: 10
       );
 
-      // Format response
-      return response.map((order: any) => ({
-        orderId: order.orderId.toString(),
-        symbol: this.formatSymbol(order.symbol),
-        exchangeId: this.exchangeId,
-        side: order.side.toLowerCase(),
-        type: order.type.toLowerCase(),
-        price: parseFloat(order.price),
-        quantity: parseFloat(order.origQty),
-        filledQuantity: parseFloat(order.executedQty),
-        status: this.mapOrderStatus(order.status),
-        timestamp: order.time,
-      }));
+      // Format response to match our Order interface
+      return response.map((order: any) => {
+        // Map Binance order type to our order type
+        let orderType: 'market' | 'limit' | 'stop_limit' | 'stop_market' =
+          'limit';
+
+        if (order.type === 'MARKET') {
+          orderType = 'market';
+        } else if (order.type === 'LIMIT') {
+          orderType = 'limit';
+        } else if (order.type === 'STOP_LOSS_LIMIT') {
+          orderType = 'stop_limit';
+        } else if (order.type === 'STOP_LOSS') {
+          orderType = 'stop_market';
+        }
+
+        const origQty = parseFloat(order.origQty);
+        const executedQty = parseFloat(order.executedQty);
+
+        return {
+          id: order.orderId.toString(),
+          symbol: this.formatSymbol(order.symbol),
+          exchangeId: this.exchangeId,
+          side: order.side.toLowerCase() as 'buy' | 'sell',
+          type: orderType,
+          price: parseFloat(order.price),
+          quantity: origQty,
+          executed: executedQty,
+          remaining: origQty - executedQty,
+          cost: parseFloat(order.cummulativeQuoteQty) || 0,
+          status: this.mapOrderStatus(order.status),
+          timestamp: order.time,
+          lastUpdated: order.updateTime || order.time,
+        };
+      });
     } catch (error) {
       console.error('Error getting order history:', error);
 
@@ -1009,33 +1152,23 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
 
   /**
    * Map Binance order status to our order status
+   *
+   * @param binanceStatus The Binance order status
+   * @returns The mapped order status in our system
    */
-  private mapOrderStatus(
-    binanceStatus: string,
-  ):
-    | 'new'
-    | 'partially_filled'
-    | 'filled'
-    | 'canceled'
-    | 'rejected'
-    | 'expired' {
-    const statusMap: Record<
-      string,
-      | 'new'
-      | 'partially_filled'
-      | 'filled'
-      | 'canceled'
-      | 'rejected'
-      | 'expired'
-    > = {
+  private mapOrderStatus(binanceStatus: string): OrderStatus {
+    const statusMap: Record<string, OrderStatus> = {
       NEW: 'new',
       PARTIALLY_FILLED: 'partially_filled',
       FILLED: 'filled',
       CANCELED: 'canceled',
+      PENDING_CANCEL: 'canceled', // Treated as canceled in our system
       REJECTED: 'rejected',
       EXPIRED: 'expired',
+      PENDING: 'new', // Treated as new in our system
     };
 
+    // If we don't have a mapping, default to 'new'
     return statusMap[binanceStatus] || 'new';
   }
 }

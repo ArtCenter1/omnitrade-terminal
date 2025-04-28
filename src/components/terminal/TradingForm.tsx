@@ -5,8 +5,11 @@ import { Input } from '@/components/ui/input';
 import { TradingPair } from './TradingPairSelector';
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import { useToast } from '@/components/ui/use-toast';
-import { placeOrder, CreateOrderDto } from '@/services/enhancedOrdersService';
+import { CreateOrderDto } from '@/services/enhancedOrdersService';
 import { usePrice } from '@/contexts/PriceContext';
+import { ExchangeFactory } from '@/services/exchange/exchangeFactory';
+import { useFeatureFlags } from '@/config/featureFlags';
+import logger from '@/utils/logger';
 
 interface TradingFormProps {
   selectedPair?: TradingPair;
@@ -126,6 +129,8 @@ export function TradingForm({
     }
   };
 
+  const { useBinanceTestnet } = useFeatureFlags();
+
   const handlePlaceOrder = async () => {
     if (!selectedAccount) {
       toast({
@@ -157,21 +162,60 @@ export function TradingForm({
     setIsSubmitting(true);
 
     try {
-      const orderDto: CreateOrderDto = {
-        exchangeId: selectedAccount.exchange,
+      // Determine which exchange adapter to use
+      const exchangeId = selectedAccount.isSandbox
+        ? useBinanceTestnet
+          ? 'binance_testnet'
+          : 'sandbox'
+        : selectedAccount.exchange;
+
+      logger.info('Placing order', {
+        component: 'TradingForm',
+        method: 'handlePlaceOrder',
+        data: {
+          exchangeId,
+          selectedAccount,
+          useBinanceTestnet,
+          isSandbox: selectedAccount.isSandbox,
+        },
+      });
+
+      // Get the appropriate adapter
+      const adapter = ExchangeFactory.getAdapter(exchangeId);
+
+      // Prepare order parameters
+      const orderParams: Partial<any> = {
         symbol: selectedPair.symbol,
         side,
         type: orderType,
         quantity: parseFloat(amount),
       };
 
-      console.log('Placing order with data:', orderDto);
-      const order = await placeOrder(orderDto);
-      console.log('Order placed successfully:', order);
+      // Add price for limit orders
+      if (orderType === 'limit' && selectedPrice) {
+        orderParams.price = parseFloat(selectedPrice);
+      }
 
+      logger.debug('Order parameters', {
+        component: 'TradingForm',
+        method: 'handlePlaceOrder',
+        data: { orderParams },
+      });
+
+      // Place the order using the adapter
+      // Use 'default' as the API key ID for now - in a real app, you would use the actual API key ID
+      const order = await adapter.placeOrder('default', orderParams);
+
+      logger.info('Order placed successfully', {
+        component: 'TradingForm',
+        method: 'handlePlaceOrder',
+        data: { order },
+      });
+
+      // Show success message
       toast({
         title: 'Order placed successfully',
-        description: `${side.toUpperCase()} ${amount} ${baseAsset} at market price`,
+        description: `${side.toUpperCase()} ${amount} ${baseAsset} at ${orderType === 'market' ? 'market price' : selectedPrice}`,
       });
 
       // Reset form
@@ -183,7 +227,12 @@ export function TradingForm({
         onOrderPlaced();
       }
     } catch (error) {
-      console.error('Error placing order:', error);
+      logger.error('Error placing order', {
+        component: 'TradingForm',
+        method: 'handlePlaceOrder',
+        data: { error },
+      });
+
       toast({
         title: 'Failed to place order',
         description: error instanceof Error ? error.message : 'Unknown error',

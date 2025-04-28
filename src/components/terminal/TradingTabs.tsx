@@ -5,15 +5,13 @@ import { Input } from '@/components/ui/input';
 import { TradingPair } from '@/types/trading';
 import { useToast } from '@/components/ui/use-toast';
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
-import {
-  placeOrder,
-  CreateOrderDto,
-  Order,
-} from '@/services/enhancedOrdersService';
+import { CreateOrderDto, Order } from '@/services/enhancedOrdersService';
 import { getMockPortfolioData } from '@/mocks/mockPortfolio';
 import { usePrice } from '@/contexts/PriceContext';
 import { mockExchangeService } from '@/services/mockExchangeService';
 import logger from '@/utils/logger';
+import { ExchangeFactory } from '@/services/exchange/exchangeFactory';
+import { useFeatureFlags } from '@/config/featureFlags';
 
 interface TradingTabsProps {
   selectedPair?: TradingPair;
@@ -401,6 +399,8 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
     }
   };
 
+  const { useBinanceTestnet } = useFeatureFlags();
+
   const handlePlaceOrder = async () => {
     logger.info('handlePlaceOrder called', {
       component: 'TradingTabs',
@@ -508,45 +508,36 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
     });
 
     try {
-      logger.debug('Creating order DTO', {
+      // Determine which exchange adapter to use
+      const exchangeId = selectedAccount.isSandbox
+        ? useBinanceTestnet
+          ? 'binance_testnet'
+          : 'sandbox'
+        : selectedAccount.exchange;
+
+      logger.info('Placing order', {
         component: 'TradingTabs',
         method: 'handlePlaceOrder',
-        data: { selectedAccount },
+        data: {
+          exchangeId,
+          selectedAccount,
+          useBinanceTestnet,
+          isSandbox: selectedAccount.isSandbox,
+        },
       });
 
-      // Ensure we have all required data
-      if (!selectedAccount.exchange) {
-        logger.error('Missing exchange ID in selectedAccount', {
-          component: 'TradingTabs',
-          method: 'handlePlaceOrder',
-          data: { selectedAccount },
-        });
-        throw new Error('Exchange ID is missing');
-      }
+      // Get the appropriate adapter
+      const adapter = ExchangeFactory.getAdapter(exchangeId);
 
-      if (!selectedPair.symbol) {
-        logger.error('Missing symbol in selectedPair', {
-          component: 'TradingTabs',
-          method: 'handlePlaceOrder',
-          data: { selectedPair },
-        });
-        throw new Error('Trading pair symbol is missing');
-      }
-
-      const orderDto: CreateOrderDto = {
-        exchangeId: selectedAccount.exchange,
+      // Prepare order parameters
+      const orderParams: Partial<any> = {
         symbol: selectedPair.symbol,
         side,
         type: orderType,
         quantity: parseFloat(amount),
       };
 
-      logger.debug('Created initial orderDto', {
-        component: 'TradingTabs',
-        method: 'handlePlaceOrder',
-        data: { orderDto },
-      });
-
+      // Add price for limit orders
       if (orderType === 'limit' || orderType === 'stop') {
         if (!price || isNaN(parseFloat(price))) {
           logger.error('Invalid price for limit/stop order', {
@@ -556,15 +547,9 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
           });
           throw new Error('Price is required for limit/stop orders');
         }
-        orderDto.price = parseFloat(price);
-        logger.debug('Added price to limit/stop order', {
-          component: 'TradingTabs',
-          method: 'handlePlaceOrder',
-          data: { price: orderDto.price },
-        });
+        orderParams.price = parseFloat(price);
       } else if (orderType === 'market') {
         // For market orders, try to get price from mockExchangeService first
-        const exchangeId = selectedAccount?.exchangeId || 'binance';
         const pairSymbol = selectedPair?.symbol || `${baseAsset}/${quoteAsset}`;
 
         logger.debug('Getting price from mockExchangeService', {
@@ -577,160 +562,87 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
           exchangeId,
           pairSymbol,
         );
-        logger.debug('Got price from mockExchangeService', {
-          component: 'TradingTabs',
-          method: 'handlePlaceOrder',
-          data: { currentPrice },
-        });
 
         if (currentPrice && parseFloat(currentPrice) > 0) {
           // Use the price from mockExchangeService
           const parsedPrice = parseFloat(currentPrice);
-          logger.debug('Using price from mockExchangeService', {
-            component: 'TradingTabs',
-            method: 'handlePlaceOrder',
-            data: { parsedPrice },
-          });
-          orderDto.price = parsedPrice;
+          orderParams.price = parsedPrice;
         } else {
           // Fall back to PriceContext
           const bestPrice = getBestPrice();
-          logger.debug('Falling back to PriceContext price', {
-            component: 'TradingTabs',
-            method: 'handlePlaceOrder',
-            data: { bestPrice },
-          });
 
           if (bestPrice && bestPrice !== '0' && bestPrice !== '0.00') {
             const parsedPrice = parseFloat(bestPrice);
-            logger.debug('Using price from PriceContext', {
-              component: 'TradingTabs',
-              method: 'handlePlaceOrder',
-              data: { parsedPrice },
-            });
-            orderDto.price = parsedPrice;
+            orderParams.price = parsedPrice;
           } else if (selectedPair?.price) {
-            // Fallback to selectedPair price if PriceContext doesn't have a valid price
+            // Fallback to selectedPair price
             const parsedPrice = parseFloat(
               selectedPair.price.replace(/,/g, ''),
             );
-            logger.debug('Using current pair price from selectedPair', {
-              component: 'TradingTabs',
-              method: 'handlePlaceOrder',
-              data: { parsedPrice, originalPrice: selectedPair.price },
-            });
-            orderDto.price = parsedPrice;
+            orderParams.price = parsedPrice;
           } else {
             // Default price if none is available
             const defaultPrice =
               baseAsset === 'BTC' ? 60000 : baseAsset === 'ETH' ? 3000 : 10;
-            logger.debug('Using default price', {
-              component: 'TradingTabs',
-              method: 'handlePlaceOrder',
-              data: { defaultPrice, baseAsset },
-            });
-            orderDto.price = defaultPrice;
+            orderParams.price = defaultPrice;
           }
         }
       }
 
       // Final check to ensure we have a valid price
-      if (!orderDto.price || orderDto.price <= 0) {
-        logger.warn('No valid price in orderDto, using default price', {
-          component: 'TradingTabs',
-          method: 'handlePlaceOrder',
-          data: { orderDto },
-        });
+      if (!orderParams.price || orderParams.price <= 0) {
         const defaultPrice =
           baseAsset === 'BTC' ? 60000 : baseAsset === 'ETH' ? 3000 : 10;
-        logger.debug('Using default price', {
-          component: 'TradingTabs',
-          method: 'handlePlaceOrder',
-          data: { defaultPrice, baseAsset },
-        });
-        orderDto.price = defaultPrice;
+        orderParams.price = defaultPrice;
       }
 
-      logger.info('Placing order with data', {
+      logger.debug('Order parameters', {
         component: 'TradingTabs',
         method: 'handlePlaceOrder',
-        data: { orderDto },
+        data: { orderParams },
       });
 
-      // Declare the order variable outside the try block so it's accessible in the toast
-      let order: Order;
+      // Place the order using the adapter
+      // Use 'default' as the API key ID for now - in a real app, you would use the actual API key ID
+      const startTime = Date.now();
+      const order = await adapter.placeOrder('default', orderParams);
+      const endTime = Date.now();
 
-      try {
-        // Force the use of mock implementation in development mode
-        logger.debug('Calling placeOrder function', {
-          component: 'TradingTabs',
-          method: 'handlePlaceOrder',
+      logger.info('Order placed successfully', {
+        component: 'TradingTabs',
+        method: 'handlePlaceOrder',
+        data: {
+          order,
+          executionTimeMs: endTime - startTime,
+          orderId: order.id,
+          status: 'success',
+        },
+      });
+
+      // Manually trigger localStorage save to ensure the order is persisted
+      const currentOrders = JSON.parse(
+        localStorage.getItem('omnitrade_mock_orders') || '[]',
+      );
+
+      // Check if the order is already in localStorage
+      const orderExists = currentOrders.some((o: any) => o.id === order.id);
+      if (!orderExists) {
+        currentOrders.push({
+          ...order,
+          createdAt:
+            order.createdAt instanceof Date
+              ? order.createdAt.toISOString()
+              : order.createdAt,
+          updatedAt:
+            order.updatedAt instanceof Date
+              ? order.updatedAt.toISOString()
+              : order.updatedAt,
         });
 
-        const startTime = Date.now();
-        order = await placeOrder(orderDto);
-        const endTime = Date.now();
-
-        logger.info('Order placed successfully', {
-          component: 'TradingTabs',
-          method: 'handlePlaceOrder',
-          data: {
-            order,
-            executionTimeMs: endTime - startTime,
-            orderId: order.id,
-            status: 'success',
-          },
-        });
-
-        // Manually trigger localStorage save to ensure the order is persisted
-        const currentOrders = JSON.parse(
-          localStorage.getItem('omnitrade_mock_orders') || '[]',
+        localStorage.setItem(
+          'omnitrade_mock_orders',
+          JSON.stringify(currentOrders),
         );
-        logger.debug('Current orders in localStorage', {
-          component: 'TradingTabs',
-          method: 'handlePlaceOrder',
-          data: { count: currentOrders.length },
-        });
-
-        // Check if the order is already in localStorage
-        const orderExists = currentOrders.some((o: any) => o.id === order.id);
-        if (!orderExists) {
-          logger.debug('Order not found in localStorage, adding it manually', {
-            component: 'TradingTabs',
-            method: 'handlePlaceOrder',
-            data: { orderId: order.id },
-          });
-
-          currentOrders.push({
-            ...order,
-            createdAt:
-              order.createdAt instanceof Date
-                ? order.createdAt.toISOString()
-                : order.createdAt,
-            updatedAt:
-              order.updatedAt instanceof Date
-                ? order.updatedAt.toISOString()
-                : order.updatedAt,
-          });
-
-          localStorage.setItem(
-            'omnitrade_mock_orders',
-            JSON.stringify(currentOrders),
-          );
-
-          logger.debug('Updated localStorage with orders', {
-            component: 'TradingTabs',
-            method: 'handlePlaceOrder',
-            data: { count: currentOrders.length },
-          });
-        }
-      } catch (orderError) {
-        logger.error('Error in placeOrder function', {
-          component: 'TradingTabs',
-          method: 'handlePlaceOrder',
-          data: { error: orderError },
-        });
-        throw orderError;
       }
 
       // Show success toast with more details
@@ -789,8 +701,35 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
         data: { errorName, errorMessage, errorCode },
       });
 
+      // Check if it's a Binance-specific error
+      if (errorMessage.includes('MIN_NOTIONAL')) {
+        toast({
+          title: 'Order Too Small',
+          description:
+            'Order value is too small. Please increase the quantity or price.',
+          variant: 'destructive',
+        });
+      } else if (errorMessage.includes('LOT_SIZE')) {
+        toast({
+          title: 'Invalid Quantity',
+          description: 'Please check the minimum and maximum quantity limits.',
+          variant: 'destructive',
+        });
+      } else if (errorMessage.includes('PRICE_FILTER')) {
+        toast({
+          title: 'Invalid Price',
+          description: 'Please check the minimum and maximum price limits.',
+          variant: 'destructive',
+        });
+      } else if (errorMessage.includes('INSUFFICIENT_BALANCE')) {
+        toast({
+          title: 'Insufficient Balance',
+          description: 'You do not have enough funds to place this order.',
+          variant: 'destructive',
+        });
+      }
       // Check if it's a network error or connection refused error
-      if (
+      else if (
         (errorName === 'Error' && errorMessage.includes('Network')) ||
         errorMessage.includes('ECONNREFUSED') ||
         errorCode === 'ECONNREFUSED'
