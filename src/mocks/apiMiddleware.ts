@@ -43,6 +43,12 @@ export function setupApiMiddleware() {
       return handleApiWithMockData(url, init);
     }
 
+    // Check if this is a Binance Testnet request and if Binance Testnet is disabled
+    if (url.includes('/api/mock/binance_testnet') && !flags.useBinanceTestnet) {
+      console.log(`Binance Testnet is disabled. Using mock data for: ${url}`);
+      return handleApiWithMockData(url, init);
+    }
+
     try {
       // First try the original fetch
       const response = await originalFetch(input, init);
@@ -112,6 +118,151 @@ async function handleApiWithMockData(
 ): Promise<Response> {
   // Special case for Binance Testnet API - proxy to the real API
   if (url.startsWith('/api/mock/binance_testnet')) {
+    // Get current feature flags
+    const flags = getFeatureFlags();
+
+    // Check if Binance Testnet is enabled
+    if (!flags.useBinanceTestnet) {
+      console.log(`Binance Testnet is disabled. Using mock data for: ${url}`);
+
+      // If the request is for exchangeInfo, return mock data
+      if (url.includes('exchangeInfo')) {
+        const mockData = {
+          timezone: 'UTC',
+          serverTime: Date.now(),
+          rateLimits: [
+            {
+              rateLimitType: 'REQUEST_WEIGHT',
+              interval: 'MINUTE',
+              intervalNum: 1,
+              limit: 1200,
+            },
+          ],
+          symbols: [
+            {
+              symbol: 'BTCUSDT',
+              status: 'TRADING',
+              baseAsset: 'BTC',
+              baseAssetPrecision: 8,
+              quoteAsset: 'USDT',
+              quotePrecision: 8,
+              filters: [
+                {
+                  filterType: 'PRICE_FILTER',
+                  minPrice: '0.01000000',
+                  maxPrice: '1000000.00000000',
+                  tickSize: '0.01000000',
+                },
+                {
+                  filterType: 'LOT_SIZE',
+                  minQty: '0.00000100',
+                  maxQty: '9000.00000000',
+                  stepSize: '0.00000100',
+                },
+                {
+                  filterType: 'MIN_NOTIONAL',
+                  minNotional: '10.00000000',
+                },
+              ],
+            },
+            {
+              symbol: 'ETHUSDT',
+              status: 'TRADING',
+              baseAsset: 'ETH',
+              baseAssetPrecision: 8,
+              quoteAsset: 'USDT',
+              quotePrecision: 8,
+              filters: [
+                {
+                  filterType: 'PRICE_FILTER',
+                  minPrice: '0.01000000',
+                  maxPrice: '100000.00000000',
+                  tickSize: '0.01000000',
+                },
+                {
+                  filterType: 'LOT_SIZE',
+                  minQty: '0.00001000',
+                  maxQty: '9000.00000000',
+                  stepSize: '0.00001000',
+                },
+                {
+                  filterType: 'MIN_NOTIONAL',
+                  minNotional: '10.00000000',
+                },
+              ],
+            },
+          ],
+        };
+
+        return new Response(JSON.stringify(mockData), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      // For other endpoints, use the appropriate mock data generator
+      if (url.includes('depth')) {
+        const urlObj = new URL(url, window.location.origin);
+        const symbol = urlObj.searchParams.get('symbol') || 'BTCUSDT';
+        const limit = parseInt(urlObj.searchParams.get('limit') || '20');
+        const mockData = mockDataService.generateOrderBook(
+          'binance_testnet',
+          symbol,
+          limit,
+        );
+
+        return new Response(JSON.stringify(mockData), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (url.includes('ticker/24hr')) {
+        const urlObj = new URL(url, window.location.origin);
+        const symbol = urlObj.searchParams.get('symbol') || 'BTCUSDT';
+        const mockData = mockDataService.generateTickerStats(
+          'binance_testnet',
+          symbol,
+        );
+
+        return new Response(JSON.stringify(mockData), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (url.includes('klines')) {
+        const urlObj = new URL(url, window.location.origin);
+        const symbol = urlObj.searchParams.get('symbol') || 'BTCUSDT';
+        const interval = urlObj.searchParams.get('interval') || '1h';
+        const limit = parseInt(urlObj.searchParams.get('limit') || '100');
+        const mockData = mockDataService.generateKlines(
+          'binance_testnet',
+          symbol,
+          interval,
+          undefined,
+          undefined,
+          limit,
+        );
+
+        return new Response(JSON.stringify(mockData), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Default fallback for unhandled endpoints
+      return new Response(
+        JSON.stringify({
+          message: 'Mock endpoint not found (Binance Testnet is disabled)',
+        }),
+        {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+    }
+
     console.log(`Proxying Binance Testnet request to real API: ${url}`);
 
     // Extract the path after /api/mock/binance_testnet
