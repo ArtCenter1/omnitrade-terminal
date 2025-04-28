@@ -49,6 +49,9 @@ export function setupApiMiddleware() {
       return handleApiWithMockData(url, init);
     }
 
+    // Log all API requests for debugging
+    console.log(`API request: ${url}`);
+
     try {
       // First try the original fetch
       const response = await originalFetch(input, init);
@@ -61,12 +64,12 @@ export function setupApiMiddleware() {
       // If we get here, the request failed but the server responded
       console.warn(`API request failed with status ${response.status}: ${url}`);
 
-      // If it's the specific Binance Testnet exchangeInfo endpoint and it returned 404,
+      // If it's any Binance Testnet endpoint and it returned 404,
       // treat it as unavailable and use the proxy/mock logic.
       // This might be bypassed if RateLimitManager throws an error instead of returning the response.
       if (
         response.status === 404 &&
-        url.includes('/api/mock/binance_testnet/api/v3/exchangeInfo')
+        url.includes('/api/mock/binance_testnet')
       ) {
         console.log(
           `Middleware: Detected 404 for ${url}, falling back to direct proxy/mock.`,
@@ -88,8 +91,8 @@ export function setupApiMiddleware() {
       // Network error, server not available, or error thrown by RateLimitManager
       console.warn(`API request failed for ${url}:`, error);
 
-      // Explicitly check if the failed request was for the specific endpoint
-      if (url.includes('/api/mock/binance_testnet/api/v3/exchangeInfo')) {
+      // Explicitly check if the failed request was for any Binance Testnet endpoint
+      if (url.includes('/api/mock/binance_testnet')) {
         console.log(
           `Middleware catch block: Falling back to proxy/mock for ${url} due to error.`,
         );
@@ -265,10 +268,6 @@ async function handleApiWithMockData(
 
     console.log(`Proxying Binance Testnet request to real API: ${url}`);
 
-    // Extract the path after /api/mock/binance_testnet
-    const pathMatch = url.match(/\/api\/mock\/binance_testnet\/(.*)/);
-    const path = pathMatch ? pathMatch[1] : '';
-
     // Special case for exchangeInfo endpoint
     if (url.includes('exchangeInfo')) {
       console.log('Handling exchangeInfo request with direct proxy');
@@ -292,6 +291,9 @@ async function handleApiWithMockData(
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
+        console.log(
+          'Making direct request to Binance Testnet API for exchangeInfo',
+        );
         return window
           .originalFetch('https://testnet.binance.vision/api/v3/exchangeInfo', {
             signal: controller.signal,
@@ -480,6 +482,7 @@ async function handleApiWithMockData(
 
       // Construct the real Binance Testnet API URL with parameters
       let realUrl = 'https://testnet.binance.vision/api/v3/depth';
+      console.log(`Using Binance Testnet API URL: ${realUrl}`);
       if (symbol) {
         realUrl += `?symbol=${symbol}`;
         if (limit) {
@@ -593,6 +596,7 @@ async function handleApiWithMockData(
 
       // Construct the real Binance Testnet API URL with parameters
       let realUrl = 'https://testnet.binance.vision/api/v3/ticker/24hr';
+      console.log(`Using Binance Testnet API URL for ticker: ${realUrl}`);
       if (symbol) {
         realUrl += `?symbol=${symbol}`;
       }
@@ -707,6 +711,7 @@ async function handleApiWithMockData(
 
       // Construct the real Binance Testnet API URL with parameters
       let realUrl = 'https://testnet.binance.vision/api/v3/klines';
+      console.log(`Using Binance Testnet API URL for klines: ${realUrl}`);
       const params = new URLSearchParams();
       if (symbol) params.append('symbol', symbol);
       if (interval) params.append('interval', interval);
@@ -819,15 +824,69 @@ async function handleApiWithMockData(
       }
     }
 
-    // Fallback for other Binance Testnet endpoints (return 404 or basic mock)
+    // Handle any other Binance Testnet endpoints with generic mock data
     console.warn(`Unhandled Binance Testnet mock request: ${url}`);
-    return new Response(
-      JSON.stringify({ message: 'Mock endpoint not found' }),
-      {
-        status: 404,
+
+    // Parse the URL to extract the endpoint path
+    const urlObj = new URL(url, window.location.origin);
+    const path = urlObj.pathname;
+
+    // Extract symbol parameter if present
+    const symbol = urlObj.searchParams.get('symbol') || 'BTCUSDT';
+
+    // Generate appropriate mock data based on the endpoint path
+    if (path.includes('/depth')) {
+      // Order book data
+      const limit = parseInt(urlObj.searchParams.get('limit') || '20');
+      const mockData = mockDataService.generateOrderBook(
+        'binance_testnet',
+        symbol,
+        limit,
+      );
+      return new Response(JSON.stringify(mockData), {
+        status: 200,
         headers: { 'Content-Type': 'application/json' },
-      },
-    );
+      });
+    } else if (path.includes('/ticker/24hr')) {
+      // Ticker data
+      const mockData = mockDataService.generateTickerStats(
+        'binance_testnet',
+        symbol,
+      );
+      return new Response(JSON.stringify(mockData), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } else if (path.includes('/klines')) {
+      // Klines data
+      const interval = urlObj.searchParams.get('interval') || '1h';
+      const limit = parseInt(urlObj.searchParams.get('limit') || '100');
+      const mockData = mockDataService.generateKlines(
+        'binance_testnet',
+        symbol,
+        interval,
+        undefined,
+        undefined,
+        limit,
+      );
+      return new Response(JSON.stringify(mockData), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } else {
+      // Generic response for other endpoints
+      return new Response(
+        JSON.stringify({
+          message: 'Generic mock data for Binance Testnet',
+          endpoint: path,
+          params: Object.fromEntries(urlObj.searchParams.entries()),
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+    }
   }
 
   // Handle other mock API requests

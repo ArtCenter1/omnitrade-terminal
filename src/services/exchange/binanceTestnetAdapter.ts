@@ -270,8 +270,18 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
     weight: number = 1,
   ): Promise<T> {
     try {
-      // Build URL
-      const url = `${this.baseUrl}${endpoint}`;
+      // Build URL with query parameters
+      let url = `${this.baseUrl}${endpoint}`;
+
+      // Add query parameters if provided
+      if (Object.keys(params).length > 0) {
+        const queryString = Object.entries(params)
+          .map(([key, value]) => `${key}=${encodeURIComponent(String(value))}`)
+          .join('&');
+        url = `${url}?${queryString}`;
+      }
+
+      console.log(`Making request to: ${url}`);
 
       // Make request with rate limiting
       return await makeApiRequest<T>(this.exchangeId, url, {
@@ -288,6 +298,14 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
         `Error making unauthenticated request to ${endpoint}:`,
         error,
       );
+
+      // Enhance error message with more details
+      if (error instanceof Error) {
+        const errorMessage = error.message;
+        const enhancedMessage = `Error requesting ${this.baseUrl}${endpoint}: ${errorMessage}`;
+        throw new Error(enhancedMessage);
+      }
+
       throw error;
     }
   }
@@ -299,7 +317,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
     try {
       // Make request to exchange info endpoint
       const response = await this.makeUnauthenticatedRequest(
-        '/api/v3/exchangeInfo',
+        '/v3/exchangeInfo',
         {},
         10, // Weight: 10
       );
@@ -338,7 +356,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
     try {
       // Make request to exchange info endpoint
       const response = await this.makeUnauthenticatedRequest(
-        '/api/v3/exchangeInfo',
+        '/v3/exchangeInfo',
         {},
         10, // Weight: 10
       );
@@ -429,7 +447,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       }
 
       const response = await this.makeUnauthenticatedRequest(
-        '/api/v3/depth',
+        '/v3/depth',
         {
           symbol: formattedSymbol,
           limit,
@@ -477,7 +495,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
 
         // Make request to 24hr ticker endpoint
         const response = await this.makeUnauthenticatedRequest(
-          '/api/v3/ticker/24hr',
+          '/v3/ticker/24hr',
           {
             symbol: formattedSymbol,
           },
@@ -490,7 +508,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
         // Get stats for all symbols
         // Make request to 24hr ticker endpoint
         const response = await this.makeUnauthenticatedRequest(
-          '/api/v3/ticker/24hr',
+          '/v3/ticker/24hr',
           {},
           40, // Weight: 40 for all symbols
         );
@@ -604,7 +622,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
 
       // Make request to recent trades endpoint
       const response = await this.makeUnauthenticatedRequest(
-        '/api/v3/trades',
+        '/v3/trades',
         {
           symbol: formattedSymbol,
           limit: Math.min(limit, 1000), // Maximum 1000 trades
@@ -625,7 +643,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       console.error(`Error getting recent trades for ${symbol}:`, error);
 
       // Fallback to mock data
-      return this.mockDataService.generateTrades(
+      return this.mockDataService.generateRecentTrades(
         this.exchangeId,
         symbol,
         limit,
@@ -679,7 +697,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
 
       // Make request to klines endpoint
       const response = await this.makeUnauthenticatedRequest(
-        '/api/v3/klines',
+        '/v3/klines',
         params,
         1, // Weight: 1
       );
@@ -715,7 +733,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
     try {
       // Make authenticated request to account endpoint
       const response = await this.makeAuthenticatedRequest(
-        '/api/v3/account',
+        '/v3/account',
         'GET',
         apiKeyId,
         {},
@@ -821,7 +839,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
 
       // Make authenticated request to order endpoint
       const response = await this.makeAuthenticatedRequest(
-        '/api/v3/order',
+        '/v3/order',
         'POST',
         apiKeyId,
         params,
@@ -877,7 +895,10 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       }
 
       // If we get here, use mock data as fallback
-      return this.mockDataService.createOrder(apiKeyId, this.exchangeId, order);
+      return this.mockDataService.placeOrder(apiKeyId, {
+        ...order,
+        exchangeId: this.exchangeId,
+      });
     }
   }
 
@@ -908,7 +929,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
 
       // Make authenticated request to cancel order endpoint
       const response = await this.makeAuthenticatedRequest(
-        '/api/v3/order',
+        '/v3/order',
         'DELETE',
         apiKeyId,
         {
@@ -963,7 +984,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       const weight = symbol ? 3 : 40;
 
       const response = await this.makeAuthenticatedRequest(
-        '/api/v3/openOrders',
+        '/v3/openOrders',
         'GET',
         apiKeyId,
         params,
@@ -1042,7 +1063,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
 
       // Make authenticated request to order history endpoint
       const response = await this.makeAuthenticatedRequest(
-        '/api/v3/allOrders',
+        '/v3/allOrders',
         'GET',
         apiKeyId,
         {
@@ -1132,7 +1153,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       // Make request to account endpoint
       const response = await axios({
         method: 'GET',
-        url: `${this.baseUrl}/api/v3/account`,
+        url: `${this.baseUrl}/v3/account`,
         params: {
           timestamp,
           signature,

@@ -9,6 +9,8 @@ import {
   Order,
   PerformanceMetrics,
   ExchangeAdapter,
+  Trade,
+  TickerStats,
 } from '@/types/exchange';
 
 import { MockDataService } from '../mockData/mockDataService';
@@ -54,6 +56,22 @@ export abstract class BaseExchangeAdapter implements ExchangeAdapter {
     endTime?: number,
     limit?: number,
   ): Promise<Kline[]>;
+
+  /**
+   * Get recent trades for a specific trading pair.
+   */
+  public abstract getRecentTrades(
+    symbol: string,
+    limit?: number,
+  ): Promise<Trade[]>;
+
+  /**
+   * Get 24hr ticker statistics for a specific trading pair.
+   * If no symbol is provided, returns statistics for all trading pairs.
+   */
+  public abstract getTickerStats(
+    symbol?: string,
+  ): Promise<TickerStats | TickerStats[]>;
 
   /**
    * Get the user's portfolio (balances) from the exchange.

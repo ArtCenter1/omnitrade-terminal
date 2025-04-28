@@ -217,6 +217,8 @@ export class MockDataService {
     const closeTime = Date.now();
     const openTime = closeTime - 24 * 60 * 60 * 1000;
 
+    console.log(`Generated closeTime: ${closeTime}, openTime: ${openTime}`);
+
     return {
       symbol: symbol,
       exchangeId: exchangeId,
@@ -242,7 +244,7 @@ export class MockDataService {
   }
 
   // Generate recent trades
-  public generateTrades(
+  public generateRecentTrades(
     exchangeId: string,
     symbol: string,
     limit: number = 500,

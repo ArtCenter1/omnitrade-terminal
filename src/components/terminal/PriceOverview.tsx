@@ -95,8 +95,8 @@ export function PriceOverview({
             ((tickerStats.askPrice - tickerStats.bidPrice) /
               tickerStats.askPrice) *
             100,
-          timestamp: new Date(tickerStats.closeTime).toISOString(),
-          last_traded_at: new Date(tickerStats.closeTime).toISOString(),
+          timestamp: new Date().toISOString(), // Use current time if closeTime is invalid
+          last_traded_at: new Date().toISOString(), // Use current time if closeTime is invalid
           last_fetch_at: new Date().toISOString(),
           is_anomaly: false,
           is_stale: false,
