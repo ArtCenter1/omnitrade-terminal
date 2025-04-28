@@ -131,3 +131,27 @@ Refer to [Onboarding Experience](onboarding_experience.md) for detailed implemen
 - Add additional features based on user requests
 - Scale infrastructure as needed
 - Optimize user experience
+
+## Post-MVP Scaling Considerations
+
+As user adoption grows beyond the initial MVP/Alpha release, several critical infrastructure improvements will be needed:
+
+### Comprehensive API Performance Benchmarking
+
+- **Performance Visualization**: Implement the Analytics Admin page with specialized API metrics visualizations
+- **Advanced Benchmarking**: Conduct comprehensive benchmarking across all endpoints and WebSocket streams
+- **Optimization Implementation**: Apply performance optimizations based on benchmarking insights
+- **Multi-User Testing**: Test performance under simulated multi-user conditions
+- **Documentation**: Create detailed performance reports and optimization recommendations
+
+This work builds upon the basic benchmarking completed during initial development and provides the data needed to make informed scaling decisions.
+
+### Binance Testnet Integration Scaling
+
+- **Multiple Testnet Accounts**: Implement a load balancing system to distribute users across multiple Binance Testnet accounts
+- **User-Specific Rate Limits**: Develop a fair usage policy with allocated rate limits per user
+- **Enhanced Caching Strategy**: Implement shared caching for common market data to reduce API calls
+- **WebSocket Optimization**: Maximize WebSocket usage to minimize REST API calls
+- **Request Prioritization**: Implement a system to prioritize critical operations (order placement) over data requests
+
+This scaling work is critical to maintain a quality user experience as our user base grows, since the current implementation uses a single shared Testnet account with limited rate capacity (1200 weight/minute, 10 orders/second).

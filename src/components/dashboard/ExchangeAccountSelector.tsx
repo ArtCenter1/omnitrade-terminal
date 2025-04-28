@@ -415,7 +415,7 @@ export function ExchangeAccountSelector() {
                               className="bg-gray-900 border-gray-800 text-white"
                             >
                               <p className="max-w-xs">
-                                Sandbox mode for practice trading. <br />
+                                Demo mode for practice trading. <br />
                                 Start with $50,000 in virtual funds to test
                                 strategies without risk.
                               </p>

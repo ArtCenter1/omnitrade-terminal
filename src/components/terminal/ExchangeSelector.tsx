@@ -212,6 +212,7 @@ export function ExchangeSelector() {
     { id: 'kucoin', name: 'KuCoin', logo: '/exchanges/kucoin.svg' },
     { id: 'bybit', name: 'Bybit', logo: '/exchanges/bybit.svg' },
     { id: 'okx', name: 'OKX', logo: '/exchanges/okx.svg' },
+    { id: 'sandbox', name: 'Demo', logo: '/exchanges/demo.svg' },
   ];
 
   // Render exchange selector
@@ -263,16 +264,37 @@ export function ExchangeSelector() {
                 {/* Show all supported exchanges */}
                 {SUPPORTED_EXCHANGES.map((exchange) => {
                   // Check if we have any accounts for this exchange
-                  const hasAccounts = localAccounts.some(
-                    (a) =>
-                      a.exchangeId?.toLowerCase() === exchange.id.toLowerCase(),
-                  );
+                  // Always return true for Demo Exchange since it's always available
+                  const hasAccounts =
+                    exchange.id === 'sandbox'
+                      ? true
+                      : localAccounts.some(
+                          (a) =>
+                            a.exchangeId?.toLowerCase() ===
+                            exchange.id.toLowerCase(),
+                        );
 
                   return (
                     <DropdownMenuItem
                       key={exchange.id}
                       onClick={() => {
-                        if (hasAccounts) {
+                        // Special handling for Demo Exchange
+                        if (exchange.id === 'sandbox') {
+                          // Find the Demo Account
+                          const demoAccount = localAccounts.find(
+                            (a) => a.isSandbox === true,
+                          );
+
+                          if (demoAccount) {
+                            console.log(
+                              'Selecting Demo Exchange with Demo Account:',
+                              demoAccount.name,
+                            );
+                            setSelectedAccount(demoAccount);
+                          } else {
+                            console.error('Demo Account not found');
+                          }
+                        } else if (hasAccounts) {
                           // Find the first account for this exchange
                           const account = localAccounts.find(
                             (a) =>

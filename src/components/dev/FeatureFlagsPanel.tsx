@@ -161,23 +161,23 @@ export function FeatureFlagsPanel() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="flex items-center gap-1 cursor-help">
-                  <Label htmlFor="enable-sandbox-account">
-                    Enable Sandbox Account
+                  <Label htmlFor="enable-demo-account">
+                    Enable Demo Account
                   </Label>
                   <HelpCircle className="h-4 w-4 text-muted-foreground" />
                 </div>
               </TooltipTrigger>
               <TooltipContent>
                 <p className="max-w-xs">
-                  Enable sandbox account for practice trading
+                  Enable demo account for practice trading
                 </p>
               </TooltipContent>
             </Tooltip>
             <Switch
-              id="enable-sandbox-account"
-              checked={flags.enableSandboxAccount}
+              id="enable-demo-account"
+              checked={flags.enableDemoAccount}
               onCheckedChange={(checked) =>
-                handleToggle('enableSandboxAccount', checked)
+                handleToggle('enableDemoAccount', checked)
               }
             />
           </div>

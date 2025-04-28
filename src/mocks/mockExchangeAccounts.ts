@@ -11,7 +11,7 @@ export interface ExchangeAccount {
   logo: string;
   apiKeyId: string;
   isPortfolioOverview?: boolean; // Flag to identify the Portfolio Overview option
-  isSandbox?: boolean; // Flag to identify the Sandbox account
+  isSandbox?: boolean; // Flag to identify the Demo account (kept as isSandbox for compatibility)
 }
 
 // Generate mock exchange accounts based on the API keys
@@ -68,7 +68,8 @@ export function generateMockExchangeAccounts(
   // Default logo if exchange not found
   const defaultLogo = '/placeholder.svg';
 
-  return latestApiKeys.map((key, index) => {
+  // Map API keys to accounts
+  const apiKeyAccounts = latestApiKeys.map((key, index) => {
     // Generate a portfolio for this API key to get the total value
     const portfolio = generateMockPortfolio(
       key.exchange_id,
@@ -110,6 +111,18 @@ export function generateMockExchangeAccounts(
       apiKeyId: key.api_key_id,
     };
   });
+
+  // Always include the Demo account
+  const demoAccount = DEFAULT_MOCK_ACCOUNTS.find(
+    (account) => account.isSandbox,
+  );
+
+  if (demoAccount) {
+    console.log('Adding Demo account to the list of accounts');
+    return [...apiKeyAccounts, demoAccount];
+  }
+
+  return apiKeyAccounts;
 }
 
 // Default mock accounts to use if no API keys are available
@@ -145,15 +158,15 @@ export const DEFAULT_MOCK_ACCOUNTS: ExchangeAccount[] = [
     apiKeyId: 'mock-key-3',
   },
   {
-    id: 'sandbox-account',
-    name: '🔰 Sandbox Account', // Prefixed with a training symbol emoji
-    exchange: 'Sandbox',
-    exchangeId: 'sandbox',
+    id: 'demo-account',
+    name: '🔰 Demo Account', // Prefixed with a training symbol emoji
+    exchange: 'Demo',
+    exchangeId: 'sandbox', // Keep the exchangeId as 'sandbox' for compatibility
     value: '$50,000.00', // Standard starting amount
     change: '+0.00%', // No change initially
-    logo: '/exchanges/sandbox.svg', // Will need to create this
-    apiKeyId: 'sandbox-key',
-    isSandbox: true, // Flag to identify sandbox account
+    logo: '/exchanges/demo.svg', // Updated to use the demo logo
+    apiKeyId: 'sandbox-key', // Keep the same API key ID for compatibility
+    isSandbox: true, // Keep this flag for compatibility
   },
 ];
 
@@ -232,18 +245,35 @@ export function getExchangeAccounts(): ExchangeAccount[] {
     }
   }
 
-  const allAccounts = [...DEFAULT_MOCK_ACCOUNTS, ...additionalAccounts];
+  // Make sure we don't have duplicate accounts (especially for Sandbox)
+  const uniqueAccounts = [];
+  const accountIds = new Set();
+
+  // First add all DEFAULT_MOCK_ACCOUNTS
+  for (const account of DEFAULT_MOCK_ACCOUNTS) {
+    uniqueAccounts.push(account);
+    accountIds.add(account.id);
+  }
+
+  // Then add additional accounts if they don't already exist
+  for (const account of additionalAccounts) {
+    if (!accountIds.has(account.id)) {
+      uniqueAccounts.push(account);
+      accountIds.add(account.id);
+    }
+  }
 
   console.log(
     '[mockExchangeAccounts] Returning all accounts:',
-    allAccounts.map((acc) => ({
+    uniqueAccounts.map((acc) => ({
       id: acc.id,
       apiKeyId: acc.apiKeyId,
       name: acc.name,
+      isSandbox: acc.isSandbox,
     })),
   );
 
-  return allAccounts;
+  return uniqueAccounts;
 }
 
 // Function to update the default mock accounts with the latest nicknames
