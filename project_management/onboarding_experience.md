@@ -100,7 +100,7 @@ This is the standout feature - an AI-powered guide that:
 1. **First Login**:
 
    - Welcome modal appears offering guided tour
-   - Sandbox mode is automatically enabled
+   - Demo mode is automatically enabled
    - AI Assistant introduces itself and offers help
 
 2. **Dashboard Tutorial**:
@@ -112,7 +112,7 @@ This is the standout feature - an AI-powered guide that:
 3. **Terminal Tutorial**:
 
    - Guide to trading interface
-   - Practice placing trades with sandbox account
+   - Practice placing trades with demo account
    - AI Assistant explains market concepts
 
 4. **Bot Builder Tutorial**:
@@ -131,14 +131,14 @@ This is the standout feature - an AI-powered guide that:
 ```
 src/
 ├── contexts/
-│   ├── SandboxContext.tsx       # Manages sandbox state and virtual trading
+│   ├── DemoContext.tsx          # Manages demo state and virtual trading
 │   ├── TutorialContext.tsx      # Manages tutorial progress and steps
 │   ├── AIAssistantContext.tsx   # Manages AI assistant state and interactions
 │
 ├── components/
 │   ├── onboarding/
 │   │   ├── WelcomeModal.tsx     # Initial welcome experience
-│   │   ├── SandboxIndicator.tsx # Visual indicator for sandbox mode
+│   │   ├── DemoIndicator.tsx    # Visual indicator for demo mode
 │   │   ├── TutorialProgress.tsx # Shows tutorial progress
 │   │   ├── AIAssistantButton.tsx # Toggle for AI assistant
 │   │   └── AIAssistantPanel.tsx  # UI for AI assistant interactions

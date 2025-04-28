@@ -11,7 +11,7 @@ export interface ExchangeAccount {
   logo: string;
   apiKeyId: string;
   isPortfolioOverview?: boolean; // Flag to identify the Portfolio Overview option
-  isSandbox?: boolean; // Flag to identify the Sandbox account
+  isSandbox?: boolean; // Flag to identify the Demo account (kept as isSandbox for compatibility)
 }
 
 // Generate mock exchange accounts based on the API keys
@@ -112,14 +112,14 @@ export function generateMockExchangeAccounts(
     };
   });
 
-  // Always include the Sandbox account
-  const sandboxAccount = DEFAULT_MOCK_ACCOUNTS.find(
+  // Always include the Demo account
+  const demoAccount = DEFAULT_MOCK_ACCOUNTS.find(
     (account) => account.isSandbox,
   );
 
-  if (sandboxAccount) {
-    console.log('Adding Sandbox account to the list of accounts');
-    return [...apiKeyAccounts, sandboxAccount];
+  if (demoAccount) {
+    console.log('Adding Demo account to the list of accounts');
+    return [...apiKeyAccounts, demoAccount];
   }
 
   return apiKeyAccounts;
@@ -158,15 +158,15 @@ export const DEFAULT_MOCK_ACCOUNTS: ExchangeAccount[] = [
     apiKeyId: 'mock-key-3',
   },
   {
-    id: 'sandbox-account',
-    name: '🔰 Sandbox Account', // Prefixed with a training symbol emoji
-    exchange: 'Sandbox',
-    exchangeId: 'sandbox',
+    id: 'demo-account',
+    name: '🔰 Demo Account', // Prefixed with a training symbol emoji
+    exchange: 'Demo',
+    exchangeId: 'sandbox', // Keep the exchangeId as 'sandbox' for compatibility
     value: '$50,000.00', // Standard starting amount
     change: '+0.00%', // No change initially
-    logo: '/exchanges/sandbox.svg', // Will need to create this
-    apiKeyId: 'sandbox-key',
-    isSandbox: true, // Flag to identify sandbox account
+    logo: '/exchanges/demo.svg', // Updated to use the demo logo
+    apiKeyId: 'sandbox-key', // Keep the same API key ID for compatibility
+    isSandbox: true, // Keep this flag for compatibility
   },
 ];
 

@@ -49,11 +49,15 @@ export function AccountSelector() {
       const allAccounts = getExchangeAccounts();
 
       // Filter accounts for the current exchange
-      const accounts = allAccounts.filter(
-        (account) =>
-          account.exchangeId?.toLowerCase() ===
-          selectedAccount.exchangeId?.toLowerCase(),
-      );
+      // Special handling for Demo Exchange to ensure Demo Account is always shown
+      const accounts =
+        selectedAccount.exchangeId === 'sandbox'
+          ? allAccounts.filter((account) => account.isSandbox === true)
+          : allAccounts.filter(
+              (account) =>
+                account.exchangeId?.toLowerCase() ===
+                selectedAccount.exchangeId?.toLowerCase(),
+            );
 
       console.log(
         'Accounts for exchange:',
@@ -98,11 +102,15 @@ export function AccountSelector() {
         const allAccounts = getExchangeAccounts();
 
         // Filter accounts for the current exchange
-        const accounts = allAccounts.filter(
-          (account) =>
-            account.exchangeId?.toLowerCase() ===
-            selectedAccount.exchangeId?.toLowerCase(),
-        );
+        // Special handling for Demo Exchange to ensure Demo Account is always shown
+        const accounts =
+          selectedAccount.exchangeId === 'sandbox'
+            ? allAccounts.filter((account) => account.isSandbox === true)
+            : allAccounts.filter(
+                (account) =>
+                  account.exchangeId?.toLowerCase() ===
+                  selectedAccount.exchangeId?.toLowerCase(),
+              );
 
         console.log(
           `[AccountSelector] Found ${accounts.length} accounts for exchange ${selectedAccount.exchangeId}:`,
@@ -131,11 +139,15 @@ export function AccountSelector() {
           const allAccounts = getExchangeAccounts();
 
           // Filter accounts for the current exchange
-          const accounts = allAccounts.filter(
-            (account) =>
-              account.exchangeId?.toLowerCase() ===
-              selectedAccount.exchangeId?.toLowerCase(),
-          );
+          // Special handling for Demo Exchange to ensure Demo Account is always shown
+          const accounts =
+            selectedAccount.exchangeId === 'sandbox'
+              ? allAccounts.filter((account) => account.isSandbox === true)
+              : allAccounts.filter(
+                  (account) =>
+                    account.exchangeId?.toLowerCase() ===
+                    selectedAccount.exchangeId?.toLowerCase(),
+                );
 
           setAccountsForExchange(accounts);
         }
@@ -256,7 +268,7 @@ export function AccountSelector() {
                             className="bg-gray-900 border-gray-800 text-white"
                           >
                             <p className="max-w-xs">
-                              Sandbox mode for practice trading. <br />
+                              Demo mode for practice trading. <br />
                               Start with $50,000 in virtual funds to test
                               strategies without risk.
                             </p>

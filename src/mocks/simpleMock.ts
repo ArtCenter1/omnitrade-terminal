@@ -29,7 +29,7 @@ let mockApiKeys = [
   {
     api_key_id: 'sandbox-key',
     exchange_id: 'sandbox',
-    key_nickname: '🔰 Sandbox Account',
+    key_nickname: '🔰 Demo Account',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     is_valid: true,

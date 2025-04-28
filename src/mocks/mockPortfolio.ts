@@ -6,9 +6,9 @@ export function generateMockPortfolio(
   exchangeId: string = 'binance',
   seed?: number,
 ): Portfolio {
-  // Special case for sandbox account
+  // Special case for demo account
   if (exchangeId === 'sandbox') {
-    return generateSandboxPortfolio();
+    return generateDemoPortfolio();
   }
   // Use different portfolio compositions based on the exchange
   const exchangeType = exchangeId.toLowerCase();
@@ -269,8 +269,8 @@ export function generateMockPortfolio(
   };
 }
 
-// Generate a sandbox portfolio with a standard set of assets
-function generateSandboxPortfolio(): Portfolio {
+// Generate a demo portfolio with a standard set of assets
+function generateDemoPortfolio(): Portfolio {
   const assets: PortfolioAsset[] = [];
   let totalUsdValue = 0;
   const exchangeId = 'sandbox';
@@ -372,7 +372,7 @@ export function getMockPortfolioData(apiKeyId?: string): {
     'mock-key-5': 'binance',
     'mock-key-6': 'coinbase',
     'portfolio-overview': 'all',
-    'sandbox-key': 'sandbox',
+    'sandbox-key': 'sandbox', // Keep as 'sandbox' for compatibility
   };
 
   // First check our fixed mapping

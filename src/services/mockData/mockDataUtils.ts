@@ -121,9 +121,9 @@ export const SUPPORTED_EXCHANGES = [
   },
   {
     id: 'sandbox',
-    name: 'Sandbox',
-    logo: '/exchanges/sandbox.svg',
-    website: 'https://omnitrade.io/sandbox',
+    name: 'Demo',
+    logo: '/exchanges/demo.svg',
+    website: 'https://omnitrade.io/demo',
     description:
       'Practice trading environment with simulated assets and orders. Perfect for learning and testing strategies.',
     isActive: true,

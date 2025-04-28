@@ -39,6 +39,10 @@ import { setupApiMiddleware } from './mocks/apiMiddleware';
 
 // Import development helpers
 import './utils/devHelpers';
+import { migrateSandboxToDemoAccount } from './utils/demoAccountMigration';
+
+// Migrate Sandbox Account to Demo Account in localStorage
+migrateSandboxToDemoAccount();
 
 // Set up mock API for development
 if (import.meta.env.DEV) {

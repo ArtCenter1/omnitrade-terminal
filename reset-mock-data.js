@@ -23,11 +23,14 @@ const defaultFeatureFlags = {
   useMockData: true,
   useRealMarketData: false,
   connectionMode: 'mock',
-  enableSandboxAccount: true,
+  enableDemoAccount: true,
   enableDebugTools: true,
-  showPerformanceMetrics: false
+  showPerformanceMetrics: false,
 };
-localStorage.setItem(FEATURE_FLAGS_STORAGE_KEY, JSON.stringify(defaultFeatureFlags));
+localStorage.setItem(
+  FEATURE_FLAGS_STORAGE_KEY,
+  JSON.stringify(defaultFeatureFlags),
+);
 console.log('Feature flags set:', defaultFeatureFlags);
 
 console.log('Reset complete. Please refresh the page.');

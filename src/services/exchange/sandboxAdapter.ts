@@ -52,9 +52,7 @@ export class SandboxAdapter extends BaseExchangeAdapter {
    */
   public async getExchangeInfo(): Promise<Exchange> {
     // If Binance Testnet is enabled, show that in the name and description
-    const name = this.useBinanceTestnet
-      ? 'Sandbox (Binance Testnet)'
-      : 'Sandbox';
+    const name = this.useBinanceTestnet ? 'Demo (Binance Testnet)' : 'Demo';
     const description = this.useBinanceTestnet
       ? 'Practice trading environment using Binance Testnet API.'
       : 'Practice trading environment with simulated assets and orders.';
@@ -64,7 +62,7 @@ export class SandboxAdapter extends BaseExchangeAdapter {
       name,
       url: this.useBinanceTestnet
         ? 'https://testnet.binance.vision'
-        : 'https://omnitrade.io/sandbox',
+        : 'https://omnitrade.io/demo',
       description,
       features: ['spot', 'margin', 'futures'],
       fees: {
@@ -75,7 +73,7 @@ export class SandboxAdapter extends BaseExchangeAdapter {
       countries: ['*'], // Available worldwide
       logo: this.useBinanceTestnet
         ? '/exchanges/binance.svg'
-        : '/exchanges/sandbox.svg',
+        : '/exchanges/demo.svg',
     };
   }
 
