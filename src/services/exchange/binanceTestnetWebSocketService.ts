@@ -1,16 +1,21 @@
 /**
  * Binance Testnet WebSocket Service
- * 
+ *
  * Provides WebSocket connections to Binance Testnet for real-time market data.
  */
 
-import { WebSocketManager, SubscriptionType, SubscriptionParams } from '../connection/websocketManager';
+import {
+  WebSocketManager,
+  SubscriptionType,
+  SubscriptionParams,
+} from '../connection/websocketManager';
 import { BinanceTestnetService } from './binanceTestnetService';
 import { ConnectionManager } from '../connection/connectionManager';
 
 // Binance Testnet WebSocket base URL
 const BINANCE_TESTNET_WS_BASE_URL = 'wss://testnet.binance.vision/ws';
-const BINANCE_TESTNET_COMBINED_STREAM_URL = 'wss://testnet.binance.vision/stream';
+const BINANCE_TESTNET_COMBINED_STREAM_URL =
+  'wss://testnet.binance.vision/stream';
 
 /**
  * Binance Testnet WebSocket Service
@@ -39,7 +44,8 @@ export class BinanceTestnetWebSocketService {
    */
   public static getInstance(): BinanceTestnetWebSocketService {
     if (!BinanceTestnetWebSocketService.instance) {
-      BinanceTestnetWebSocketService.instance = new BinanceTestnetWebSocketService();
+      BinanceTestnetWebSocketService.instance =
+        new BinanceTestnetWebSocketService();
     }
     return BinanceTestnetWebSocketService.instance;
   }
@@ -56,17 +62,25 @@ export class BinanceTestnetWebSocketService {
       // Check if Binance Testnet is enabled
       const isEnabled = await this.binanceService.isEnabled();
       if (!isEnabled) {
-        console.log('Binance Testnet WebSocket service not initialized: Testnet is disabled');
+        console.log(
+          'Binance Testnet WebSocket service not initialized: Testnet is disabled',
+        );
         return;
       }
 
       // Create WebSocket connection
-      this.wsManager.createConnection(this.exchangeId, BINANCE_TESTNET_COMBINED_STREAM_URL);
-      
+      this.wsManager.createConnection(
+        this.exchangeId,
+        BINANCE_TESTNET_COMBINED_STREAM_URL,
+      );
+
       this.isInitialized = true;
       console.log('Binance Testnet WebSocket service initialized');
     } catch (error) {
-      console.error('Failed to initialize Binance Testnet WebSocket service:', error);
+      console.error(
+        'Failed to initialize Binance Testnet WebSocket service:',
+        error,
+      );
       this.connectionManager.updateConnectionStatus(this.exchangeId, 'error');
     }
   }
@@ -77,7 +91,10 @@ export class BinanceTestnetWebSocketService {
    * @param callback The callback function
    * @returns The subscription ID
    */
-  public subscribeTicker(symbol: string, callback: (data: any) => void): string {
+  public subscribeTicker(
+    symbol: string,
+    callback: (data: any) => void,
+  ): string {
     return this.subscribe('ticker', { symbol }, callback);
   }
 
@@ -102,7 +119,10 @@ export class BinanceTestnetWebSocketService {
    * @param callback The callback function
    * @returns The subscription ID
    */
-  public subscribeTrades(symbol: string, callback: (data: any) => void): string {
+  public subscribeTrades(
+    symbol: string,
+    callback: (data: any) => void,
+  ): string {
     return this.subscribe('trades', { symbol }, callback);
   }
 
@@ -127,8 +147,136 @@ export class BinanceTestnetWebSocketService {
    * @param callback The callback function
    * @returns The subscription ID
    */
-  public subscribeUserData(listenKey: string, callback: (data: any) => void): string {
-    return this.subscribe('userdata', { listenKey }, callback);
+  public subscribeUserData(
+    listenKey: string,
+    callback: (data: any) => void,
+  ): string {
+    // Create a wrapper callback that normalizes the data before passing it to the original callback
+    const wrappedCallback = (data: any) => {
+      // Process different event types
+      if (data.e === 'executionReport') {
+        callback(this.normalizeExecutionReport(data));
+      } else if (data.e === 'outboundAccountPosition') {
+        callback(this.normalizeAccountUpdate(data));
+      } else if (data.e === 'trade') {
+        callback(this.normalizeTradeUpdate(data));
+      } else {
+        // Pass through other event types
+        callback(data);
+      }
+    };
+
+    return this.subscribe('userdata', { listenKey }, wrappedCallback);
+  }
+
+  /**
+   * Normalize an execution report event
+   * @param data The raw execution report event
+   * @returns The normalized order data
+   */
+  private normalizeExecutionReport(data: any): any {
+    return {
+      symbol: this.formatSymbol(data.s),
+      orderId: data.i.toString(),
+      clientOrderId: data.c,
+      side: data.S.toLowerCase(),
+      type: data.o.toLowerCase(),
+      status: this.mapOrderStatus(data.X),
+      price: parseFloat(data.p),
+      quantity: parseFloat(data.q),
+      executedQty: parseFloat(data.z),
+      cumulativeQuoteQty: parseFloat(data.Z),
+      timestamp: data.O,
+      eventTime: data.E,
+      lastTradeId: data.t,
+      lastExecutedPrice: parseFloat(data.L),
+      lastExecutedQuantity: parseFloat(data.l),
+      commission: parseFloat(data.n),
+      commissionAsset: data.N,
+      isWorking: data.w,
+      isMaker: data.m,
+    };
+  }
+
+  /**
+   * Normalize an account update event
+   * @param data The raw account update event
+   * @returns The normalized account data
+   */
+  private normalizeAccountUpdate(data: any): any {
+    return {
+      eventType: 'account',
+      eventTime: data.E,
+      lastAccountUpdateTime: data.u,
+      balances: data.B.map((balance: any) => ({
+        asset: balance.a,
+        free: parseFloat(balance.f),
+        locked: parseFloat(balance.l),
+      })),
+    };
+  }
+
+  /**
+   * Normalize a trade update event
+   * @param data The raw trade update event
+   * @returns The normalized trade data
+   */
+  private normalizeTradeUpdate(data: any): any {
+    return {
+      eventType: 'trade',
+      symbol: this.formatSymbol(data.s),
+      tradeId: data.t,
+      price: parseFloat(data.p),
+      quantity: parseFloat(data.q),
+      buyerOrderId: data.b,
+      sellerOrderId: data.a,
+      timestamp: data.T,
+      isBuyerMaker: data.m,
+    };
+  }
+
+  /**
+   * Map Binance order status to our order status
+   * @param status The Binance order status
+   * @returns The mapped order status
+   */
+  private mapOrderStatus(status: string): string {
+    switch (status) {
+      case 'NEW':
+        return 'new';
+      case 'PARTIALLY_FILLED':
+        return 'partially_filled';
+      case 'FILLED':
+        return 'filled';
+      case 'CANCELED':
+        return 'canceled';
+      case 'REJECTED':
+        return 'rejected';
+      case 'EXPIRED':
+        return 'expired';
+      default:
+        return 'new';
+    }
+  }
+
+  /**
+   * Format Binance symbol to our format
+   * @param symbol The Binance symbol (e.g., 'BTCUSDT')
+   * @returns The formatted symbol (e.g., 'BTC/USDT')
+   */
+  private formatSymbol(symbol: string): string {
+    // Find common quote assets
+    const quoteAssets = ['USDT', 'BTC', 'ETH', 'BNB', 'BUSD', 'USDC'];
+
+    for (const quote of quoteAssets) {
+      if (symbol.endsWith(quote)) {
+        const base = symbol.substring(0, symbol.length - quote.length);
+        return `${base}/${quote}`;
+      }
+    }
+
+    // Default fallback: insert a slash before the last 4 characters
+    return `${symbol.slice(0, -4)}/${symbol.slice(-4)}`;
   }
 
   /**
@@ -150,12 +298,12 @@ export class BinanceTestnetWebSocketService {
 
     // Create a unique key for this subscription
     const key = `${type}_${JSON.stringify(params)}`;
-    
+
     // Check if already subscribed
     if (this.subscriptions.has(key)) {
       return this.subscriptions.get(key)!;
     }
-    
+
     // Subscribe
     const subscriptionId = this.wsManager.subscribe(
       this.exchangeId,
@@ -163,10 +311,10 @@ export class BinanceTestnetWebSocketService {
       params,
       callback,
     );
-    
+
     // Store subscription
     this.subscriptions.set(key, subscriptionId);
-    
+
     return subscriptionId;
   }
 
@@ -184,12 +332,12 @@ export class BinanceTestnetWebSocketService {
         break;
       }
     }
-    
+
     // Remove from subscriptions
     if (keyToRemove) {
       this.subscriptions.delete(keyToRemove);
     }
-    
+
     // Unsubscribe
     return this.wsManager.unsubscribe(subscriptionId);
   }
@@ -218,7 +366,9 @@ export class BinanceTestnetWebSocketService {
    */
   public getCachedTicker(symbol: string): any {
     const formattedSymbol = symbol.replace('/', '').toUpperCase();
-    return this.wsManager.getCachedMessage(`${this.exchangeId}_ticker_${formattedSymbol}`);
+    return this.wsManager.getCachedMessage(
+      `${this.exchangeId}_ticker_${formattedSymbol}`,
+    );
   }
 
   /**
@@ -228,7 +378,9 @@ export class BinanceTestnetWebSocketService {
    */
   public getCachedOrderBook(symbol: string): any {
     const formattedSymbol = symbol.replace('/', '').toUpperCase();
-    return this.wsManager.getCachedMessage(`${this.exchangeId}_depth_${formattedSymbol}`);
+    return this.wsManager.getCachedMessage(
+      `${this.exchangeId}_depth_${formattedSymbol}`,
+    );
   }
 
   /**
@@ -240,7 +392,9 @@ export class BinanceTestnetWebSocketService {
     const formattedSymbol = symbol.replace('/', '').toUpperCase();
     // Note: This returns the most recent trade only
     // For a full trade history, you would need to maintain a separate cache
-    return this.wsManager.getCachedMessage(`${this.exchangeId}_trade_${formattedSymbol}`);
+    return this.wsManager.getCachedMessage(
+      `${this.exchangeId}_trade_${formattedSymbol}`,
+    );
   }
 
   /**
@@ -253,6 +407,8 @@ export class BinanceTestnetWebSocketService {
     const formattedSymbol = symbol.replace('/', '').toUpperCase();
     // Note: This returns the most recent kline only
     // For a full kline history, you would need to maintain a separate cache
-    return this.wsManager.getCachedMessage(`${this.exchangeId}_kline_${formattedSymbol}_${interval}`);
+    return this.wsManager.getCachedMessage(
+      `${this.exchangeId}_kline_${formattedSymbol}_${interval}`,
+    );
   }
 }
