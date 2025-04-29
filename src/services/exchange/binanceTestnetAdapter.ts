@@ -284,6 +284,26 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
 
       console.log(`Making request to: ${url}`);
 
+      // Check if we're in mock mode and adjust the URL if needed
+      const { isMockMode } = await import('@/config/exchangeConfig');
+      if (isMockMode()) {
+        // In mock mode, we need to ensure the URL is properly formatted for the mock API
+        console.log('Using mock mode for Binance Testnet request');
+
+        // If the URL is already a mock URL, use it as is
+        if (url.includes('/api/mock/')) {
+          console.log('URL is already a mock URL:', url);
+        } else {
+          // Otherwise, convert it to a mock URL
+          const mockUrl = url.replace(
+            'https://testnet.binance.vision/api',
+            '/api/mock/binance_testnet',
+          );
+          console.log(`Converting URL from ${url} to ${mockUrl}`);
+          url = mockUrl;
+        }
+      }
+
       // Make request with rate limiting
       return await makeApiRequest<T>(this.exchangeId, url, {
         method: 'GET',
@@ -299,6 +319,35 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
         `Error making unauthenticated request to ${endpoint}:`,
         error,
       );
+
+      // Log more details about the error
+      console.log('Error details:', {
+        endpoint,
+        params,
+        baseUrl: this.baseUrl,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      // If we get a 404 error, try to use the mock data service directly
+      if (error instanceof Error && error.message.includes('404')) {
+        console.log('Got 404 error, falling back to mock data service');
+
+        // Determine what kind of data to generate based on the endpoint
+        if (endpoint.includes('/ticker/24hr')) {
+          const symbol = (params.symbol as string) || 'BTCUSDT';
+          console.log(`Generating mock ticker stats for ${symbol}`);
+
+          // Convert BTCUSDT format to BTC/USDT if needed
+          const formattedSymbol = symbol.includes('/')
+            ? symbol
+            : `${symbol.slice(0, -4)}/${symbol.slice(-4)}`;
+
+          return this.mockDataService.generateTickerStats(
+            this.exchangeId,
+            formattedSymbol,
+          ) as unknown as T;
+        }
+      }
 
       // Enhance error message with more details
       if (error instanceof Error) {
@@ -641,6 +690,15 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
     // Log the response for debugging
     console.log(`formatTickerStats for ${symbol}:`, response);
 
+    // Check if response is valid
+    if (!response || typeof response !== 'object') {
+      console.error(`Invalid response for ${symbol}:`, response);
+
+      // Generate mock data as fallback
+      console.log(`Generating mock ticker stats for ${symbol}`);
+      return this.mockDataService.generateTickerStats(this.exchangeId, symbol);
+    }
+
     // Check if lastPrice is valid
     let lastPrice = safeParseFloat(response.lastPrice);
 
@@ -651,8 +709,15 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       );
 
       // Get a realistic price from the mock data service
-      lastPrice = this.mockDataService.getCurrentPrice(this.exchangeId, symbol);
+      const mockStats = this.mockDataService.generateTickerStats(
+        this.exchangeId,
+        symbol,
+      );
+      lastPrice = mockStats.lastPrice;
       console.log(`Using mock price for ${symbol}: ${lastPrice}`);
+
+      // If we're using mock data for the price, use it for all other fields too
+      return mockStats;
     }
 
     // Similarly, ensure other price fields are not zero

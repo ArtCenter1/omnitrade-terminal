@@ -322,11 +322,15 @@ async function handleApiWithMockData(
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
+        // Extract the path from the URL
+        const urlPath = new URL(url, window.location.origin).pathname;
+        const endpoint = urlPath.replace('/api/mock/binance_testnet', '');
+
         console.log(
-          'Making direct request to Binance Testnet API for exchangeInfo',
+          `Making direct request to Binance Testnet API for ${endpoint}`,
         );
         return window
-          .originalFetch('https://testnet.binance.vision/api/v3/exchangeInfo', {
+          .originalFetch(`https://testnet.binance.vision/api${endpoint}`, {
             signal: controller.signal,
           })
           .then(async (response) => {
@@ -515,8 +519,12 @@ async function handleApiWithMockData(
       const formattedSymbol =
         symbol && symbol.includes('/') ? symbol.replace('/', '') : symbol;
 
+      // Extract the path from the URL
+      const urlPath = new URL(url, window.location.origin).pathname;
+      const endpoint = urlPath.replace('/api/mock/binance_testnet', '');
+
       // Construct the real Binance Testnet API URL with parameters
-      let realUrl = 'https://testnet.binance.vision/api/v3/depth';
+      let realUrl = `https://testnet.binance.vision/api${endpoint}`;
       console.log(`Using Binance Testnet API URL: ${realUrl}`);
       if (formattedSymbol) {
         realUrl += `?symbol=${formattedSymbol}`;
@@ -633,8 +641,12 @@ async function handleApiWithMockData(
       const formattedSymbol =
         symbol && symbol.includes('/') ? symbol.replace('/', '') : symbol;
 
+      // Extract the path from the URL
+      const urlPath = new URL(url, window.location.origin).pathname;
+      const endpoint = urlPath.replace('/api/mock/binance_testnet', '');
+
       // Construct the real Binance Testnet API URL with parameters
-      let realUrl = 'https://testnet.binance.vision/api/v3/ticker/24hr';
+      let realUrl = `https://testnet.binance.vision/api${endpoint}`;
       console.log(`Using Binance Testnet API URL for ticker: ${realUrl}`);
       if (formattedSymbol) {
         realUrl += `?symbol=${formattedSymbol}`;
@@ -748,8 +760,12 @@ async function handleApiWithMockData(
       const interval = urlObj.searchParams.get('interval');
       const limit = urlObj.searchParams.get('limit');
 
+      // Extract the path from the URL
+      const urlPath = new URL(url, window.location.origin).pathname;
+      const endpoint = urlPath.replace('/api/mock/binance_testnet', '');
+
       // Construct the real Binance Testnet API URL with parameters
-      let realUrl = 'https://testnet.binance.vision/api/v3/klines';
+      let realUrl = `https://testnet.binance.vision/api${endpoint}`;
       console.log(`Using Binance Testnet API URL for klines: ${realUrl}`);
       const params = new URLSearchParams();
       if (symbol) params.append('symbol', symbol);
@@ -863,189 +879,248 @@ async function handleApiWithMockData(
       }
     }
 
-    // Handle any other Binance Testnet endpoints with generic mock data
-    console.warn(`Unhandled Binance Testnet mock request: ${url}`);
+    // Handle any other Binance Testnet endpoints with direct proxy first, then fallback to mock data
+    console.log(`Handling generic Binance Testnet request: ${url}`);
 
     // Parse the URL to extract the endpoint path
     const urlObj = new URL(url, window.location.origin);
     const path = urlObj.pathname;
 
-    // Extract symbol parameter if present
-    const symbol = urlObj.searchParams.get('symbol') || 'BTCUSDT';
+    // Extract the endpoint from the URL
+    const endpoint = path.replace('/api/mock/binance_testnet', '');
 
-    // Generate appropriate mock data based on the endpoint path
-    if (path.includes('/depth')) {
-      // Order book data
-      const limit = parseInt(urlObj.searchParams.get('limit') || '20');
-      const mockData = mockDataService.generateOrderBook(
-        'binance_testnet',
-        symbol,
-        limit,
+    // Try to proxy the request to the real Binance Testnet API
+    try {
+      // Make the direct API call with a timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+      // Construct the real Binance Testnet API URL with all original parameters
+      const realUrl = `https://testnet.binance.vision/api${endpoint}${
+        urlObj.search ? urlObj.search : ''
+      }`;
+
+      console.log(
+        `Proxying generic request to Binance Testnet API: ${realUrl}`,
       );
-      return new Response(JSON.stringify(mockData), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    } else if (path.includes('/ticker/24hr')) {
-      // Ticker data
-      const mockData = mockDataService.generateTickerStats(
-        'binance_testnet',
-        symbol,
+
+      return window
+        .originalFetch(realUrl, { signal: controller.signal })
+        .then(async (response) => {
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            throw new Error(
+              `API returned ${response.status}: ${response.statusText}`,
+            );
+          }
+
+          // Get the response data
+          const data = await response.text();
+
+          return new Response(data, {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        })
+        .catch((error) => {
+          clearTimeout(timeoutId);
+          console.error('Error in generic Binance Testnet request:', error);
+
+          // Fall back to mock data
+          console.warn('Falling back to mock data for generic request');
+
+          // Continue with the mock data fallback below
+          throw error;
+        });
+    } catch (error) {
+      // If direct proxy fails, fall back to mock data
+      console.warn(
+        `Using mock data for unhandled Binance Testnet request: ${url}`,
       );
-      return new Response(JSON.stringify(mockData), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    } else if (path.includes('/klines')) {
-      // Klines data
-      const interval = urlObj.searchParams.get('interval') || '1h';
-      const limit = parseInt(urlObj.searchParams.get('limit') || '100');
-      const mockData = mockDataService.generateKlines(
-        'binance_testnet',
-        symbol,
-        interval,
-        undefined,
-        undefined,
-        limit,
-      );
-      return new Response(JSON.stringify(mockData), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    } else {
-      // Generic response for other endpoints
-      return new Response(
-        JSON.stringify({
-          message: 'Generic mock data for Binance Testnet',
-          endpoint: path,
-          params: Object.fromEntries(urlObj.searchParams.entries()),
-        }),
-        {
+
+      // Extract symbol parameter if present
+      const symbol = urlObj.searchParams.get('symbol') || 'BTCUSDT';
+
+      // Generate appropriate mock data based on the endpoint path
+      if (path.includes('/depth')) {
+        // Order book data
+        const limit = parseInt(urlObj.searchParams.get('limit') || '20');
+        const mockData = mockDataService.generateOrderBook(
+          'binance_testnet',
+          symbol,
+          limit,
+        );
+        return new Response(JSON.stringify(mockData), {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
-        },
-      );
+        });
+      } else if (path.includes('/ticker/24hr')) {
+        // Ticker data
+        const mockData = mockDataService.generateTickerStats(
+          'binance_testnet',
+          symbol,
+        );
+        return new Response(JSON.stringify(mockData), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      } else if (path.includes('/klines')) {
+        // Klines data
+        const interval = urlObj.searchParams.get('interval') || '1h';
+        const limit = parseInt(urlObj.searchParams.get('limit') || '100');
+        const mockData = mockDataService.generateKlines(
+          'binance_testnet',
+          symbol,
+          interval,
+          undefined,
+          undefined,
+          limit,
+        );
+        return new Response(JSON.stringify(mockData), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      } else {
+        // Generic response for other endpoints
+        return new Response(
+          JSON.stringify({
+            message: 'Generic mock data for Binance Testnet',
+            endpoint: path,
+            params: Object.fromEntries(urlObj.searchParams.entries()),
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        );
+      }
     }
+
+    // Handle other mock API requests
+    if (url.startsWith('/api/portfolio')) {
+      return handlePortfolioRequest(url);
+    }
+    if (url.startsWith('/api/trading-pairs')) {
+      return handleTradingPairsRequest(url);
+    }
+    if (url.startsWith('/api/orderbook')) {
+      return handleOrderBookRequest(url);
+    }
+    if (url.startsWith('/api/klines')) {
+      return handleKlinesRequest(url);
+    }
+    if (url.startsWith('/api/orders')) {
+      return handleOrdersRequest(url, init);
+    }
+
+    // Default fallback for unhandled API requests when mocking
+    console.warn(`Unhandled mock API request: ${url}`);
+    return new Response(
+      JSON.stringify({ message: 'Mock endpoint not found' }),
+      {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
   }
 
-  // Handle other mock API requests
-  if (url.startsWith('/api/portfolio')) {
-    return handlePortfolioRequest(url);
-  }
-  if (url.startsWith('/api/trading-pairs')) {
-    return handleTradingPairsRequest(url);
-  }
-  if (url.startsWith('/api/orderbook')) {
-    return handleOrderBookRequest(url);
-  }
-  if (url.startsWith('/api/klines')) {
-    return handleKlinesRequest(url);
-  }
-  if (url.startsWith('/api/orders')) {
-    return handleOrdersRequest(url, init);
-  }
+  // --- Specific Mock Handlers ---
 
-  // Default fallback for unhandled API requests when mocking
-  console.warn(`Unhandled mock API request: ${url}`);
-  return new Response(JSON.stringify({ message: 'Mock endpoint not found' }), {
-    status: 404,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
-
-// --- Specific Mock Handlers ---
-
-/**
- * Handles mock portfolio requests
- */
-function handlePortfolioRequest(url: string): Response {
-  const mockData = getMockPortfolioData();
-  return new Response(JSON.stringify(mockData), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
-
-/**
- * Handles mock trading pairs requests
- */
-function handleTradingPairsRequest(url: string): Response {
-  const mockData = mockDataService.generateTradingPairs('mock'); // Corrected method name
-  return new Response(JSON.stringify(mockData), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
-
-/**
- * Handles mock order book requests
- */
-function handleOrderBookRequest(url: string): Response {
-  const urlObj = new URL(url, window.location.origin);
-  const symbol = urlObj.searchParams.get('symbol') || 'BTCUSDT';
-  const limit = parseInt(urlObj.searchParams.get('limit') || '20');
-  const mockData = mockDataService.generateOrderBook('mock', symbol, limit);
-  return new Response(JSON.stringify(mockData), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
-
-/**
- * Handles mock klines requests
- */
-function handleKlinesRequest(url: string): Response {
-  const urlObj = new URL(url, window.location.origin);
-  const symbol = urlObj.searchParams.get('symbol') || 'BTCUSDT';
-  const interval = urlObj.searchParams.get('interval') || '1h';
-  const limit = parseInt(urlObj.searchParams.get('limit') || '100');
-  const mockData = mockDataService.generateKlines(
-    'mock',
-    symbol,
-    interval,
-    undefined, // startTime
-    undefined, // endTime
-    limit, // Correct position for limit
-  );
-  return new Response(JSON.stringify(mockData), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
-
-/**
- * Handles mock orders requests
- */
-function handleOrdersRequest(url: string, init?: RequestInit): Response {
-  if (init?.method === 'POST') {
-    // Mock order creation
-    const body = init.body ? JSON.parse(init.body.toString()) : {};
-    const newOrder = {
-      orderId: `mock-${Date.now()}`,
-      symbol: body.symbol,
-      side: body.side,
-      type: body.type,
-      quantity: body.quantity,
-      price: body.price,
-      status: 'NEW',
-      timestamp: Date.now(),
-    };
-    return new Response(JSON.stringify(newOrder), {
-      status: 201,
+  /**
+   * Handles mock portfolio requests
+   */
+  function handlePortfolioRequest(url: string): Response {
+    const mockData = getMockPortfolioData();
+    return new Response(JSON.stringify(mockData), {
+      status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
-  } else {
-    // Mock fetching orders
-    // Corrected arguments: userId, exchangeId, symbol, count
-    const mockData = mockDataService.generateOrders(
+  }
+
+  /**
+   * Handles mock trading pairs requests
+   */
+  function handleTradingPairsRequest(url: string): Response {
+    const mockData = mockDataService.generateTradingPairs('mock'); // Corrected method name
+    return new Response(JSON.stringify(mockData), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  /**
+   * Handles mock order book requests
+   */
+  function handleOrderBookRequest(url: string): Response {
+    const urlObj = new URL(url, window.location.origin);
+    const symbol = urlObj.searchParams.get('symbol') || 'BTCUSDT';
+    const limit = parseInt(urlObj.searchParams.get('limit') || '20');
+    const mockData = mockDataService.generateOrderBook('mock', symbol, limit);
+    return new Response(JSON.stringify(mockData), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  /**
+   * Handles mock klines requests
+   */
+  function handleKlinesRequest(url: string): Response {
+    const urlObj = new URL(url, window.location.origin);
+    const symbol = urlObj.searchParams.get('symbol') || 'BTCUSDT';
+    const interval = urlObj.searchParams.get('interval') || '1h';
+    const limit = parseInt(urlObj.searchParams.get('limit') || '100');
+    const mockData = mockDataService.generateKlines(
       'mock',
-      'mock',
-      'BTCUSDT',
-      10,
+      symbol,
+      interval,
+      undefined, // startTime
+      undefined, // endTime
+      limit, // Correct position for limit
     );
     return new Response(JSON.stringify(mockData), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
   }
+
+  /**
+   * Handles mock orders requests
+   */
+  function handleOrdersRequest(url: string, init?: RequestInit): Response {
+    if (init?.method === 'POST') {
+      // Mock order creation
+      const body = init.body ? JSON.parse(init.body.toString()) : {};
+      const newOrder = {
+        orderId: `mock-${Date.now()}`,
+        symbol: body.symbol,
+        side: body.side,
+        type: body.type,
+        quantity: body.quantity,
+        price: body.price,
+        status: 'NEW',
+        timestamp: Date.now(),
+      };
+      return new Response(JSON.stringify(newOrder), {
+        status: 201,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } else {
+      // Mock fetching orders
+      // Corrected arguments: userId, exchangeId, symbol, count
+      const mockData = mockDataService.generateOrders(
+        'mock',
+        'mock',
+        'BTCUSDT',
+        10,
+      );
+      return new Response(JSON.stringify(mockData), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  // Close the handleApiWithMockData function
 }
