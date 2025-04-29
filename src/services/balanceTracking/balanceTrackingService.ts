@@ -367,6 +367,319 @@ export class BalanceTrackingService {
       throw error;
     }
   }
+
+  /**
+   * Reserve balance for an order
+   * @param exchangeId The exchange ID
+   * @param apiKeyId The API key ID
+   * @param symbol The trading pair symbol (e.g., 'BTC/USDT')
+   * @param side The order side ('buy' or 'sell')
+   * @param type The order type ('market', 'limit', etc.)
+   * @param quantity The order quantity
+   * @param price The order price (for limit orders)
+   * @returns True if the balance was successfully reserved, false otherwise
+   */
+  public reserveBalanceForOrder(
+    exchangeId: string,
+    apiKeyId: string,
+    symbol: string,
+    side: 'buy' | 'sell',
+    type: string,
+    quantity: number,
+    price?: number,
+  ): boolean {
+    try {
+      // Parse the symbol to get base and quote assets
+      const [baseAsset, quoteAsset] = symbol.split('/');
+
+      if (!baseAsset || !quoteAsset) {
+        logger.error(
+          `[BalanceTrackingService] Invalid symbol format: ${symbol}. Expected format: 'BTC/USDT'`,
+        );
+        return false;
+      }
+
+      // Get current balances
+      const baseBalance = this.getBalance(exchangeId, apiKeyId, baseAsset);
+      const quoteBalance = this.getBalance(exchangeId, apiKeyId, quoteAsset);
+
+      if (!baseBalance || !quoteBalance) {
+        logger.error(
+          `[BalanceTrackingService] Balance not found for ${exchangeId} API key ${apiKeyId}: ${baseAsset} or ${quoteAsset}`,
+        );
+        return false;
+      }
+
+      // Calculate amount to reserve
+      let assetToReserve: string;
+      let amountToReserve: number;
+
+      if (side === 'buy') {
+        // For buy orders, reserve quote asset (e.g., USDT)
+        assetToReserve = quoteAsset;
+
+        // For market orders without a price, we need to estimate the cost
+        // This is a simplified approach - in production, you might want to add a buffer
+        if (type === 'market' && !price) {
+          // Try to get the current market price
+          // This is a placeholder - you would need to implement a way to get the current price
+          // For now, we'll just log an error and return false
+          logger.error(
+            `[BalanceTrackingService] Cannot reserve balance for market buy order without price estimate`,
+          );
+          return false;
+        }
+
+        // Calculate amount to reserve
+        amountToReserve = quantity * (price || 0);
+      } else {
+        // For sell orders, reserve base asset (e.g., BTC)
+        assetToReserve = baseAsset;
+        amountToReserve = quantity;
+      }
+
+      // Get the balance for the asset to reserve
+      const balance = side === 'buy' ? quoteBalance : baseBalance;
+
+      // Check if there's enough free balance
+      if (balance.free < amountToReserve) {
+        logger.error(
+          `[BalanceTrackingService] Insufficient free balance for ${exchangeId} API key ${apiKeyId}: ${assetToReserve}. ` +
+            `Required: ${amountToReserve}, Available: ${balance.free}`,
+        );
+        return false;
+      }
+
+      // Update the balance in the cache
+      this.updateBalanceForReservation(
+        exchangeId,
+        apiKeyId,
+        assetToReserve,
+        amountToReserve,
+        true, // isReserve = true
+      );
+
+      logger.info(
+        `[BalanceTrackingService] Reserved ${amountToReserve} ${assetToReserve} for ${side} ${type} order on ${symbol}`,
+      );
+      return true;
+    } catch (error) {
+      logger.error(
+        `[BalanceTrackingService] Error reserving balance for order:`,
+        error,
+      );
+      return false;
+    }
+  }
+
+  /**
+   * Release reserved balance for an order
+   * @param exchangeId The exchange ID
+   * @param apiKeyId The API key ID
+   * @param symbol The trading pair symbol (e.g., 'BTC/USDT')
+   * @param side The order side ('buy' or 'sell')
+   * @param type The order type ('market', 'limit', etc.)
+   * @param quantity The order quantity
+   * @param price The order price (for limit orders)
+   * @returns True if the balance was successfully released, false otherwise
+   */
+  public releaseReservedBalance(
+    exchangeId: string,
+    apiKeyId: string,
+    symbol: string,
+    side: 'buy' | 'sell',
+    type: string,
+    quantity: number,
+    price?: number,
+  ): boolean {
+    try {
+      // Parse the symbol to get base and quote assets
+      const [baseAsset, quoteAsset] = symbol.split('/');
+
+      if (!baseAsset || !quoteAsset) {
+        logger.error(
+          `[BalanceTrackingService] Invalid symbol format: ${symbol}. Expected format: 'BTC/USDT'`,
+        );
+        return false;
+      }
+
+      // Calculate amount to release
+      let assetToRelease: string;
+      let amountToRelease: number;
+
+      if (side === 'buy') {
+        // For buy orders, release quote asset (e.g., USDT)
+        assetToRelease = quoteAsset;
+        amountToRelease = quantity * (price || 0);
+      } else {
+        // For sell orders, release base asset (e.g., BTC)
+        assetToRelease = baseAsset;
+        amountToRelease = quantity;
+      }
+
+      // Update the balance in the cache
+      this.updateBalanceForReservation(
+        exchangeId,
+        apiKeyId,
+        assetToRelease,
+        amountToRelease,
+        false, // isReserve = false
+      );
+
+      logger.info(
+        `[BalanceTrackingService] Released ${amountToRelease} ${assetToRelease} for ${side} ${type} order on ${symbol}`,
+      );
+      return true;
+    } catch (error) {
+      logger.error(
+        `[BalanceTrackingService] Error releasing reserved balance:`,
+        error,
+      );
+      return false;
+    }
+  }
+
+  /**
+   * Update balance for reservation or release
+   * @param exchangeId The exchange ID
+   * @param apiKeyId The API key ID
+   * @param asset The asset symbol
+   * @param amount The amount to reserve or release
+   * @param isReserve True to reserve, false to release
+   */
+  private updateBalanceForReservation(
+    exchangeId: string,
+    apiKeyId: string,
+    asset: string,
+    amount: number,
+    isReserve: boolean,
+  ): void {
+    // Ensure the cache structure exists
+    if (!this.balanceCache[exchangeId]) {
+      this.balanceCache[exchangeId] = {};
+    }
+    if (!this.balanceCache[exchangeId][apiKeyId]) {
+      this.balanceCache[exchangeId][apiKeyId] = {};
+    }
+    if (!this.balanceCache[exchangeId][apiKeyId][asset]) {
+      // If the asset doesn't exist in the cache, we can't update it
+      logger.error(
+        `[BalanceTrackingService] Cannot update balance for ${exchangeId} API key ${apiKeyId}: ${asset} not found in cache`,
+      );
+      return;
+    }
+
+    // Get the current balance
+    const currentBalance = this.balanceCache[exchangeId][apiKeyId][asset];
+
+    // Calculate new free and locked amounts
+    let newFree: number;
+    let newLocked: number;
+
+    if (isReserve) {
+      // Reserve: decrease free, increase locked
+      newFree = currentBalance.free - amount;
+      newLocked = currentBalance.locked + amount;
+    } else {
+      // Release: increase free, decrease locked
+      newFree = currentBalance.free + amount;
+      newLocked = Math.max(0, currentBalance.locked - amount); // Ensure locked doesn't go negative
+    }
+
+    // Update the balance in the cache
+    this.balanceCache[exchangeId][apiKeyId][asset] = {
+      free: newFree,
+      locked: newLocked,
+      total: newFree + newLocked,
+      available: newFree,
+      lastUpdated: Date.now(),
+    };
+
+    // Emit a balance update event
+    const updateData: BalanceUpdate = {
+      exchangeId,
+      apiKeyId,
+      asset,
+      balance: {
+        free: newFree,
+        locked: newLocked,
+        total: newFree + newLocked,
+        available: newFree,
+      },
+      timestamp: Date.now(),
+    };
+
+    this.eventEmitter.emit(updateData);
+
+    logger.debug(
+      `[BalanceTrackingService] ${isReserve ? 'Reserved' : 'Released'} ${amount} ${asset} for ${exchangeId} API key ${apiKeyId}. ` +
+        `New balance: Free=${newFree}, Locked=${newLocked}`,
+    );
+  }
+
+  /**
+   * Check if there's sufficient balance for an order
+   * @param exchangeId The exchange ID
+   * @param apiKeyId The API key ID
+   * @param symbol The trading pair symbol (e.g., 'BTC/USDT')
+   * @param side The order side ('buy' or 'sell')
+   * @param quantity The order quantity
+   * @param price The order price (for limit orders)
+   * @returns True if there's sufficient balance, false otherwise
+   */
+  public hasSufficientBalance(
+    exchangeId: string,
+    apiKeyId: string,
+    symbol: string,
+    side: 'buy' | 'sell',
+    quantity: number,
+    price?: number,
+  ): boolean {
+    try {
+      // Parse the symbol to get base and quote assets
+      const [baseAsset, quoteAsset] = symbol.split('/');
+
+      if (!baseAsset || !quoteAsset) {
+        logger.error(
+          `[BalanceTrackingService] Invalid symbol format: ${symbol}. Expected format: 'BTC/USDT'`,
+        );
+        return false;
+      }
+
+      // Get current balances
+      const baseBalance = this.getBalance(exchangeId, apiKeyId, baseAsset);
+      const quoteBalance = this.getBalance(exchangeId, apiKeyId, quoteAsset);
+
+      if (!baseBalance || !quoteBalance) {
+        logger.error(
+          `[BalanceTrackingService] Balance not found for ${exchangeId} API key ${apiKeyId}: ${baseAsset} or ${quoteAsset}`,
+        );
+        return false;
+      }
+
+      // Check if there's enough free balance
+      if (side === 'buy') {
+        // For buy orders, check quote asset (e.g., USDT)
+        if (!price) {
+          logger.error(
+            `[BalanceTrackingService] Cannot check balance for buy order without price`,
+          );
+          return false;
+        }
+        const requiredAmount = quantity * price;
+        return quoteBalance.free >= requiredAmount;
+      } else {
+        // For sell orders, check base asset (e.g., BTC)
+        return baseBalance.free >= quantity;
+      }
+    } catch (error) {
+      logger.error(
+        `[BalanceTrackingService] Error checking balance for order:`,
+        error,
+      );
+      return false;
+    }
+  }
 }
 
 // Export a singleton instance

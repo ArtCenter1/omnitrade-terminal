@@ -10,6 +10,7 @@ import { usePrice } from '@/contexts/PriceContext';
 import { ExchangeFactory } from '@/services/exchange/exchangeFactory';
 import { useFeatureFlags } from '@/config/featureFlags';
 import logger from '@/utils/logger';
+import { balanceTrackingService } from '@/services/balanceTracking/balanceTrackingService';
 
 interface TradingFormProps {
   selectedPair?: TradingPair;
@@ -159,16 +160,41 @@ export function TradingForm({
       return;
     }
 
+    // Determine which exchange adapter to use
+    const exchangeId = selectedAccount.isSandbox
+      ? useBinanceTestnet
+        ? 'binance_testnet'
+        : 'sandbox'
+      : selectedAccount.exchange;
+
+    // Get the price for the order
+    const orderPrice =
+      orderType === 'limit' && selectedPrice
+        ? parseFloat(selectedPrice)
+        : undefined;
+
+    // Check if there's sufficient balance for the order
+    const hasSufficientBalance = balanceTrackingService.hasSufficientBalance(
+      exchangeId,
+      'default', // Use 'default' as the API key ID for now
+      selectedPair.symbol,
+      side,
+      parseFloat(amount),
+      orderPrice,
+    );
+
+    if (!hasSufficientBalance) {
+      toast({
+        title: 'Insufficient balance',
+        description: `You don't have enough ${side === 'buy' ? quoteAsset : baseAsset} to place this order.`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      // Determine which exchange adapter to use
-      const exchangeId = selectedAccount.isSandbox
-        ? useBinanceTestnet
-          ? 'binance_testnet'
-          : 'sandbox'
-        : selectedAccount.exchange;
-
       logger.info('Placing order', {
         component: 'TradingForm',
         method: 'handlePlaceOrder',
@@ -202,6 +228,30 @@ export function TradingForm({
         data: { orderParams },
       });
 
+      // Reserve the balance for the order
+      const balanceReserved = balanceTrackingService.reserveBalanceForOrder(
+        exchangeId,
+        'default', // Use 'default' as the API key ID for now
+        selectedPair.symbol,
+        side,
+        orderType,
+        parseFloat(amount),
+        orderType === 'limit' && selectedPrice
+          ? parseFloat(selectedPrice)
+          : undefined,
+      );
+
+      if (!balanceReserved) {
+        logger.warn('Failed to reserve balance for order', {
+          component: 'TradingForm',
+          method: 'handlePlaceOrder',
+          data: { orderParams },
+        });
+
+        // Continue with the order placement anyway, as the exchange will do its own balance check
+        // In a production environment, you might want to abort the order here
+      }
+
       // Place the order using the adapter
       // Use 'default' as the API key ID for now - in a real app, you would use the actual API key ID
       const order = await adapter.placeOrder('default', orderParams);
@@ -232,6 +282,21 @@ export function TradingForm({
         method: 'handlePlaceOrder',
         data: { error },
       });
+
+      // If the order failed, release the reserved balance
+      if (selectedPair) {
+        balanceTrackingService.releaseReservedBalance(
+          exchangeId,
+          'default', // Use 'default' as the API key ID for now
+          selectedPair.symbol,
+          side,
+          orderType,
+          parseFloat(amount),
+          orderType === 'limit' && selectedPrice
+            ? parseFloat(selectedPrice)
+            : undefined,
+        );
+      }
 
       toast({
         title: 'Failed to place order',
