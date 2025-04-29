@@ -142,17 +142,17 @@
 
 ### Account Information
 
-- [ ] Implement account information retrieval (`/api/v3/account`)
-- [ ] Create balance tracking
+- [x] Implement account information retrieval (`/api/v3/account`)
+- [x] Create balance tracking
 - [ ] Add position management
 - [ ] Implement asset information retrieval
 
 ### Balance Updates
 
-- [ ] Create balance update handling from WebSocket
-- [ ] Implement available balance calculation
-- [ ] Add balance reservation for orders
-- [ ] Create balance reconciliation mechanism
+- [x] Create balance update handling from WebSocket
+- [x] Implement available balance calculation
+- [x] Add balance reservation for orders
+- [x] Create balance reconciliation mechanism
 
 ### Account Limits
 
@@ -162,9 +162,9 @@
 
 ### Testing Account Management
 
-- [ ] Test account information retrieval
-- [ ] Verify balance updates
-- [ ] Test balance reservation
+- [x] Test account information retrieval
+- [x] Verify balance updates
+- [x] Test balance reservation
 - [ ] Validate position tracking
 
 ## Phase 5: Integration with Existing Demo Mode

@@ -25,7 +25,7 @@ import { makeApiRequest } from '@/utils/apiUtils';
 import { BinanceTestnetOrderTrackingService } from './binanceTestnetOrderTrackingService'; // Assuming this exists
 import logger from '@/utils/logger'; // Assuming a logger utility exists
 import { WebSocketManager } from '../connection/websocketManager';
-import { EventEmitter } from 'events'; // Node.js built-in event emitter
+import { BrowserEventEmitter } from '@/utils/browserEventEmitter';
 import { MockDataService } from '../mockData/mockDataService'; // Import mock data service
 
 // --- Interfaces for Balance Updates ---
@@ -109,7 +109,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
   private baseUrl: string;
   private wsBaseUrl: string;
   private webSocketManager: WebSocketManager;
-  private eventEmitter: EventEmitter;
+  private eventEmitter: BrowserEventEmitter;
   private listenKey: string | null = null;
   private listenKeyRefreshInterval: NodeJS.Timeout | null = null;
   private userDataStreamId: string | null = null; // ID for the WebSocketManager subscription
@@ -125,7 +125,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
     this.baseUrl = getExchangeEndpoint('binance_testnet');
     this.wsBaseUrl = 'wss://testnet.binance.vision/ws'; // Base URL for user data stream
     this.webSocketManager = WebSocketManager.getInstance();
-    this.eventEmitter = new EventEmitter();
+    this.eventEmitter = new BrowserEventEmitter();
     // Removed redundant mockDataService instantiation
 
     // Optionally start connection if apiKeyId is provided
@@ -1024,13 +1024,28 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
   public async getAccountInfo(
     apiKeyId: string,
   ): Promise<NormalizedAccountInfo> {
+    // Validate apiKeyId
+    if (!apiKeyId) {
+      const errorMsg = 'Missing apiKeyId for getAccountInfo';
+      logger.error(`[${this.exchangeId}] ${errorMsg}`);
+      throw new Error('API Key ID is required to fetch account information.');
+    }
+
+    logger.info(
+      `[${this.exchangeId}] Fetching account info for API key: ${apiKeyId}`,
+    );
+
     try {
       const response = await this.makeAuthenticatedRequest<BinanceAccountInfo>(
-        '/api/v3/account', // Corrected endpoint
+        '/api/v3/account',
         'GET',
         apiKeyId,
         {}, // No params needed for GET
         10, // Weight: 10
+      );
+
+      logger.debug(
+        `[${this.exchangeId}] Received raw account info - Type: ${response.accountType}, Balances: ${response.balances.length}, Updated: ${new Date(response.updateTime).toISOString()}`,
       );
 
       // Normalize balances
@@ -1038,6 +1053,8 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
         string,
         { free: number; locked: number }
       > = {};
+
+      let nonZeroBalanceCount = 0;
       response.balances.forEach((balance) => {
         const free = parseFloat(balance.free);
         const locked = parseFloat(balance.locked);
@@ -1047,6 +1064,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
             free: isNaN(free) ? 0 : free,
             locked: isNaN(locked) ? 0 : locked,
           };
+          nonZeroBalanceCount++;
         }
       });
 
@@ -1064,12 +1082,13 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       logger.info(
         `[${this.exchangeId}] Balance cache updated from getAccountInfo.`,
       );
+
       // Emit updates for all fetched balances
       Object.keys(this.balanceCache).forEach((asset) =>
         this.emitBalanceUpdate(asset),
       );
 
-      return {
+      const result = {
         exchangeId: this.exchangeId,
         accountType: response.accountType,
         canTrade: response.canTrade,
@@ -1081,25 +1100,40 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
         updateTime: response.updateTime,
         rawResponse: response, // Optionally include raw response
       };
-    } catch (error) {
-      console.error('Error getting account info:', error);
-      // Throw a more specific error or return a default structure
-      throw new Error(
-        `Failed to get account info: ${error instanceof Error ? error.message : String(error)}`,
+
+      logger.info(
+        `[${this.exchangeId}] Successfully fetched and normalized account info with ${nonZeroBalanceCount} non-zero assets`,
       );
-      /* Or return default:
-            return {
-                exchangeId: this.exchangeId,
-                accountType: 'UNKNOWN',
-                canTrade: false,
-                canWithdraw: false,
-                canDeposit: false,
-                makerCommission: 0,
-                takerCommission: 0,
-                balances: {},
-                updateTime: 0,
-            };
-            */
+
+      return result;
+    } catch (error) {
+      logger.error(`[${this.exchangeId}] Error fetching account info`, error);
+
+      // Handle authentication errors specifically
+      if (
+        error instanceof Error &&
+        (error.message.includes('Authentication failed') ||
+          error.message.includes('Invalid API-key') ||
+          error.message.includes('API key') ||
+          error.message.includes('Signature'))
+      ) {
+        throw new Error(
+          `Binance Testnet authentication failed. Please check your API keys for ID: ${apiKeyId}. Original error: ${error.message}`,
+        );
+      }
+
+      // Handle Binance API errors with error codes
+      if (
+        error instanceof Error &&
+        error.message.includes('Binance API error')
+      ) {
+        throw error; // Pass through formatted API errors
+      }
+
+      // Generic error handling
+      throw new Error(
+        `Failed to fetch account info from Binance Testnet: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -2229,6 +2263,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
   /**
    * Fetches the full account balances via REST API and compares with the cache.
    * Corrects any discrepancies found.
+   * This method can be called manually to force a balance refresh.
    */
   public async reconcileBalances(): Promise<void> {
     if (!this.currentApiKeyId) {
@@ -2453,7 +2488,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
    * Provides access to the event emitter for subscribing to updates.
    * Example: adapter.getEventEmitter().on('balanceUpdate', (data) => { ... });
    */
-  public getEventEmitter(): EventEmitter {
+  public getEventEmitter(): BrowserEventEmitter {
     return this.eventEmitter;
   }
 
