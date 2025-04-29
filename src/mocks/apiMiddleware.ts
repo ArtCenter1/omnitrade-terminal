@@ -208,24 +208,55 @@ async function handleApiWithMockData(
         const urlObj = new URL(url, window.location.origin);
         const symbol = urlObj.searchParams.get('symbol') || 'BTCUSDT';
         const limit = parseInt(urlObj.searchParams.get('limit') || '20');
+
+        // Convert symbol format if it contains a slash (e.g., BTC/USDT to BTCUSDT)
+        const formattedSymbol = symbol.includes('/')
+          ? symbol.replace('/', '')
+          : symbol;
+
+        console.log(
+          `Generating mock order book for ${formattedSymbol} with limit ${limit}`,
+        );
+
         const mockData = mockDataService.generateOrderBook(
           'binance_testnet',
-          symbol,
+          formattedSymbol,
           limit,
         );
 
-        return new Response(JSON.stringify(mockData), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return new Response(
+          JSON.stringify({
+            lastUpdateId: Date.now(),
+            bids: mockData.bids.map((entry) => [
+              entry.price.toString(),
+              entry.quantity.toString(),
+            ]),
+            asks: mockData.asks.map((entry) => [
+              entry.price.toString(),
+              entry.quantity.toString(),
+            ]),
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        );
       }
 
       if (url.includes('ticker/24hr')) {
         const urlObj = new URL(url, window.location.origin);
         const symbol = urlObj.searchParams.get('symbol') || 'BTCUSDT';
+
+        // Convert symbol format if it contains a slash
+        const formattedSymbol = symbol.includes('/')
+          ? symbol.replace('/', '')
+          : symbol;
+
+        console.log(`Generating mock ticker stats for ${formattedSymbol}`);
+
         const mockData = mockDataService.generateTickerStats(
           'binance_testnet',
-          symbol,
+          formattedSymbol,
         );
 
         return new Response(JSON.stringify(mockData), {
@@ -480,11 +511,15 @@ async function handleApiWithMockData(
       const symbol = urlObj.searchParams.get('symbol');
       const limit = urlObj.searchParams.get('limit');
 
+      // Format symbol if needed (remove / if present)
+      const formattedSymbol =
+        symbol && symbol.includes('/') ? symbol.replace('/', '') : symbol;
+
       // Construct the real Binance Testnet API URL with parameters
       let realUrl = 'https://testnet.binance.vision/api/v3/depth';
       console.log(`Using Binance Testnet API URL: ${realUrl}`);
-      if (symbol) {
-        realUrl += `?symbol=${symbol}`;
+      if (formattedSymbol) {
+        realUrl += `?symbol=${formattedSymbol}`;
         if (limit) {
           realUrl += `&limit=${limit}`;
         }
@@ -594,11 +629,15 @@ async function handleApiWithMockData(
       const urlObj = new URL(url, window.location.origin);
       const symbol = urlObj.searchParams.get('symbol');
 
+      // Format symbol if needed (remove / if present)
+      const formattedSymbol =
+        symbol && symbol.includes('/') ? symbol.replace('/', '') : symbol;
+
       // Construct the real Binance Testnet API URL with parameters
       let realUrl = 'https://testnet.binance.vision/api/v3/ticker/24hr';
       console.log(`Using Binance Testnet API URL for ticker: ${realUrl}`);
-      if (symbol) {
-        realUrl += `?symbol=${symbol}`;
+      if (formattedSymbol) {
+        realUrl += `?symbol=${formattedSymbol}`;
       }
 
       // Create a cache key based on the URL

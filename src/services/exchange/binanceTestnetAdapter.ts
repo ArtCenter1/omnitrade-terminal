@@ -18,6 +18,7 @@ import { SUPPORTED_EXCHANGES } from '../mockData/mockDataUtils';
 import HmacSHA256 from 'crypto-js/hmac-sha256';
 import Hex from 'crypto-js/enc-hex';
 import { makeApiRequest } from '@/utils/apiUtils';
+import { BinanceTestnetOrderTrackingService } from './binanceTestnetOrderTrackingService';
 
 /**
  * Adapter for the Binance Testnet exchange.
@@ -455,18 +456,28 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
         weight,
       );
 
+      // Validate response before processing
+      if (!response || !response.bids || !response.asks) {
+        console.error('Invalid order book response:', response);
+        throw new Error('Invalid order book response structure');
+      }
+
       // Format response
       return {
         symbol,
         exchangeId: this.exchangeId,
-        bids: response.bids.map((bid: string[]) => ({
-          price: parseFloat(bid[0]),
-          quantity: parseFloat(bid[1]),
-        })),
-        asks: response.asks.map((ask: string[]) => ({
-          price: parseFloat(ask[0]),
-          quantity: parseFloat(ask[1]),
-        })),
+        bids: Array.isArray(response.bids)
+          ? response.bids.map((bid: string[]) => ({
+              price: parseFloat(bid[0]),
+              quantity: parseFloat(bid[1]),
+            }))
+          : [],
+        asks: Array.isArray(response.asks)
+          ? response.asks.map((ask: string[]) => ({
+              price: parseFloat(ask[0]),
+              quantity: parseFloat(ask[1]),
+            }))
+          : [],
         timestamp: Date.now(),
       };
     } catch (error) {
@@ -847,8 +858,9 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       );
 
       // Format response to match our Order interface
-      return {
+      const newOrder: Order = {
         id: response.orderId.toString(),
+        clientOrderId: response.clientOrderId,
         exchangeId: this.exchangeId,
         symbol: order.symbol,
         side: order.side,
@@ -863,6 +875,13 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
         timestamp: response.transactTime,
         lastUpdated: response.updateTime || response.transactTime,
       };
+
+      // Track the order in the order tracking service
+      const orderTrackingService =
+        BinanceTestnetOrderTrackingService.getInstance();
+      orderTrackingService.trackOrder(newOrder);
+
+      return newOrder;
     } catch (error) {
       console.error('Error placing order:', error);
 
@@ -940,6 +959,15 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       ); // Weight: 1
 
       console.log('Cancel order response:', response);
+
+      // Update order status in the tracking service
+      const orderTrackingService =
+        BinanceTestnetOrderTrackingService.getInstance();
+      orderTrackingService.updateOrder(orderId, {
+        status: 'canceled',
+        lastUpdated: Date.now(),
+      });
+
       return true;
     } catch (error) {
       console.error('Error canceling order:', error);

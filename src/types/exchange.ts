@@ -122,6 +122,7 @@ export type OrderStatus =
 // Order information
 export interface Order {
   id: string;
+  clientOrderId?: string; // Client-side order ID (for tracking)
   exchangeId: string;
   symbol: string;
   side: OrderSide;
