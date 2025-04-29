@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { Loader2 } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { Loader2, RefreshCw } from 'lucide-react';
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
-import { getMockPortfolioData } from '@/mocks/mockPortfolio';
 import { PortfolioAsset } from '@/types/exchange';
 import { TradingPair } from './TradingPairSelector';
+import { useBalances } from '@/hooks/useBalances';
 
 interface BalanceItemProps {
   icon: string;
@@ -54,13 +54,40 @@ export function AvailableBalances({
   refreshTrigger = 0,
 }: AvailableBalancesProps = {}) {
   const { selectedAccount } = useSelectedAccount();
-  const [assets, setAssets] = useState<PortfolioAsset[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
 
   // Get crypto icons from CoinGecko or use placeholders
   const getIconUrl = (symbol: string) => {
     return `/crypto-icons/${symbol.toLowerCase()}.svg`;
   };
+
+  // Get the asset symbols from the selected pair
+  const assetFilter = useMemo(() => {
+    if (!selectedPair) return [];
+    return [selectedPair.baseAsset, selectedPair.quoteAsset];
+  }, [selectedPair]);
+
+  // Use our new hook to get real-time balance data
+  const { balancesArray, isRefreshing, refreshBalances, lastUpdate } =
+    useBalances(assetFilter);
+
+  // Convert balance data to portfolio assets format
+  const assets = useMemo(() => {
+    return balancesArray.map((balance) => ({
+      asset: balance.asset,
+      free: balance.free,
+      locked: balance.locked,
+      total: balance.total,
+      available: balance.available,
+      usdValue: 0, // We don't have USD values yet, will need to add price data integration
+      exchangeId: selectedAccount?.exchangeId || 'unknown',
+      exchangeSources: [
+        {
+          exchangeId: selectedAccount?.exchangeId || 'unknown',
+          amount: balance.total,
+        },
+      ],
+    }));
+  }, [balancesArray, selectedAccount]);
 
   // Create or filter assets to show both base and quote assets from the selected pair
   const filteredAssets = useMemo(() => {
@@ -105,29 +132,13 @@ export function AvailableBalances({
     return result;
   }, [assets, selectedPair, selectedAccount]);
 
-  useEffect(() => {
-    if (selectedAccount) {
-      setIsLoading(true);
-      // Get portfolio data for the selected account
-      const portfolioData = getMockPortfolioData(selectedAccount.apiKeyId);
-
-      if (portfolioData.data && portfolioData.data.assets) {
-        // Sort assets by USD value (descending)
-        const sortedAssets = [...portfolioData.data.assets].sort(
-          (a, b) => b.usdValue - a.usdValue,
-        );
-        setAssets(sortedAssets);
-      } else {
-        setAssets([]);
-      }
-      setIsLoading(false);
-    }
-  }, [selectedAccount, refreshTrigger]);
-
-  if (isLoading) {
+  if (isRefreshing) {
     return (
       <div className="mb-6">
-        <div className="text-gray-400 mb-2 text-xs">Available Balances</div>
+        <div className="flex justify-between items-center mb-2">
+          <div className="text-gray-400 text-xs">Available Balances</div>
+          <div className="text-xs text-gray-500">Refreshing...</div>
+        </div>
         <div className="flex justify-center py-4">
           <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
         </div>
@@ -138,7 +149,17 @@ export function AvailableBalances({
   if (!selectedAccount || assets.length === 0) {
     return (
       <div className="mb-6">
-        <div className="text-gray-400 mb-2 text-xs">Available Balances</div>
+        <div className="flex justify-between items-center mb-2">
+          <div className="text-gray-400 text-xs">Available Balances</div>
+          <button
+            onClick={refreshBalances}
+            className="text-xs text-gray-500 hover:text-white flex items-center"
+            title="Refresh balances"
+          >
+            <RefreshCw size={12} className="mr-1" />
+            Refresh
+          </button>
+        </div>
         <div className="text-gray-400 text-sm text-center py-2">
           No balances available
         </div>
@@ -149,7 +170,17 @@ export function AvailableBalances({
   if (!selectedPair) {
     return (
       <div className="mb-6">
-        <div className="text-gray-400 mb-2 text-xs">Available Balances</div>
+        <div className="flex justify-between items-center mb-2">
+          <div className="text-gray-400 text-xs">Available Balances</div>
+          <button
+            onClick={refreshBalances}
+            className="text-xs text-gray-500 hover:text-white flex items-center"
+            title="Refresh balances"
+          >
+            <RefreshCw size={12} className="mr-1" />
+            Refresh
+          </button>
+        </div>
         <div className="text-gray-400 text-sm text-center py-2">
           No trading pair selected
         </div>
@@ -159,7 +190,31 @@ export function AvailableBalances({
 
   return (
     <div className="mb-3">
-      <div className="text-gray-400 mb-1 text-xs">Available Balances</div>
+      <div className="flex justify-between items-center mb-2">
+        <div className="text-gray-400 text-xs">Available Balances</div>
+        <div className="flex items-center">
+          {lastUpdate && (
+            <div
+              className="text-xs text-gray-500 mr-2"
+              title={lastUpdate.toLocaleString()}
+            >
+              Updated {lastUpdate.toLocaleTimeString()}
+            </div>
+          )}
+          <button
+            onClick={refreshBalances}
+            className="text-xs text-gray-500 hover:text-white flex items-center"
+            title="Refresh balances"
+            disabled={isRefreshing}
+          >
+            <RefreshCw
+              size={12}
+              className={`mr-1 ${isRefreshing ? 'animate-spin' : ''}`}
+            />
+            Refresh
+          </button>
+        </div>
+      </div>
       <div className="space-y-2 max-h-24 overflow-y-auto pr-1">
         {filteredAssets.map((asset) => (
           <BalanceItem
