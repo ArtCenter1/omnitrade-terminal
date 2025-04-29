@@ -271,9 +271,25 @@ export class WebSocketManager {
       this.handleTradeMessage(exchangeId, message);
     } else if (message.e === 'kline') {
       this.handleKlineMessage(exchangeId, message);
+    } else if (
+      message.e === 'outboundAccountPosition' ||
+      message.e === 'balanceUpdate' ||
+      message.e === 'executionReport'
+    ) {
+      // Handle User Data Stream events
+      this.handleUserDataMessage(exchangeId, message);
     } else if (message.stream && message.data) {
-      // Combined stream message
-      this.processBinanceMessage(exchangeId, message.data);
+      // Combined stream message - check if it's user data within combined
+      if (
+        message.data.e === 'outboundAccountPosition' ||
+        message.data.e === 'balanceUpdate' ||
+        message.data.e === 'executionReport'
+      ) {
+        this.handleUserDataMessage(exchangeId, message.data);
+      } else {
+        // Process other combined stream types
+        this.processBinanceMessage(exchangeId, message.data);
+      }
     } else {
       // Cache the message for debugging
       const cacheKey = `${exchangeId}_unknown_${Date.now()}`;
@@ -470,12 +486,40 @@ export class WebSocketManager {
         );
         return `${base}/${quote}`;
       }
-    }
+    } // Closing brace for the for...of loop
 
     // If no match found, make a best guess (assume last 4 characters are the quote asset)
     const base = binanceSymbol.substring(0, binanceSymbol.length - 4);
     const quote = binanceSymbol.substring(binanceSymbol.length - 4);
     return `${base}/${quote}`;
+  }
+  /**
+   * Handle user data message (balance updates, order updates)
+   * Passes the raw message to the corresponding 'userdata' subscription callback.
+   * @param exchangeId The exchange ID (potentially including listenKey identifier)
+   * @param message The user data message
+   */
+  private handleUserDataMessage(exchangeId: string, message: any): void {
+    // Find subscriptions for this user data stream
+    // Note: The exchangeId here might be a unique identifier for the user data stream,
+    // e.g., `binance_testnet_userdata_${listenKey}`
+    const subs = this.subscriptions.get(exchangeId) || [];
+    subs.forEach((subscription) => {
+      if (subscription.type === 'userdata') {
+        try {
+          subscription.callback(message);
+        } catch (error) {
+          console.error(
+            `Error in user data subscription callback for ${exchangeId}:`,
+            error,
+          );
+        }
+      }
+    });
+
+    // Optionally cache user data messages if needed for debugging
+    // const cacheKey = `${exchangeId}_userdata_${message.e}_${Date.now()}`;
+    // this.messageCache.set(cacheKey, message);
   }
 
   /**

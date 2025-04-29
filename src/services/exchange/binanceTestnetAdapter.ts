@@ -10,15 +10,96 @@ import {
   PerformanceMetrics,
   Trade,
   TickerStats,
+  OrderStatus,
+  OrderType,
+  TimeInForce,
 } from '@/types/exchange';
+import axios from 'axios';
 
 import { BaseExchangeAdapter } from './baseExchangeAdapter';
 import { getExchangeEndpoint } from '@/config/exchangeConfig';
-import { SUPPORTED_EXCHANGES } from '../mockData/mockDataUtils';
+import { SUPPORTED_EXCHANGES } from '../mockData/mockDataUtils'; // Assuming mock data utils exist
 import HmacSHA256 from 'crypto-js/hmac-sha256';
 import Hex from 'crypto-js/enc-hex';
 import { makeApiRequest } from '@/utils/apiUtils';
-import { BinanceTestnetOrderTrackingService } from './binanceTestnetOrderTrackingService';
+import { BinanceTestnetOrderTrackingService } from './binanceTestnetOrderTrackingService'; // Assuming this exists
+import logger from '@/utils/logger'; // Assuming a logger utility exists
+import { WebSocketManager } from '../connection/websocketManager';
+import { EventEmitter } from 'events'; // Node.js built-in event emitter
+import { MockDataService } from '../mockData/mockDataService'; // Import mock data service
+
+// --- Interfaces for Balance Updates ---
+interface BalanceUpdatePayload {
+  e: 'balanceUpdate'; // Event type
+  E: number; // Event time
+  a: string; // Asset
+  d: string; // Balance delta
+  T: number; // Clear time
+}
+
+interface OutboundAccountPositionPayload {
+  e: 'outboundAccountPosition'; // Event type
+  E: number; // Event time
+  u: number; // Time of last account update
+  B: Array<{
+    a: string; // Asset
+    f: string; // Free amount
+    l: string; // Locked amount
+  }>;
+}
+
+// --- Interfaces for getAccountInfo ---
+
+/**
+ * Represents a single balance entry from the Binance /api/v3/account endpoint.
+ */
+interface BinanceBalance {
+  asset: string;
+  free: string;
+  locked: string;
+}
+
+/**
+ * Represents the raw account information structure returned by the Binance /api/v3/account endpoint.
+ */
+interface BinanceAccountInfo {
+  makerCommission: number;
+  takerCommission: number;
+  buyerCommission: number; // Included for completeness, often same as taker
+  sellerCommission: number; // Included for completeness, often same as maker
+  commissionRates?: {
+    // Newer structure for commission rates (optional)
+    maker: string;
+    taker: string;
+    buyer: string;
+    seller: string;
+  };
+  canTrade: boolean;
+  canWithdraw: boolean;
+  canDeposit: boolean;
+  updateTime: number;
+  accountType: string;
+  balances: BinanceBalance[];
+  permissions: string[];
+  uid?: number; // Added based on potential API response structure (optional)
+}
+
+/**
+ * Represents the normalized account information returned by our getAccountInfo method.
+ * Exported for use in tests and potentially other parts of the application.
+ */
+export interface NormalizedAccountInfo {
+  exchangeId: string;
+  accountType: string;
+  canTrade: boolean;
+  canWithdraw: boolean;
+  canDeposit: boolean;
+  makerCommission: number; // Commission rate (e.g., 0.001 for 0.1%)
+  takerCommission: number; // Commission rate (e.g., 0.001 for 0.1%)
+  balances: Record<string, { free: number; locked: number }>; // Normalized balances map (Asset -> {free, locked})
+  updateTime: number;
+  rawResponse?: BinanceAccountInfo; // Optional: include raw response for debugging
+}
 
 /**
  * Adapter for the Binance Testnet exchange.
@@ -27,11 +108,36 @@ import { BinanceTestnetOrderTrackingService } from './binanceTestnetOrderTrackin
 export class BinanceTestnetAdapter extends BaseExchangeAdapter {
   private baseUrl: string;
   private wsBaseUrl: string;
+  private webSocketManager: WebSocketManager;
+  private eventEmitter: EventEmitter;
+  private listenKey: string | null = null;
+  private listenKeyRefreshInterval: NodeJS.Timeout | null = null;
+  private userDataStreamId: string | null = null; // ID for the WebSocketManager subscription
+  private balanceCache: Record<string, { free: number; locked: number }> = {};
+  private reconciliationInterval: NodeJS.Timeout | null = null;
+  private isConnectingUserDataStream: boolean = false;
+  private currentApiKeyId: string | null = null; // Store the API key ID used for the stream
+  // Removed redundant mockDataService declaration - it's inherited from BaseExchangeAdapter
 
-  constructor() {
-    super('binance_testnet');
+  constructor(apiKeyId?: string) {
+    // Allow passing apiKeyId for initialization
+    super('binance_testnet'); // Calls BaseExchangeAdapter constructor, which initializes mockDataService
     this.baseUrl = getExchangeEndpoint('binance_testnet');
-    this.wsBaseUrl = 'wss://testnet.binance.vision/ws';
+    this.wsBaseUrl = 'wss://testnet.binance.vision/ws'; // Base URL for user data stream
+    this.webSocketManager = WebSocketManager.getInstance();
+    this.eventEmitter = new EventEmitter();
+    // Removed redundant mockDataService instantiation
+
+    // Optionally start connection if apiKeyId is provided
+    if (apiKeyId) {
+      this.currentApiKeyId = apiKeyId;
+      this.connectUserDataStream().catch((error) => {
+        logger.error(
+          `[${this.exchangeId}] Failed to auto-connect user data stream on init:`,
+          error,
+        );
+      });
+    }
   }
 
   /**
@@ -163,7 +269,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
    */
   private async makeAuthenticatedRequest<T>(
     endpoint: string,
-    method: 'GET' | 'POST' | 'DELETE',
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE', // Added PUT for listenKey keep-alive
     apiKeyId: string,
     params: Record<string, string | number> = {},
     weight: number = 1,
@@ -183,23 +289,42 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
         console.warn(
           'Using mock credentials for authenticated request. This will not work with real Binance Testnet API.',
         );
+        // For listenKey operations, we might need mock responses
+        if (endpoint === '/api/v3/userDataStream') {
+          if (method === 'POST')
+            return { listenKey: 'mockListenKey12345' } as T;
+          if (method === 'PUT') return {} as T; // Keep-alive success
+          if (method === 'DELETE') return {} as T; // Delete success
+        }
         throw new Error(
           'Invalid API credentials: Using mock or invalid API keys',
         );
       }
 
-      // Add signature
-      const signedParams = this.addSignature(params, apiSecret);
+      // Add signature for methods that require it (GET, DELETE usually use query string)
+      let requestParams: Record<string, string | number> = params;
+      let requestBody: Record<string, string | number> | undefined = undefined;
+      let url = `${this.baseUrl}${endpoint}`;
 
-      // Build URL
-      const url = `${this.baseUrl}${endpoint}`;
+      if (method === 'POST' || method === 'PUT') {
+        // POST/PUT requests usually send params in the body and require signing the body
+        requestBody = this.addSignature(params, apiSecret);
+      } else {
+        // GET/DELETE requests usually send params in the query string and sign the query string
+        requestParams = this.addSignature(params, apiSecret);
+        const queryString = Object.entries(requestParams)
+          .map(([key, value]) => `${key}=${encodeURIComponent(String(value))}`)
+          .join('&');
+        url = `${url}?${queryString}`;
+      }
 
       try {
         // Make request with rate limiting
         return await makeApiRequest<T>(this.exchangeId, url, {
           method,
           weight,
-          body: method !== 'GET' ? signedParams : undefined,
+          // Send body only for POST/PUT, params are already in URL for GET/DELETE
+          body: method === 'POST' || method === 'PUT' ? requestBody : undefined,
           headers: this.buildAuthHeaders(apiKey),
           parseJson: true,
           retries: 3,
@@ -282,24 +407,24 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
         url = `${url}?${queryString}`;
       }
 
-      console.log(`Making request to: ${url}`);
+      // console.log(`Making request to: ${url}`); // Reduced logging verbosity
 
       // Check if we're in mock mode and adjust the URL if needed
       const { isMockMode } = await import('@/config/exchangeConfig');
       if (isMockMode()) {
         // In mock mode, we need to ensure the URL is properly formatted for the mock API
-        console.log('Using mock mode for Binance Testnet request');
+        // console.log('Using mock mode for Binance Testnet request'); // Reduced logging verbosity
 
         // If the URL is already a mock URL, use it as is
         if (url.includes('/api/mock/')) {
-          console.log('URL is already a mock URL:', url);
+          // console.log('URL is already a mock URL:', url); // Reduced logging verbosity
         } else {
           // Otherwise, convert it to a mock URL
           const mockUrl = url.replace(
             'https://testnet.binance.vision/api',
             '/api/mock/binance_testnet',
           );
-          console.log(`Converting URL from ${url} to ${mockUrl}`);
+          // console.log(`Converting URL from ${url} to ${mockUrl}`); // Reduced logging verbosity
           url = mockUrl;
         }
       }
@@ -321,12 +446,12 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       );
 
       // Log more details about the error
-      console.log('Error details:', {
-        endpoint,
-        params,
-        baseUrl: this.baseUrl,
-        error: error instanceof Error ? error.message : String(error),
-      });
+      // console.log('Error details:', { // Reduced logging verbosity
+      //   endpoint,
+      //   params,
+      //   baseUrl: this.baseUrl,
+      //   error: error instanceof Error ? error.message : String(error),
+      // });
 
       // If we get a 404 error, try to use the mock data service directly
       if (error instanceof Error && error.message.includes('404')) {
@@ -347,6 +472,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
             formattedSymbol,
           ) as unknown as T;
         }
+        // Add more mock fallbacks here if needed for other endpoints
       }
 
       // Enhance error message with more details
@@ -366,8 +492,14 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
   public async getExchangeInfo(): Promise<Exchange> {
     try {
       // Make request to exchange info endpoint
-      const response = await this.makeUnauthenticatedRequest(
-        '/v3/exchangeInfo',
+      const response = await this.makeUnauthenticatedRequest<{
+        timezone: string;
+        serverTime: number;
+        rateLimits: any[]; // Define more specific type if needed
+        exchangeFilters: any[]; // Define more specific type if needed
+        symbols: any[]; // Define more specific type if needed
+      }>(
+        '/api/v3/exchangeInfo', // Corrected endpoint
         {},
         10, // Weight: 10
       );
@@ -380,21 +512,33 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
         website: 'https://testnet.binance.vision',
         description: 'Binance Testnet for sandbox trading',
         isActive: true,
+        // Optionally add more info from response if needed
+        // serverTime: response.serverTime,
+        // timezone: response.timezone,
       };
     } catch (error) {
       console.error('Error getting exchange info:', error);
 
       // Fallback to mock data
-      const exchange = SUPPORTED_EXCHANGES.find((e) => e.id === 'binance');
+      const exchange = SUPPORTED_EXCHANGES.find((e) => e.id === 'binance'); // Use 'binance' as base
       if (!exchange) {
-        throw new Error(`Exchange ${this.exchangeId} not found`);
+        // Provide a default structure if even the base mock is missing
+        return {
+          id: this.exchangeId,
+          name: 'Binance Testnet (Default)',
+          logo: '/exchanges/binance.svg',
+          description: 'Binance Testnet for sandbox trading (Default Info)',
+          isActive: false, // Indicate potential issue
+          website: 'https://testnet.binance.vision', // Add website
+        };
       }
 
       return {
         ...exchange,
-        id: this.exchangeId,
-        name: 'Binance Testnet',
-        description: 'Binance Testnet for sandbox trading',
+        id: this.exchangeId, // Override ID
+        name: 'Binance Testnet', // Override name
+        description: 'Binance Testnet for sandbox trading', // Override description
+        isActive: true, // Assume active even if fetch failed
       };
     }
   }
@@ -405,16 +549,50 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
   public async getTradingPairs(): Promise<TradingPair[]> {
     try {
       // Make request to exchange info endpoint
-      const response = await this.makeUnauthenticatedRequest(
-        '/v3/exchangeInfo',
+      const response = await this.makeUnauthenticatedRequest<{
+        symbols: Array<{
+          symbol: string;
+          status: string;
+          baseAsset: string;
+          quoteAsset: string;
+          baseAssetPrecision: number;
+          quoteAssetPrecision: number;
+          orderTypes: string[];
+          icebergAllowed: boolean;
+          ocoAllowed: boolean;
+          quoteOrderQtyMarketAllowed: boolean;
+          allowTrailingStop: boolean;
+          cancelReplaceAllowed: boolean;
+          isSpotTradingAllowed: boolean;
+          isMarginTradingAllowed: boolean;
+          filters: Array<{
+            filterType: string;
+            tickSize?: string;
+            minQty?: string;
+            maxQty?: string;
+            stepSize?: string;
+            minPrice?: string;
+            maxPrice?: string;
+            minNotional?: string;
+            // Add other filter types as needed
+          }>;
+          permissions: string[];
+          defaultSelfTradePreventionMode: string;
+          allowedSelfTradePreventionModes: string[];
+        }>;
+      }>(
+        '/api/v3/exchangeInfo', // Corrected endpoint
         {},
         10, // Weight: 10
       );
 
       // Extract and format trading pairs
       const pairs: TradingPair[] = response.symbols
-        .filter((symbol: any) => symbol.status === 'TRADING')
-        .map((symbol: any) => {
+        .filter(
+          (symbol) =>
+            symbol.status === 'TRADING' && symbol.isSpotTradingAllowed,
+        )
+        .map((symbol) => {
           // Find price filter
           const priceFilter = symbol.filters.find(
             (filter: any) => filter.filterType === 'PRICE_FILTER',
@@ -425,922 +603,1953 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
             (filter: any) => filter.filterType === 'LOT_SIZE',
           );
 
-          // Find min notional filter
-          const minNotionalFilter = symbol.filters.find(
-            (filter: any) => filter.filterType === 'MIN_NOTIONAL',
+          // Find notional filter
+          const notionalFilter = symbol.filters.find(
+            (filter: any) =>
+              filter.filterType === 'NOTIONAL' ||
+              filter.filterType === 'MIN_NOTIONAL', // Handle both possible names
           );
 
-          // Calculate price decimals
-          const priceDecimals = priceFilter
-            ? Math.max(0, priceFilter.tickSize.indexOf('1') - 1)
-            : 8;
-
-          // Calculate quantity decimals
-          const quantityDecimals = lotSizeFilter
-            ? Math.max(0, lotSizeFilter.stepSize.indexOf('1') - 1)
-            : 8;
-
           return {
-            symbol: `${symbol.baseAsset}/${symbol.quoteAsset}`,
+            symbol: this.formatSymbol(symbol.symbol), // Format like BTC/USDT
             baseAsset: symbol.baseAsset,
             quoteAsset: symbol.quoteAsset,
             exchangeId: this.exchangeId,
-            priceDecimals,
-            quantityDecimals,
-            minQuantity: lotSizeFilter
+            priceDecimals: priceFilter?.tickSize
+              ? this.getPrecision(priceFilter.tickSize)
+              : 8, // Default precision
+            quantityDecimals: lotSizeFilter?.stepSize
+              ? this.getPrecision(lotSizeFilter.stepSize)
+              : 8, // Default precision
+            minQuantity: lotSizeFilter?.minQty
               ? parseFloat(lotSizeFilter.minQty)
-              : undefined,
-            maxQuantity: lotSizeFilter
+              : 0,
+            maxQuantity: lotSizeFilter?.maxQty
               ? parseFloat(lotSizeFilter.maxQty)
-              : undefined,
-            minPrice: priceFilter
-              ? parseFloat(priceFilter.minPrice)
-              : undefined,
-            maxPrice: priceFilter
-              ? parseFloat(priceFilter.maxPrice)
-              : undefined,
-            minNotional: minNotionalFilter
-              ? parseFloat(minNotionalFilter.minNotional)
-              : undefined,
+              : Infinity,
+            minNotional: notionalFilter?.minNotional
+              ? parseFloat(notionalFilter.minNotional)
+              : 0,
+            // Add other relevant fields if needed
+            // e.g., allowed order types: symbol.orderTypes
           };
         });
 
       return pairs;
     } catch (error) {
       console.error('Error getting trading pairs:', error);
-
-      // Fallback to mock data
-      return this.mockDataService.generateTradingPairs(this.exchangeId, 50);
+      return []; // Return empty array on error
     }
   }
 
   /**
-   * Get the order book for a specific trading pair on Binance Testnet.
+   * Helper function to determine precision from step size or tick size.
+   * e.g., "0.001" -> 3; "1.0" -> 0; "10.0" -> 0
+   */
+  private getPrecision(value: string): number {
+    if (!value || parseFloat(value) === 0) return 8; // Default or error case
+    const parts = value.split('.');
+    if (parts.length === 1) return 0; // Integer precision
+    // Find the first non-zero digit after the decimal point
+    const decimalPart = parts[1];
+    let precision = decimalPart.length;
+    // The number of decimal places seems the most reliable indicator for Binance.
+    return decimalPart.length;
+  }
+
+  /**
+   * Get the order book for a specific trading pair.
    */
   public async getOrderBook(
     symbol: string,
-    limit: number = 20,
+    limit: number = 100,
   ): Promise<OrderBook> {
     try {
-      // Convert symbol format from BTC/USDT to BTCUSDT
-      const formattedSymbol = symbol.replace('/', '');
-
-      // Make request to order book endpoint
-      // Weight varies based on limit: 1 for limit ≤ 100, 5 for limit ≤ 500, 10 for limit ≤ 1000, 50 for limit > 1000
-      let weight = 1;
-      if (limit > 1000) {
-        weight = 50;
-      } else if (limit > 500) {
-        weight = 10;
-      } else if (limit > 100) {
-        weight = 5;
-      }
-
-      const response = await this.makeUnauthenticatedRequest(
-        '/v3/depth',
-        {
-          symbol: formattedSymbol,
-          limit,
-        },
-        weight,
+      const binanceSymbol = symbol.replace('/', ''); // Convert BTC/USDT to BTCUSDT
+      const response = await this.makeUnauthenticatedRequest<{
+        lastUpdateId: number;
+        bids: string[][]; // [price, quantity]
+        asks: string[][]; // [price, quantity]
+      }>(
+        '/api/v3/depth', // Corrected endpoint
+        { symbol: binanceSymbol, limit },
+        this.calculateOrderBookWeight(limit), // Calculate weight based on limit
       );
 
-      // Validate response before processing
-      if (!response || !response.bids || !response.asks) {
-        console.error('Invalid order book response:', response);
-        throw new Error('Invalid order book response structure');
-      }
-
-      // Format response
       return {
-        symbol,
-        exchangeId: this.exchangeId,
-        bids: Array.isArray(response.bids)
+        symbol: symbol,
+        exchangeId: this.exchangeId, // Add exchangeId
+        timestamp: Date.now(), // Use current time as Binance doesn't provide timestamp here
+        lastUpdateId: response.lastUpdateId,
+        bids: response.bids
           ? response.bids.map((bid: string[]) => ({
               price: parseFloat(bid[0]),
               quantity: parseFloat(bid[1]),
             }))
           : [],
-        asks: Array.isArray(response.asks)
+        asks: response.asks
           ? response.asks.map((ask: string[]) => ({
               price: parseFloat(ask[0]),
               quantity: parseFloat(ask[1]),
             }))
           : [],
-        timestamp: Date.now(),
       };
     } catch (error) {
       console.error(`Error getting order book for ${symbol}:`, error);
-
-      // Fallback to mock data
-      return this.mockDataService.generateOrderBook(
-        this.exchangeId,
-        symbol,
-        limit,
-      );
+      // Return an empty order book structure on error
+      return {
+        symbol: symbol,
+        exchangeId: this.exchangeId, // Add exchangeId
+        timestamp: Date.now(),
+        lastUpdateId: 0,
+        bids: [],
+        asks: [],
+      };
     }
   }
 
+  /** Calculate request weight for order book based on limit */
+  private calculateOrderBookWeight(limit: number): number {
+    if (limit <= 100) return 1;
+    if (limit <= 500) return 5;
+    if (limit <= 1000) return 10;
+    return 50; // Limit 5000
+  }
+
   /**
-   * Get 24hr ticker price statistics for a specific trading pair or all pairs on Binance Testnet.
+   * Get ticker statistics for a specific trading pair or all pairs.
    */
   public async getTickerStats(
     symbol?: string,
   ): Promise<TickerStats | TickerStats[]> {
     try {
-      // If symbol is provided, get stats for that symbol only
+      const endpoint = '/api/v3/ticker/24hr'; // Corrected endpoint
+      let params: Record<string, string> = {};
+      let weight = 1; // Default weight for single symbol
+
       if (symbol) {
-        // Convert symbol format from BTC/USDT to BTCUSDT
-        const formattedSymbol = symbol.replace('/', '');
-
-        console.log(`Getting ticker stats for ${symbol} (${formattedSymbol})`);
-
-        try {
-          // Make request to 24hr ticker endpoint
-          const response = await this.makeUnauthenticatedRequest(
-            '/v3/ticker/24hr',
-            {
-              symbol: formattedSymbol,
-            },
-            1, // Weight: 1 for a single symbol
-          );
-
-          // Check if response is valid
-          if (!response) {
-            console.error(`Empty response for ticker stats for ${symbol}`);
-            throw new Error('Empty response from Binance Testnet API');
-          }
-
-          // Log the response for debugging
-          console.log(`Raw ticker response for ${symbol}:`, response);
-
-          // Format response
-          return this.formatTickerStats(response, symbol);
-        } catch (requestError) {
-          console.error(`Error fetching ticker for ${symbol}:`, requestError);
-          throw requestError; // Re-throw to be caught by the outer catch
-        }
+        params = { symbol: symbol.replace('/', '') };
       } else {
-        // Get stats for all symbols
-        console.log('Getting ticker stats for all symbols');
+        weight = 40; // Weight for all symbols
+      }
 
-        try {
-          // Make request to 24hr ticker endpoint
-          const response = await this.makeUnauthenticatedRequest(
-            '/v3/ticker/24hr',
-            {},
-            40, // Weight: 40 for all symbols
-          );
+      const response = await this.makeUnauthenticatedRequest<any>( // Use 'any' as response can be object or array
+        endpoint,
+        params,
+        weight,
+      );
 
-          // Check if response is valid
-          if (!response || !Array.isArray(response)) {
-            console.error('Invalid response for all ticker stats');
-            throw new Error('Invalid response from Binance Testnet API');
-          }
-
-          // Format response
-          return (response as any[]).map((ticker: any) => {
-            // Convert symbol format from BTCUSDT to BTC/USDT
-            const formattedSymbol = this.formatSymbol(ticker.symbol);
-            return this.formatTickerStats(ticker, formattedSymbol);
-          });
-        } catch (requestError) {
-          console.error(
-            'Error fetching tickers for all symbols:',
-            requestError,
-          );
-          throw requestError; // Re-throw to be caught by the outer catch
-        }
+      if (Array.isArray(response)) {
+        // Response for all symbols
+        return response.map((ticker: any) =>
+          this.formatTickerStats(ticker, this.formatSymbol(ticker.symbol)),
+        );
+      } else if (response && typeof response === 'object' && response.symbol) {
+        // Response for a single symbol
+        return this.formatTickerStats(
+          response,
+          this.formatSymbol(response.symbol),
+        );
+      } else {
+        throw new Error('Invalid ticker response format');
       }
     } catch (error) {
       console.error(
-        `Error getting ticker stats for ${symbol || 'all symbols'}:`,
+        `Error getting ticker stats for ${symbol || 'all pairs'}:`,
         error,
       );
-
-      // Fallback to mock data
-      console.log(`Falling back to mock data for ${symbol || 'all symbols'}`);
-
+      // Return empty array or a default error object depending on expected return type
       if (symbol) {
-        const mockStats = this.mockDataService.generateTickerStats(
-          this.exchangeId,
-          symbol,
-        );
-        console.log(`Generated mock stats for ${symbol}:`, mockStats);
-        return mockStats;
+        // Attempt to return a default structure for a single symbol error
+        return {
+          symbol: symbol,
+          exchangeId: this.exchangeId, // Add exchangeId
+          priceChange: 0,
+          priceChangePercent: 0,
+          weightedAvgPrice: 0,
+          prevClosePrice: 0,
+          lastPrice: 0,
+          lastQty: 0,
+          bidPrice: 0,
+          bidQty: 0,
+          askPrice: 0,
+          askQty: 0,
+          openPrice: 0,
+          highPrice: 0,
+          lowPrice: 0,
+          volume: 0,
+          quoteVolume: 0,
+          openTime: 0,
+          closeTime: 0,
+          count: 0,
+          // Removed timestamp as it's not in the TickerStats interface
+        };
       } else {
-        // Generate stats for a few common pairs
-        const pairs = [
-          'BTC/USDT',
-          'ETH/USDT',
-          'BNB/USDT',
-          'SOL/USDT',
-          'XRP/USDT',
-        ];
-        return pairs.map((pair) =>
-          this.mockDataService.generateTickerStats(this.exchangeId, pair),
-        );
+        return []; // Return empty array for multi-symbol request error
       }
     }
   }
 
-  /**
-   * Format symbol from Binance format (BTCUSDT) to standard format (BTC/USDT)
-   */
+  /** Format Binance symbol (BTCUSDT) to standard (BTC/USDT) */
   private formatSymbol(binanceSymbol: string): string {
-    // Common quote assets to check
+    // Common quote assets to check first for better accuracy
     const quoteAssets = [
       'USDT',
       'BUSD',
+      'TUSD',
+      'USDC',
+      'DAI',
       'BTC',
       'ETH',
       'BNB',
-      'USD',
+      'XRP',
       'EUR',
       'GBP',
+      'AUD',
+      'JPY',
+      'TRY',
     ];
 
-    // Try to find a matching quote asset
     for (const quote of quoteAssets) {
       if (binanceSymbol.endsWith(quote)) {
         const base = binanceSymbol.substring(
           0,
           binanceSymbol.length - quote.length,
         );
-        return `${base}/${quote}`;
+        if (base) {
+          // Ensure base is not empty
+          return `${base}/${quote}`;
+        }
       }
     }
 
-    // If no match found, make a best guess (assume last 4 characters are the quote asset)
-    const base = binanceSymbol.substring(0, binanceSymbol.length - 4);
-    const quote = binanceSymbol.substring(binanceSymbol.length - 4);
-    return `${base}/${quote}`;
+    // Fallback guess if no common quote asset found (less reliable)
+    // Assume quote is last 3 or 4 chars, prioritize 4 if possible
+    if (binanceSymbol.length > 4) {
+      const base = binanceSymbol.substring(0, binanceSymbol.length - 4);
+      const quote = binanceSymbol.substring(binanceSymbol.length - 4);
+      return `${base}/${quote}`;
+    } else if (binanceSymbol.length > 3) {
+      const base = binanceSymbol.substring(0, binanceSymbol.length - 3);
+      const quote = binanceSymbol.substring(binanceSymbol.length - 3);
+      return `${base}/${quote}`;
+    }
+
+    return binanceSymbol; // Return original if formatting fails
   }
 
-  /**
-   * Format ticker statistics from Binance response
-   */
+  /** Format raw Binance ticker response into standard TickerStats */
   private formatTickerStats(response: any, symbol: string): TickerStats {
-    // Helper function to safely parse float values, returning 0 if NaN
     const safeParseFloat = (value: any): number => {
-      const parsed = parseFloat(value);
-      return isNaN(parsed) ? 0 : parsed;
+      const num = parseFloat(value);
+      return isNaN(num) ? 0 : num;
     };
-
-    // Log the response for debugging
-    console.log(`formatTickerStats for ${symbol}:`, response);
-
-    // Check if response is valid
-    if (!response || typeof response !== 'object') {
-      console.error(`Invalid response for ${symbol}:`, response);
-
-      // Generate mock data as fallback
-      console.log(`Generating mock ticker stats for ${symbol}`);
-      return this.mockDataService.generateTickerStats(this.exchangeId, symbol);
-    }
-
-    // Check if lastPrice is valid
-    let lastPrice = safeParseFloat(response.lastPrice);
-
-    // If lastPrice is 0 or invalid, use the mock data service to get a realistic price
-    if (lastPrice === 0) {
-      console.warn(
-        `Invalid lastPrice for ${symbol}: ${response.lastPrice}, using mock data`,
-      );
-
-      // Get a realistic price from the mock data service
-      const mockStats = this.mockDataService.generateTickerStats(
-        this.exchangeId,
-        symbol,
-      );
-      lastPrice = mockStats.lastPrice;
-      console.log(`Using mock price for ${symbol}: ${lastPrice}`);
-
-      // If we're using mock data for the price, use it for all other fields too
-      return mockStats;
-    }
-
-    // Similarly, ensure other price fields are not zero
-    let bidPrice = safeParseFloat(response.bidPrice);
-    let askPrice = safeParseFloat(response.askPrice);
-    let openPrice = safeParseFloat(response.openPrice);
-    let highPrice = safeParseFloat(response.highPrice);
-    let lowPrice = safeParseFloat(response.lowPrice);
-
-    // If any of these are zero, derive them from lastPrice
-    if (bidPrice === 0) bidPrice = lastPrice * 0.999;
-    if (askPrice === 0) askPrice = lastPrice * 1.001;
-    if (openPrice === 0)
-      openPrice = lastPrice * (1 + (Math.random() * 0.02 - 0.01)); // ±1%
-    if (highPrice === 0) highPrice = Math.max(lastPrice * 1.01, openPrice);
-    if (lowPrice === 0) lowPrice = Math.min(lastPrice * 0.99, openPrice);
 
     return {
       symbol: symbol,
-      exchangeId: this.exchangeId,
-      priceChange:
-        safeParseFloat(response.priceChange) || lastPrice - openPrice,
-      priceChangePercent:
-        safeParseFloat(response.priceChangePercent) ||
-        ((lastPrice - openPrice) / openPrice) * 100,
-      weightedAvgPrice:
-        safeParseFloat(response.weightedAvgPrice) ||
-        (lastPrice + openPrice) / 2,
-      prevClosePrice: safeParseFloat(response.prevClosePrice) || openPrice,
-      lastPrice: lastPrice,
-      lastQty: safeParseFloat(response.lastQty) || Math.random() * 5,
-      bidPrice: bidPrice,
-      bidQty: safeParseFloat(response.bidQty) || Math.random() * 10,
-      askPrice: askPrice,
-      askQty: safeParseFloat(response.askQty) || Math.random() * 10,
-      openPrice: openPrice,
-      highPrice: highPrice,
-      lowPrice: lowPrice,
-      volume: safeParseFloat(response.volume) || Math.random() * 1000 + 100,
-      quoteVolume:
-        safeParseFloat(response.quoteVolume) ||
-        lastPrice * (Math.random() * 1000 + 100),
-      openTime: response.openTime || Date.now() - 24 * 60 * 60 * 1000,
-      closeTime: response.closeTime || Date.now(),
-      count: response.count || Math.floor(Math.random() * 5000 + 1000),
+      exchangeId: this.exchangeId, // Add exchangeId
+      priceChange: safeParseFloat(response.priceChange),
+      priceChangePercent: safeParseFloat(response.priceChangePercent),
+      weightedAvgPrice: safeParseFloat(response.weightedAvgPrice),
+      prevClosePrice: safeParseFloat(
+        response.prevClosePrice || response.lastPrice,
+      ), // Use lastPrice as fallback for prevClose
+      lastPrice: safeParseFloat(response.lastPrice),
+      lastQty: safeParseFloat(response.lastQty),
+      bidPrice: safeParseFloat(response.bidPrice),
+      bidQty: safeParseFloat(response.bidQty),
+      askPrice: safeParseFloat(response.askPrice),
+      askQty: safeParseFloat(response.askQty),
+      openPrice: safeParseFloat(response.openPrice),
+      highPrice: safeParseFloat(response.highPrice),
+      lowPrice: safeParseFloat(response.lowPrice),
+      volume: safeParseFloat(response.volume),
+      quoteVolume: safeParseFloat(response.quoteVolume),
+      openTime: response.openTime,
+      closeTime: response.closeTime,
+      count: response.count, // Number of trades
+      // Removed timestamp as it's not in the TickerStats interface
     };
   }
 
   /**
-   * Get recent trades for a specific trading pair on Binance Testnet.
+   * Get recent trades for a specific trading pair.
    */
   public async getRecentTrades(
     symbol: string,
-    limit: number = 500,
+    limit: number = 100,
   ): Promise<Trade[]> {
     try {
-      // Convert symbol format from BTC/USDT to BTCUSDT
-      const formattedSymbol = symbol.replace('/', '');
+      const binanceSymbol = symbol.replace('/', '');
+      // Define the expected response structure for a single trade
+      interface TradeResponse {
+        id: number;
+        price: string;
+        qty: string;
+        quoteQty: string;
+        time: number;
+        isBuyerMaker: boolean;
+        isBestMatch: boolean;
+      }
 
-      // Make request to recent trades endpoint
-      const response = await this.makeUnauthenticatedRequest(
-        '/v3/trades',
-        {
-          symbol: formattedSymbol,
-          limit: Math.min(limit, 1000), // Maximum 1000 trades
-        },
+      const response = await this.makeUnauthenticatedRequest<TradeResponse[]>(
+        '/api/v3/trades', // Corrected endpoint
+        { symbol: binanceSymbol, limit },
         1, // Weight: 1
       );
 
-      // Format response
-      return response.map((trade: any) => ({
+      return response.map((trade) => ({
         id: trade.id.toString(),
+        symbol: symbol,
         price: parseFloat(trade.price),
         quantity: parseFloat(trade.qty),
         timestamp: trade.time,
-        isBuyerMaker: trade.isBuyerMaker,
-        isBestMatch: trade.isBestMatch,
+        isBuyerMaker: trade.isBuyerMaker, // Include isBuyerMaker
+        isBestMatch: trade.isBestMatch, // Include isBestMatch
+        exchangeId: this.exchangeId, // Add exchangeId
       }));
     } catch (error) {
       console.error(`Error getting recent trades for ${symbol}:`, error);
-
-      // Fallback to mock data
-      return this.mockDataService.generateRecentTrades(
-        this.exchangeId,
-        symbol,
-        limit,
-      );
+      return [];
     }
   }
 
   /**
-   * Get candlestick/kline data for a specific trading pair on Binance Testnet.
+   * Get Kline/candlestick data for a specific trading pair.
    */
   public async getKlines(
     symbol: string,
-    interval: string,
+    interval: string, // e.g., '1m', '5m', '1h', '1d'
     startTime?: number,
     endTime?: number,
-    limit: number = 100,
+    limit: number = 500,
   ): Promise<Kline[]> {
     try {
-      // Convert symbol format from BTC/USDT to BTCUSDT
-      const formattedSymbol = symbol.replace('/', '');
-
-      // Map interval to Binance format
-      const intervalMap: Record<string, string> = {
-        '1m': '1m',
-        '5m': '5m',
-        '15m': '15m',
-        '30m': '30m',
-        '1h': '1h',
-        '4h': '4h',
-        '1d': '1d',
-        '1w': '1w',
-        '1M': '1M',
-      };
-
-      const binanceInterval = intervalMap[interval] || '1h';
-
-      // Prepare params
+      const binanceSymbol = symbol.replace('/', '');
       const params: Record<string, string | number> = {
-        symbol: formattedSymbol,
-        interval: binanceInterval,
-        limit,
+        symbol: binanceSymbol,
+        interval: interval,
+        limit: limit,
       };
+      if (startTime) params.startTime = startTime;
+      if (endTime) params.endTime = endTime;
 
-      if (startTime) {
-        params.startTime = startTime;
-      }
+      // Define the expected response structure for Kline data
+      // [ OpenTime, Open, High, Low, Close, Volume, CloseTime, QuoteAssetVolume, NumberOfTrades, TakerBuyBaseAssetVolume, TakerBuyQuoteAssetVolume, Ignore ]
+      type BinanceKlineResponse = [
+        number, // Open time
+        string, // Open
+        string, // High
+        string, // Low
+        string, // Close
+        string, // Volume
+        number, // Close time
+        string, // Quote asset volume
+        number, // Number of trades
+        string, // Taker buy base asset volume
+        string, // Taker buy quote asset volume
+        string, // Ignore
+      ];
 
-      if (endTime) {
-        params.endTime = endTime;
-      }
-
-      // Make request to klines endpoint
-      const response = await this.makeUnauthenticatedRequest(
-        '/v3/klines',
+      const response = await this.makeUnauthenticatedRequest<
+        BinanceKlineResponse[]
+      >(
+        '/api/v3/klines', // Corrected endpoint
         params,
         1, // Weight: 1
       );
 
-      // Format response
-      return response.map((kline: any[]) => ({
-        timestamp: kline[0],
+      return response.map((kline) => ({
+        timestamp: kline[0], // Use open time as timestamp
         open: parseFloat(kline[1]),
         high: parseFloat(kline[2]),
         low: parseFloat(kline[3]),
         close: parseFloat(kline[4]),
         volume: parseFloat(kline[5]),
+        // Add other fields if needed, e.g., closeTime: kline[6], quoteVolume: parseFloat(kline[7]), trades: kline[8],
       }));
     } catch (error) {
-      console.error(`Error getting klines for ${symbol}:`, error);
-
-      // Fallback to mock data
-      return this.mockDataService.generateKlines(
-        this.exchangeId,
-        symbol,
-        interval,
-        startTime,
-        endTime,
-        limit,
-      );
+      console.error(`Error getting klines for ${symbol} (${interval}):`, error);
+      return [];
     }
   }
 
   /**
-   * Get the user's portfolio (balances) from Binance Testnet.
+   * Get the user's portfolio/balances.
+   * Note: This uses getAccountInfo internally as the /account endpoint provides balances.
    */
   public async getPortfolio(apiKeyId: string): Promise<Portfolio> {
     try {
-      // Make authenticated request to account endpoint
-      const response = await this.makeAuthenticatedRequest(
-        '/v3/account',
-        'GET',
-        apiKeyId,
-        {},
-        10, // Weight: 10
+      const accountInfo = await this.getAccountInfo(apiKeyId);
+      const balances = Object.entries(accountInfo.balances).map(
+        ([asset, balance]) => ({
+          asset: asset,
+          free: balance.free,
+          locked: balance.locked,
+          total: balance.free + balance.locked,
+          usdValue: 0, // Placeholder, requires market data to calculate
+          exchangeId: this.exchangeId, // Add exchangeId
+          exchangeSources: [
+            {
+              exchangeId: this.exchangeId,
+              amount: balance.free + balance.locked,
+            },
+          ], // Add source
+        }),
       );
 
-      // Format response
-      const assets = response.balances
-        .filter(
-          (balance: any) =>
-            parseFloat(balance.free) > 0 || parseFloat(balance.locked) > 0,
-        )
-        .map((balance: any) => ({
-          asset: balance.asset,
-          free: parseFloat(balance.free),
-          locked: parseFloat(balance.locked),
-          total: parseFloat(balance.free) + parseFloat(balance.locked),
-          usdValue: 0, // This would be calculated based on current prices
-        }));
-
       return {
-        totalUsdValue: 0, // This would be calculated based on current prices
-        assets,
-        lastUpdated: new Date(),
+        exchangeId: this.exchangeId, // Add exchangeId
+        totalUsdValue: 0, // Placeholder
+        assets: balances,
+        lastUpdated: new Date(accountInfo.updateTime || Date.now()), // Use updateTime if available
       };
     } catch (error) {
-      console.error('Error getting portfolio:', error);
-
-      // Fallback to mock data
-      const seed = parseInt(apiKeyId.replace(/[^0-9]/g, '')) || undefined;
-      return this.mockDataService.generatePortfolio(this.exchangeId, seed);
+      console.error(`Error getting portfolio for ${this.exchangeId}:`, error);
+      // Return empty portfolio on error
+      return {
+        exchangeId: this.exchangeId, // Add exchangeId
+        totalUsdValue: 0,
+        assets: [],
+        lastUpdated: new Date(),
+      };
     }
   }
 
   /**
-   * Place a new order on Binance Testnet.
-   * Supports market, limit, stop_limit, and stop_market orders.
-   *
-   * @param apiKeyId The API key ID to use for authentication
-   * @param order The order details
-   * @returns The created order
+   * Get detailed account information, including balances and permissions.
+   * @param apiKeyId The API key ID to use for authentication.
+   * @returns Normalized account information.
+   */
+  public async getAccountInfo(
+    apiKeyId: string,
+  ): Promise<NormalizedAccountInfo> {
+    try {
+      const response = await this.makeAuthenticatedRequest<BinanceAccountInfo>(
+        '/api/v3/account', // Corrected endpoint
+        'GET',
+        apiKeyId,
+        {}, // No params needed for GET
+        10, // Weight: 10
+      );
+
+      // Normalize balances
+      const normalizedBalances: Record<
+        string,
+        { free: number; locked: number }
+      > = {};
+      response.balances.forEach((balance) => {
+        const free = parseFloat(balance.free);
+        const locked = parseFloat(balance.locked);
+        // Only include assets with a non-zero balance
+        if (free > 0 || locked > 0) {
+          normalizedBalances[balance.asset] = {
+            free: isNaN(free) ? 0 : free,
+            locked: isNaN(locked) ? 0 : locked,
+          };
+        }
+      });
+
+      // Determine commission rates (prefer newer structure if available)
+      let makerCommission = response.makerCommission / 10000; // Convert basis points to decimal
+      let takerCommission = response.takerCommission / 10000; // Convert basis points to decimal
+
+      if (response.commissionRates) {
+        makerCommission = parseFloat(response.commissionRates.maker);
+        takerCommission = parseFloat(response.commissionRates.taker);
+      }
+
+      // Update local balance cache upon fetching full account info
+      this.balanceCache = { ...normalizedBalances };
+      logger.info(
+        `[${this.exchangeId}] Balance cache updated from getAccountInfo.`,
+      );
+      // Emit updates for all fetched balances
+      Object.keys(this.balanceCache).forEach((asset) =>
+        this.emitBalanceUpdate(asset),
+      );
+
+      return {
+        exchangeId: this.exchangeId,
+        accountType: response.accountType,
+        canTrade: response.canTrade,
+        canWithdraw: response.canWithdraw,
+        canDeposit: response.canDeposit,
+        makerCommission: isNaN(makerCommission) ? 0.001 : makerCommission, // Default if NaN
+        takerCommission: isNaN(takerCommission) ? 0.001 : takerCommission, // Default if NaN
+        balances: normalizedBalances,
+        updateTime: response.updateTime,
+        rawResponse: response, // Optionally include raw response
+      };
+    } catch (error) {
+      console.error('Error getting account info:', error);
+      // Throw a more specific error or return a default structure
+      throw new Error(
+        `Failed to get account info: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      /* Or return default:
+            return {
+                exchangeId: this.exchangeId,
+                accountType: 'UNKNOWN',
+                canTrade: false,
+                canWithdraw: false,
+                canDeposit: false,
+                makerCommission: 0,
+                takerCommission: 0,
+                balances: {},
+                updateTime: 0,
+            };
+            */
+    }
+  }
+
+  /**
+   * Place a new order.
    */
   public async placeOrder(
     apiKeyId: string,
-    order: Partial<Order>,
+    order: Omit<
+      Order,
+      'id' | 'status' | 'timestamp' | 'exchangeId' | 'executed' | 'remaining'
+    >, // Exclude fields set by exchange
   ): Promise<Order> {
     try {
-      // Validate required parameters
-      if (!order.symbol || !order.side || !order.type) {
-        throw new Error(
-          'Missing required order parameters: symbol, side, or type',
-        );
-      }
-
-      if (order.type === 'limit' && !order.price) {
-        throw new Error('Price is required for limit orders');
-      }
-
-      if (!order.quantity) {
-        throw new Error('Quantity is required for all order types');
-      }
-
-      // Convert symbol format from BTC/USDT to BTCUSDT
-      const formattedSymbol = order.symbol.replace('/', '');
-
-      // Prepare base params
+      const binanceSymbol = order.symbol.replace('/', '');
       const params: Record<string, string | number> = {
-        symbol: formattedSymbol,
-        side: order.side.toUpperCase(),
+        symbol: binanceSymbol,
+        side: order.side.toUpperCase(), // 'BUY' or 'SELL'
+        // quantity: order.quantity, // Quantity or quoteOrderQty depending on type
       };
 
-      // Handle different order types
+      // Map order type and add specific parameters
       switch (order.type) {
         case 'market':
           params.type = 'MARKET';
-          params.quantity = order.quantity;
+          // For MARKET orders, Binance allows specifying quoteOrderQty (total cost) instead of quantity
+          if (order.quoteOrderQty) {
+            params.quoteOrderQty = order.quoteOrderQty;
+            // delete params.quantity; // Remove quantity if quoteOrderQty is used
+          } else if (order.quantity) {
+            params.quantity = order.quantity;
+          } else {
+            throw new Error(
+              'Either quantity or quoteOrderQty is required for market orders',
+            );
+          }
           break;
-
         case 'limit':
           params.type = 'LIMIT';
+          if (!order.price)
+            throw new Error('Price is required for limit orders');
+          if (!order.quantity)
+            throw new Error('Quantity is required for limit orders');
+          params.price = order.price;
           params.quantity = order.quantity;
-          params.price = order.price as number;
-          params.timeInForce = 'GTC'; // Good Till Canceled
+          params.timeInForce = order.timeInForce || 'GTC'; // Default to Good-Til-Canceled
           break;
-
         case 'stop_limit':
-          params.type = 'STOP_LOSS_LIMIT';
+          params.type =
+            order.side === 'buy' ? 'STOP_LOSS_LIMIT' : 'TAKE_PROFIT_LIMIT'; // Use correct type based on side
+          if (!order.price || !order.stopPrice)
+            throw new Error(
+              'Price and stopPrice are required for stop-limit orders',
+            );
+          if (!order.quantity)
+            throw new Error('Quantity is required for stop-limit orders');
+          params.price = order.price;
+          params.stopPrice = order.stopPrice;
           params.quantity = order.quantity;
-          params.price = order.price as number;
-          params.stopPrice = order.stopPrice || order.price; // Use price as stopPrice if not provided
-          params.timeInForce = 'GTC'; // Good Till Canceled
+          params.timeInForce = order.timeInForce || 'GTC';
           break;
-
-        case 'stop_market':
-          params.type = 'STOP_LOSS';
+        case 'stop_market': // Binance uses STOP_LOSS or TAKE_PROFIT for market stop orders
+          params.type = order.side === 'buy' ? 'TAKE_PROFIT' : 'STOP_LOSS'; // Use correct type based on side
+          if (!order.stopPrice)
+            throw new Error('stopPrice is required for stop-market orders');
+          if (!order.quantity)
+            throw new Error('Quantity is required for stop-market orders');
+          params.stopPrice = order.stopPrice;
           params.quantity = order.quantity;
-          params.stopPrice = order.stopPrice || (order.price as number); // Use price as stopPrice if not provided
+          // TimeInForce is not applicable for STOP_LOSS/TAKE_PROFIT market orders
           break;
-
         default:
           throw new Error(`Unsupported order type: ${order.type}`);
       }
 
-      // Make authenticated request to order endpoint
-      const response = await this.makeAuthenticatedRequest(
-        '/v3/order',
-        'POST',
+      // Add clientOrderId if provided
+      if (order.clientOrderId) {
+        params.newClientOrderId = order.clientOrderId;
+      }
+
+      // Define expected response structure
+      interface BinanceOrderResponse {
+        symbol: string;
+        orderId: number;
+        orderListId: number; // -1 if not part of an OCO
+        clientOrderId: string;
+        transactTime: number;
+        price: string;
+        origQty: string;
+        executedQty: string;
+        cummulativeQuoteQty: string; // Correct spelling might be cumulative
+        status: string;
+        timeInForce: string;
+        type: string;
+        side: string;
+        // Optional fields for fills
+        fills?: Array<{
+          price: string;
+          qty: string;
+          commission: string;
+          commissionAsset: string;
+          tradeId: number;
+        }>;
+      }
+
+      const response =
+        await this.makeAuthenticatedRequest<BinanceOrderResponse>(
+          '/api/v3/order', // Corrected endpoint
+          'POST',
+          apiKeyId,
+          params,
+          1, // Weight: 1
+        );
+
+      // Format the response into our standard Order type
+      return {
+        id: response.orderId.toString(),
+        clientOrderId: response.clientOrderId,
+        exchangeId: this.exchangeId, // Add exchangeId
+        symbol: order.symbol,
+        side: order.side,
+        type: order.type,
+        status: this.mapOrderStatus(response.status),
+        price: parseFloat(response.price),
+        quantity: parseFloat(response.origQty),
+        executed: parseFloat(response.executedQty), // Map executedQty to executed
+        remaining:
+          parseFloat(response.origQty) - parseFloat(response.executedQty), // Calculate remaining
+        cost: parseFloat(response.cummulativeQuoteQty), // Map cummulativeQuoteQty to cost
+        timestamp: response.transactTime, // Use creation time
+        lastUpdated: response.transactTime, // Use creation time for lastUpdated initially
+        // timeInForce: response.timeInForce as TimeInForce, // Include if applicable and mapped
+        // stopPrice: order.stopPrice, // Include if applicable
+        // quoteOrderQty: order.quoteOrderQty, // Include if applicable
+        // Add fill details if needed from response.fills
+      };
+    } catch (error) {
+      console.error(`Error placing order for ${order.symbol}:`, error);
+      // Try to parse Binance error response
+      let errorMessage = `Failed to place order: ${error instanceof Error ? error.message : String(error)}`;
+      if (axios.isAxiosError(error) && error.response?.data?.msg) {
+        errorMessage = `Failed to place order: ${error.response.data.msg} (Code: ${error.response.data.code})`;
+      }
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Cancel an existing order.
+   */
+  public async cancelOrder(
+    apiKeyId: string,
+    orderId: string,
+    symbol: string, // Binance requires symbol for cancellation
+    clientOrderId?: string, // Optional: Use clientOrderId for cancellation
+  ): Promise<boolean> {
+    // Changed return type to Promise<boolean>
+    try {
+      const binanceSymbol = symbol.replace('/', '');
+      const params: Record<string, string | number> = {
+        symbol: binanceSymbol,
+      };
+
+      if (clientOrderId) {
+        params.origClientOrderId = clientOrderId;
+      } else {
+        params.orderId = parseInt(orderId, 10); // Binance expects integer orderId
+        if (isNaN(params.orderId as number)) {
+          throw new Error('Invalid orderId format for cancellation.');
+        }
+      }
+
+      // Define expected response structure (may vary slightly)
+      interface CancelResponse {
+        symbol: string;
+        origClientOrderId?: string;
+        orderId?: number;
+        orderListId: number;
+        clientOrderId: string; // This is the cancel request's ID, not the original order's
+        price: string;
+        origQty: string;
+        executedQty: string;
+        cummulativeQuoteQty: string;
+        status: string;
+        timeInForce: string;
+        type: string;
+        side: string;
+      }
+
+      const response = await this.makeAuthenticatedRequest<CancelResponse>(
+        '/api/v3/order', // Corrected endpoint
+        'DELETE',
         apiKeyId,
         params,
         1, // Weight: 1
       );
 
-      // Format response to match our Order interface
-      const newOrder: Order = {
-        id: response.orderId.toString(),
-        clientOrderId: response.clientOrderId,
-        exchangeId: this.exchangeId,
-        symbol: order.symbol,
-        side: order.side,
-        type: order.type,
-        status: this.mapOrderStatus(response.status),
-        price: parseFloat(response.price) || order.price || 0,
-        quantity: parseFloat(response.origQty),
-        executed: parseFloat(response.executedQty),
-        remaining:
-          parseFloat(response.origQty) - parseFloat(response.executedQty),
-        cost: parseFloat(response.cummulativeQuoteQty) || 0,
-        timestamp: response.transactTime,
-        lastUpdated: response.updateTime || response.transactTime,
-      };
-
-      // Track the order in the order tracking service
-      const orderTrackingService =
-        BinanceTestnetOrderTrackingService.getInstance();
-      orderTrackingService.trackOrder(newOrder);
-
-      return newOrder;
+      // Check response status to confirm cancellation
+      // Binance returns the details of the cancelled order upon success
+      if (
+        response &&
+        (response.status === 'CANCELED' || response.status === 'EXPIRED')
+      ) {
+        return true; // Return true on success
+      } else {
+        // This case might indicate the order was already filled or didn't exist
+        logger.warn(
+          `Cancel order request for ${orderId} returned status: ${response?.status}. Assuming success if no error was thrown.`,
+        );
+        // Consider it potentially successful if no error was thrown, but log warning
+        return true; // Return true even in this ambiguous case
+      }
     } catch (error) {
-      console.error('Error placing order:', error);
-
-      // Enhance error message for user feedback
-      if (error instanceof Error) {
-        const errorMessage = error.message;
-
-        // Check for specific Binance error messages
-        if (errorMessage.includes('MIN_NOTIONAL')) {
-          throw new Error(
-            'Order value is too small. Please increase the quantity or price.',
+      console.error(`Error canceling order ${orderId} for ${symbol}:`, error);
+      // Try to parse Binance error response
+      let errorMessage = `Failed to cancel order: ${error instanceof Error ? error.message : String(error)}`;
+      if (axios.isAxiosError(error) && error.response?.data?.msg) {
+        // Example: {"code":-2011,"msg":"Unknown order sent."}
+        errorMessage = `Failed to cancel order: ${error.response.data.msg} (Code: ${error.response.data.code})`;
+        if (error.response.data.code === -2011) {
+          // Order doesn't exist (already filled or cancelled) - treat as success?
+          logger.warn(
+            `Attempted to cancel non-existent/filled order ${orderId}. Treating as success.`,
           );
-        }
-
-        if (errorMessage.includes('LOT_SIZE')) {
-          throw new Error(
-            'Invalid quantity. Please check the minimum and maximum quantity limits.',
-          );
-        }
-
-        if (errorMessage.includes('PRICE_FILTER')) {
-          throw new Error(
-            'Invalid price. Please check the minimum and maximum price limits.',
-          );
-        }
-
-        if (errorMessage.includes('INSUFFICIENT_BALANCE')) {
-          throw new Error('Insufficient balance to place this order.');
+          return true; // Return true if order already gone
         }
       }
-
-      // If we get here, use mock data as fallback
-      return this.mockDataService.placeOrder(apiKeyId, {
-        ...order,
-        exchangeId: this.exchangeId,
-      });
+      // Return failure
+      return false; // Return false on error
     }
   }
 
   /**
-   * Cancel an existing order on Binance Testnet.
-   *
-   * @param apiKeyId The API key ID to use for authentication
-   * @param orderId The ID of the order to cancel
-   * @param symbol The trading pair symbol (e.g., BTC/USDT)
-   * @returns True if the order was successfully canceled, false otherwise
-   */
-  public async cancelOrder(
-    apiKeyId: string,
-    orderId: string,
-    symbol: string,
-  ): Promise<boolean> {
-    try {
-      if (!symbol) {
-        throw new Error('Symbol is required for canceling an order');
-      }
-
-      if (!orderId) {
-        throw new Error('Order ID is required for canceling an order');
-      }
-
-      // Convert symbol format from BTC/USDT to BTCUSDT
-      const formattedSymbol = symbol.replace('/', '');
-
-      // Make authenticated request to cancel order endpoint
-      const response = await this.makeAuthenticatedRequest(
-        '/v3/order',
-        'DELETE',
-        apiKeyId,
-        {
-          symbol: formattedSymbol,
-          orderId,
-        },
-        1,
-      ); // Weight: 1
-
-      console.log('Cancel order response:', response);
-
-      // Update order status in the tracking service
-      const orderTrackingService =
-        BinanceTestnetOrderTrackingService.getInstance();
-      orderTrackingService.updateOrder(orderId, {
-        status: 'canceled',
-        lastUpdated: Date.now(),
-      });
-
-      return true;
-    } catch (error) {
-      console.error('Error canceling order:', error);
-
-      // Check for specific error messages
-      if (error instanceof Error) {
-        const errorMessage = error.message;
-
-        // If the order does not exist or is already canceled
-        if (errorMessage.includes('UNKNOWN_ORDER')) {
-          throw new Error('Order not found or already canceled');
-        }
-      }
-
-      // Fallback to mock data
-      return this.mockDataService.cancelOrder(apiKeyId, orderId);
-    }
-  }
-
-  /**
-   * Get all open orders for the user on Binance Testnet.
-   *
-   * @param apiKeyId The API key ID to use for authentication
-   * @param symbol Optional symbol to filter orders
-   * @returns Array of open orders
+   * Get all open orders for a specific trading pair or all pairs.
    */
   public async getOpenOrders(
     apiKeyId: string,
     symbol?: string,
   ): Promise<Order[]> {
     try {
-      // Prepare params
-      const params: Record<string, string | number> = {};
-
+      const params: Record<string, string> = {};
       if (symbol) {
-        // Convert symbol format from BTC/USDT to BTCUSDT
         params.symbol = symbol.replace('/', '');
       }
 
-      // Make authenticated request to open orders endpoint
-      // Weight: 3 for a single symbol, 40 for all symbols
-      const weight = symbol ? 3 : 40;
+      // Define expected response structure for open orders
+      interface BinanceOrder {
+        symbol: string;
+        orderId: number;
+        orderListId: number;
+        clientOrderId: string;
+        price: string;
+        origQty: string;
+        executedQty: string;
+        cummulativeQuoteQty: string;
+        status: string;
+        timeInForce: string;
+        type: string;
+        side: string;
+        stopPrice: string;
+        icebergQty: string;
+        time: number; // Order creation time
+        updateTime: number; // Last update time
+        isWorking: boolean;
+        origQuoteOrderQty: string;
+      }
 
-      const response = await this.makeAuthenticatedRequest(
-        '/v3/openOrders',
+      const response = await this.makeAuthenticatedRequest<BinanceOrder[]>(
+        '/api/v3/openOrders', // Corrected endpoint
         'GET',
         apiKeyId,
         params,
-        weight,
+        symbol ? 3 : 40, // Weight: 3 for single symbol, 40 for all
       );
 
-      // Format response to match our Order interface
-      return response.map((order: any) => {
-        // Map Binance order type to our order type
-        let orderType: 'market' | 'limit' | 'stop_limit' | 'stop_market' =
-          'limit';
-
-        if (order.type === 'MARKET') {
-          orderType = 'market';
-        } else if (order.type === 'LIMIT') {
-          orderType = 'limit';
-        } else if (order.type === 'STOP_LOSS_LIMIT') {
-          orderType = 'stop_limit';
-        } else if (order.type === 'STOP_LOSS') {
-          orderType = 'stop_market';
-        }
-
-        const origQty = parseFloat(order.origQty);
-        const executedQty = parseFloat(order.executedQty);
-
-        return {
-          id: order.orderId.toString(),
-          symbol: this.formatSymbol(order.symbol),
-          exchangeId: this.exchangeId,
-          side: order.side.toLowerCase() as 'buy' | 'sell',
-          type: orderType,
-          price: parseFloat(order.price),
-          quantity: origQty,
-          executed: executedQty,
-          remaining: origQty - executedQty,
-          cost: parseFloat(order.cummulativeQuoteQty) || 0,
-          status: this.mapOrderStatus(order.status),
-          timestamp: order.time,
-          lastUpdated: order.updateTime || order.time,
-        };
-      });
+      return response.map((order) => ({
+        id: order.orderId.toString(),
+        clientOrderId: order.clientOrderId,
+        exchangeId: this.exchangeId, // Add exchangeId
+        symbol: this.formatSymbol(order.symbol),
+        side: order.side.toLowerCase() as 'buy' | 'sell',
+        type: order.type.toLowerCase() as OrderType,
+        status: this.mapOrderStatus(order.status),
+        price: parseFloat(order.price),
+        quantity: parseFloat(order.origQty),
+        executed: parseFloat(order.executedQty), // Map executedQty to executed
+        remaining: parseFloat(order.origQty) - parseFloat(order.executedQty), // Calculate remaining
+        cost: parseFloat(order.cummulativeQuoteQty), // Map cummulativeQuoteQty to cost
+        timestamp: order.time, // Use creation time as primary timestamp
+        lastUpdated: order.updateTime, // Use update time
+        timeInForce: order.timeInForce as TimeInForce,
+        stopPrice: parseFloat(order.stopPrice) || undefined, // Include stop price if present
+      }));
     } catch (error) {
-      console.error('Error getting open orders:', error);
-
-      // Fallback to mock data
-      return this.mockDataService.getOpenOrders(
-        apiKeyId,
-        this.exchangeId,
-        symbol,
+      console.error(
+        `Error getting open orders for ${symbol || 'all pairs'}:`,
+        error,
       );
+      return [];
     }
   }
 
   /**
-   * Get order history for the user on Binance Testnet.
-   *
-   * @param apiKeyId The API key ID to use for authentication
-   * @param symbol Symbol to filter orders (required by Binance)
-   * @param limit Maximum number of orders to return (default: 50)
-   * @returns Array of historical orders
+   * Get order history for a specific trading pair.
    */
   public async getOrderHistory(
     apiKeyId: string,
-    symbol?: string,
-    limit: number = 50,
+    symbol: string,
+    limit: number = 500,
+    startTime?: number,
+    endTime?: number,
+    fromOrderId?: string, // Fetch orders starting from this order ID
   ): Promise<Order[]> {
     try {
-      if (!symbol) {
-        throw new Error(
-          'Symbol is required for order history on Binance Testnet',
-        );
+      const binanceSymbol = symbol.replace('/', '');
+      const params: Record<string, string | number> = {
+        symbol: binanceSymbol,
+        limit: limit > 1000 ? 1000 : limit, // Max limit 1000
+      };
+      if (startTime) params.startTime = startTime;
+      if (endTime) params.endTime = endTime;
+      if (fromOrderId) params.orderId = parseInt(fromOrderId, 10); // Binance uses 'orderId' for this param
+
+      // Define expected response structure (same as open orders)
+      interface BinanceOrder {
+        symbol: string;
+        orderId: number;
+        orderListId: number;
+        clientOrderId: string;
+        price: string;
+        origQty: string;
+        executedQty: string;
+        cummulativeQuoteQty: string;
+        status: string;
+        timeInForce: string;
+        type: string;
+        side: string;
+        stopPrice: string;
+        icebergQty: string;
+        time: number; // Order creation time
+        updateTime: number; // Last update time
+        isWorking: boolean;
+        origQuoteOrderQty: string;
       }
 
-      // Convert symbol format from BTC/USDT to BTCUSDT
-      const formattedSymbol = symbol.replace('/', '');
-
-      // Make authenticated request to order history endpoint
-      const response = await this.makeAuthenticatedRequest(
-        '/v3/allOrders',
+      const response = await this.makeAuthenticatedRequest<BinanceOrder[]>(
+        '/api/v3/allOrders', // Corrected endpoint
         'GET',
         apiKeyId,
-        {
-          symbol: formattedSymbol,
-          limit,
-        },
+        params,
         10, // Weight: 10
       );
 
-      // Format response to match our Order interface
-      return response.map((order: any) => {
-        // Map Binance order type to our order type
-        let orderType: 'market' | 'limit' | 'stop_limit' | 'stop_market' =
-          'limit';
-
-        if (order.type === 'MARKET') {
-          orderType = 'market';
-        } else if (order.type === 'LIMIT') {
-          orderType = 'limit';
-        } else if (order.type === 'STOP_LOSS_LIMIT') {
-          orderType = 'stop_limit';
-        } else if (order.type === 'STOP_LOSS') {
-          orderType = 'stop_market';
-        }
-
-        const origQty = parseFloat(order.origQty);
-        const executedQty = parseFloat(order.executedQty);
-
-        return {
-          id: order.orderId.toString(),
-          symbol: this.formatSymbol(order.symbol),
-          exchangeId: this.exchangeId,
-          side: order.side.toLowerCase() as 'buy' | 'sell',
-          type: orderType,
-          price: parseFloat(order.price),
-          quantity: origQty,
-          executed: executedQty,
-          remaining: origQty - executedQty,
-          cost: parseFloat(order.cummulativeQuoteQty) || 0,
-          status: this.mapOrderStatus(order.status),
-          timestamp: order.time,
-          lastUpdated: order.updateTime || order.time,
-        };
-      });
+      return response.map((order) => ({
+        id: order.orderId.toString(),
+        clientOrderId: order.clientOrderId,
+        exchangeId: this.exchangeId, // Add exchangeId
+        symbol: this.formatSymbol(order.symbol),
+        side: order.side.toLowerCase() as 'buy' | 'sell',
+        type: order.type.toLowerCase() as OrderType,
+        status: this.mapOrderStatus(order.status),
+        price: parseFloat(order.price),
+        quantity: parseFloat(order.origQty),
+        executed: parseFloat(order.executedQty), // Map executedQty to executed
+        remaining: parseFloat(order.origQty) - parseFloat(order.executedQty), // Calculate remaining
+        cost: parseFloat(order.cummulativeQuoteQty), // Map cummulativeQuoteQty to cost
+        timestamp: order.time, // Use creation time
+        lastUpdated: order.updateTime, // Use update time
+        timeInForce: order.timeInForce as TimeInForce,
+        stopPrice: parseFloat(order.stopPrice) || undefined,
+      }));
     } catch (error) {
-      console.error('Error getting order history:', error);
+      console.error(`Error getting order history for ${symbol}:`, error);
+      return [];
+    }
+  }
 
-      // Fallback to mock data
-      return this.mockDataService.getOrderHistory(
+  /**
+   * Get performance metrics (not directly supported by Binance API, needs calculation).
+   */
+  public async getPerformanceMetrics(
+    apiKeyId: string,
+  ): Promise<PerformanceMetrics> {
+    // Requires fetching order history, trades, and potentially balance snapshots
+    // to calculate metrics like PnL, win rate, etc.
+    console.warn(
+      'getPerformanceMetrics is not implemented for BinanceTestnetAdapter',
+    );
+    return {
+      exchangeId: this.exchangeId, // Add exchangeId
+      roi: 0, // Placeholder
+      profitLoss: 0, // Corrected typo
+      winRate: 0,
+      trades: 0, // Total number of trades
+      drawdown: 0, // Maximum drawdown (%)
+      sharpeRatio: 0, // Requires risk-free rate and return volatility
+      period: {
+        // Add period
+        start: new Date(0),
+        end: new Date(),
+      },
+    };
+  }
+
+  // --- User Data Stream Methods ---
+
+  /**
+   * Fetches a new listenKey from Binance to start a user data stream.
+   * @param apiKeyId The API key ID to use for authentication.
+   * @returns The listenKey string.
+   * @throws Error if the listenKey cannot be obtained.
+   */
+  private async _getListenKey(apiKeyId: string): Promise<string> {
+    logger.info(`[${this.exchangeId}] Fetching new listenKey...`);
+    try {
+      const response = await this.makeAuthenticatedRequest<{
+        listenKey: string;
+      }>(
+        '/api/v3/userDataStream',
+        'POST',
         apiKeyId,
-        this.exchangeId,
-        symbol,
-        limit,
+        {}, // No params needed for POST
+        1, // Weight: 1
+      );
+      if (!response || !response.listenKey) {
+        throw new Error('Invalid response format when fetching listenKey');
+      }
+      logger.info(
+        `[${this.exchangeId}] Obtained listenKey: ${response.listenKey.substring(0, 10)}...`,
+      );
+      return response.listenKey;
+    } catch (error) {
+      logger.error(`[${this.exchangeId}] Failed to get listenKey:`, error);
+      throw new Error(
+        `Failed to obtain listenKey: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
 
   /**
-   * Get performance metrics for the user's trading activity on Binance Testnet.
+   * Sends a keep-alive request for the current listenKey.
+   * Binance requires this every 60 minutes. We'll do it every 30 minutes.
+   * @throws Error if the keep-alive request fails.
    */
-  public async getPerformanceMetrics(
-    apiKeyId: string,
-    period: string = '1m',
-  ): Promise<PerformanceMetrics> {
-    // This would require custom implementation as Binance doesn't provide this directly
-    // For now, we'll use mock data
-    return this.mockDataService.generatePerformanceMetrics(period);
+  private async _keepListenKeyAlive(): Promise<void> {
+    if (!this.listenKey || !this.currentApiKeyId) {
+      logger.warn(
+        `[${this.exchangeId}] Cannot keep listenKey alive: listenKey or apiKeyId missing.`,
+      );
+      // Attempt to reconnect if essential components are missing
+      this.disconnect();
+      this.connectUserDataStream().catch((err) => {
+        logger.error(
+          `[${this.exchangeId}] Failed to reconnect user data stream after missing key components during keep-alive:`,
+          err,
+        );
+      });
+      return;
+    }
+    logger.debug(
+      `[${this.exchangeId}] Sending keep-alive for listenKey: ${this.listenKey.substring(0, 10)}...`,
+    );
+    try {
+      await this.makeAuthenticatedRequest<{}>(
+        '/api/v3/userDataStream',
+        'PUT',
+        this.currentApiKeyId,
+        { listenKey: this.listenKey },
+        1, // Weight: 1
+      );
+      logger.debug(`[${this.exchangeId}] listenKey keep-alive successful.`);
+    } catch (error) {
+      logger.error(
+        `[${this.exchangeId}] Failed to keep listenKey alive:`,
+        error,
+      );
+      // If keep-alive fails, the key might be expired. We should attempt to reconnect.
+      this.disconnect(); // Disconnect the current stream
+      this.connectUserDataStream().catch((err) => {
+        logger.error(
+          `[${this.exchangeId}] Failed to reconnect user data stream after keep-alive failure:`,
+          err,
+        );
+      });
+      // Don't throw here, as reconnect is attempted. Let the reconnect handle errors.
+      // throw new Error(`Failed to keep listenKey alive: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 
   /**
-   * Validate API key credentials with Binance Testnet.
+   * Establishes the WebSocket connection for the user data stream.
+   * Handles fetching the listenKey, connecting via WebSocketManager, and setting up keep-alive.
+   * @param apiKeyId Optional API key ID. If not provided, uses the stored `currentApiKeyId`.
+   */
+  public async connectUserDataStream(apiKeyId?: string): Promise<void> {
+    if (this.isConnectingUserDataStream) {
+      logger.warn(
+        `[${this.exchangeId}] User data stream connection already in progress.`,
+      );
+      return;
+    }
+    // Use provided apiKeyId or the currently stored one
+    const targetApiKeyId = apiKeyId || this.currentApiKeyId;
+
+    if (!targetApiKeyId) {
+      logger.error(
+        `[${this.exchangeId}] Cannot connect user data stream: API Key ID is missing.`,
+      );
+      throw new Error('API Key ID is required to connect user data stream.');
+    }
+
+    // Check if already connected with the *same* API key
+    if (
+      this.listenKey &&
+      this.currentApiKeyId === targetApiKeyId &&
+      this.userDataStreamId
+    ) {
+      // Verify connection status with WebSocketManager if possible
+      const status = this.webSocketManager.getConnectionStatus(
+        this.userDataStreamId,
+      );
+      if (status === 'connected' || status === 'connecting') {
+        logger.info(
+          `[${this.exchangeId}] User data stream already connected or connecting for API key ${targetApiKeyId}.`,
+        );
+        return;
+      } else {
+        logger.warn(
+          `[${this.exchangeId}] Stream ID exists but status is ${status}. Attempting to reconnect.`,
+        );
+        this.disconnect(); // Clean up potentially stale state before reconnecting
+      }
+    }
+
+    // If connecting with a *different* API key, disconnect the old one first
+    if (this.listenKey && this.currentApiKeyId !== targetApiKeyId) {
+      logger.info(
+        `[${this.exchangeId}] API key changed. Disconnecting previous user data stream (${this.currentApiKeyId}) before connecting new one (${targetApiKeyId}).`,
+      );
+      this.disconnect();
+    }
+
+    this.isConnectingUserDataStream = true;
+    this.currentApiKeyId = targetApiKeyId; // Store the key ID being used
+
+    try {
+      logger.info(
+        `[${this.exchangeId}] Connecting user data stream for API Key ID: ${this.currentApiKeyId}`,
+      );
+      this.listenKey = await this._getListenKey(this.currentApiKeyId);
+
+      const wsUrl = `${this.wsBaseUrl}/${this.listenKey}`;
+      // Use a consistent but unique ID based on exchange and API key ID
+      this.userDataStreamId = `${this.exchangeId}_userdata_${this.currentApiKeyId}`;
+
+      logger.info(
+        `[${this.exchangeId}] Creating WebSocket connection to: ${wsUrl} with Stream ID: ${this.userDataStreamId}`,
+      );
+      this.webSocketManager.createConnection(this.userDataStreamId, wsUrl);
+
+      logger.info(
+        `[${this.exchangeId}] Subscribing to user data stream with ID: ${this.userDataStreamId}`,
+      );
+      // Ensure we unsubscribe previous listener if ID somehow existed before connection creation
+      try {
+        this.webSocketManager.unsubscribe(this.userDataStreamId);
+      } catch (e) {
+        /* Ignore if no subscription existed */
+      }
+
+      this.webSocketManager.subscribe(
+        this.userDataStreamId,
+        'userdata',
+        { listenKey: this.listenKey }, // Pass listenKey in params for potential future use
+        this.handleUserDataMessage.bind(this), // Bind 'this' context
+      );
+
+      // Clear previous interval if any
+      if (this.listenKeyRefreshInterval)
+        clearInterval(this.listenKeyRefreshInterval);
+      // Set up keep-alive interval (every 30 minutes)
+      this.listenKeyRefreshInterval = setInterval(
+        () => {
+          this._keepListenKeyAlive().catch((error) => {
+            // Error logging and reconnect attempt is handled within _keepListenKeyAlive
+            logger.error(
+              `[${this.exchangeId}] Uncaught error during scheduled listenKey keep-alive execution:`,
+              error,
+            );
+          });
+        },
+        30 * 60 * 1000,
+      ); // 30 minutes
+
+      // Initial balance fetch and start reconciliation
+      await this.reconcileBalances(); // Fetch initial balances
+      this.startReconciliation(); // Start periodic reconciliation
+
+      logger.info(
+        `[${this.exchangeId}] User data stream connected successfully for API Key ${this.currentApiKeyId}.`,
+      );
+      this.eventEmitter.emit('userDataStreamConnected', {
+        exchangeId: this.exchangeId,
+        apiKeyId: this.currentApiKeyId,
+      });
+    } catch (error) {
+      logger.error(
+        `[${this.exchangeId}] Failed to connect user data stream for API Key ${this.currentApiKeyId}:`,
+        error,
+      );
+      this.listenKey = null; // Clear listenKey on failure
+      // Don't clear currentApiKeyId here, allow retry attempts
+      this.eventEmitter.emit('userDataStreamError', {
+        exchangeId: this.exchangeId,
+        apiKeyId: this.currentApiKeyId,
+        error,
+      });
+      // Clean up intervals if connection failed partway through
+      if (this.listenKeyRefreshInterval)
+        clearInterval(this.listenKeyRefreshInterval);
+      this.stopReconciliation();
+      throw error; // Re-throw the error
+    } finally {
+      this.isConnectingUserDataStream = false;
+    }
+  }
+
+  /**
+   * Handles incoming messages from the user data WebSocket stream.
+   * This method is the callback registered with WebSocketManager.
+   * @param message The raw WebSocket message data.
+   */
+  private handleUserDataMessage(message: any): void {
+    // logger.debug(`[${this.exchangeId}] Received user data message:`, message); // Log raw message if needed
+    try {
+      if (!message || !message.e) {
+        // Handle potential non-JSON messages or ping frames if necessary
+        // logger.warn(`[${this.exchangeId}] Received invalid user data message format or non-event message:`, message);
+        return;
+      }
+
+      switch (message.e) {
+        case 'balanceUpdate':
+          this._handleBalanceUpdate(message as BalanceUpdatePayload);
+          break;
+        case 'outboundAccountPosition':
+          // This provides a snapshot of balances, useful for initial sync or recovery
+          this._handleAccountPositionUpdate(
+            message as OutboundAccountPositionPayload,
+          );
+          break;
+        case 'executionReport':
+          // Order updates, potentially affecting locked balances
+          this._handleExecutionReport(message); // Define this method later
+          break;
+        default:
+          logger.debug(
+            `[${this.exchangeId}] Unhandled user data event type: ${message.e}`,
+          );
+      }
+    } catch (error) {
+      // Corrected logger call: Pass error and message in context object
+      logger.error(`[${this.exchangeId}] Error processing user data message:`, {
+        error,
+        message,
+      });
+    }
+  }
+
+  /**
+   * Processes the 'balanceUpdate' event from the WebSocket stream.
+   * Updates the local balance cache for a single asset based on the delta.
+   * @param payload The balanceUpdate message payload.
+   */
+  private _handleBalanceUpdate(payload: BalanceUpdatePayload): void {
+    const asset = payload.a;
+    const delta = parseFloat(payload.d);
+    const currentBalance = this.balanceCache[asset] || { free: 0, locked: 0 };
+
+    // IMPORTANT: Binance 'balanceUpdate' provides the *delta*, not the new total.
+    // It typically reflects changes to the 'free' balance due to deposits, withdrawals, etc.
+    // It does NOT reflect changes due to trading (those come via executionReport).
+    // We assume this delta applies to the 'free' balance.
+    const newFree = currentBalance.free + delta;
+
+    logger.info(
+      `[${this.exchangeId}] Balance Update (Delta): Asset=${asset}, Delta=${delta}, New Free=${newFree.toFixed(8)}`,
+    );
+
+    this.balanceCache[asset] = {
+      ...currentBalance,
+      free: Math.max(0, newFree), // Ensure free doesn't go negative
+    };
+
+    // Emit balance update event
+    this.emitBalanceUpdate(asset);
+  }
+
+  /**
+   * Processes the 'outboundAccountPosition' event from the WebSocket stream.
+   * Updates the entire balance cache based on the snapshot provided.
+   * This is crucial for initial synchronization and recovery after disconnects.
+   * @param payload The outboundAccountPosition message payload.
+   */
+  private _handleAccountPositionUpdate(
+    payload: OutboundAccountPositionPayload,
+  ): void {
+    logger.info(
+      `[${this.exchangeId}] Received Account Position Update (Snapshot) at ${payload.E}`,
+    );
+    let updated = false;
+    const snapshotBalances: Record<string, { free: number; locked: number }> =
+      {};
+
+    payload.B.forEach((balanceInfo) => {
+      const asset = balanceInfo.a;
+      const free = parseFloat(balanceInfo.f);
+      const locked = parseFloat(balanceInfo.l);
+      if (isNaN(free) || isNaN(locked)) {
+        logger.warn(
+          `[${this.exchangeId}] Invalid balance number in snapshot for ${asset}: free=${balanceInfo.f}, locked=${balanceInfo.l}`,
+        );
+        return;
+      }
+      // Only include assets with non-zero balance in the snapshot representation
+      if (free > 0 || locked > 0) {
+        snapshotBalances[asset] = { free, locked };
+      }
+
+      const cached = this.balanceCache[asset];
+      if (!cached || cached.free !== free || cached.locked !== locked) {
+        logger.info(
+          `[${this.exchangeId}] Updating balance from snapshot: Asset=${asset}, Free=${free.toFixed(8)}, Locked=${locked.toFixed(8)} (Cache: Free=${cached?.free.toFixed(8)}, Locked=${cached?.locked.toFixed(8)})`,
+        );
+        this.balanceCache[asset] = { free, locked };
+        this.emitBalanceUpdate(asset); // Emit for each changed asset
+        updated = true;
+      }
+    });
+
+    // Check for assets in cache that are NOT in the snapshot (meaning they are now zero)
+    for (const asset in this.balanceCache) {
+      if (!(asset in snapshotBalances)) {
+        // Only log/emit if the cached balance wasn't already zero
+        if (
+          this.balanceCache[asset].free > 1e-9 ||
+          this.balanceCache[asset].locked > 1e-9
+        ) {
+          logger.info(
+            `[${this.exchangeId}] Asset ${asset} zeroed in REST response (was F:${this.balanceCache[asset].free.toFixed(8)}, L:${this.balanceCache[asset].locked.toFixed(8)}). Removing from cache.`,
+          );
+          this.emitBalanceUpdate(asset, { free: 0, locked: 0 }); // Emit zero balance
+          updated = true; // Mark as updated
+        }
+        delete this.balanceCache[asset];
+      }
+    }
+
+    if (updated) {
+      logger.info(
+        `[${this.exchangeId}] Balance cache updated from account position snapshot.`,
+      );
+      // Optionally emit a full snapshot event if needed by consumers
+      // this.eventEmitter.emit('balanceSnapshot', { exchangeId: this.exchangeId, balances: this.getBalanceCache() });
+    } else {
+      logger.debug(
+        `[${this.exchangeId}] Account position snapshot matched cache. No updates needed.`,
+      );
+    }
+  }
+
+  /**
+   * Processes the 'executionReport' event from the WebSocket stream.
+   * Updates locked/free balances based on order status changes (NEW, FILLED, CANCELED, etc.).
+   * @param payload The executionReport message payload.
+   */
+  private _handleExecutionReport(payload: any): void {
+    // This is crucial for accurate available balance tracking.
+    // Needs careful implementation based on Binance executionReport fields.
+    // See: https://binance-docs.github.io/apidocs/spot/en/#payload-order-update
+
+    const symbol = this.formatSymbol(payload.s); // BTC/USDT
+    const baseAsset = symbol.split('/')[0];
+    const quoteAsset = symbol.split('/')[1];
+
+    if (!baseAsset || !quoteAsset) {
+      logger.error(
+        `[${this.exchangeId}] Could not parse base/quote asset from symbol: ${payload.s}`,
+      );
+      return;
+    }
+
+    const orderStatus = payload.X; // Order status (e.g., NEW, FILLED, CANCELED)
+    const orderSide = payload.S; // BUY or SELL
+    const orderType = payload.o; // LIMIT, MARKET, etc.
+    const quantity = parseFloat(payload.q); // Original order quantity
+    const price = parseFloat(payload.p); // Order price (for LIMIT orders)
+    const stopPrice = parseFloat(payload.P); // Stop price
+    const lastExecutedQuantity = parseFloat(payload.l); // Quantity of the last fill
+    const cumulativeFilledQuantity = parseFloat(payload.z); // Total filled quantity for the order
+    const lastExecutedPrice = parseFloat(payload.L); // Price of the last fill
+    const commissionAmount = parseFloat(payload.n); // Commission amount
+    const commissionAsset = payload.N; // Asset commission was paid in
+    const orderTime = payload.T; // Transaction time (for the event)
+    const orderId = payload.i; // Order ID
+
+    logger.debug(
+      `[${this.exchangeId}] Execution Report: ID=${orderId}, Symbol=${symbol}, Status=${orderStatus}, Side=${orderSide}, LastFillQty=${lastExecutedQuantity.toFixed(8)}, CumulQty=${cumulativeFilledQuantity.toFixed(8)}`,
+    );
+
+    // --- Balance Update Logic ---
+    let baseAssetChanged = false;
+    let quoteAssetChanged = false;
+    let commissionAssetChanged = false;
+
+    const currentBaseBalance = this.balanceCache[baseAsset] || {
+      free: 0,
+      locked: 0,
+    };
+    const currentQuoteBalance = this.balanceCache[quoteAsset] || {
+      free: 0,
+      locked: 0,
+    };
+
+    // Note: This logic assumes the executionReport arrives *after* the action
+    // (e.g., after NEW order confirmation, after a fill occurs).
+    // It adjusts the *current* cache based on the event's implications.
+
+    if (orderStatus === 'NEW') {
+      // Lock funds when a new order is placed
+      if (orderSide === 'BUY') {
+        // Lock quote asset
+        // For LIMIT: lock price * quantity
+        // For MARKET: This is tricky. Binance might lock estimated cost or max possible.
+        // We'll lock price * quantity for LIMIT, and rely on reconciliation/snapshot for MARKET accuracy initially.
+        // A better approach for MARKET might be to lock a % of free balance or use quoteOrderQty if available.
+        const amountToLock =
+          orderType === 'LIMIT' ||
+          orderType === 'STOP_LOSS_LIMIT' ||
+          orderType === 'TAKE_PROFIT_LIMIT'
+            ? quantity * price
+            : 0; // Don't try to guess market lock, wait for snapshot/fill report
+
+        if (amountToLock > 0 && currentQuoteBalance.free >= amountToLock) {
+          this.balanceCache[quoteAsset] = {
+            free: currentQuoteBalance.free - amountToLock,
+            locked: currentQuoteBalance.locked + amountToLock,
+          };
+          quoteAssetChanged = true;
+          logger.debug(
+            `[${this.exchangeId}] Locked ~${amountToLock.toFixed(8)} ${quoteAsset} for NEW ${orderType} BUY order ${orderId}.`,
+          );
+        } else if (amountToLock > 0) {
+          logger.warn(
+            `[${this.exchangeId}] Insufficient free ${quoteAsset} to lock for NEW ${orderType} BUY order ${orderId}. Needed ${amountToLock.toFixed(8)}, have ${currentQuoteBalance.free.toFixed(8)}`,
+          );
+        } else {
+          logger.debug(
+            `[${this.exchangeId}] No immediate lock applied for NEW ${orderType} BUY order ${orderId}. Awaiting fill/snapshot.`,
+          );
+        }
+      } else {
+        // SELL
+        // Lock base asset
+        if (currentBaseBalance.free >= quantity) {
+          this.balanceCache[baseAsset] = {
+            free: currentBaseBalance.free - quantity,
+            locked: currentBaseBalance.locked + quantity,
+          };
+          baseAssetChanged = true;
+          logger.debug(
+            `[${this.exchangeId}] Locked ${quantity.toFixed(8)} ${baseAsset} for NEW ${orderType} SELL order ${orderId}.`,
+          );
+        } else {
+          logger.warn(
+            `[${this.exchangeId}] Insufficient free ${baseAsset} to lock for NEW ${orderType} SELL order ${orderId}. Needed ${quantity.toFixed(8)}, have ${currentBaseBalance.free.toFixed(8)}`,
+          );
+        }
+      }
+    } else if (orderStatus === 'FILLED' || orderStatus === 'PARTIALLY_FILLED') {
+      // Adjust balances based on the fill (using lastExecutedQuantity and lastExecutedPrice)
+      const cost = lastExecutedQuantity * lastExecutedPrice; // Cost/proceeds of this specific fill
+
+      if (orderSide === 'BUY') {
+        // Reduce locked quote (if it was locked), increase free base
+        const quoteToUnlock =
+          orderType === 'LIMIT' ||
+          orderType === 'STOP_LOSS_LIMIT' ||
+          orderType === 'TAKE_PROFIT_LIMIT'
+            ? cost // Unlock actual cost for limit types
+            : 0; // Don't assume unlock for market, rely on snapshot
+
+        if (quoteToUnlock > 0 && this.balanceCache[quoteAsset]) {
+          this.balanceCache[quoteAsset].locked = Math.max(
+            0,
+            this.balanceCache[quoteAsset].locked - quoteToUnlock,
+          );
+          quoteAssetChanged = true;
+        }
+        this.balanceCache[baseAsset] = {
+          free: currentBaseBalance.free + lastExecutedQuantity, // Increase free base
+          locked: currentBaseBalance.locked, // Locked base shouldn't change on BUY fill
+        };
+        baseAssetChanged = true;
+        logger.debug(
+          `[${this.exchangeId}] Fill Update (BUY ${orderType} ${orderId}): Unlocked ~${quoteToUnlock.toFixed(8)} ${quoteAsset}, Added ${lastExecutedQuantity.toFixed(8)} ${baseAsset}`,
+        );
+      } else {
+        // SELL
+        // Reduce locked base, increase free quote
+        if (this.balanceCache[baseAsset]) {
+          this.balanceCache[baseAsset].locked = Math.max(
+            0,
+            this.balanceCache[baseAsset].locked - lastExecutedQuantity,
+          ); // Reduce locked base
+          baseAssetChanged = true;
+        }
+        this.balanceCache[quoteAsset] = {
+          free: currentQuoteBalance.free + cost, // Increase free quote
+          locked: currentQuoteBalance.locked, // Locked quote shouldn't change on SELL fill
+        };
+        quoteAssetChanged = true;
+        logger.debug(
+          `[${this.exchangeId}] Fill Update (SELL ${orderType} ${orderId}): Unlocked ${lastExecutedQuantity.toFixed(8)} ${baseAsset}, Added ${cost.toFixed(8)} ${quoteAsset}`,
+        );
+      }
+
+      // Handle commissions
+      if (commissionAmount > 0 && commissionAsset) {
+        const commissionBalance = this.balanceCache[commissionAsset] || {
+          free: 0,
+          locked: 0,
+        };
+        // Deduct commission from free balance
+        this.balanceCache[commissionAsset] = {
+          ...commissionBalance,
+          free: Math.max(0, commissionBalance.free - commissionAmount),
+        };
+        if (commissionAsset === baseAsset) baseAssetChanged = true;
+        if (commissionAsset === quoteAsset) quoteAssetChanged = true;
+        if (commissionAsset !== baseAsset && commissionAsset !== quoteAsset)
+          commissionAssetChanged = true; // Track if separate asset changed
+        logger.debug(
+          `[${this.exchangeId}] Commission for ${orderId}: Deducted ${commissionAmount.toFixed(8)} ${commissionAsset}`,
+        );
+      }
+
+      // If order is fully FILLED, ensure any remaining locked funds are released
+      // This is crucial for MARKET orders or potential precision issues.
+      if (orderStatus === 'FILLED') {
+        if (
+          orderSide === 'BUY' &&
+          this.balanceCache[quoteAsset]?.locked > 1e-9
+        ) {
+          // Use tolerance for float comparison
+          logger.debug(
+            `[${this.exchangeId}] Releasing remaining ${this.balanceCache[quoteAsset].locked.toFixed(8)} locked ${quoteAsset} for FILLED BUY order ${orderId}.`,
+          );
+          this.balanceCache[quoteAsset].free +=
+            this.balanceCache[quoteAsset].locked;
+          this.balanceCache[quoteAsset].locked = 0;
+          quoteAssetChanged = true; // Ensure update is emitted
+        } else if (
+          orderSide === 'SELL' &&
+          this.balanceCache[baseAsset]?.locked > 1e-9
+        ) {
+          // Use tolerance for float comparison
+          logger.debug(
+            `[${this.exchangeId}] Releasing remaining ${this.balanceCache[baseAsset].locked.toFixed(8)} locked ${baseAsset} for FILLED SELL order ${orderId}.`,
+          );
+          this.balanceCache[baseAsset].free +=
+            this.balanceCache[baseAsset].locked;
+          this.balanceCache[baseAsset].locked = 0;
+          baseAssetChanged = true; // Ensure update is emitted
+        }
+      }
+    } else if (
+      orderStatus === 'CANCELED' ||
+      orderStatus === 'EXPIRED' ||
+      orderStatus === 'REJECTED'
+    ) {
+      // Unlock funds for orders that didn't execute fully or were rejected
+      // Calculate the amount that *was* locked but not filled.
+      const remainingQty = quantity - cumulativeFilledQuantity;
+
+      if (remainingQty > 1e-9) {
+        // Use tolerance for float comparison
+        if (orderSide === 'BUY') {
+          // Unlock remaining quote asset
+          // Use the originally calculated lock amount for LIMIT, or rely on current locked amount for others
+          const amountToUnlock =
+            orderType === 'LIMIT' ||
+            orderType === 'STOP_LOSS_LIMIT' ||
+            orderType === 'TAKE_PROFIT_LIMIT'
+              ? remainingQty * price // Unlock based on remaining qty * price
+              : this.balanceCache[quoteAsset]?.locked || 0; // Unlock whatever is left for non-limit
+
+          if (
+            this.balanceCache[quoteAsset] &&
+            this.balanceCache[quoteAsset].locked >= amountToUnlock - 1e-9
+          ) {
+            // Use tolerance
+            this.balanceCache[quoteAsset] = {
+              free: currentQuoteBalance.free + amountToUnlock,
+              locked: currentQuoteBalance.locked - amountToUnlock,
+            };
+            quoteAssetChanged = true;
+            logger.debug(
+              `[${this.exchangeId}] Unlocked ~${amountToUnlock.toFixed(8)} ${quoteAsset} for ${orderStatus} BUY order ${orderId}.`,
+            );
+          } else if (this.balanceCache[quoteAsset]?.locked > 1e-9) {
+            // If there's still locked balance, unlock it
+            logger.warn(
+              `[${this.exchangeId}] Mismatch unlocking ${quoteAsset} for ${orderStatus} BUY order ${orderId}. Attempting to unlock ${amountToUnlock.toFixed(8)}, but only ${this.balanceCache[quoteAsset].locked.toFixed(8)} is locked. Unlocking available locked amount.`,
+            );
+            this.balanceCache[quoteAsset].free +=
+              this.balanceCache[quoteAsset].locked;
+            this.balanceCache[quoteAsset].locked = 0;
+            quoteAssetChanged = true;
+          }
+        } else {
+          // SELL
+          // Unlock remaining base asset
+          if (
+            this.balanceCache[baseAsset] &&
+            this.balanceCache[baseAsset].locked >= remainingQty - 1e-9
+          ) {
+            // Use tolerance
+            this.balanceCache[baseAsset] = {
+              free: currentBaseBalance.free + remainingQty,
+              locked: currentBaseBalance.locked - remainingQty,
+            };
+            baseAssetChanged = true;
+            logger.debug(
+              `[${this.exchangeId}] Unlocked ${remainingQty.toFixed(8)} ${baseAsset} for ${orderStatus} SELL order ${orderId}.`,
+            );
+          } else if (this.balanceCache[baseAsset]?.locked > 1e-9) {
+            // If there's still locked balance, unlock it
+            logger.warn(
+              `[${this.exchangeId}] Mismatch unlocking ${baseAsset} for ${orderStatus} SELL order ${orderId}. Attempting to unlock ${remainingQty.toFixed(8)}, but only ${this.balanceCache[baseAsset].locked.toFixed(8)} is locked. Unlocking available locked amount.`,
+            );
+            this.balanceCache[baseAsset].free +=
+              this.balanceCache[baseAsset].locked;
+            this.balanceCache[baseAsset].locked = 0;
+            baseAssetChanged = true;
+          }
+        }
+      } else {
+        logger.debug(
+          `[${this.exchangeId}] Order ${orderId} (${orderStatus}) had no remaining quantity to unlock.`,
+        );
+      }
+    }
+
+    // Ensure balances don't go negative due to precision issues or logic errors
+    if (this.balanceCache[baseAsset]) {
+      this.balanceCache[baseAsset].free = Math.max(
+        0,
+        this.balanceCache[baseAsset].free,
+      );
+      this.balanceCache[baseAsset].locked = Math.max(
+        0,
+        this.balanceCache[baseAsset].locked,
+      );
+    }
+    if (this.balanceCache[quoteAsset]) {
+      this.balanceCache[quoteAsset].free = Math.max(
+        0,
+        this.balanceCache[quoteAsset].free,
+      );
+      this.balanceCache[quoteAsset].locked = Math.max(
+        0,
+        this.balanceCache[quoteAsset].locked,
+      );
+    }
+    if (commissionAsset && this.balanceCache[commissionAsset]) {
+      this.balanceCache[commissionAsset].free = Math.max(
+        0,
+        this.balanceCache[commissionAsset].free,
+      );
+      // Locked commission balance shouldn't change here
+    }
+
+    // Emit updates for changed assets
+    if (baseAssetChanged) {
+      this.emitBalanceUpdate(baseAsset);
+    }
+    if (quoteAssetChanged) {
+      this.emitBalanceUpdate(quoteAsset);
+    }
+    if (commissionAssetChanged) {
+      this.emitBalanceUpdate(commissionAsset); // Emit for commission asset if different and changed
+    }
+
+    // Also emit an order update event
+    // Format the payload slightly to match our Order type better if possible
+    const formattedOrderUpdate = {
+      id: orderId.toString(),
+      clientOrderId: payload.c,
+      exchangeId: this.exchangeId, // Add exchangeId
+      symbol: symbol,
+      side: orderSide.toLowerCase() as 'buy' | 'sell',
+      type: orderType.toLowerCase() as OrderType,
+      status: this.mapOrderStatus(orderStatus),
+      price: parseFloat(payload.p), // Original order price
+      quantity: parseFloat(payload.q), // Original order quantity
+      executed: cumulativeFilledQuantity, // Map cumulativeFilledQuantity to executed
+      remaining: parseFloat(payload.q) - cumulativeFilledQuantity, // Calculate remaining
+      cost: parseFloat(payload.cummulativeQuoteQty), // Map cummulativeQuoteQty to cost
+      timestamp: orderTime, // Use transaction time from event
+      lastUpdated: orderTime, // Use transaction time for lastUpdated
+      timeInForce: payload.f as TimeInForce,
+      stopPrice: parseFloat(payload.P) || undefined,
+      // Include fill details if needed
+      lastExecutedPrice: lastExecutedPrice,
+      lastExecutedQuantity: lastExecutedQuantity,
+      commissionAmount: commissionAmount,
+      commissionAsset: commissionAsset,
+      rawPayload: payload, // Include raw payload for detailed consumers
+    };
+    this.eventEmitter.emit('orderUpdate', {
+      exchangeId: this.exchangeId,
+      order: formattedOrderUpdate,
+    });
+  }
+
+  /**
+   * Fetches the full account balances via REST API and compares with the cache.
+   * Corrects any discrepancies found.
+   */
+  public async reconcileBalances(): Promise<void> {
+    if (!this.currentApiKeyId) {
+      logger.warn(
+        `[${this.exchangeId}] Cannot reconcile balances: API Key ID missing.`,
+      );
+      return;
+    }
+    logger.info(
+      `[${this.exchangeId}] Starting balance reconciliation for API Key ${this.currentApiKeyId}...`,
+    );
+    try {
+      const accountInfo = await this.getAccountInfo(this.currentApiKeyId); // Use existing method
+      const restBalances = accountInfo.balances;
+      let discrepanciesFound = false;
+      const now = Date.now();
+
+      // Check REST balances against cache
+      for (const asset in restBalances) {
+        const restBalance = restBalances[asset];
+        const cachedBalance = this.balanceCache[asset];
+
+        // Use a small tolerance for floating point comparisons
+        const tolerance = 1e-9; // Adjust as needed
+        const freeDiff = cachedBalance
+          ? Math.abs(restBalance.free - cachedBalance.free)
+          : restBalance.free;
+        const lockedDiff = cachedBalance
+          ? Math.abs(restBalance.locked - cachedBalance.locked)
+          : restBalance.locked;
+
+        if (!cachedBalance || freeDiff > tolerance || lockedDiff > tolerance) {
+          logger.warn(
+            `[${this.exchangeId}] Reconciliation Discrepancy for ${asset}: REST=(F:${restBalance.free.toFixed(8)}, L:${restBalance.locked.toFixed(8)}), WS Cache=(F:${cachedBalance?.free.toFixed(8)}, L:${cachedBalance?.locked.toFixed(8)}). Updating cache.`,
+          );
+          this.balanceCache[asset] = { ...restBalance }; // Update cache with REST data
+          this.emitBalanceUpdate(asset);
+          discrepanciesFound = true;
+        }
+      }
+
+      // Check cache balances that might not be in REST response (e.g., zero balances after trading)
+      for (const asset in this.balanceCache) {
+        if (!(asset in restBalances)) {
+          // Only log/emit if the cached balance wasn't already zero
+          if (
+            this.balanceCache[asset].free > 1e-9 ||
+            this.balanceCache[asset].locked > 1e-9
+          ) {
+            logger.info(
+              `[${this.exchangeId}] Asset ${asset} zeroed in REST response (was F:${this.balanceCache[asset].free.toFixed(8)}, L:${this.balanceCache[asset].locked.toFixed(8)}). Removing from cache.`,
+            );
+            this.emitBalanceUpdate(asset, { free: 0, locked: 0 }); // Emit zero balance
+            updated = true; // Mark as updated
+          }
+          delete this.balanceCache[asset];
+        }
+      }
+
+      if (discrepanciesFound) {
+        logger.info(
+          `[${this.exchangeId}] Balance reconciliation completed at ${now}. Discrepancies found and corrected.`,
+        );
+        this.eventEmitter.emit('balancesReconciled', {
+          exchangeId: this.exchangeId,
+          apiKeyId: this.currentApiKeyId,
+          status: 'corrected',
+          timestamp: now,
+        });
+      } else {
+        logger.info(
+          `[${this.exchangeId}] Balance reconciliation completed at ${now}. No discrepancies found.`,
+        );
+        this.eventEmitter.emit('balancesReconciled', {
+          exchangeId: this.exchangeId,
+          apiKeyId: this.currentApiKeyId,
+          status: 'ok',
+          timestamp: now,
+        });
+      }
+    } catch (error) {
+      const now = Date.now();
+      logger.error(
+        `[${this.exchangeId}] Error during balance reconciliation at ${now}:`,
+        error,
+      );
+      this.eventEmitter.emit('balancesReconciled', {
+        exchangeId: this.exchangeId,
+        apiKeyId: this.currentApiKeyId,
+        status: 'error',
+        error,
+        timestamp: now,
+      });
+    }
+  }
+
+  /** Starts the periodic balance reconciliation process. */
+  private startReconciliation(): void {
+    if (this.reconciliationInterval) {
+      logger.debug(
+        `[${this.exchangeId}] Reconciliation interval already running.`,
+      );
+      return; // Already running
+    }
+    // Reconcile every 5 minutes
+    this.reconciliationInterval = setInterval(
+      () => {
+        this.reconcileBalances().catch((error) => {
+          logger.error(
+            `[${this.exchangeId}] Error during scheduled balance reconciliation:`,
+            error,
+          );
+        });
+      },
+      5 * 60 * 1000,
+    );
+    logger.info(
+      `[${this.exchangeId}] Periodic balance reconciliation started (every 5 minutes).`,
+    );
+  }
+
+  /** Stops the periodic balance reconciliation process. */
+  private stopReconciliation(): void {
+    if (this.reconciliationInterval) {
+      clearInterval(this.reconciliationInterval);
+      this.reconciliationInterval = null;
+      logger.info(
+        `[${this.exchangeId}] Periodic balance reconciliation stopped.`,
+      );
+    }
+  }
+
+  /**
+   * Emits a balance update event for a specific asset.
+   * @param asset The asset symbol (e.g., 'BTC', 'USDT').
+   * @param specificBalance Optional balance to emit, otherwise uses cache. If provided, represents the *new* state.
+   */
+  private emitBalanceUpdate(
+    asset: string,
+    specificBalance?: { free: number; locked: number },
+  ): void {
+    const balance = specificBalance ??
+      this.balanceCache[asset] ?? { free: 0, locked: 0 };
+    const available = balance.free; // Available is just the free balance for spot
+
+    // Ensure values are numbers and handle potential NaN
+    const freeNum = Number.isFinite(balance.free) ? balance.free : 0;
+    const lockedNum = Number.isFinite(balance.locked) ? balance.locked : 0;
+    const availableNum = Number.isFinite(available) ? available : 0;
+    const totalNum = freeNum + lockedNum;
+
+    const updateData = {
+      exchangeId: this.exchangeId,
+      apiKeyId: this.currentApiKeyId, // Include API key ID for context
+      asset: asset,
+      balance: {
+        free: freeNum,
+        locked: lockedNum,
+        total: totalNum,
+        available: availableNum, // Available for trading
+      },
+      timestamp: Date.now(),
+    };
+    // logger.debug(`[${this.exchangeId}] Emitting balanceUpdate for ${asset}:`, updateData.balance);
+    this.eventEmitter.emit('balanceUpdate', updateData);
+  }
+
+  /**
+   * Disconnects the user data stream, stops keep-alive and reconciliation.
+   */
+  public disconnect(): void {
+    logger.info(
+      `[${this.exchangeId}] Disconnecting user data stream (API Key: ${this.currentApiKeyId}, Stream ID: ${this.userDataStreamId})...`,
+    );
+
+    // Stop keep-alive interval
+    if (this.listenKeyRefreshInterval) {
+      clearInterval(this.listenKeyRefreshInterval);
+      this.listenKeyRefreshInterval = null;
+      logger.debug(`[${this.exchangeId}] Cleared listenKey refresh interval.`);
+    }
+
+    // Stop reconciliation interval
+    this.stopReconciliation();
+
+    // Close WebSocket connection via manager
+    if (this.userDataStreamId) {
+      logger.debug(
+        `[${this.exchangeId}] Closing WebSocket connection via manager for stream ID: ${this.userDataStreamId}`,
+      );
+      this.webSocketManager.closeConnection(this.userDataStreamId);
+      // Note: WebSocketManager handles removing subscriptions associated with the closed connection ID
+      this.userDataStreamId = null;
+    }
+
+    // Optionally delete the listenKey on Binance side (consider if needed - might interfere with other connections using the same key)
+    // Generally, let keys expire naturally unless explicitly required to delete.
+    // if (this.listenKey && this.currentApiKeyId) {
+    //   const keyToDelete = this.listenKey; // Capture key before clearing
+    //   this.makeAuthenticatedRequest('/api/v3/userDataStream', 'DELETE', this.currentApiKeyId, { listenKey: keyToDelete })
+    //     .then(() => logger.info(`[${this.exchangeId}] Successfully requested deletion of listenKey ${keyToDelete.substring(0,5)}...`))
+    //     .catch(err => logger.error(`[${this.exchangeId}] Failed to request deletion of listenKey ${keyToDelete.substring(0,5)}...:`, err));
+    // }
+
+    // Clear local state associated with the stream
+    this.listenKey = null;
+    // Don't clear currentApiKeyId here, as the adapter instance might persist for this key
+    this.balanceCache = {}; // Clear balance cache on disconnect
+    this.isConnectingUserDataStream = false; // Reset connection flag
+
+    logger.info(
+      `[${this.exchangeId}] User data stream disconnected for API Key ${this.currentApiKeyId}.`,
+    );
+    this.eventEmitter.emit('userDataStreamDisconnected', {
+      exchangeId: this.exchangeId,
+      apiKeyId: this.currentApiKeyId,
+    });
+  }
+
+  /**
+   * Provides access to the event emitter for subscribing to updates.
+   * Example: adapter.getEventEmitter().on('balanceUpdate', (data) => { ... });
+   */
+  public getEventEmitter(): EventEmitter {
+    return this.eventEmitter;
+  }
+
+  /**
+   * Retrieves the current cached balance for a specific asset.
+   * @param asset The asset symbol (e.g., 'BTC').
+   * @returns The cached balance { free, locked } or undefined if not cached.
+   */
+  public getCachedBalance(
+    asset: string,
+  ): { free: number; locked: number } | undefined {
+    // Return a copy to prevent external modification
+    const balance = this.balanceCache[asset];
+    return balance ? { ...balance } : undefined;
+  }
+
+  /**
+   * Retrieves the entire balance cache.
+   * @returns A copy of the balance cache object.
+   */
+  public getBalanceCache(): Record<string, { free: number; locked: number }> {
+    return { ...this.balanceCache }; // Return a copy
+  }
+
+  /**
+   * Validate API key and secret by making a request to the account endpoint.
+   * @param apiKey The API key to validate.
+   * @param apiSecret The API secret to validate.
+   * @returns True if the credentials are valid, false otherwise.
    */
   public async validateApiKey(
     apiKey: string,
     apiSecret: string,
   ): Promise<boolean> {
+    // Create temporary credentials object for signing
+    const tempCredentials = { apiKey, apiSecret };
     try {
-      // Generate timestamp
+      // Add timestamp and signature using the provided secret
       const timestamp = Date.now();
-
-      // Generate signature
+      const params = { timestamp };
+      const queryString = `timestamp=${timestamp}`;
+      // Use the provided apiSecret directly for signature generation
       const signature = this.generateSignature(
-        `timestamp=${timestamp}`,
-        apiSecret,
+        queryString,
+        tempCredentials.apiSecret,
       );
+      const signedParams = { ...params, signature };
 
-      // Make request to account endpoint
-      const response = await axios({
+      // Make request to account endpoint using the provided credentials directly
+      // We use axios directly here to bypass the adapter's credential fetching logic
+      await axios({
         method: 'GET',
-        url: `${this.baseUrl}/v3/account`,
-        params: {
-          timestamp,
-          signature,
-        },
-        headers: {
-          'X-MBX-APIKEY': apiKey,
-        },
+        url: `${this.baseUrl}/api/v3/account`,
+        params: signedParams,
+        headers: { 'X-MBX-APIKEY': tempCredentials.apiKey },
+        timeout: 5000, // Add a timeout
       });
 
-      // If we get a response, the API key is valid
+      // If the request succeeds without throwing an auth error, the key is valid
+      logger.info(
+        `[${this.exchangeId}] API Key validation successful for key starting with ${apiKey.substring(0, 5)}...`,
+      );
       return true;
-    } catch (error) {
-      console.error('Error validating API key:', error);
+    } catch (error: any) {
+      // Log the error but return false for validation purposes
+      let isAuthError = false;
+      const errorMessage = error?.message?.toLowerCase() || '';
+      const responseData = error?.response?.data; // Axios error structure
+      const responseStatus = error?.response?.status;
+
+      // Check common indicators of authentication failure
+      if (responseStatus === 401 || responseStatus === 403) {
+        isAuthError = true;
+      } else if (responseData && responseData.code) {
+        // Check Binance specific error codes for auth issues (e.g., -2015, -2014, -1022)
+        const errorCode = responseData.code;
+        if (errorCode === -2015 || errorCode === -2014 || errorCode === -1022) {
+          isAuthError = true;
+        }
+      } else if (
+        errorMessage.includes('invalid api-key') ||
+        errorMessage.includes('signature for this request is not valid') ||
+        errorMessage.includes('api-key format invalid')
+      ) {
+        isAuthError = true;
+      }
+
+      if (isAuthError) {
+        logger.warn(
+          `[${this.exchangeId}] API Key validation failed for key starting with ${apiKey.substring(0, 5)}... (Authentication Error): ${responseData?.msg || errorMessage}`,
+        );
+      } else {
+        logger.error(
+          `[${this.exchangeId}] Error during API key validation for key starting with ${apiKey.substring(0, 5)}...:`,
+          error,
+        );
+      }
       return false;
     }
   }
@@ -1357,13 +2566,20 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       PARTIALLY_FILLED: 'partially_filled',
       FILLED: 'filled',
       CANCELED: 'canceled',
-      PENDING_CANCEL: 'canceled', // Treated as canceled in our system
+      PENDING_CANCEL: 'canceling', // Map to 'canceling' state
       REJECTED: 'rejected',
       EXPIRED: 'expired',
-      PENDING: 'new', // Treated as new in our system
+      // PENDING: 'new', // Binance doesn't typically use PENDING for spot orders status
     };
 
-    // If we don't have a mapping, default to 'new'
-    return statusMap[binanceStatus] || 'new';
+    // If we don't have a mapping, log a warning and default to 'unknown'
+    const mappedStatus = statusMap[binanceStatus];
+    if (!mappedStatus) {
+      logger.warn(
+        `[${this.exchangeId}] Unknown Binance order status encountered: ${binanceStatus}. Mapping to 'unknown'.`,
+      );
+      return 'unknown';
+    }
+    return mappedStatus;
   }
-}
+} // End of BinanceTestnetAdapter class
