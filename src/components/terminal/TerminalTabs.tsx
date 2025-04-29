@@ -9,6 +9,7 @@ import { TradingPair } from './TradingPairSelector';
 import { getMockPortfolioData } from '@/mocks/mockPortfolio';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { OrdersTable } from './OrdersTable';
+import { PositionsList } from '@/components/positions';
 
 interface TerminalTabsProps {
   selectedPair?: TradingPair;
@@ -342,9 +343,12 @@ export function TerminalTabs({
           )}
 
           {activeTab === 'Positions' && (
-            <div className="text-center py-8 text-gray-400">
-              No open positions
-            </div>
+            <PositionsList
+              exchangeId={selectedAccount?.exchange}
+              apiKeyId="default"
+              symbol={showCurrentPairOnly ? selectedPair?.symbol : undefined}
+              showClosed={false}
+            />
           )}
 
           {activeTab === 'Transfers' && (

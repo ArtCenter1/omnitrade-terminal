@@ -10,6 +10,7 @@ import { BinanceTestnetService } from './binanceTestnetService';
 import { BinanceTestnetUserDataService } from './binanceTestnetUserDataService';
 import { EventEmitter } from '@/utils/eventEmitter';
 import { balanceTrackingService } from '@/services/balanceTracking/balanceTrackingService';
+import { positionTrackingService } from '@/services/positionTracking';
 import logger from '@/utils/logger';
 
 // Define event types for order tracking
@@ -79,7 +80,7 @@ export class BinanceTestnetOrderTrackingService {
       // Check if Binance Testnet is enabled
       const isEnabled = await this.binanceService.isEnabled();
       if (!isEnabled) {
-        console.log(
+        logger.info(
           'Binance Testnet Order Tracking service not initialized: Testnet is disabled',
         );
         return;
@@ -91,10 +92,13 @@ export class BinanceTestnetOrderTrackingService {
       // Subscribe to user data events
       this.userDataService.subscribe(this.handleUserDataEvent.bind(this));
 
+      // Initialize position tracking service
+      await positionTrackingService.initialize();
+
       this.isInitialized = true;
-      console.log('Binance Testnet Order Tracking service initialized');
+      logger.info('Binance Testnet Order Tracking service initialized');
     } catch (error) {
-      console.error(
+      logger.error(
         'Failed to initialize Binance Testnet Order Tracking service:',
         error,
       );
