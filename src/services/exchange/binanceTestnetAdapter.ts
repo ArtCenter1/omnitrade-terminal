@@ -1762,10 +1762,10 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       }
     } catch (error) {
       // Corrected logger call: Pass error and message in context object
-      logger.error(`[${this.exchangeId}] Error processing user data message:`, {
-        error,
+      logger.error(
+        `[${this.exchangeId}] Error processing user data message: ${error instanceof Error ? error.message : String(error)}`,
         message,
-      });
+      );
     }
   }
 
@@ -2244,6 +2244,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       const accountInfo = await this.getAccountInfo(this.currentApiKeyId); // Use existing method
       const restBalances = accountInfo.balances;
       let discrepanciesFound = false;
+      let updated = false; // Declare 'updated'
       const now = Date.now();
 
       // Check REST balances against cache
