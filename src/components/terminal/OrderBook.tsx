@@ -216,19 +216,30 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
 
   // Calculate rendering state variables - don't use early returns
   const showLoading =
-    isLoading && !orderbook.bids.length && !orderbook.asks.length;
+    isLoading &&
+    (!orderbook ||
+      !orderbook.bids ||
+      !orderbook.asks ||
+      (!orderbook.bids.length && !orderbook.asks.length));
   const showError =
-    (isError || !orderbook) && !orderbook.bids.length && !orderbook.asks.length;
+    (isError || !orderbook || !orderbook.bids || !orderbook.asks) &&
+    (!orderbook ||
+      !orderbook.bids ||
+      !orderbook.asks ||
+      (!orderbook.bids.length && !orderbook.asks.length));
 
   // Get the current price (middle of the book)
   const currentPrice =
+    orderbook &&
     orderbook.bids &&
     orderbook.asks &&
     orderbook.bids.length > 0 &&
-    orderbook.asks.length > 0
+    orderbook.asks.length > 0 &&
+    orderbook.bids[0] &&
+    orderbook.asks[0]
       ? (parseFloat(orderbook.bids[0][0]) + parseFloat(orderbook.asks[0][0])) /
         2
-      : 0;
+      : selectedPair?.lastPrice || 0;
 
   // Update the current market price in the PriceContext whenever it changes
   useEffect(() => {
@@ -345,44 +356,48 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
             {/* Asks (Sell Orders) */}
             <div className="flex-1 overflow-y-auto scrollbar-thin">
               <div className="space-y-1">
-                {orderbook.asks
-                  ?.slice(0, 10)
-                  .reverse()
-                  .map((ask, i) => {
-                    // Calculate volume percentage for the bar width
-                    const volume = parseFloat(ask[1]);
-                    const volumePercentage = (volume / maxAskVolume) * 100;
+                {orderbook && orderbook.asks && Array.isArray(orderbook.asks)
+                  ? orderbook.asks
+                      .slice(0, 10)
+                      .reverse()
+                      .map((ask, i) => {
+                        // Calculate volume percentage for the bar width
+                        const volume = parseFloat(ask[1]);
+                        const volumePercentage = (volume / maxAskVolume) * 100;
 
-                    return (
-                      <div
-                        key={`sell-${i}`}
-                        className="grid grid-cols-3 gap-x-0 text-xs relative py-0.5"
-                      >
-                        {/* Volume bar - positioned absolutely behind the text */}
-                        <div
-                          className="absolute top-0 right-0 h-full bg-crypto-red opacity-30"
-                          style={{
-                            width: `${volumePercentage}%`,
-                            maxWidth: '95%',
-                          }}
-                        />
-                        {/* Content - positioned on top of the volume bar */}
-                        <div className="text-white relative z-10">
-                          {formatQuantity(ask[1])}
-                        </div>
-                        <div
-                          className="text-crypto-red text-center relative z-10 cursor-pointer hover:text-crypto-red/80"
-                          onClick={() => setSelectedPrice(formatPrice(ask[0]))}
-                          title="Click to set price"
-                        >
-                          {formatPrice(ask[0])}
-                        </div>
-                        <div className="text-white text-right relative z-10">
-                          {calculateTotal(ask[0], ask[1])}
-                        </div>
-                      </div>
-                    );
-                  })}
+                        return (
+                          <div
+                            key={`sell-${i}`}
+                            className="grid grid-cols-3 gap-x-0 text-xs relative py-0.5"
+                          >
+                            {/* Volume bar - positioned absolutely behind the text */}
+                            <div
+                              className="absolute top-0 right-0 h-full bg-crypto-red opacity-30"
+                              style={{
+                                width: `${volumePercentage}%`,
+                                maxWidth: '95%',
+                              }}
+                            />
+                            {/* Content - positioned on top of the volume bar */}
+                            <div className="text-white relative z-10">
+                              {formatQuantity(ask[1])}
+                            </div>
+                            <div
+                              className="text-crypto-red text-center relative z-10 cursor-pointer hover:text-crypto-red/80"
+                              onClick={() =>
+                                setSelectedPrice(formatPrice(ask[0]))
+                              }
+                              title="Click to set price"
+                            >
+                              {formatPrice(ask[0])}
+                            </div>
+                            <div className="text-white text-right relative z-10">
+                              {calculateTotal(ask[0], ask[1])}
+                            </div>
+                          </div>
+                        );
+                      })
+                  : null}
               </div>
             </div>
 
@@ -405,41 +420,45 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
             {/* Bids (Buy Orders) */}
             <div className="flex-1 overflow-y-auto scrollbar-thin">
               <div className="space-y-1">
-                {orderbook.bids?.slice(0, 10).map((bid, i) => {
-                  // Calculate volume percentage for the bar width
-                  const volume = parseFloat(bid[1]);
-                  const volumePercentage = (volume / maxBidVolume) * 100;
+                {orderbook && orderbook.bids && Array.isArray(orderbook.bids)
+                  ? orderbook.bids.slice(0, 10).map((bid, i) => {
+                      // Calculate volume percentage for the bar width
+                      const volume = parseFloat(bid[1]);
+                      const volumePercentage = (volume / maxBidVolume) * 100;
 
-                  return (
-                    <div
-                      key={`buy-${i}`}
-                      className="grid grid-cols-3 gap-x-0 text-xs relative py-0.5"
-                    >
-                      {/* Volume bar - positioned absolutely behind the text */}
-                      <div
-                        className="absolute top-0 left-0 h-full bg-crypto-green opacity-30"
-                        style={{
-                          width: `${volumePercentage}%`,
-                          maxWidth: '95%',
-                        }}
-                      />
-                      {/* Content - positioned on top of the volume bar */}
-                      <div className="text-white relative z-10">
-                        {formatQuantity(bid[1])}
-                      </div>
-                      <div
-                        className="text-crypto-green text-center relative z-10 cursor-pointer hover:text-crypto-green/80"
-                        onClick={() => setSelectedPrice(formatPrice(bid[0]))}
-                        title="Click to set price"
-                      >
-                        {formatPrice(bid[0])}
-                      </div>
-                      <div className="text-white text-right relative z-10">
-                        {calculateTotal(bid[0], bid[1])}
-                      </div>
-                    </div>
-                  );
-                })}
+                      return (
+                        <div
+                          key={`buy-${i}`}
+                          className="grid grid-cols-3 gap-x-0 text-xs relative py-0.5"
+                        >
+                          {/* Volume bar - positioned absolutely behind the text */}
+                          <div
+                            className="absolute top-0 left-0 h-full bg-crypto-green opacity-30"
+                            style={{
+                              width: `${volumePercentage}%`,
+                              maxWidth: '95%',
+                            }}
+                          />
+                          {/* Content - positioned on top of the volume bar */}
+                          <div className="text-white relative z-10">
+                            {formatQuantity(bid[1])}
+                          </div>
+                          <div
+                            className="text-crypto-green text-center relative z-10 cursor-pointer hover:text-crypto-green/80"
+                            onClick={() =>
+                              setSelectedPrice(formatPrice(bid[0]))
+                            }
+                            title="Click to set price"
+                          >
+                            {formatPrice(bid[0])}
+                          </div>
+                          <div className="text-white text-right relative z-10">
+                            {calculateTotal(bid[0], bid[1])}
+                          </div>
+                        </div>
+                      );
+                    })
+                  : null}
               </div>
             </div>
           </div>
@@ -485,88 +504,97 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
             </div>
 
             <div className="space-y-2 overflow-y-auto flex-1 scrollbar-thin">
-              {[...Array(10)].map((_, i) => {
-                // Generate trade data based on the current orderbook
-                const price = parseFloat(orderbook.bids[0]?.[0] || '0');
+              {orderbook &&
+                orderbook.bids &&
+                orderbook.bids[0] &&
+                [...Array(10)].map((_, i) => {
+                  // Generate trade data based on the current orderbook
+                  const price = parseFloat(orderbook.bids[0]?.[0] || '0');
 
-                // Use slightly different logic for real vs mock data
-                let quantity: string = '0';
-                let priceWithVariation: string = '0';
-                let timeString: string = '';
-                let isBuy: boolean = false;
+                  // Use slightly different logic for real vs mock data
+                  let quantity: string = '0';
+                  let priceWithVariation: string = '0';
+                  let timeString: string = '';
+                  let isBuy: boolean = false;
 
-                if (useMockData && !useRealMarketData) {
-                  // Generate completely random data for mock mode
-                  quantity = (Math.random() * 0.01).toFixed(8);
-                  priceWithVariation = (
-                    price *
-                    (1 + (Math.random() * 0.002 - 0.001))
-                  ).toFixed(2);
-                  const now = new Date();
-                  const minutes = now.getMinutes() - i;
-                  const seconds = Math.floor(Math.random() * 60);
-                  timeString = `${now.getHours()}:${minutes < 10 ? '0' + minutes : minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
-                  isBuy = Math.random() > 0.5;
-                } else {
-                  // Generate semi-random data based on real orderbook
-                  // This simulates trades that would happen at prices in the orderbook
-                  const bidPrice = parseFloat(
-                    orderbook.bids[
-                      Math.min(i, orderbook.bids.length - 1)
-                    ]?.[0] || '0',
-                  );
-                  const askPrice = parseFloat(
-                    orderbook.asks[
-                      Math.min(i, orderbook.asks.length - 1)
-                    ]?.[0] || '0',
-                  );
+                  if (useMockData && !useRealMarketData) {
+                    // Generate completely random data for mock mode
+                    quantity = (Math.random() * 0.01).toFixed(8);
+                    priceWithVariation = (
+                      price *
+                      (1 + (Math.random() * 0.002 - 0.001))
+                    ).toFixed(2);
+                    const now = new Date();
+                    const minutes = now.getMinutes() - i;
+                    const seconds = Math.floor(Math.random() * 60);
+                    timeString = `${now.getHours()}:${minutes < 10 ? '0' + minutes : minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
+                    isBuy = Math.random() > 0.5;
+                  } else {
+                    // Generate semi-random data based on real orderbook
+                    // This simulates trades that would happen at prices in the orderbook
+                    const bidPrice = parseFloat(
+                      orderbook.bids[
+                        Math.min(i, orderbook.bids.length - 1)
+                      ]?.[0] || '0',
+                    );
+                    const askPrice = parseFloat(
+                      orderbook.asks[
+                        Math.min(i, orderbook.asks.length - 1)
+                      ]?.[0] || '0',
+                    );
 
-                  // Alternate between buys and sells
-                  isBuy = i % 2 === 0;
-                  priceWithVariation = (isBuy ? bidPrice : askPrice).toFixed(2);
+                    // Alternate between buys and sells
+                    isBuy = i % 2 === 0;
+                    priceWithVariation = (isBuy ? bidPrice : askPrice).toFixed(
+                      2,
+                    );
 
-                  // Generate a realistic quantity based on the orderbook
-                  const bidQty = parseFloat(
-                    orderbook.bids[
-                      Math.min(i, orderbook.bids.length - 1)
-                    ]?.[1] || '0.001',
-                  );
-                  const askQty = parseFloat(
-                    orderbook.asks[
-                      Math.min(i, orderbook.asks.length - 1)
-                    ]?.[1] || '0.001',
-                  );
-                  const calculatedQty =
-                    (isBuy ? bidQty : askQty) * (0.1 + Math.random() * 0.5);
-                  quantity = calculatedQty.toFixed(8);
+                    // Generate a realistic quantity based on the orderbook
+                    const bidQty = parseFloat(
+                      orderbook.bids[
+                        Math.min(i, orderbook.bids.length - 1)
+                      ]?.[1] || '0.001',
+                    );
+                    const askQty = parseFloat(
+                      orderbook.asks[
+                        Math.min(i, orderbook.asks.length - 1)
+                      ]?.[1] || '0.001',
+                    );
+                    const calculatedQty =
+                      (isBuy ? bidQty : askQty) * (0.1 + Math.random() * 0.5);
+                    quantity = calculatedQty.toFixed(8);
 
-                  // Generate a realistic timestamp
-                  const now = new Date();
-                  now.setSeconds(
-                    now.getSeconds() - i * 15 - Math.floor(Math.random() * 30),
-                  );
-                  timeString = now.toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                  });
-                }
+                    // Generate a realistic timestamp
+                    const now = new Date();
+                    now.setSeconds(
+                      now.getSeconds() -
+                        i * 15 -
+                        Math.floor(Math.random() * 30),
+                    );
+                    timeString = now.toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                    });
+                  }
 
-                return (
-                  <div
-                    key={`trade-${i}`}
-                    className="grid grid-cols-3 gap-x-0 text-xs"
-                  >
-                    <div className="text-white">{quantity}</div>
+                  return (
                     <div
-                      className={`${isBuy ? 'text-crypto-green' : 'text-crypto-red'} text-center`}
+                      key={`trade-${i}`}
+                      className="grid grid-cols-3 gap-x-0 text-xs"
                     >
-                      {priceWithVariation}
+                      <div className="text-white">{quantity}</div>
+                      <div
+                        className={`${isBuy ? 'text-crypto-green' : 'text-crypto-red'} text-center`}
+                      >
+                        {priceWithVariation}
+                      </div>
+                      <div className="text-gray-400 text-right">
+                        {timeString}
+                      </div>
                     </div>
-                    <div className="text-gray-400 text-right">{timeString}</div>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
           </div>
         </div>

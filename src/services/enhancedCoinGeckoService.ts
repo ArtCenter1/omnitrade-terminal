@@ -80,6 +80,12 @@ export interface CoinGeckoTicker {
   token_info_url: string;
   coin_id: string;
   target_coin_id?: string;
+  // Additional properties for price statistics
+  highPrice?: number;
+  lowPrice?: number;
+  openPrice?: number;
+  bidPrice?: number;
+  askPrice?: number;
 }
 
 // Interface for CoinGecko ticker response

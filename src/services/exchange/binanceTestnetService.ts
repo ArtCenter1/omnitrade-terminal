@@ -1,14 +1,17 @@
 /**
  * Binance Testnet Service
- * 
+ *
  * Provides centralized access to Binance Testnet functionality.
  * Acts as a facade for the BinanceTestnetAdapter and manages feature flags.
  */
 
 import { BinanceTestnetAdapter } from './binanceTestnetAdapter';
 import { getFeatureFlags, setFeatureFlag } from '@/config/featureFlags';
-import { ApiKeyManager } from '../security/apiKeyManager';
-import { ConnectionManager, ConnectionStatus } from '../connection/connectionManager';
+import { ApiKeyManager } from '@/services/apiKeys/apiKeyManager';
+import {
+  ConnectionManager,
+  ConnectionStatus,
+} from '../connection/connectionManager';
 
 /**
  * Binance Testnet Service
@@ -54,13 +57,15 @@ export class BinanceTestnetService {
       // Check if Binance Testnet is enabled
       const isEnabled = await this.isEnabled();
       if (!isEnabled) {
-        console.log('Binance Testnet service not initialized: Testnet is disabled');
+        console.log(
+          'Binance Testnet service not initialized: Testnet is disabled',
+        );
         return;
       }
 
       // Start connection checking
       this.startConnectionChecking();
-      
+
       this.isInitialized = true;
       console.log('Binance Testnet service initialized');
     } catch (error) {
@@ -83,7 +88,7 @@ export class BinanceTestnetService {
    */
   public async enable(): Promise<void> {
     await setFeatureFlag('useBinanceTestnet', true);
-    
+
     // Initialize if not already
     if (!this.isInitialized) {
       await this.initialize();
@@ -95,10 +100,10 @@ export class BinanceTestnetService {
    */
   public async disable(): Promise<void> {
     await setFeatureFlag('useBinanceTestnet', false);
-    
+
     // Stop connection checking
     this.stopConnectionChecking();
-    
+
     this.isInitialized = false;
   }
 
@@ -108,16 +113,19 @@ export class BinanceTestnetService {
   private startConnectionChecking(): void {
     // Stop any existing interval
     this.stopConnectionChecking();
-    
+
     // Define the check function
     const checkConnection = async () => {
       try {
         // Try to get exchange info as a connection test
         await this.adapter.getExchangeInfo();
-        
+
         // If successful, update connection status
-        this.connectionManager.updateConnectionStatus(this.exchangeId, 'connected');
-        
+        this.connectionManager.updateConnectionStatus(
+          this.exchangeId,
+          'connected',
+        );
+
         return {
           status: ConnectionStatus.CONNECTED,
           message: 'Connected to Binance Testnet',
@@ -125,7 +133,7 @@ export class BinanceTestnetService {
       } catch (error) {
         // If failed, update connection status
         this.connectionManager.updateConnectionStatus(this.exchangeId, 'error');
-        
+
         return {
           status: ConnectionStatus.ERROR,
           message: 'Failed to connect to Binance Testnet',
@@ -133,7 +141,7 @@ export class BinanceTestnetService {
         };
       }
     };
-    
+
     // Start checking connection every minute
     this.connectionManager.startChecking(
       this.exchangeId,
@@ -195,7 +203,7 @@ export class BinanceTestnetService {
     if (!isValid) {
       throw new Error('Invalid API key or secret');
     }
-    
+
     // Save the API key
     return this.apiKeyManager.saveApiKey(
       this.exchangeId,
@@ -218,7 +226,7 @@ export class BinanceTestnetService {
     if (!apiKeyPair) {
       throw new Error(`API key ${apiKeyId} not found`);
     }
-    
+
     return {
       apiKey: apiKeyPair.apiKey,
       apiSecret: apiKeyPair.apiSecret,

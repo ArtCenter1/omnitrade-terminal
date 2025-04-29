@@ -8,6 +8,7 @@ import {
 import { formatCurrency, formatNumber } from '../../utils/formatUtils'; // Assuming you have formatting utils
 import { useFeatureFlags } from '@/config/featureFlags';
 import { ExchangeFactory } from '@/services/exchange/exchangeFactory';
+import { MockDataService } from '@/services/mockData/mockDataService';
 
 interface PriceOverviewProps {
   selectedPair?: TradingPair;
@@ -69,58 +70,107 @@ export function PriceOverview({
         console.log(
           `PriceOverview: Fetching ticker stats for ${selectedPair.symbol} using ${adapter.constructor.name}`,
         );
-        const tickerStats = await adapter.getTickerStats(selectedPair.symbol);
 
-        // Convert to CoinGeckoTicker format
-        const adapterData: CoinGeckoTicker = {
-          base: selectedPair.baseAsset.toUpperCase(),
-          target: selectedPair.quoteAsset.toUpperCase(),
-          market: {
-            name: selectedAccount?.name || 'Exchange',
-            identifier: exchangeId,
-          },
-          last: tickerStats.lastPrice,
-          volume: tickerStats.volume,
-          converted_last: {
-            btc: 0, // Not available from exchange adapter
-            eth: 0, // Not available from exchange adapter
-            usd: tickerStats.lastPrice, // Assuming USDT = USD for simplicity
-          },
-          converted_volume: {
-            btc: 0, // Not available from exchange adapter
-            eth: 0, // Not available from exchange adapter
-            usd: tickerStats.quoteVolume,
-          },
-          bid_ask_spread_percentage:
-            ((tickerStats.askPrice - tickerStats.bidPrice) /
-              tickerStats.askPrice) *
-            100,
-          timestamp: new Date(tickerStats.closeTime).toISOString(),
-          last_traded_at: new Date(tickerStats.closeTime).toISOString(),
-          last_fetch_at: new Date().toISOString(),
-          is_anomaly: false,
-          is_stale: false,
-          trade_url: '',
-          token_info_url: '',
-          coin_id: selectedPair.baseAsset.toLowerCase(),
-          target_coin_id: selectedPair.quoteAsset.toLowerCase(),
-        };
+        try {
+          const tickerStats = await adapter.getTickerStats(selectedPair.symbol);
 
-        setMarketData(adapterData);
+          // Log the ticker stats for debugging
+          console.log(`PriceOverview: Received ticker stats:`, tickerStats);
 
-        // Set usingFallbackData based on whether we're using Binance Testnet
-        const usingTestnet = useBinanceTestnet && selectedAccount?.isSandbox;
-        setUsingFallbackData(!usingTestnet);
+          // Validate the ticker stats
+          if (!tickerStats) {
+            console.error(
+              'PriceOverview: Received null or undefined ticker stats',
+            );
+            throw new Error('Invalid ticker stats response');
+          }
 
-        return;
+          // Check if lastPrice is valid
+          if (
+            isNaN(tickerStats.lastPrice) ||
+            tickerStats.lastPrice === undefined
+          ) {
+            console.error(
+              `PriceOverview: Invalid lastPrice: ${tickerStats.lastPrice}`,
+            );
+            throw new Error('Invalid price data in ticker stats');
+          }
+
+          // Convert to CoinGeckoTicker format
+          const adapterData: CoinGeckoTicker = {
+            base: selectedPair.baseAsset.toUpperCase(),
+            target: selectedPair.quoteAsset.toUpperCase(),
+            market: {
+              name: selectedAccount?.name || 'Exchange',
+              identifier: exchangeId,
+            },
+            last: tickerStats.lastPrice,
+            volume: tickerStats.volume,
+            converted_last: {
+              btc: 0, // Not available from exchange adapter
+              eth: 0, // Not available from exchange adapter
+              usd: tickerStats.lastPrice, // Assuming USDT = USD for simplicity
+            },
+            converted_volume: {
+              btc: 0, // Not available from exchange adapter
+              eth: 0, // Not available from exchange adapter
+              usd: tickerStats.quoteVolume,
+            },
+            bid_ask_spread_percentage:
+              ((tickerStats.askPrice - tickerStats.bidPrice) /
+                tickerStats.askPrice) *
+              100,
+            timestamp: new Date().toISOString(), // Use current time if closeTime is invalid
+            last_traded_at: new Date().toISOString(), // Use current time if closeTime is invalid
+            last_fetch_at: new Date().toISOString(),
+            is_anomaly: false,
+            is_stale: false,
+            trade_url: '',
+            token_info_url: '',
+            coin_id: selectedPair.baseAsset.toLowerCase(),
+            target_coin_id: selectedPair.quoteAsset.toLowerCase(),
+            // Add high and low prices from ticker stats
+            highPrice: tickerStats.highPrice,
+            lowPrice: tickerStats.lowPrice,
+            openPrice: tickerStats.openPrice,
+            bidPrice: tickerStats.bidPrice,
+            askPrice: tickerStats.askPrice,
+          };
+
+          console.log('PriceOverview: Created adapter data:', adapterData);
+
+          setMarketData(adapterData);
+
+          // Set usingFallbackData based on whether we're using Binance Testnet
+          const usingTestnet = useBinanceTestnet && selectedAccount?.isSandbox;
+          setUsingFallbackData(!usingTestnet);
+
+          return;
+        } catch (adapterError) {
+          console.error(
+            'PriceOverview: Error getting ticker stats:',
+            adapterError,
+          );
+          throw adapterError; // Re-throw to be caught by the outer catch
+        }
       } catch (error) {
-        console.error('Error fetching data from exchange adapter:', error);
+        console.error(
+          'PriceOverview: Error fetching data from exchange adapter:',
+          error,
+        );
         // Fall through to other data sources
       }
 
       // Check feature flags to determine data source
       if (useMockData || !useRealMarketData) {
         console.log('PriceOverview: Using mock data due to feature flags');
+        // Get a realistic price from the mock data service
+        const mockDataService = new MockDataService();
+        const exchangeId = selectedAccount.exchangeId || 'binance_testnet';
+        const symbol = selectedPair.symbol || 'BTC/USDT';
+        const mockPrice = mockDataService.getCurrentPrice(exchangeId, symbol);
+        console.log(`Using mock price for ${symbol}: ${mockPrice}`);
+
         // Create mock market data with reasonable values
         const mockData: CoinGeckoTicker = {
           base: selectedPair.baseAsset.toUpperCase(),
@@ -129,12 +179,18 @@ export function PriceOverview({
             name: selectedAccount.name,
             identifier: selectedAccount.exchangeId,
           },
-          last: parseFloat(selectedPair.price.replace(/,/g, '')) || 40000,
+          last:
+            mockPrice ||
+            parseFloat(selectedPair.price.replace(/,/g, '')) ||
+            40000,
           volume: Math.random() * 1000 + 500,
           converted_last: {
             btc: Math.random() * 0.01,
             eth: Math.random() * 0.1,
-            usd: parseFloat(selectedPair.price.replace(/,/g, '')) || 40000,
+            usd:
+              mockPrice ||
+              parseFloat(selectedPair.price.replace(/,/g, '')) ||
+              40000,
           },
           converted_volume: {
             btc: Math.random() * 50,
@@ -151,6 +207,12 @@ export function PriceOverview({
           token_info_url: '',
           coin_id: selectedPair.baseAsset.toLowerCase(),
           target_coin_id: selectedPair.quoteAsset.toLowerCase(),
+          // Add high and low prices
+          highPrice: mockPrice * 1.02, // 2% higher than current price
+          lowPrice: mockPrice * 0.98, // 2% lower than current price
+          openPrice: mockPrice * (1 + (Math.random() * 0.02 - 0.01)), // ±1% from current price
+          bidPrice: mockPrice * 0.999, // Slightly below current price
+          askPrice: mockPrice * 1.001, // Slightly above current price
         };
 
         setMarketData(mockData);
@@ -217,6 +279,12 @@ export function PriceOverview({
           console.log('Using fallback data for price overview');
           setUsingFallbackData(true);
 
+          // Get a realistic price from the mock data service
+          const mockDataService = new MockDataService();
+          const exchangeId = selectedAccount.exchangeId || 'binance_testnet';
+          const symbol = selectedPair.symbol || 'BTC/USDT';
+          const mockPrice = mockDataService.getCurrentPrice(exchangeId, symbol);
+
           // Create fallback market data with reasonable values
           const fallbackData: CoinGeckoTicker = {
             base: selectedPair.baseAsset.toUpperCase(),
@@ -225,12 +293,18 @@ export function PriceOverview({
               name: selectedAccount.name,
               identifier: selectedAccount.exchangeId,
             },
-            last: parseFloat(selectedPair.price.replace(/,/g, '')) || 40000, // Use pair price or default
+            last:
+              mockPrice ||
+              parseFloat(selectedPair.price.replace(/,/g, '')) ||
+              40000, // Use mock price, pair price, or default
             volume: Math.random() * 1000 + 500, // Random volume between 500-1500
             converted_last: {
               btc: Math.random() * 0.01,
               eth: Math.random() * 0.1,
-              usd: parseFloat(selectedPair.price.replace(/,/g, '')) || 40000,
+              usd:
+                mockPrice ||
+                parseFloat(selectedPair.price.replace(/,/g, '')) ||
+                40000,
             },
             converted_volume: {
               btc: Math.random() * 50,
@@ -247,6 +321,12 @@ export function PriceOverview({
             token_info_url: '',
             coin_id: selectedPair.baseAsset.toLowerCase(),
             target_coin_id: selectedPair.quoteAsset.toLowerCase(),
+            // Add high and low prices
+            highPrice: mockPrice * 1.02, // 2% higher than current price
+            lowPrice: mockPrice * 0.98, // 2% lower than current price
+            openPrice: mockPrice * (1 + (Math.random() * 0.02 - 0.01)), // ±1% from current price
+            bidPrice: mockPrice * 0.999, // Slightly below current price
+            askPrice: mockPrice * 1.001, // Slightly above current price
           };
 
           setMarketData(fallbackData);
@@ -259,6 +339,13 @@ export function PriceOverview({
         console.log('Using fallback data due to error:', err.message);
         setUsingFallbackData(true);
 
+        // Get a realistic price from the mock data service
+        const mockDataService = new MockDataService();
+        const exchangeId = selectedAccount.exchangeId || 'binance_testnet';
+        const symbol = selectedPair.symbol || 'BTC/USDT';
+        const mockPrice = mockDataService.getCurrentPrice(exchangeId, symbol);
+        console.log(`Using mock price for ${symbol}: ${mockPrice}`);
+
         // Create fallback market data with reasonable values
         const fallbackData: CoinGeckoTicker = {
           base: selectedPair.baseAsset.toUpperCase(),
@@ -267,12 +354,18 @@ export function PriceOverview({
             name: selectedAccount.name,
             identifier: selectedAccount.exchangeId,
           },
-          last: parseFloat(selectedPair.price.replace(/,/g, '')) || 40000, // Use pair price or default
+          last:
+            mockPrice ||
+            parseFloat(selectedPair.price.replace(/,/g, '')) ||
+            40000, // Use mock price, pair price, or default
           volume: Math.random() * 1000 + 500, // Random volume between 500-1500
           converted_last: {
             btc: Math.random() * 0.01,
             eth: Math.random() * 0.1,
-            usd: parseFloat(selectedPair.price.replace(/,/g, '')) || 40000,
+            usd:
+              mockPrice ||
+              parseFloat(selectedPair.price.replace(/,/g, '')) ||
+              40000,
           },
           converted_volume: {
             btc: Math.random() * 50,
@@ -289,6 +382,12 @@ export function PriceOverview({
           token_info_url: '',
           coin_id: selectedPair.baseAsset.toLowerCase(),
           target_coin_id: selectedPair.quoteAsset.toLowerCase(),
+          // Add high and low prices
+          highPrice: mockPrice * 1.02, // 2% higher than current price
+          lowPrice: mockPrice * 0.98, // 2% lower than current price
+          openPrice: mockPrice * (1 + (Math.random() * 0.02 - 0.01)), // ±1% from current price
+          bidPrice: mockPrice * 0.999, // Slightly below current price
+          askPrice: mockPrice * 1.001, // Slightly above current price
         };
 
         setMarketData(fallbackData);
@@ -322,8 +421,41 @@ export function PriceOverview({
   // Use selected pair primarily for symbol/assets, fallback to default
   const displayPair = selectedPair || defaultPair;
 
+  // Create a singleton instance of MockDataService for getting realistic prices
+  const mockDataService = new MockDataService();
+
   // Determine price and change styling based on fetched data if available, else fallback
-  const currentPrice = marketData?.last ?? 0; // Use fetched price or 0
+  // Add debugging to check the value of marketData.last
+  console.log('PriceOverview: marketData?.last =', marketData?.last);
+  console.log('PriceOverview: marketData =', marketData);
+
+  // Ensure currentPrice is a valid number, use fallback if NaN or zero
+  let currentPrice = marketData?.last ?? 0; // Use fetched price or 0
+
+  if (isNaN(currentPrice) || currentPrice === 0) {
+    console.warn(
+      `PriceOverview: Invalid price value: ${currentPrice}, using fallback`,
+    );
+
+    // Try to get price from displayPair first
+    let fallbackPrice = parseFloat(displayPair.price.replace(/,/g, ''));
+
+    // If that's still zero or NaN, use MockDataService to get a realistic price
+    if (isNaN(fallbackPrice) || fallbackPrice === 0) {
+      console.log('PriceOverview: Using MockDataService for price data');
+      const exchangeId = selectedAccount?.exchangeId || 'binance_testnet';
+      const symbol = displayPair.symbol || 'BTC/USDT';
+
+      // Get a realistic price from the mock data service
+      fallbackPrice = mockDataService.getCurrentPrice(exchangeId, symbol);
+      console.log(
+        `PriceOverview: Got mock price for ${symbol}: ${fallbackPrice}`,
+      );
+    }
+
+    currentPrice = fallbackPrice;
+  }
+
   // Keep using change from prop for now, as it's not in the ticker response
   const change24h = displayPair.change24h;
   const isPositiveChange = change24h !== 'N/A' && !change24h.includes('-');
@@ -432,17 +564,15 @@ export function PriceOverview({
         <div>
           <div className="text-gray-400">High</div>
           <div className="text-white">
-            {/* TODO: Fetch/Display real High */}
-            {/* Placeholder using prop price for now */}
-            {formatNumber(Number(displayPair.price.replace(/,/g, '')) * 1.02)}
+            {/* Use actual high price from ticker stats if available */}
+            {formatNumber(marketData?.highPrice || currentPrice * 1.02)}
           </div>
         </div>
         <div>
           <div className="text-gray-400">Low</div>
           <div className="text-white">
-            {/* TODO: Fetch/Display real Low */}
-            {/* Placeholder using prop price for now */}
-            {formatNumber(Number(displayPair.price.replace(/,/g, '')) * 0.98)}
+            {/* Use actual low price from ticker stats if available */}
+            {formatNumber(marketData?.lowPrice || currentPrice * 0.98)}
           </div>
         </div>
         <div>

@@ -44,6 +44,7 @@ export interface PortfolioAsset {
 
 // Full portfolio
 export interface Portfolio {
+  exchangeId: string; // Add exchangeId
   totalUsdValue: number;
   assets: PortfolioAsset[];
   lastUpdated: Date;
@@ -96,6 +97,7 @@ export interface OrderBook {
   bids: OrderBookEntry[];
   asks: OrderBookEntry[];
   timestamp: number;
+  lastUpdateId?: number; // Add optional lastUpdateId
 }
 
 // Candlestick/kline data
@@ -111,33 +113,41 @@ export interface Kline {
 // Order types
 export type OrderSide = 'buy' | 'sell';
 export type OrderType = 'limit' | 'market' | 'stop_limit' | 'stop_market';
+export type TimeInForce = 'GTC' | 'IOC' | 'FOK'; // Export TimeInForce
 export type OrderStatus =
   | 'new'
   | 'partially_filled'
   | 'filled'
   | 'canceled'
+  | 'canceling' // Add canceling state
   | 'rejected'
-  | 'expired';
+  | 'expired'
+  | 'unknown'; // Add unknown state
 
 // Order information
 export interface Order {
   id: string;
+  clientOrderId?: string; // Client-side order ID (for tracking)
   exchangeId: string;
   symbol: string;
   side: OrderSide;
   type: OrderType;
   status: OrderStatus;
   price?: number; // Required for limit orders
+  stopPrice?: number; // Required for stop orders
   quantity: number;
   executed: number; // Quantity executed
   remaining: number; // Quantity remaining
   cost?: number; // Total cost (price * executed)
   timestamp: number; // Creation time
   lastUpdated?: number; // Last update time
+  timeInForce?: TimeInForce; // Optional TimeInForce
+  quoteOrderQty?: number; // Optional quote quantity for market orders
 }
 
 // Performance metrics
 export interface PerformanceMetrics {
+  exchangeId: string; // Add exchangeId
   roi: number; // Return on investment (%)
   profitLoss: number; // Absolute profit/loss in USD
   winRate: number; // Percentage of winning trades

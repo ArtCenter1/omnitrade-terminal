@@ -8,6 +8,8 @@ import {
   Portfolio,
   Order,
   PerformanceMetrics,
+  Trade,
+  TickerStats,
 } from '@/types/exchange';
 
 import { BaseExchangeAdapter } from './baseExchangeAdapter';
@@ -77,6 +79,48 @@ export class BinanceAdapter extends BaseExchangeAdapter {
       endTime,
       limit,
     );
+  }
+
+  /**
+   * Get recent trades for a specific trading pair on Binance.
+   */
+  public async getRecentTrades(
+    symbol: string,
+    limit: number = 100,
+  ): Promise<Trade[]> {
+    // In development mode, generate mock trades
+    return this.mockDataService.generateRecentTrades(
+      this.exchangeId,
+      symbol,
+      limit,
+    );
+  }
+
+  /**
+   * Get 24hr ticker statistics for a specific trading pair on Binance.
+   * If no symbol is provided, returns statistics for all trading pairs.
+   */
+  public async getTickerStats(
+    symbol?: string,
+  ): Promise<TickerStats | TickerStats[]> {
+    // In development mode, generate mock ticker stats
+    if (symbol) {
+      return this.mockDataService.generateTickerStats(this.exchangeId, symbol);
+    } else {
+      // Generate stats for multiple symbols
+      const pairs = await this.getTradingPairs();
+      const stats: TickerStats[] = [];
+      for (const pair of pairs.slice(0, 10)) {
+        // Limit to 10 pairs for performance
+        stats.push(
+          await this.mockDataService.generateTickerStats(
+            this.exchangeId,
+            pair.symbol,
+          ),
+        );
+      }
+      return stats;
+    }
   }
 
   /**

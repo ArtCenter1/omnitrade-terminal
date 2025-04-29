@@ -9,6 +9,8 @@ import {
   Portfolio,
   Order,
   PerformanceMetrics,
+  Trade,
+  TickerStats,
 } from '@/types/exchange';
 
 // Import test network adapters
@@ -215,6 +217,112 @@ export class SandboxAdapter extends BaseExchangeAdapter {
   }
 
   /**
+   * Get recent trades for a specific trading pair.
+   */
+  public async getRecentTrades(
+    symbol: string,
+    limit: number = 100,
+  ): Promise<Trade[]> {
+    try {
+      // Try to get recent trades from Binance Testnet
+      const testTrades = await this.binanceTestAdapter.getRecentTrades(
+        symbol,
+        limit,
+      );
+
+      // If we got trades from Binance, use them
+      if (testTrades && testTrades.length > 0) {
+        console.log(
+          `[SandboxAdapter] Using ${testTrades.length} recent trades from Binance${
+            this.useBinanceTestnet ? ' Testnet' : ''
+          } for ${symbol}`,
+        );
+        return testTrades;
+      }
+    } catch (error) {
+      console.error(
+        `[SandboxAdapter] Error getting recent trades from Binance${
+          this.useBinanceTestnet ? ' Testnet' : ''
+        }:`,
+        error,
+      );
+    }
+
+    // Fallback to mock data if Binance fails
+    console.log(`[SandboxAdapter] Falling back to mock trades for ${symbol}`);
+    return this.mockDataService.generateRecentTrades(
+      this.exchangeId,
+      symbol,
+      limit,
+    );
+  }
+
+  /**
+   * Get 24hr ticker statistics for a specific trading pair.
+   * If no symbol is provided, returns statistics for all trading pairs.
+   */
+  public async getTickerStats(
+    symbol?: string,
+  ): Promise<TickerStats | TickerStats[]> {
+    try {
+      // Try to get ticker stats from Binance Testnet
+      const testStats = await this.binanceTestAdapter.getTickerStats(symbol);
+
+      // If we got stats from Binance, use them
+      if (testStats) {
+        console.log(
+          `[SandboxAdapter] Using ticker stats from Binance${
+            this.useBinanceTestnet ? ' Testnet' : ''
+          } for ${symbol || 'all symbols'}`,
+        );
+
+        // If it's an array, update the exchangeId for each stat
+        if (Array.isArray(testStats)) {
+          return testStats.map((stat) => ({
+            ...stat,
+            exchangeId: this.exchangeId,
+          }));
+        }
+
+        // If it's a single stat, update the exchangeId
+        return {
+          ...testStats,
+          exchangeId: this.exchangeId,
+        };
+      }
+    } catch (error) {
+      console.error(
+        `[SandboxAdapter] Error getting ticker stats from Binance${
+          this.useBinanceTestnet ? ' Testnet' : ''
+        }:`,
+        error,
+      );
+    }
+
+    // Fallback to mock data if Binance fails
+    console.log(
+      `[SandboxAdapter] Falling back to mock ticker stats for ${symbol || 'all symbols'}`,
+    );
+    if (symbol) {
+      return this.mockDataService.generateTickerStats(this.exchangeId, symbol);
+    } else {
+      // Generate stats for multiple symbols
+      const pairs = await this.getTradingPairs();
+      const stats: TickerStats[] = [];
+      for (const pair of pairs.slice(0, 10)) {
+        // Limit to 10 pairs for performance
+        stats.push(
+          await this.mockDataService.generateTickerStats(
+            this.exchangeId,
+            pair.symbol,
+          ),
+        );
+      }
+      return stats;
+    }
+  }
+
+  /**
    * Get the user's portfolio on the Sandbox.
    */
   public async getPortfolio(apiKeyId: string): Promise<Portfolio> {
@@ -292,10 +400,7 @@ export class SandboxAdapter extends BaseExchangeAdapter {
     symbol?: string,
   ): Promise<Order[]> {
     const userId = apiKeyId; // Use apiKeyId as userId for mock data
-    return this.mockDataService.getOrders(userId, this.exchangeId, symbol, [
-      'new',
-      'partially_filled',
-    ]);
+    return this.mockDataService.getOpenOrders(userId, this.exchangeId, symbol);
   }
 
   /**
@@ -307,11 +412,10 @@ export class SandboxAdapter extends BaseExchangeAdapter {
     limit: number = 50,
   ): Promise<Order[]> {
     const userId = apiKeyId; // Use apiKeyId as userId for mock data
-    return this.mockDataService.getOrders(
+    return this.mockDataService.getOrderHistory(
       userId,
       this.exchangeId,
       symbol,
-      ['filled', 'canceled', 'rejected'],
       limit,
     );
   }
@@ -330,8 +434,9 @@ export class SandboxAdapter extends BaseExchangeAdapter {
    * Helper method to simulate order execution
    */
   private simulateOrderExecution(userId: string, orderId: string): void {
-    const orders = this.mockDataService.getOrders(userId);
-    const order = orders.find((o) => o.id === orderId);
+    // Get all orders for the user
+    const openOrders = this.mockDataService.getOpenOrders(userId);
+    const order = openOrders.find((o) => o.id === orderId);
 
     if (!order || order.status !== 'new') {
       return;

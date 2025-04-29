@@ -5,6 +5,8 @@ import { useFeatureFlags } from '@/config/featureFlags';
 import * as enhancedCoinGeckoService from './enhancedCoinGeckoService';
 import { mockExchangeService } from './mockExchangeService';
 import logger from '@/utils/logger';
+import { ExchangeFactory } from './exchange/exchangeFactory';
+import { getConnectionMode } from '@/config/exchangeConfig';
 
 // Define the Order interface
 export interface Order {
@@ -838,8 +840,40 @@ export const getOrders = async (
   status?: string,
 ): Promise<Order[]> => {
   try {
+    // Get feature flags
+    const featureFlags =
+      typeof window !== 'undefined'
+        ? JSON.parse(localStorage.getItem('omnitrade_feature_flags') || '{}')
+        : {};
+
+    const useBinanceTestnet =
+      featureFlags.useBinanceTestnet !== undefined
+        ? featureFlags.useBinanceTestnet
+        : false;
+
+    // Check if we're in sandbox mode and Binance Testnet is enabled
+    const connectionMode = getConnectionMode();
+    const isSandbox = connectionMode === 'sandbox';
+
+    // If we're in sandbox mode and Binance Testnet is enabled, use the Binance Testnet adapter
+    if (isSandbox && useBinanceTestnet && exchangeId === 'sandbox') {
+      exchangeId = 'binance_testnet';
+    }
+
+    logger.debug('Getting orders', {
+      component: 'enhancedOrdersService',
+      method: 'getOrders',
+      data: {
+        exchangeId,
+        symbol,
+        status,
+        connectionMode,
+        useBinanceTestnet,
+      },
+    });
+
     try {
-      // Build query parameters
+      // Try to use the API first
       const params: Record<string, string> = {};
       if (exchangeId) params.exchangeId = exchangeId;
       if (symbol) params.symbol = symbol;
@@ -848,15 +882,87 @@ export const getOrders = async (
       const response = await api.get<Order[]>('/orders', { params });
       return response.data;
     } catch (apiError) {
-      console.error(
-        'API error getting orders, using mock implementation:',
-        apiError,
-      );
+      logger.info('API error getting orders, trying exchange adapter', {
+        component: 'enhancedOrdersService',
+        method: 'getOrders',
+        data: { error: apiError },
+      });
+
+      // Try to use the exchange adapter if available
+      try {
+        if (exchangeId) {
+          const adapter = ExchangeFactory.getAdapter(exchangeId);
+
+          // Parse status for the adapter
+          let statusArray: string[] | undefined;
+          if (status) {
+            statusArray = status.split(',');
+          }
+
+          // Get open orders if status includes 'new' or 'partially_filled'
+          if (
+            statusArray &&
+            (statusArray.includes('new') ||
+              statusArray.includes('partially_filled'))
+          ) {
+            logger.debug('Getting open orders from adapter', {
+              component: 'enhancedOrdersService',
+              method: 'getOrders',
+              data: { exchangeId, symbol },
+            });
+
+            // Use 'default' as the API key ID for now
+            const openOrders = await adapter.getOpenOrders('default', symbol);
+
+            logger.debug('Got open orders from adapter', {
+              component: 'enhancedOrdersService',
+              method: 'getOrders',
+              data: { count: openOrders.length },
+            });
+
+            return openOrders;
+          }
+
+          // Get order history if no status filter or status includes other statuses
+          logger.debug('Getting order history from adapter', {
+            component: 'enhancedOrdersService',
+            method: 'getOrders',
+            data: { exchangeId, symbol },
+          });
+
+          // Use 'default' as the API key ID for now
+          const orderHistory = await adapter.getOrderHistory('default', symbol);
+
+          logger.debug('Got order history from adapter', {
+            component: 'enhancedOrdersService',
+            method: 'getOrders',
+            data: { count: orderHistory.length },
+          });
+
+          return orderHistory;
+        }
+      } catch (adapterError) {
+        logger.error('Error getting orders from adapter', {
+          component: 'enhancedOrdersService',
+          method: 'getOrders',
+          data: { error: adapterError },
+        });
+      }
+
+      // Fall back to mock orders from localStorage
+      logger.info('Falling back to mock orders from localStorage', {
+        component: 'enhancedOrdersService',
+        method: 'getOrders',
+      });
 
       // Get the latest mock orders from localStorage
       const latestMockOrders = getMockOrders();
 
-      console.log('Retrieved mock orders for filtering:', latestMockOrders);
+      logger.debug('Retrieved mock orders for filtering', {
+        component: 'enhancedOrdersService',
+        method: 'getOrders',
+        data: { count: latestMockOrders.length },
+      });
 
       // Filter mock orders based on parameters
       const filteredOrders = latestMockOrders.filter((order) => {
@@ -872,11 +978,20 @@ export const getOrders = async (
         return true;
       });
 
-      console.log('Filtered mock orders:', filteredOrders);
+      logger.debug('Filtered mock orders', {
+        component: 'enhancedOrdersService',
+        method: 'getOrders',
+        data: { count: filteredOrders.length },
+      });
+
       return filteredOrders;
     }
   } catch (error) {
-    console.error('Error getting orders:', error);
+    logger.error('Error getting orders', {
+      component: 'enhancedOrdersService',
+      method: 'getOrders',
+      data: { error },
+    });
     throw error;
   }
 };
@@ -884,16 +999,90 @@ export const getOrders = async (
 /**
  * Cancel an order
  */
-export const cancelOrder = async (orderId: string): Promise<boolean> => {
+export const cancelOrder = async (
+  orderId: string,
+  exchangeId?: string,
+  symbol?: string,
+): Promise<boolean> => {
   try {
+    // Get feature flags
+    const featureFlags =
+      typeof window !== 'undefined'
+        ? JSON.parse(localStorage.getItem('omnitrade_feature_flags') || '{}')
+        : {};
+
+    const useBinanceTestnet =
+      featureFlags.useBinanceTestnet !== undefined
+        ? featureFlags.useBinanceTestnet
+        : false;
+
+    // Check if we're in sandbox mode and Binance Testnet is enabled
+    const connectionMode = getConnectionMode();
+    const isSandbox = connectionMode === 'sandbox';
+
+    // If we're in sandbox mode and Binance Testnet is enabled, use the Binance Testnet adapter
+    if (isSandbox && useBinanceTestnet && exchangeId === 'sandbox') {
+      exchangeId = 'binance_testnet';
+    }
+
+    logger.debug('Canceling order', {
+      component: 'enhancedOrdersService',
+      method: 'cancelOrder',
+      data: {
+        orderId,
+        exchangeId,
+        symbol,
+        connectionMode,
+        useBinanceTestnet,
+      },
+    });
+
     try {
+      // Try to use the API first
       await api.delete(`/orders/${orderId}`);
       return true;
     } catch (apiError) {
-      console.error(
-        'API error canceling order, using mock implementation:',
-        apiError,
-      );
+      logger.info('API error canceling order, trying exchange adapter', {
+        component: 'enhancedOrdersService',
+        method: 'cancelOrder',
+        data: { error: apiError },
+      });
+
+      // Try to use the exchange adapter if available
+      try {
+        if (exchangeId && symbol) {
+          const adapter = ExchangeFactory.getAdapter(exchangeId);
+
+          logger.debug('Canceling order with adapter', {
+            component: 'enhancedOrdersService',
+            method: 'cancelOrder',
+            data: { exchangeId, orderId, symbol },
+          });
+
+          // Use 'default' as the API key ID for now
+          const result = await adapter.cancelOrder('default', orderId, symbol);
+
+          logger.debug('Order canceled with adapter', {
+            component: 'enhancedOrdersService',
+            method: 'cancelOrder',
+            data: { result },
+          });
+
+          return result;
+        }
+      } catch (adapterError) {
+        logger.error('Error canceling order with adapter', {
+          component: 'enhancedOrdersService',
+          method: 'cancelOrder',
+          data: { error: adapterError },
+        });
+      }
+
+      // Fall back to mock orders from localStorage
+      logger.info('Falling back to mock orders for cancellation', {
+        component: 'enhancedOrdersService',
+        method: 'cancelOrder',
+      });
 
       // Get the latest mock orders
       const currentMockOrders = getMockOrders();
@@ -914,8 +1103,11 @@ export const cancelOrder = async (orderId: string): Promise<boolean> => {
         // Save the updated orders back to localStorage
         saveMockOrders(currentMockOrders);
 
-        console.log('Order canceled:', currentMockOrders[index]);
-        console.log('Updated mock orders in localStorage');
+        logger.debug('Order canceled in mock orders', {
+          component: 'enhancedOrdersService',
+          method: 'cancelOrder',
+          data: { order: currentMockOrders[index] },
+        });
 
         return true;
       }
@@ -923,7 +1115,11 @@ export const cancelOrder = async (orderId: string): Promise<boolean> => {
       return false;
     }
   } catch (error) {
-    console.error('Error canceling order:', error);
+    logger.error('Error canceling order', {
+      component: 'enhancedOrdersService',
+      method: 'cancelOrder',
+      data: { error },
+    });
     throw error;
   }
 };

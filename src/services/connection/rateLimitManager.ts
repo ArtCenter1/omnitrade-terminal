@@ -282,10 +282,28 @@ export class RateLimitManager {
 
             // Check for other errors
             if (!response.ok) {
-              // Don't throw here for non-OK responses like 404.
-              // Let the original response propagate so middleware can handle it.
-              // const errorText = await response.text(); // Avoid consuming body here
-              // throw new Error(`API error (${response.status}): ${errorText}`);
+              // For 404 errors, try to get more information about the error
+              if (response.status === 404) {
+                try {
+                  const errorText = await response.text();
+                  console.error(`API 404 error: ${errorText}`);
+                  console.error(`URL that returned 404: ${response.url}`);
+
+                  // Clone the response since we've consumed the body
+                  const clonedResponse = new Response(errorText, {
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: response.headers,
+                  });
+
+                  // Return the cloned response
+                  return clonedResponse as unknown as T;
+                } catch (textError) {
+                  console.error('Error reading response text:', textError);
+                }
+              }
+
+              // For other non-OK responses, log and pass through
               console.warn(
                 `RateLimitManager: Received non-OK response (${response.status}). Passing response through.`,
               );
