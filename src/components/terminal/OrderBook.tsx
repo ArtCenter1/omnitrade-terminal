@@ -79,31 +79,51 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
           ? 'sandbox' // This will use BinanceTestnetAdapter when useBinanceTestnet is true
           : selectedAccount?.exchangeId || 'sandbox';
 
+        console.log(`OrderBook: Using exchange ID: ${exchangeId}`);
         const adapter = ExchangeFactory.getAdapter(exchangeId);
+        console.log(`OrderBook: Got adapter: ${adapter.constructor.name}`);
 
         // Get order book from the adapter
         console.log(
           `OrderBook: Fetching order book for ${symbol} using ${adapter.constructor.name}`,
         );
-        const orderBookData = await adapter.getOrderBook(symbol, 10);
 
-        // Convert to the format expected by the component
-        const formattedOrderbook: Orderbook = {
-          bids: orderBookData.bids.map((entry) => [
-            entry.price.toString(),
-            entry.quantity.toString(),
-          ]),
-          asks: orderBookData.asks.map((entry) => [
-            entry.price.toString(),
-            entry.quantity.toString(),
-          ]),
-        };
+        try {
+          const orderBookData = await adapter.getOrderBook(symbol, 10);
+          console.log(`OrderBook: Received order book data:`, orderBookData);
 
-        // Check if we got valid data
-        if (
-          formattedOrderbook.bids.length > 0 &&
-          formattedOrderbook.asks.length > 0
-        ) {
+          // Check if we got valid data
+          if (!orderBookData || !orderBookData.bids || !orderBookData.asks) {
+            console.error(
+              'OrderBook: Invalid order book data received:',
+              orderBookData,
+            );
+            throw new Error('Invalid order book data received');
+          }
+
+          if (
+            orderBookData.bids.length === 0 &&
+            orderBookData.asks.length === 0
+          ) {
+            console.error('OrderBook: Empty order book data received');
+            throw new Error('Empty order book data received');
+          }
+
+          // Convert to the format expected by the component
+          const formattedOrderbook: Orderbook = {
+            bids: orderBookData.bids.map((entry) => [
+              entry.price.toString(),
+              entry.quantity.toString(),
+            ]),
+            asks: orderBookData.asks.map((entry) => [
+              entry.price.toString(),
+              entry.quantity.toString(),
+            ]),
+          };
+
+          console.log(`OrderBook: Formatted order book:`, formattedOrderbook);
+
+          // Set the orderbook state
           setOrderbook(formattedOrderbook);
 
           // Set usingFallbackData based on whether we're using Binance Testnet
@@ -113,25 +133,54 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
           console.log(
             `Successfully loaded order book data for ${symbol} using ${adapter.constructor.name}`,
           );
-        } else {
-          throw new Error('Received empty or invalid orderbook data');
+        } catch (adapterError) {
+          console.error('OrderBook: Error from adapter:', adapterError);
+          throw adapterError; // Re-throw to be caught by the outer catch
         }
       } catch (error) {
-        console.error('Error fetching order book data:', error);
+        console.error('OrderBook: Error fetching order book data:', error);
 
         // Fallback to mock data
-        console.log('Falling back to mockExchangeService due to error');
+        console.log(
+          'OrderBook: Falling back to mockExchangeService due to error',
+        );
         const exchangeId =
           selectedAccount?.exchangeId || exchangeName.toLowerCase();
-        const mockOrderbook = mockExchangeService.getOrderbook(
-          exchangeId,
-          symbol,
-        );
-        setOrderbook(mockOrderbook);
-        setUsingFallbackData(true);
-        setErrorMessage(
-          'Could not fetch real market data. Using fallback data.',
-        );
+
+        try {
+          console.log(
+            `OrderBook: Getting mock orderbook for ${exchangeId}, ${symbol}`,
+          );
+          const mockOrderbook = mockExchangeService.getOrderbook(
+            exchangeId,
+            symbol,
+          );
+
+          console.log(`OrderBook: Got mock orderbook:`, mockOrderbook);
+
+          if (
+            !mockOrderbook ||
+            !mockOrderbook.bids ||
+            !mockOrderbook.asks ||
+            mockOrderbook.bids.length === 0 ||
+            mockOrderbook.asks.length === 0
+          ) {
+            console.error('OrderBook: Invalid mock orderbook data');
+            throw new Error('Invalid mock orderbook data');
+          }
+
+          setOrderbook(mockOrderbook);
+          setUsingFallbackData(true);
+          setErrorMessage(
+            'Could not fetch real market data. Using fallback data.',
+          );
+        } catch (mockError) {
+          console.error('OrderBook: Error getting mock orderbook:', mockError);
+          setIsError(true);
+          setErrorMessage(
+            'Failed to load order book data. Please try again later.',
+          );
+        }
       }
 
       setLastUpdated(new Date());

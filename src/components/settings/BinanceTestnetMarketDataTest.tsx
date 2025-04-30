@@ -81,15 +81,47 @@ export function BinanceTestnetMarketDataTest() {
       setRecentTrades(trades);
 
       // Test getting ticker stats for the selected symbol
+      console.log(`Fetching ticker stats for ${selectedSymbol}`);
       const stats = (await adapter.getTickerStats(
         selectedSymbol,
       )) as TickerStats;
-      setTickerStats(stats);
 
-      // Set success message
-      setSuccess(
-        `Successfully fetched market data from ${featureFlags.useBinanceTestnet ? 'Binance Testnet API' : 'Mock Data Service'}`,
-      );
+      console.log('Received ticker stats:', stats);
+
+      // Check if all values are zero, which might indicate an issue
+      const allValuesZero =
+        stats.lastPrice === 0 &&
+        stats.highPrice === 0 &&
+        stats.lowPrice === 0 &&
+        stats.volume === 0;
+
+      if (allValuesZero && featureFlags.useBinanceTestnet) {
+        console.warn('All ticker values are zero, falling back to mock data');
+
+        // Get mock data adapter
+        const mockAdapter = ExchangeFactory.getAdapter('mock');
+
+        // Generate mock ticker stats
+        const mockStats = (await mockAdapter.getTickerStats(
+          selectedSymbol,
+        )) as TickerStats;
+
+        // Set the mock stats
+        setTickerStats(mockStats);
+
+        // Set success message with warning
+        setSuccess(
+          `Connected to Binance Testnet API but received zero values. Using mock data as fallback.`,
+        );
+      } else {
+        // Set the stats
+        setTickerStats(stats);
+
+        // Set success message
+        setSuccess(
+          `Successfully fetched market data from ${featureFlags.useBinanceTestnet ? 'Binance Testnet API' : 'Mock Data Service'}`,
+        );
+      }
 
       // Update connection status
       await checkConnection('binance_testnet');
@@ -283,10 +315,26 @@ export function BinanceTestnetMarketDataTest() {
                       Data Source:
                     </p>
                     <p className="text-sm font-medium">
-                      {featureFlags.useBinanceTestnet
+                      {featureFlags.useBinanceTestnet &&
+                      !(
+                        tickerStats.lastPrice === 0 &&
+                        tickerStats.highPrice === 0 &&
+                        tickerStats.lowPrice === 0 &&
+                        tickerStats.volume === 0
+                      )
                         ? 'Binance Testnet API (real market data)'
                         : 'Mock Data (randomly generated)'}
                     </p>
+                    {featureFlags.useBinanceTestnet &&
+                      tickerStats.lastPrice === 0 &&
+                      tickerStats.highPrice === 0 &&
+                      tickerStats.lowPrice === 0 &&
+                      tickerStats.volume === 0 && (
+                        <p className="text-xs text-yellow-500 mt-1">
+                          Note: Binance Testnet API returned zero values. Using
+                          mock data as fallback.
+                        </p>
+                      )}
                   </div>
                 </div>
               )}

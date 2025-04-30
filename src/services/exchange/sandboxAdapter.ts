@@ -17,6 +17,8 @@ import {
 import { BinanceAdapter } from './binanceAdapter';
 import { BinanceTestnetAdapter } from './binanceTestnetAdapter';
 import { getFeatureFlags } from '@/config/featureFlags';
+import { BrowserEventEmitter } from '@/utils/browserEventEmitter';
+import { getMockPortfolioData } from '@/mocks/mockPortfolio';
 
 /**
  * Sandbox exchange adapter for practice trading
@@ -25,10 +27,12 @@ export class SandboxAdapter extends BaseExchangeAdapter {
   private readonly mockDataService: MockDataService;
   private readonly binanceTestAdapter: BinanceAdapter | BinanceTestnetAdapter;
   private readonly useBinanceTestnet: boolean;
+  protected eventEmitter: BrowserEventEmitter;
 
   constructor() {
     super('sandbox');
     this.mockDataService = new MockDataService();
+    this.eventEmitter = new BrowserEventEmitter();
 
     // Check if Binance Testnet is enabled
     const featureFlags = getFeatureFlags();
@@ -326,8 +330,79 @@ export class SandboxAdapter extends BaseExchangeAdapter {
    * Get the user's portfolio on the Sandbox.
    */
   public async getPortfolio(apiKeyId: string): Promise<Portfolio> {
-    // Always use the same seed for consistent portfolio data
-    return this.mockDataService.generatePortfolio(this.exchangeId, 42);
+    // Use the getMockPortfolioData function to get a consistent demo portfolio
+    console.log(`[SandboxAdapter] Getting portfolio for ${apiKeyId}`);
+
+    // Use the sandbox-key to get the demo portfolio
+    const portfolioData = getMockPortfolioData('sandbox-key');
+
+    if (!portfolioData.data) {
+      console.error(
+        `[SandboxAdapter] Failed to get portfolio data for ${apiKeyId}`,
+      );
+      // Fallback to the mock data service
+      const fallbackPortfolio = this.mockDataService.generatePortfolio(
+        this.exchangeId,
+        42,
+      );
+
+      // Emit balance updates for the fallback portfolio
+      this.emitBalanceUpdates(apiKeyId, fallbackPortfolio);
+
+      return fallbackPortfolio;
+    }
+
+    const portfolio = portfolioData.data;
+
+    // Emit balance updates for each asset in the portfolio
+    this.emitBalanceUpdates(apiKeyId, portfolio);
+
+    // Log the portfolio data
+    console.log(
+      `[SandboxAdapter] Generated portfolio with ${portfolio.assets.length} assets for ${apiKeyId}`,
+    );
+    portfolio.assets.forEach((asset) => {
+      console.log(
+        `[SandboxAdapter] Asset: ${asset.asset}, Free: ${asset.free}, Locked: ${asset.locked}, Total: ${asset.total}`,
+      );
+    });
+
+    return portfolio;
+  }
+
+  /**
+   * Emit balance updates for each asset in the portfolio
+   * @param apiKeyId The API key ID
+   * @param portfolio The portfolio data
+   */
+  private emitBalanceUpdates(apiKeyId: string, portfolio: Portfolio): void {
+    // Emit balance updates for each asset
+    portfolio.assets.forEach((asset) => {
+      const updateData = {
+        exchangeId: this.exchangeId,
+        apiKeyId: apiKeyId,
+        asset: asset.asset,
+        balance: {
+          free: asset.free,
+          locked: asset.locked,
+          total: asset.total,
+          available: asset.free,
+        },
+        timestamp: Date.now(),
+      };
+
+      // Log the balance update
+      console.log(
+        `[SandboxAdapter] Emitting balance update for ${asset.asset}: Free=${asset.free}, Locked=${asset.locked}, Total=${asset.total}`,
+      );
+
+      // Emit the balance update event
+      this.eventEmitter.emit('balanceUpdate', updateData);
+    });
+
+    console.log(
+      `[SandboxAdapter] Emitted balance updates for ${portfolio.assets.length} assets`,
+    );
   }
 
   /**
@@ -347,6 +422,9 @@ export class SandboxAdapter extends BaseExchangeAdapter {
       ...order,
       exchangeId: this.exchangeId,
     });
+
+    // Update balances based on the order
+    this.updateBalancesForOrder(apiKeyId, newOrder);
 
     // For sandbox, we'll simulate immediate execution for market orders
     // and quick execution for limit orders that are close to market price
@@ -378,6 +456,31 @@ export class SandboxAdapter extends BaseExchangeAdapter {
     }
 
     return newOrder;
+  }
+
+  /**
+   * Update balances when an order is placed
+   * @param apiKeyId The API key ID
+   * @param order The order that was placed
+   */
+  private async updateBalancesForOrder(
+    apiKeyId: string,
+    order: Order,
+  ): Promise<void> {
+    try {
+      // Get the current portfolio
+      const portfolio = await this.getPortfolio(apiKeyId);
+
+      // Refresh balances after order placement
+      this.emitBalanceUpdates(apiKeyId, portfolio);
+
+      console.log(`[SandboxAdapter] Updated balances after order placement`);
+    } catch (error) {
+      console.error(
+        `[SandboxAdapter] Error updating balances after order placement:`,
+        error,
+      );
+    }
   }
 
   /**
@@ -450,6 +553,17 @@ export class SandboxAdapter extends BaseExchangeAdapter {
       order.quantity,
     );
 
+    // Update balances after order execution
+    this.updateBalancesForOrder(userId, order);
+
     console.log(`[SandboxAdapter] Executed order ${orderId}`);
+  }
+
+  /**
+   * Provides access to the event emitter for subscribing to updates.
+   * Example: adapter.getEventEmitter().on('balanceUpdate', (data) => { ... });
+   */
+  public getEventEmitter(): BrowserEventEmitter {
+    return this.eventEmitter;
   }
 }

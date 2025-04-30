@@ -10,6 +10,7 @@ import { getMockPortfolioData } from '@/mocks/mockPortfolio';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { OrdersTable } from './OrdersTable';
 import { PositionsList } from '@/components/positions';
+import { RecentTradesTable } from './RecentTradesTable';
 
 interface TerminalTabsProps {
   selectedPair?: TradingPair;
@@ -358,9 +359,10 @@ export function TerminalTabs({
           )}
 
           {activeTab === 'Trades' && (
-            <div className="text-center py-8 text-gray-400">
-              No recent trades
-            </div>
+            <RecentTradesTable
+              selectedSymbol={selectedPair?.symbol}
+              refreshTrigger={refreshTrigger}
+            />
           )}
         </div>
       </div>

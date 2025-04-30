@@ -8,6 +8,7 @@
 
 import { ExchangeFactory } from '@/services/exchange/exchangeFactory';
 import { BinanceTestnetAdapter } from '@/services/exchange/binanceTestnetAdapter';
+import { SandboxAdapter } from '@/services/exchange/sandboxAdapter';
 import { EventEmitter } from '@/utils/eventEmitter';
 import { ApiKeyManager } from '@/services/apiKeys/apiKeyManager';
 import logger from '@/utils/logger';
@@ -81,6 +82,9 @@ export class BalanceTrackingService {
 
       // Subscribe to Binance Testnet balance updates
       this.subscribeToExchangeAdapter('binance_testnet');
+
+      // Subscribe to Sandbox (Demo Account) balance updates
+      this.subscribeToSandboxAdapter();
 
       // Subscribe to API key changes to update subscriptions
       this.subscribeToApiKeyChanges();
@@ -209,6 +213,138 @@ export class BalanceTrackingService {
   }
 
   /**
+   * Subscribe to balance updates from the Sandbox adapter (Demo Account)
+   */
+  private subscribeToSandboxAdapter(): void {
+    try {
+      // Get the sandbox adapter
+      const adapter = ExchangeFactory.getAdapter('sandbox');
+
+      if (adapter instanceof SandboxAdapter) {
+        // Use the standard Demo Account API key ID
+        const apiKeyId = 'sandbox-key';
+
+        // Create a unique subscription ID
+        const subscriptionId = `sandbox_${apiKeyId}`;
+
+        // Check if we're already subscribed
+        if (this.subscriptions.has(subscriptionId)) {
+          return;
+        }
+
+        // Get the event emitter from the adapter
+        const adapterEmitter = adapter.getEventEmitter();
+
+        // Subscribe to balance updates
+        const onBalanceUpdate = (data: BalanceUpdate) => {
+          this.handleBalanceUpdate(data);
+        };
+
+        // Add the listener
+        adapterEmitter.on('balanceUpdate', onBalanceUpdate);
+
+        // Store the unsubscribe function
+        this.subscriptions.set(subscriptionId, () => {
+          adapterEmitter.off('balanceUpdate', onBalanceUpdate);
+        });
+
+        // Initialize the Demo Account balances
+        this.initializeDemoAccountBalances(adapter);
+
+        logger.info(
+          `[BalanceTrackingService] Subscribed to balance updates for Demo Account`,
+        );
+      } else {
+        logger.warn(
+          `[BalanceTrackingService] Sandbox adapter not found or not a SandboxAdapter instance`,
+        );
+      }
+    } catch (error) {
+      logger.error(
+        `[BalanceTrackingService] Error subscribing to Sandbox adapter:`,
+        error,
+      );
+    }
+  }
+
+  /**
+   * Initialize the Demo Account balances from the mock portfolio
+   * @param adapter The Sandbox adapter
+   */
+  private async initializeDemoAccountBalances(
+    adapter: SandboxAdapter,
+  ): Promise<void> {
+    try {
+      // Get the demo portfolio
+      const apiKeyId = 'sandbox-key';
+
+      logger.info(
+        `[BalanceTrackingService] Initializing Demo Account balances for API key ${apiKeyId}`,
+      );
+
+      const portfolio = await adapter.getPortfolio(apiKeyId);
+
+      if (!portfolio || !portfolio.assets || portfolio.assets.length === 0) {
+        logger.error(
+          `[BalanceTrackingService] Failed to get portfolio data for Demo Account`,
+        );
+        return;
+      }
+
+      logger.info(
+        `[BalanceTrackingService] Got portfolio with ${portfolio.assets.length} assets for Demo Account`,
+      );
+
+      // Add each asset to the balance cache
+      portfolio.assets.forEach((asset) => {
+        const updateData: BalanceUpdate = {
+          exchangeId: 'sandbox',
+          apiKeyId: apiKeyId,
+          asset: asset.asset,
+          balance: {
+            free: asset.free,
+            locked: asset.locked,
+            total: asset.total,
+            available: asset.free,
+          },
+          timestamp: Date.now(),
+        };
+
+        // Log the balance update
+        logger.info(
+          `[BalanceTrackingService] Adding Demo Account balance for ${asset.asset}: Free=${asset.free}, Locked=${asset.locked}, Total=${asset.total}`,
+        );
+
+        // Update the cache
+        this.handleBalanceUpdate(updateData);
+      });
+
+      // Force a refresh of the balances after a short delay
+      setTimeout(() => {
+        this.eventEmitter.emit({
+          type: 'balancesRefreshed',
+          exchangeId: 'sandbox',
+          apiKeyId: apiKeyId,
+          timestamp: Date.now(),
+        });
+
+        logger.info(
+          `[BalanceTrackingService] Emitted balancesRefreshed event for Demo Account`,
+        );
+      }, 500);
+
+      logger.info(
+        `[BalanceTrackingService] Initialized Demo Account balances with ${portfolio.assets.length} assets`,
+      );
+    } catch (error) {
+      logger.error(
+        `[BalanceTrackingService] Error initializing Demo Account balances:`,
+        error,
+      );
+    }
+  }
+
+  /**
    * Subscribe to API key changes to update subscriptions
    */
   private subscribeToApiKeyChanges(): void {
@@ -266,9 +402,15 @@ export class BalanceTrackingService {
     // Ensure the cache structure exists
     if (!this.balanceCache[update.exchangeId]) {
       this.balanceCache[update.exchangeId] = {};
+      logger.info(
+        `[BalanceTrackingService] Created cache for exchange ${update.exchangeId}`,
+      );
     }
     if (!this.balanceCache[update.exchangeId][update.apiKeyId]) {
       this.balanceCache[update.exchangeId][update.apiKeyId] = {};
+      logger.info(
+        `[BalanceTrackingService] Created cache for API key ${update.apiKeyId} on exchange ${update.exchangeId}`,
+      );
     }
 
     // Update the cache
@@ -280,8 +422,8 @@ export class BalanceTrackingService {
     // Emit the update event
     this.eventEmitter.emit(update);
 
-    logger.debug(
-      `[BalanceTrackingService] Balance updated for ${update.exchangeId} API key ${update.apiKeyId} asset ${update.asset}: ${JSON.stringify(update.balance)}`,
+    logger.info(
+      `[BalanceTrackingService] Balance updated for ${update.exchangeId} API key ${update.apiKeyId} asset ${update.asset}: Free=${update.balance.free}, Locked=${update.balance.locked}, Total=${update.balance.total}`,
     );
   }
 
@@ -326,7 +468,27 @@ export class BalanceTrackingService {
       lastUpdated: number;
     };
   } {
-    return this.balanceCache[exchangeId]?.[apiKeyId] || {};
+    const balances = this.balanceCache[exchangeId]?.[apiKeyId] || {};
+
+    // Log the balances being returned
+    const assetCount = Object.keys(balances).length;
+    logger.info(
+      `[BalanceTrackingService] Getting balances for ${exchangeId} API key ${apiKeyId}: Found ${assetCount} assets`,
+    );
+
+    if (assetCount > 0) {
+      Object.entries(balances).forEach(([asset, balance]) => {
+        logger.info(
+          `[BalanceTrackingService] Balance for ${asset}: Free=${balance.free}, Locked=${balance.locked}, Total=${balance.total}`,
+        );
+      });
+    } else {
+      logger.warn(
+        `[BalanceTrackingService] No balances found for ${exchangeId} API key ${apiKeyId}`,
+      );
+    }
+
+    return balances;
   }
 
   /**
@@ -351,14 +513,39 @@ export class BalanceTrackingService {
       // Get the adapter
       const adapter = ExchangeFactory.getAdapter(exchangeId);
 
-      // Only proceed if it's a BinanceTestnetAdapter
+      // Handle different adapter types
       if (adapter instanceof BinanceTestnetAdapter) {
-        // Trigger a balance reconciliation
+        // Trigger a balance reconciliation for Binance Testnet
         await adapter.reconcileBalances();
         logger.info(
           `[BalanceTrackingService] Manually refreshed balances for ${exchangeId} API key ${apiKeyId}`,
         );
+      } else if (
+        adapter instanceof SandboxAdapter &&
+        exchangeId === 'sandbox'
+      ) {
+        // For Demo Account, re-initialize the balances
+        await this.initializeDemoAccountBalances(adapter);
+        logger.info(
+          `[BalanceTrackingService] Manually refreshed Demo Account balances`,
+        );
+      } else {
+        logger.warn(
+          `[BalanceTrackingService] Unsupported adapter type for refreshing balances: ${exchangeId}`,
+        );
       }
+
+      // Emit a balancesRefreshed event
+      this.eventEmitter.emit({
+        type: 'balancesRefreshed',
+        exchangeId,
+        apiKeyId,
+        timestamp: Date.now(),
+      });
+
+      logger.info(
+        `[BalanceTrackingService] Emitted balancesRefreshed event for ${exchangeId} API key ${apiKeyId}`,
+      );
     } catch (error) {
       logger.error(
         `[BalanceTrackingService] Error refreshing balances for ${exchangeId} API key ${apiKeyId}:`,
