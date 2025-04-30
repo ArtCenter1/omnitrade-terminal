@@ -29,6 +29,25 @@ export function formatNumber(value: number, decimals = 2) {
   }).format(value);
 }
 
+export function formatDate(date?: Date | number): string {
+  if (!date) {
+    return '-';
+  }
+
+  const dateObj = typeof date === 'number' ? new Date(date) : date;
+
+  const options: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  };
+
+  return dateObj.toLocaleString(undefined, options);
+}
+
 export function generateChartData(isPositive: boolean, symbol?: string) {
   // Special handling for XRP to ensure it always has positive values
   if (symbol === 'XRP') {
