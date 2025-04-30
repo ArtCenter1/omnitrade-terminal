@@ -207,6 +207,11 @@ export function ExchangeSelector() {
   // List of all supported exchanges
   const SUPPORTED_EXCHANGES = [
     { id: 'binance', name: 'Binance', logo: '/exchanges/binance.svg' },
+    {
+      id: 'binance_testnet',
+      name: 'Binance Testnet',
+      logo: '/exchanges/binance.svg',
+    },
     { id: 'coinbase', name: 'Coinbase', logo: '/exchanges/coinbase.svg' },
     { id: 'kraken', name: 'Kraken', logo: '/exchanges/kraken.svg' },
     { id: 'kucoin', name: 'KuCoin', logo: '/exchanges/kucoin.svg' },
@@ -264,9 +269,10 @@ export function ExchangeSelector() {
                 {/* Show all supported exchanges */}
                 {SUPPORTED_EXCHANGES.map((exchange) => {
                   // Check if we have any accounts for this exchange
-                  // Always return true for Demo Exchange since it's always available
+                  // Always return true for Demo Exchange and Binance Testnet since they're always available
                   const hasAccounts =
-                    exchange.id === 'sandbox'
+                    exchange.id === 'sandbox' ||
+                    exchange.id === 'binance_testnet'
                       ? true
                       : localAccounts.some(
                           (a) =>
@@ -293,6 +299,37 @@ export function ExchangeSelector() {
                             setSelectedAccount(demoAccount);
                           } else {
                             console.error('Demo Account not found');
+                          }
+                        }
+                        // Special handling for Binance Testnet
+                        else if (exchange.id === 'binance_testnet') {
+                          // Find the Binance Testnet Account
+                          const testnetAccount = localAccounts.find(
+                            (a) => a.exchangeId === 'binance_testnet',
+                          );
+
+                          if (testnetAccount) {
+                            console.log(
+                              'Selecting Binance Testnet with account:',
+                              testnetAccount.name,
+                            );
+                            setSelectedAccount(testnetAccount);
+                          } else {
+                            // If no Binance Testnet account exists, create a temporary one
+                            console.log(
+                              'No Binance Testnet account found, creating temporary one',
+                            );
+                            const tempTestnetAccount: ExchangeAccount = {
+                              id: 'binance-testnet-account',
+                              name: 'Binance Testnet',
+                              exchange: 'Binance Testnet',
+                              exchangeId: 'binance_testnet',
+                              value: '$10,000.00',
+                              change: '+0.00%',
+                              logo: '/exchanges/binance.svg',
+                              apiKeyId: 'binance-testnet-key',
+                            };
+                            setSelectedAccount(tempTestnetAccount);
                           }
                         } else if (hasAccounts) {
                           // Find the first account for this exchange

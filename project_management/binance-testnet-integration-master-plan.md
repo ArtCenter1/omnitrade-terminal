@@ -178,14 +178,14 @@
 
 ### UI Integration
 
-- [ ] Update exchange selection UI to show Binance Testnet
+- [x] Update exchange selection UI to show Binance Testnet
 - [x] **CRITICAL**: Add connection status indicator with clear visual feedback
 - [x] Create settings for Testnet configuration
 - [x] Implement error display for Testnet connection issues
 
 ### Testing Integration
 
-- [ ] Test switching between mock and Testnet modes
+- [x] Test switching between mock and Testnet modes
 - [ ] Verify UI updates correctly
 - [ ] Test error handling and fallbacks
 - [ ] **CRITICAL**: Validate end-to-end order flow with Testnet
