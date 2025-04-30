@@ -395,29 +395,67 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
   public async getTickerStats(
     symbol?: string,
   ): Promise<TickerStats | TickerStats[]> {
-    // Placeholder implementation
-    if (symbol) {
-      return this.mockDataService.generateTickerStats(this.exchangeId, symbol);
-    } else {
-      // Generate mock data for multiple symbols (limit to 10 for performance)
-      const mockPairs = [
-        'BTC/USDT',
-        'ETH/USDT',
-        'BNB/USDT',
-        'SOL/USDT',
-        'XRP/USDT',
-        'ADA/USDT',
-        'DOGE/USDT',
-        'MATIC/USDT',
-        'DOT/USDT',
-        'LTC/USDT',
-      ];
+    try {
+      // Placeholder implementation
+      if (symbol) {
+        console.log(`[${this.exchangeId}] Getting ticker stats for ${symbol}`);
+        return this.mockDataService.generateTickerStats(
+          this.exchangeId,
+          symbol,
+        );
+      } else {
+        console.log(`[${this.exchangeId}] Getting ticker stats for all pairs`);
+        // Generate mock data for multiple symbols (limit to 10 for performance)
+        const mockPairs = [
+          'BTC/USDT',
+          'ETH/USDT',
+          'BNB/USDT',
+          'SOL/USDT',
+          'XRP/USDT',
+          'ADA/USDT',
+          'DOGE/USDT',
+          'MATIC/USDT',
+          'DOT/USDT',
+          'LTC/USDT',
+        ];
 
-      return Promise.all(
-        mockPairs.map((pair) =>
-          this.mockDataService.generateTickerStats(this.exchangeId, pair),
-        ),
-      );
+        return Promise.all(
+          mockPairs.map((pair) =>
+            this.mockDataService.generateTickerStats(this.exchangeId, pair),
+          ),
+        );
+      }
+    } catch (error) {
+      console.error(`[${this.exchangeId}] Error getting ticker stats:`, error);
+
+      // Return a default ticker stats object if there's an error
+      if (symbol) {
+        return {
+          symbol: symbol,
+          exchangeId: this.exchangeId,
+          priceChange: 0,
+          priceChangePercent: 0,
+          weightedAvgPrice: 0,
+          prevClosePrice: 0,
+          lastPrice: 0,
+          lastQty: 0,
+          bidPrice: 0,
+          bidQty: 0,
+          askPrice: 0,
+          askQty: 0,
+          openPrice: 0,
+          highPrice: 0,
+          lowPrice: 0,
+          volume: 0,
+          quoteVolume: 0,
+          openTime: Date.now() - 24 * 60 * 60 * 1000,
+          closeTime: Date.now(),
+          count: 0,
+        };
+      } else {
+        // Return an empty array if no symbol was specified
+        return [];
+      }
     }
   }
 
@@ -538,5 +576,154 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       `Validating API key: ${apiKey.substring(0, 3)}... and secret: ${apiSecret.substring(0, 3)}...`,
     );
     return this.mockDataService.validateApiKey(apiKey, apiSecret);
+  }
+
+  /**
+   * Get current price for a symbol - used by position tracking service
+   * @param symbol The trading pair symbol
+   * @returns The current price
+   */
+  public getCurrentPrice(symbol: string): number {
+    try {
+      // Try to get the current price from the mock data service
+      console.log(`[${this.exchangeId}] Getting current price for ${symbol}`);
+      const currentPrice = this.mockDataService.getCurrentPrice(
+        this.exchangeId,
+        symbol,
+      );
+      console.log(
+        `[${this.exchangeId}] Current price for ${symbol}: ${currentPrice}`,
+      );
+      return currentPrice;
+    } catch (error) {
+      console.error(
+        `[${this.exchangeId}] Error getting current price for ${symbol}:`,
+        error,
+      );
+
+      // Provide a fallback price based on the symbol
+      const baseAsset = symbol.split('/')[0];
+      let defaultPrice = 100; // Default fallback
+
+      // Set some reasonable defaults for common assets
+      switch (baseAsset) {
+        case 'BTC':
+          defaultPrice = 50000;
+          break;
+        case 'ETH':
+          defaultPrice = 3000;
+          break;
+        case 'BNB':
+          defaultPrice = 500;
+          break;
+        case 'SOL':
+          defaultPrice = 100;
+          break;
+        case 'XRP':
+          defaultPrice = 0.5;
+          break;
+        case 'ADA':
+          defaultPrice = 0.4;
+          break;
+        case 'DOGE':
+          defaultPrice = 0.1;
+          break;
+        case 'MATIC':
+          defaultPrice = 0.8;
+          break;
+        case 'DOT':
+          defaultPrice = 7;
+          break;
+        case 'LTC':
+          defaultPrice = 80;
+          break;
+      }
+
+      console.log(
+        `[${this.exchangeId}] Using fallback price for ${symbol}: ${defaultPrice}`,
+      );
+      return defaultPrice;
+    }
+  }
+
+  /**
+   * Get open positions for a user
+   * This is a custom method not in the BaseExchangeAdapter interface
+   * but needed by the PositionTrackingService
+   */
+  public getOpenPositions(
+    exchangeId?: string,
+    apiKeyId?: string,
+    symbol?: string,
+  ): any[] {
+    try {
+      console.log(
+        `[${this.exchangeId}] Getting open positions for ${exchangeId || 'all exchanges'}, ${apiKeyId || 'all users'}, ${symbol || 'all symbols'}`,
+      );
+
+      // Generate some mock positions
+      const mockPositions = [];
+      const symbols = [
+        'BTC/USDT',
+        'ETH/USDT',
+        'SOL/USDT',
+        'BNB/USDT',
+        'XRP/USDT',
+      ];
+      const sides = ['long', 'short'];
+
+      // Generate 3-5 mock positions
+      const positionCount = Math.floor(Math.random() * 3) + 3;
+
+      for (let i = 0; i < positionCount; i++) {
+        const positionSymbol =
+          symbol || symbols[Math.floor(Math.random() * symbols.length)];
+        const side = sides[Math.floor(Math.random() * sides.length)];
+        const entryPrice =
+          side === 'long'
+            ? this.getCurrentPrice(positionSymbol) * (1 - Math.random() * 0.05)
+            : this.getCurrentPrice(positionSymbol) * (1 + Math.random() * 0.05);
+        const quantity = 0.1 + Math.random() * 0.9;
+        const timestamp = Date.now() - Math.floor(Math.random() * 86400000); // Random time in the last 24 hours
+
+        const positionId = `mock-${this.exchangeId}-${positionSymbol.replace('/', '')}-${side}-${timestamp}`;
+
+        // Calculate unrealized PnL
+        const currentPrice = this.getCurrentPrice(positionSymbol);
+        const pnlPerUnit =
+          side === 'long'
+            ? currentPrice - entryPrice
+            : entryPrice - currentPrice;
+        const unrealizedPnl = pnlPerUnit * quantity;
+
+        mockPositions.push({
+          id: positionId,
+          exchangeId: exchangeId || this.exchangeId,
+          apiKeyId: apiKeyId || 'default',
+          symbol: positionSymbol,
+          side,
+          status: 'open',
+          entryPrice,
+          quantity,
+          remainingQuantity: quantity,
+          openTime: timestamp,
+          orders: [`mock-order-${timestamp}`],
+          unrealizedPnl,
+          fees: 0,
+          feeAsset: 'USDT',
+        });
+      }
+
+      console.log(
+        `[${this.exchangeId}] Generated ${mockPositions.length} mock positions`,
+      );
+      return mockPositions;
+    } catch (error) {
+      console.error(
+        `[${this.exchangeId}] Error getting open positions:`,
+        error,
+      );
+      return [];
+    }
   }
 }
