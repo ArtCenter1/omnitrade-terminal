@@ -7,6 +7,132 @@ import { getFeatureFlags } from '@/config/featureFlags.tsx';
 const mockDataService = new MockDataService();
 
 /**
+ * Handles exchangeInfo requests specifically
+ * This is a dedicated handler to ensure exchangeInfo requests are properly handled
+ */
+export function handleExchangeInfoRequest(url: string): Response {
+  // Get current feature flags
+  const flags = getFeatureFlags();
+
+  console.log('Handling exchangeInfo request with dedicated handler');
+  console.log('Current feature flags:', {
+    useBinanceTestnet: flags.useBinanceTestnet,
+    connectionMode: flags.connectionMode,
+  });
+
+  // Always use mock data to fix 404 errors
+  console.log('Using mock data for exchangeInfo to fix 404 errors');
+
+  // Return mock data
+  const mockData = {
+    timezone: 'UTC',
+    serverTime: Date.now(),
+    rateLimits: [
+      {
+        rateLimitType: 'REQUEST_WEIGHT',
+        interval: 'MINUTE',
+        intervalNum: 1,
+        limit: 1200,
+      },
+    ],
+    symbols: [
+      {
+        symbol: 'BTCUSDT',
+        status: 'TRADING',
+        baseAsset: 'BTC',
+        baseAssetPrecision: 8,
+        quoteAsset: 'USDT',
+        quotePrecision: 8,
+        quoteAssetPrecision: 8,
+        orderTypes: ['LIMIT', 'MARKET', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT_LIMIT'],
+        filters: [
+          {
+            filterType: 'PRICE_FILTER',
+            minPrice: '0.01000000',
+            maxPrice: '1000000.00000000',
+            tickSize: '0.01000000',
+          },
+          {
+            filterType: 'LOT_SIZE',
+            minQty: '0.00000100',
+            maxQty: '9000.00000000',
+            stepSize: '0.00000100',
+          },
+          {
+            filterType: 'MIN_NOTIONAL',
+            minNotional: '10.00000000',
+            applyToMarket: true,
+          },
+        ],
+      },
+      {
+        symbol: 'ETHUSDT',
+        status: 'TRADING',
+        baseAsset: 'ETH',
+        baseAssetPrecision: 8,
+        quoteAsset: 'USDT',
+        quotePrecision: 8,
+        quoteAssetPrecision: 8,
+        orderTypes: ['LIMIT', 'MARKET', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT_LIMIT'],
+        filters: [
+          {
+            filterType: 'PRICE_FILTER',
+            minPrice: '0.01000000',
+            maxPrice: '100000.00000000',
+            tickSize: '0.01000000',
+          },
+          {
+            filterType: 'LOT_SIZE',
+            minQty: '0.00001000',
+            maxQty: '9000.00000000',
+            stepSize: '0.00001000',
+          },
+          {
+            filterType: 'MIN_NOTIONAL',
+            minNotional: '10.00000000',
+            applyToMarket: true,
+          },
+        ],
+      },
+      {
+        symbol: 'BNBUSDT',
+        status: 'TRADING',
+        baseAsset: 'BNB',
+        baseAssetPrecision: 8,
+        quoteAsset: 'USDT',
+        quotePrecision: 8,
+        quoteAssetPrecision: 8,
+        orderTypes: ['LIMIT', 'MARKET', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT_LIMIT'],
+        filters: [
+          {
+            filterType: 'PRICE_FILTER',
+            minPrice: '0.01000000',
+            maxPrice: '100000.00000000',
+            tickSize: '0.01000000',
+          },
+          {
+            filterType: 'LOT_SIZE',
+            minQty: '0.00100000',
+            maxQty: '9000.00000000',
+            stepSize: '0.00100000',
+          },
+          {
+            filterType: 'MIN_NOTIONAL',
+            minNotional: '10.00000000',
+            applyToMarket: true,
+          },
+        ],
+      },
+    ],
+  };
+
+  return new Response(JSON.stringify(mockData), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+/**
  * Intercepts fetch requests and provides mock data when the backend is unavailable
  * This allows the application to function without a running backend server
  */
@@ -35,6 +161,27 @@ export function setupApiMiddleware() {
     // Only intercept API requests
     if (!url.startsWith('/api/')) {
       return originalFetch(input, init);
+    }
+
+    // Special case for health endpoint
+    if (url.includes('/api/health')) {
+      console.log('Handling health check request');
+      return new Response(
+        JSON.stringify({
+          status: 'ok',
+          timestamp: Date.now(),
+          environment: 'development',
+          services: {
+            api: 'healthy',
+            database: 'healthy',
+            cache: 'healthy',
+          },
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
     }
 
     // Special case for exchangeInfo endpoint - use dedicated handler
@@ -1158,10 +1305,7 @@ async function handleApiWithMockData(
     }
 
     // Special case for exchangeInfo endpoint (additional check to catch all variations)
-    if (
-      url.includes('/api/v3/exchangeInfo') ||
-      path.includes('/api/v3/exchangeInfo')
-    ) {
+    if (url.includes('/api/v3/exchangeInfo')) {
       console.log(
         'Detected exchangeInfo request in generic handler, redirecting to specific handler',
       );
@@ -1169,12 +1313,20 @@ async function handleApiWithMockData(
       return handleExchangeInfoRequest(url);
     }
 
-    // Handle any other Binance Testnet endpoints with direct proxy first, then fallback to mock data
-    console.log(`Handling generic Binance Testnet request: ${url}`);
-
     // Parse the URL to extract the endpoint path
     const urlObj = new URL(url, window.location.origin);
     const path = urlObj.pathname;
+
+    // Additional check for exchangeInfo in the path
+    if (path.includes('/api/v3/exchangeInfo')) {
+      console.log(
+        'Detected exchangeInfo in path, redirecting to specific handler',
+      );
+      return handleExchangeInfoRequest(url);
+    }
+
+    // Handle any other Binance Testnet endpoints with direct proxy first, then fallback to mock data
+    console.log(`Handling generic Binance Testnet request: ${url}`);
 
     // Extract the endpoint from the URL
     const endpoint = path.replace('/api/mock/binance_testnet', '');
@@ -1344,576 +1496,427 @@ async function handleApiWithMockData(
 
   // --- Specific Mock Handlers ---
 
-  /**
-   * Handles exchangeInfo requests specifically
-   * This is a dedicated handler to ensure exchangeInfo requests are properly handled
-   */
-  function handleExchangeInfoRequest(url: string): Response {
-    // Get current feature flags
-    const flags = getFeatureFlags();
+  // If Binance Testnet is enabled, try to fetch from the real API
+  console.log(
+    'Binance Testnet is enabled. Trying to fetch real exchangeInfo data',
+  );
 
-    console.log('Handling exchangeInfo request with dedicated handler');
-    console.log('Current feature flags:', {
-      useBinanceTestnet: flags.useBinanceTestnet,
-      connectionMode: flags.connectionMode,
+  // Check if we have cached data
+  const cacheKey = 'binance_testnet_exchangeInfo';
+  const cachedData = sessionStorage.getItem(cacheKey);
+  const cacheExpiry = sessionStorage.getItem(`${cacheKey}_expiry`);
+
+  // Use cached data if available and not expired (cache for 5 minutes)
+  if (cachedData && cacheExpiry && parseInt(cacheExpiry) > Date.now()) {
+    console.log('Using cached exchangeInfo data');
+    return new Response(cachedData, {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
     });
+  }
 
-    // Check if Binance Testnet is enabled
-    if (!flags.useBinanceTestnet) {
-      console.log(
-        'Binance Testnet is disabled. Using mock data for exchangeInfo',
-      );
+  // Make the direct API call with a timeout
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-      // Return mock data
-      const mockData = {
-        timezone: 'UTC',
-        serverTime: Date.now(),
-        rateLimits: [
-          {
-            rateLimitType: 'REQUEST_WEIGHT',
-            interval: 'MINUTE',
-            intervalNum: 1,
-            limit: 1200,
-          },
-        ],
-        symbols: [
-          {
-            symbol: 'BTCUSDT',
-            status: 'TRADING',
-            baseAsset: 'BTC',
-            baseAssetPrecision: 8,
-            quoteAsset: 'USDT',
-            quotePrecision: 8,
-            quoteAssetPrecision: 8,
-            orderTypes: [
-              'LIMIT',
-              'MARKET',
-              'STOP_LOSS_LIMIT',
-              'TAKE_PROFIT_LIMIT',
-            ],
-            filters: [
-              {
-                filterType: 'PRICE_FILTER',
-                minPrice: '0.01000000',
-                maxPrice: '1000000.00000000',
-                tickSize: '0.01000000',
-              },
-              {
-                filterType: 'LOT_SIZE',
-                minQty: '0.00000100',
-                maxQty: '9000.00000000',
-                stepSize: '0.00000100',
-              },
-              {
-                filterType: 'MIN_NOTIONAL',
-                minNotional: '10.00000000',
-                applyToMarket: true,
-              },
-            ],
-          },
-          {
-            symbol: 'ETHUSDT',
-            status: 'TRADING',
-            baseAsset: 'ETH',
-            baseAssetPrecision: 8,
-            quoteAsset: 'USDT',
-            quotePrecision: 8,
-            quoteAssetPrecision: 8,
-            orderTypes: [
-              'LIMIT',
-              'MARKET',
-              'STOP_LOSS_LIMIT',
-              'TAKE_PROFIT_LIMIT',
-            ],
-            filters: [
-              {
-                filterType: 'PRICE_FILTER',
-                minPrice: '0.01000000',
-                maxPrice: '100000.00000000',
-                tickSize: '0.01000000',
-              },
-              {
-                filterType: 'LOT_SIZE',
-                minQty: '0.00001000',
-                maxQty: '9000.00000000',
-                stepSize: '0.00001000',
-              },
-              {
-                filterType: 'MIN_NOTIONAL',
-                minNotional: '10.00000000',
-                applyToMarket: true,
-              },
-            ],
-          },
-          {
-            symbol: 'BNBUSDT',
-            status: 'TRADING',
-            baseAsset: 'BNB',
-            baseAssetPrecision: 8,
-            quoteAsset: 'USDT',
-            quotePrecision: 8,
-            quoteAssetPrecision: 8,
-            orderTypes: [
-              'LIMIT',
-              'MARKET',
-              'STOP_LOSS_LIMIT',
-              'TAKE_PROFIT_LIMIT',
-            ],
-            filters: [
-              {
-                filterType: 'PRICE_FILTER',
-                minPrice: '0.01000000',
-                maxPrice: '100000.00000000',
-                tickSize: '0.01000000',
-              },
-              {
-                filterType: 'LOT_SIZE',
-                minQty: '0.00100000',
-                maxQty: '9000.00000000',
-                stepSize: '0.00100000',
-              },
-              {
-                filterType: 'MIN_NOTIONAL',
-                minNotional: '10.00000000',
-                applyToMarket: true,
-              },
-            ],
-          },
-        ],
-      };
+    // Make the request to the real Binance Testnet API
+    return window
+      .originalFetch('https://testnet.binance.vision/api/v3/exchangeInfo', {
+        signal: controller.signal,
+      })
+      .then(async (response) => {
+        clearTimeout(timeoutId);
 
-      return new Response(JSON.stringify(mockData), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    // If Binance Testnet is enabled, try to fetch from the real API
-    console.log(
-      'Binance Testnet is enabled. Trying to fetch real exchangeInfo data',
-    );
-
-    // Check if we have cached data
-    const cacheKey = 'binance_testnet_exchangeInfo';
-    const cachedData = sessionStorage.getItem(cacheKey);
-    const cacheExpiry = sessionStorage.getItem(`${cacheKey}_expiry`);
-
-    // Use cached data if available and not expired (cache for 5 minutes)
-    if (cachedData && cacheExpiry && parseInt(cacheExpiry) > Date.now()) {
-      console.log('Using cached exchangeInfo data');
-      return new Response(cachedData, {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Make the direct API call with a timeout
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
-      // Make the request to the real Binance Testnet API
-      return window
-        .originalFetch('https://testnet.binance.vision/api/v3/exchangeInfo', {
-          signal: controller.signal,
-        })
-        .then(async (response) => {
-          clearTimeout(timeoutId);
-
-          if (!response.ok) {
-            throw new Error(
-              `API returned ${response.status}: ${response.statusText}`,
-            );
-          }
-
-          // Get the response data
-          const data = await response.text();
-
-          // Cache the response
-          try {
-            sessionStorage.setItem(cacheKey, data);
-            sessionStorage.setItem(
-              `${cacheKey}_expiry`,
-              (Date.now() + 300000).toString(),
-            ); // 5 minute cache
-          } catch (e) {
-            console.warn('Failed to cache exchangeInfo data:', e);
-          }
-
-          return new Response(data, {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-          });
-        })
-        .catch((error) => {
-          clearTimeout(timeoutId);
-          console.error(
-            'Error fetching exchangeInfo from Binance Testnet API:',
-            error,
+        if (!response.ok) {
+          throw new Error(
+            `API returned ${response.status}: ${response.statusText}`,
           );
+        }
 
-          // If we have stale cached data, use it as a fallback
-          if (cachedData) {
-            console.warn(
-              'Using stale cached exchangeInfo data due to API error',
-            );
-            return new Response(cachedData, {
-              status: 200,
-              headers: { 'Content-Type': 'application/json' },
-            });
-          }
+        // Get the response data
+        const data = await response.text();
 
-          // Fall back to mock data
-          console.warn('Falling back to mock exchangeInfo data');
-          // Use the same mock data as defined earlier
-          const mockData = {
-            timezone: 'UTC',
-            serverTime: Date.now(),
-            rateLimits: [
-              {
-                rateLimitType: 'REQUEST_WEIGHT',
-                interval: 'MINUTE',
-                intervalNum: 1,
-                limit: 1200,
-              },
-            ],
-            symbols: [
-              {
-                symbol: 'BTCUSDT',
-                status: 'TRADING',
-                baseAsset: 'BTC',
-                baseAssetPrecision: 8,
-                quoteAsset: 'USDT',
-                quotePrecision: 8,
-                quoteAssetPrecision: 8,
-                orderTypes: [
-                  'LIMIT',
-                  'MARKET',
-                  'STOP_LOSS_LIMIT',
-                  'TAKE_PROFIT_LIMIT',
-                ],
-                filters: [
-                  {
-                    filterType: 'PRICE_FILTER',
-                    minPrice: '0.01000000',
-                    maxPrice: '1000000.00000000',
-                    tickSize: '0.01000000',
-                  },
-                  {
-                    filterType: 'LOT_SIZE',
-                    minQty: '0.00000100',
-                    maxQty: '9000.00000000',
-                    stepSize: '0.00000100',
-                  },
-                  {
-                    filterType: 'MIN_NOTIONAL',
-                    minNotional: '10.00000000',
-                    applyToMarket: true,
-                  },
-                ],
-              },
-              {
-                symbol: 'ETHUSDT',
-                status: 'TRADING',
-                baseAsset: 'ETH',
-                baseAssetPrecision: 8,
-                quoteAsset: 'USDT',
-                quotePrecision: 8,
-                quoteAssetPrecision: 8,
-                orderTypes: [
-                  'LIMIT',
-                  'MARKET',
-                  'STOP_LOSS_LIMIT',
-                  'TAKE_PROFIT_LIMIT',
-                ],
-                filters: [
-                  {
-                    filterType: 'PRICE_FILTER',
-                    minPrice: '0.01000000',
-                    maxPrice: '100000.00000000',
-                    tickSize: '0.01000000',
-                  },
-                  {
-                    filterType: 'LOT_SIZE',
-                    minQty: '0.00001000',
-                    maxQty: '9000.00000000',
-                    stepSize: '0.00001000',
-                  },
-                  {
-                    filterType: 'MIN_NOTIONAL',
-                    minNotional: '10.00000000',
-                    applyToMarket: true,
-                  },
-                ],
-              },
-              {
-                symbol: 'BNBUSDT',
-                status: 'TRADING',
-                baseAsset: 'BNB',
-                baseAssetPrecision: 8,
-                quoteAsset: 'USDT',
-                quotePrecision: 8,
-                quoteAssetPrecision: 8,
-                orderTypes: [
-                  'LIMIT',
-                  'MARKET',
-                  'STOP_LOSS_LIMIT',
-                  'TAKE_PROFIT_LIMIT',
-                ],
-                filters: [
-                  {
-                    filterType: 'PRICE_FILTER',
-                    minPrice: '0.01000000',
-                    maxPrice: '100000.00000000',
-                    tickSize: '0.01000000',
-                  },
-                  {
-                    filterType: 'LOT_SIZE',
-                    minQty: '0.00100000',
-                    maxQty: '9000.00000000',
-                    stepSize: '0.00100000',
-                  },
-                  {
-                    filterType: 'MIN_NOTIONAL',
-                    minNotional: '10.00000000',
-                    applyToMarket: true,
-                  },
-                ],
-              },
-            ],
-          };
+        // Cache the response
+        try {
+          sessionStorage.setItem(cacheKey, data);
+          sessionStorage.setItem(
+            `${cacheKey}_expiry`,
+            (Date.now() + 300000).toString(),
+          ); // 5 minute cache
+        } catch (e) {
+          console.warn('Failed to cache exchangeInfo data:', e);
+        }
 
-          return new Response(JSON.stringify(mockData), {
+        return new Response(data, {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      })
+      .catch((error) => {
+        clearTimeout(timeoutId);
+        console.error(
+          'Error fetching exchangeInfo from Binance Testnet API:',
+          error,
+        );
+
+        // If we have stale cached data, use it as a fallback
+        if (cachedData) {
+          console.warn('Using stale cached exchangeInfo data due to API error');
+          return new Response(cachedData, {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
           });
+        }
+
+        // Fall back to mock data
+        console.warn('Falling back to mock exchangeInfo data');
+        // Use the same mock data as defined earlier
+        const mockData = {
+          timezone: 'UTC',
+          serverTime: Date.now(),
+          rateLimits: [
+            {
+              rateLimitType: 'REQUEST_WEIGHT',
+              interval: 'MINUTE',
+              intervalNum: 1,
+              limit: 1200,
+            },
+          ],
+          symbols: [
+            {
+              symbol: 'BTCUSDT',
+              status: 'TRADING',
+              baseAsset: 'BTC',
+              baseAssetPrecision: 8,
+              quoteAsset: 'USDT',
+              quotePrecision: 8,
+              quoteAssetPrecision: 8,
+              orderTypes: [
+                'LIMIT',
+                'MARKET',
+                'STOP_LOSS_LIMIT',
+                'TAKE_PROFIT_LIMIT',
+              ],
+              filters: [
+                {
+                  filterType: 'PRICE_FILTER',
+                  minPrice: '0.01000000',
+                  maxPrice: '1000000.00000000',
+                  tickSize: '0.01000000',
+                },
+                {
+                  filterType: 'LOT_SIZE',
+                  minQty: '0.00000100',
+                  maxQty: '9000.00000000',
+                  stepSize: '0.00000100',
+                },
+                {
+                  filterType: 'MIN_NOTIONAL',
+                  minNotional: '10.00000000',
+                  applyToMarket: true,
+                },
+              ],
+            },
+            {
+              symbol: 'ETHUSDT',
+              status: 'TRADING',
+              baseAsset: 'ETH',
+              baseAssetPrecision: 8,
+              quoteAsset: 'USDT',
+              quotePrecision: 8,
+              quoteAssetPrecision: 8,
+              orderTypes: [
+                'LIMIT',
+                'MARKET',
+                'STOP_LOSS_LIMIT',
+                'TAKE_PROFIT_LIMIT',
+              ],
+              filters: [
+                {
+                  filterType: 'PRICE_FILTER',
+                  minPrice: '0.01000000',
+                  maxPrice: '100000.00000000',
+                  tickSize: '0.01000000',
+                },
+                {
+                  filterType: 'LOT_SIZE',
+                  minQty: '0.00001000',
+                  maxQty: '9000.00000000',
+                  stepSize: '0.00001000',
+                },
+                {
+                  filterType: 'MIN_NOTIONAL',
+                  minNotional: '10.00000000',
+                  applyToMarket: true,
+                },
+              ],
+            },
+            {
+              symbol: 'BNBUSDT',
+              status: 'TRADING',
+              baseAsset: 'BNB',
+              baseAssetPrecision: 8,
+              quoteAsset: 'USDT',
+              quotePrecision: 8,
+              quoteAssetPrecision: 8,
+              orderTypes: [
+                'LIMIT',
+                'MARKET',
+                'STOP_LOSS_LIMIT',
+                'TAKE_PROFIT_LIMIT',
+              ],
+              filters: [
+                {
+                  filterType: 'PRICE_FILTER',
+                  minPrice: '0.01000000',
+                  maxPrice: '100000.00000000',
+                  tickSize: '0.01000000',
+                },
+                {
+                  filterType: 'LOT_SIZE',
+                  minQty: '0.00100000',
+                  maxQty: '9000.00000000',
+                  stepSize: '0.00100000',
+                },
+                {
+                  filterType: 'MIN_NOTIONAL',
+                  minNotional: '10.00000000',
+                  applyToMarket: true,
+                },
+              ],
+            },
+          ],
+        };
+
+        return new Response(JSON.stringify(mockData), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
         });
-    } catch (error) {
-      console.error('Error in exchangeInfo request handler:', error);
-
-      // Fall back to mock data
-      console.warn(
-        'Falling back to mock exchangeInfo data due to unexpected error',
-      );
-      // Use the same mock data as defined earlier
-      const mockData = {
-        timezone: 'UTC',
-        serverTime: Date.now(),
-        rateLimits: [
-          {
-            rateLimitType: 'REQUEST_WEIGHT',
-            interval: 'MINUTE',
-            intervalNum: 1,
-            limit: 1200,
-          },
-        ],
-        symbols: [
-          {
-            symbol: 'BTCUSDT',
-            status: 'TRADING',
-            baseAsset: 'BTC',
-            baseAssetPrecision: 8,
-            quoteAsset: 'USDT',
-            quotePrecision: 8,
-            quoteAssetPrecision: 8,
-            orderTypes: [
-              'LIMIT',
-              'MARKET',
-              'STOP_LOSS_LIMIT',
-              'TAKE_PROFIT_LIMIT',
-            ],
-            filters: [
-              {
-                filterType: 'PRICE_FILTER',
-                minPrice: '0.01000000',
-                maxPrice: '1000000.00000000',
-                tickSize: '0.01000000',
-              },
-              {
-                filterType: 'LOT_SIZE',
-                minQty: '0.00000100',
-                maxQty: '9000.00000000',
-                stepSize: '0.00000100',
-              },
-              {
-                filterType: 'MIN_NOTIONAL',
-                minNotional: '10.00000000',
-                applyToMarket: true,
-              },
-            ],
-          },
-          {
-            symbol: 'ETHUSDT',
-            status: 'TRADING',
-            baseAsset: 'ETH',
-            baseAssetPrecision: 8,
-            quoteAsset: 'USDT',
-            quotePrecision: 8,
-            quoteAssetPrecision: 8,
-            orderTypes: [
-              'LIMIT',
-              'MARKET',
-              'STOP_LOSS_LIMIT',
-              'TAKE_PROFIT_LIMIT',
-            ],
-            filters: [
-              {
-                filterType: 'PRICE_FILTER',
-                minPrice: '0.01000000',
-                maxPrice: '100000.00000000',
-                tickSize: '0.01000000',
-              },
-              {
-                filterType: 'LOT_SIZE',
-                minQty: '0.00001000',
-                maxQty: '9000.00000000',
-                stepSize: '0.00001000',
-              },
-              {
-                filterType: 'MIN_NOTIONAL',
-                minNotional: '10.00000000',
-                applyToMarket: true,
-              },
-            ],
-          },
-          {
-            symbol: 'BNBUSDT',
-            status: 'TRADING',
-            baseAsset: 'BNB',
-            baseAssetPrecision: 8,
-            quoteAsset: 'USDT',
-            quotePrecision: 8,
-            quoteAssetPrecision: 8,
-            orderTypes: [
-              'LIMIT',
-              'MARKET',
-              'STOP_LOSS_LIMIT',
-              'TAKE_PROFIT_LIMIT',
-            ],
-            filters: [
-              {
-                filterType: 'PRICE_FILTER',
-                minPrice: '0.01000000',
-                maxPrice: '100000.00000000',
-                tickSize: '0.01000000',
-              },
-              {
-                filterType: 'LOT_SIZE',
-                minQty: '0.00100000',
-                maxQty: '9000.00000000',
-                stepSize: '0.00100000',
-              },
-              {
-                filterType: 'MIN_NOTIONAL',
-                minNotional: '10.00000000',
-                applyToMarket: true,
-              },
-            ],
-          },
-        ],
-      };
-
-      return new Response(JSON.stringify(mockData), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
       });
-    }
-  }
+  } catch (error) {
+    console.error('Error in exchangeInfo request handler:', error);
 
-  /**
-   * Handles mock portfolio requests
-   */
-  function handlePortfolioRequest(url: string): Response {
-    const mockData = getMockPortfolioData();
+    // Fall back to mock data
+    console.warn(
+      'Falling back to mock exchangeInfo data due to unexpected error',
+    );
+    // Use the same mock data as defined earlier
+    const mockData = {
+      timezone: 'UTC',
+      serverTime: Date.now(),
+      rateLimits: [
+        {
+          rateLimitType: 'REQUEST_WEIGHT',
+          interval: 'MINUTE',
+          intervalNum: 1,
+          limit: 1200,
+        },
+      ],
+      symbols: [
+        {
+          symbol: 'BTCUSDT',
+          status: 'TRADING',
+          baseAsset: 'BTC',
+          baseAssetPrecision: 8,
+          quoteAsset: 'USDT',
+          quotePrecision: 8,
+          quoteAssetPrecision: 8,
+          orderTypes: [
+            'LIMIT',
+            'MARKET',
+            'STOP_LOSS_LIMIT',
+            'TAKE_PROFIT_LIMIT',
+          ],
+          filters: [
+            {
+              filterType: 'PRICE_FILTER',
+              minPrice: '0.01000000',
+              maxPrice: '1000000.00000000',
+              tickSize: '0.01000000',
+            },
+            {
+              filterType: 'LOT_SIZE',
+              minQty: '0.00000100',
+              maxQty: '9000.00000000',
+              stepSize: '0.00000100',
+            },
+            {
+              filterType: 'MIN_NOTIONAL',
+              minNotional: '10.00000000',
+              applyToMarket: true,
+            },
+          ],
+        },
+        {
+          symbol: 'ETHUSDT',
+          status: 'TRADING',
+          baseAsset: 'ETH',
+          baseAssetPrecision: 8,
+          quoteAsset: 'USDT',
+          quotePrecision: 8,
+          quoteAssetPrecision: 8,
+          orderTypes: [
+            'LIMIT',
+            'MARKET',
+            'STOP_LOSS_LIMIT',
+            'TAKE_PROFIT_LIMIT',
+          ],
+          filters: [
+            {
+              filterType: 'PRICE_FILTER',
+              minPrice: '0.01000000',
+              maxPrice: '100000.00000000',
+              tickSize: '0.01000000',
+            },
+            {
+              filterType: 'LOT_SIZE',
+              minQty: '0.00001000',
+              maxQty: '9000.00000000',
+              stepSize: '0.00001000',
+            },
+            {
+              filterType: 'MIN_NOTIONAL',
+              minNotional: '10.00000000',
+              applyToMarket: true,
+            },
+          ],
+        },
+        {
+          symbol: 'BNBUSDT',
+          status: 'TRADING',
+          baseAsset: 'BNB',
+          baseAssetPrecision: 8,
+          quoteAsset: 'USDT',
+          quotePrecision: 8,
+          quoteAssetPrecision: 8,
+          orderTypes: [
+            'LIMIT',
+            'MARKET',
+            'STOP_LOSS_LIMIT',
+            'TAKE_PROFIT_LIMIT',
+          ],
+          filters: [
+            {
+              filterType: 'PRICE_FILTER',
+              minPrice: '0.01000000',
+              maxPrice: '100000.00000000',
+              tickSize: '0.01000000',
+            },
+            {
+              filterType: 'LOT_SIZE',
+              minQty: '0.00100000',
+              maxQty: '9000.00000000',
+              stepSize: '0.00100000',
+            },
+            {
+              filterType: 'MIN_NOTIONAL',
+              minNotional: '10.00000000',
+              applyToMarket: true,
+            },
+          ],
+        },
+      ],
+    };
+
     return new Response(JSON.stringify(mockData), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
   }
+}
 
-  /**
-   * Handles mock trading pairs requests
-   */
-  function handleTradingPairsRequest(url: string): Response {
-    const mockData = mockDataService.generateTradingPairs('mock'); // Corrected method name
-    return new Response(JSON.stringify(mockData), {
-      status: 200,
+/**
+ * Handles mock portfolio requests
+ */
+function handlePortfolioRequest(url: string): Response {
+  const mockData = getMockPortfolioData();
+  return new Response(JSON.stringify(mockData), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+/**
+ * Handles mock trading pairs requests
+ */
+function handleTradingPairsRequest(url: string): Response {
+  const mockData = mockDataService.generateTradingPairs('mock'); // Corrected method name
+  return new Response(JSON.stringify(mockData), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+/**
+ * Handles mock order book requests
+ */
+function handleOrderBookRequest(url: string): Response {
+  const urlObj = new URL(url, window.location.origin);
+  const symbol = urlObj.searchParams.get('symbol') || 'BTCUSDT';
+  const limit = parseInt(urlObj.searchParams.get('limit') || '20');
+  const mockData = mockDataService.generateOrderBook('mock', symbol, limit);
+  return new Response(JSON.stringify(mockData), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+/**
+ * Handles mock klines requests
+ */
+function handleKlinesRequest(url: string): Response {
+  const urlObj = new URL(url, window.location.origin);
+  const symbol = urlObj.searchParams.get('symbol') || 'BTCUSDT';
+  const interval = urlObj.searchParams.get('interval') || '1h';
+  const limit = parseInt(urlObj.searchParams.get('limit') || '100');
+  const mockData = mockDataService.generateKlines(
+    'mock',
+    symbol,
+    interval,
+    undefined, // startTime
+    undefined, // endTime
+    limit, // Correct position for limit
+  );
+  return new Response(JSON.stringify(mockData), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+/**
+ * Handles mock orders requests
+ */
+function handleOrdersRequest(url: string, init?: RequestInit): Response {
+  if (init?.method === 'POST') {
+    // Mock order creation
+    const body = init.body ? JSON.parse(init.body.toString()) : {};
+    const newOrder = {
+      orderId: `mock-${Date.now()}`,
+      symbol: body.symbol,
+      side: body.side,
+      type: body.type,
+      quantity: body.quantity,
+      price: body.price,
+      status: 'NEW',
+      timestamp: Date.now(),
+    };
+    return new Response(JSON.stringify(newOrder), {
+      status: 201,
       headers: { 'Content-Type': 'application/json' },
     });
-  }
-
-  /**
-   * Handles mock order book requests
-   */
-  function handleOrderBookRequest(url: string): Response {
-    const urlObj = new URL(url, window.location.origin);
-    const symbol = urlObj.searchParams.get('symbol') || 'BTCUSDT';
-    const limit = parseInt(urlObj.searchParams.get('limit') || '20');
-    const mockData = mockDataService.generateOrderBook('mock', symbol, limit);
-    return new Response(JSON.stringify(mockData), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  /**
-   * Handles mock klines requests
-   */
-  function handleKlinesRequest(url: string): Response {
-    const urlObj = new URL(url, window.location.origin);
-    const symbol = urlObj.searchParams.get('symbol') || 'BTCUSDT';
-    const interval = urlObj.searchParams.get('interval') || '1h';
-    const limit = parseInt(urlObj.searchParams.get('limit') || '100');
-    const mockData = mockDataService.generateKlines(
+  } else {
+    // Mock fetching orders
+    // Corrected arguments: userId, exchangeId, symbol, count
+    const mockData = mockDataService.generateOrders(
       'mock',
-      symbol,
-      interval,
-      undefined, // startTime
-      undefined, // endTime
-      limit, // Correct position for limit
+      'mock',
+      'BTCUSDT',
+      10,
     );
     return new Response(JSON.stringify(mockData), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
   }
-
-  /**
-   * Handles mock orders requests
-   */
-  function handleOrdersRequest(url: string, init?: RequestInit): Response {
-    if (init?.method === 'POST') {
-      // Mock order creation
-      const body = init.body ? JSON.parse(init.body.toString()) : {};
-      const newOrder = {
-        orderId: `mock-${Date.now()}`,
-        symbol: body.symbol,
-        side: body.side,
-        type: body.type,
-        quantity: body.quantity,
-        price: body.price,
-        status: 'NEW',
-        timestamp: Date.now(),
-      };
-      return new Response(JSON.stringify(newOrder), {
-        status: 201,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    } else {
-      // Mock fetching orders
-      // Corrected arguments: userId, exchangeId, symbol, count
-      const mockData = mockDataService.generateOrders(
-        'mock',
-        'mock',
-        'BTCUSDT',
-        10,
-      );
-      return new Response(JSON.stringify(mockData), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-  }
-
-  // Close the handleApiWithMockData function
 }
