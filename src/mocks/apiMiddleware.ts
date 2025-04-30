@@ -218,11 +218,25 @@ async function handleApiWithMockData(
           `Generating mock order book for ${formattedSymbol} with limit ${limit}`,
         );
 
-        const mockData = mockDataService.generateOrderBook(
+        // Ensure we're using the correct format for the mock data
+        const mockOrderBook = mockDataService.generateOrderBook(
           'binance_testnet',
           formattedSymbol,
           limit,
         );
+
+        // Convert to Binance API format
+        const mockData = {
+          lastUpdateId: Date.now(),
+          bids: mockOrderBook.bids.map((entry) => [
+            entry.price.toString(),
+            entry.quantity.toString(),
+          ]),
+          asks: mockOrderBook.asks.map((entry) => [
+            entry.price.toString(),
+            entry.quantity.toString(),
+          ]),
+        };
 
         return new Response(
           JSON.stringify({

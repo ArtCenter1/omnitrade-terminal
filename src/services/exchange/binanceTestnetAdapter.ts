@@ -14,6 +14,7 @@ import {
   OrderType,
   TimeInForce,
 } from '@/types/exchange';
+import { AssetInfo, AssetNetwork } from '@/types/assetInfo';
 import axios from 'axios';
 
 import { BaseExchangeAdapter } from './baseExchangeAdapter';

@@ -158,6 +158,16 @@ export const DEFAULT_MOCK_ACCOUNTS: ExchangeAccount[] = [
     apiKeyId: 'mock-key-3',
   },
   {
+    id: 'binance-testnet-account',
+    name: 'Binance Testnet', // Clear name for the testnet
+    exchange: 'Binance Testnet',
+    exchangeId: 'binance_testnet',
+    value: '$10,000.00', // Standard starting amount for testnet
+    change: '+0.00%', // No change initially
+    logo: '/exchanges/binance.svg', // Use Binance logo
+    apiKeyId: 'binance-testnet-key',
+  },
+  {
     id: 'demo-account',
     name: '🔰 Demo Account', // Prefixed with a training symbol emoji
     exchange: 'Demo',
@@ -448,5 +458,15 @@ export const _DEFAULT_MOCK_ACCOUNTS: ExchangeAccount[] = [
     change: '+2.15%',
     logo: '/exchanges/coinbase.svg',
     apiKeyId: 'mock-key-3',
+  },
+  {
+    id: 'binance-testnet-account',
+    name: 'Binance Testnet',
+    exchange: 'Binance Testnet',
+    exchangeId: 'binance_testnet',
+    value: '$10,000.00',
+    change: '+0.00%',
+    logo: '/exchanges/binance.svg',
+    apiKeyId: 'binance-testnet-key',
   },
 ];
