@@ -408,24 +408,31 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
         url = `${url}?${queryString}`;
       }
 
-      // console.log(`Making request to: ${url}`); // Reduced logging verbosity
+      console.log(`[BinanceTestnetAdapter] Making request to: ${url}`);
 
       // Check if we're in mock mode and adjust the URL if needed
       const { isMockMode } = await import('@/config/exchangeConfig');
       if (isMockMode()) {
         // In mock mode, we need to ensure the URL is properly formatted for the mock API
-        // console.log('Using mock mode for Binance Testnet request'); // Reduced logging verbosity
+        console.log(
+          '[BinanceTestnetAdapter] Using mock mode for Binance Testnet request',
+        );
 
         // If the URL is already a mock URL, use it as is
         if (url.includes('/api/mock/')) {
-          // console.log('URL is already a mock URL:', url); // Reduced logging verbosity
+          console.log(
+            '[BinanceTestnetAdapter] URL is already a mock URL:',
+            url,
+          );
         } else {
           // Otherwise, convert it to a mock URL
           const mockUrl = url.replace(
             'https://testnet.binance.vision/api',
             '/api/mock/binance_testnet',
           );
-          // console.log(`Converting URL from ${url} to ${mockUrl}`); // Reduced logging verbosity
+          console.log(
+            `[BinanceTestnetAdapter] Converting URL from ${url} to ${mockUrl}`,
+          );
           url = mockUrl;
         }
       }
@@ -442,26 +449,30 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       });
     } catch (error) {
       console.error(
-        `Error making unauthenticated request to ${endpoint}:`,
+        `[BinanceTestnetAdapter] Error making unauthenticated request to ${endpoint}:`,
         error,
       );
 
       // Log more details about the error
-      // console.log('Error details:', { // Reduced logging verbosity
-      //   endpoint,
-      //   params,
-      //   baseUrl: this.baseUrl,
-      //   error: error instanceof Error ? error.message : String(error),
-      // });
+      console.log('[BinanceTestnetAdapter] Error details:', {
+        endpoint,
+        params,
+        baseUrl: this.baseUrl,
+        error: error instanceof Error ? error.message : String(error),
+      });
 
       // If we get a 404 error, try to use the mock data service directly
       if (error instanceof Error && error.message.includes('404')) {
-        console.log('Got 404 error, falling back to mock data service');
+        console.log(
+          '[BinanceTestnetAdapter] Got 404 error, falling back to mock data service',
+        );
 
         // Determine what kind of data to generate based on the endpoint
         if (endpoint.includes('/ticker/24hr')) {
           const symbol = (params.symbol as string) || 'BTCUSDT';
-          console.log(`Generating mock ticker stats for ${symbol}`);
+          console.log(
+            `[BinanceTestnetAdapter] Generating mock ticker stats for ${symbol}`,
+          );
 
           // Convert BTCUSDT format to BTC/USDT if needed
           const formattedSymbol = symbol.includes('/')
@@ -472,6 +483,38 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
             this.exchangeId,
             formattedSymbol,
           ) as unknown as T;
+        } else if (endpoint.includes('/depth')) {
+          const symbol = (params.symbol as string) || 'BTCUSDT';
+          const limit = (params.limit as number) || 100;
+          console.log(
+            `[BinanceTestnetAdapter] Generating mock order book for ${symbol}`,
+          );
+
+          // Convert BTCUSDT format to BTC/USDT if needed
+          const formattedSymbol = symbol.includes('/')
+            ? symbol
+            : `${symbol.slice(0, -4)}/${symbol.slice(-4)}`;
+
+          const orderBook = this.mockDataService.generateOrderBook(
+            this.exchangeId,
+            formattedSymbol,
+            limit,
+          );
+
+          // Convert to Binance API format
+          const binanceFormat = {
+            lastUpdateId: Date.now(),
+            bids: orderBook.bids.map((bid) => [
+              bid.price.toString(),
+              bid.quantity.toString(),
+            ]),
+            asks: orderBook.asks.map((ask) => [
+              ask.price.toString(),
+              ask.quantity.toString(),
+            ]),
+          };
+
+          return binanceFormat as unknown as T;
         }
         // Add more mock fallbacks here if needed for other endpoints
       }
@@ -667,45 +710,84 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
   ): Promise<OrderBook> {
     try {
       const binanceSymbol = symbol.replace('/', ''); // Convert BTC/USDT to BTCUSDT
-      const response = await this.makeUnauthenticatedRequest<{
-        lastUpdateId: number;
-        bids: string[][]; // [price, quantity]
-        asks: string[][]; // [price, quantity]
-      }>(
-        '/api/v3/depth', // Corrected endpoint
-        { symbol: binanceSymbol, limit },
-        this.calculateOrderBookWeight(limit), // Calculate weight based on limit
+      console.log(
+        `[BinanceTestnetAdapter] Fetching order book for ${binanceSymbol} with limit ${limit}`,
       );
 
-      return {
-        symbol: symbol,
-        exchangeId: this.exchangeId, // Add exchangeId
-        timestamp: Date.now(), // Use current time as Binance doesn't provide timestamp here
-        lastUpdateId: response.lastUpdateId,
-        bids: response.bids
-          ? response.bids.map((bid: string[]) => ({
-              price: parseFloat(bid[0]),
-              quantity: parseFloat(bid[1]),
-            }))
-          : [],
-        asks: response.asks
-          ? response.asks.map((ask: string[]) => ({
-              price: parseFloat(ask[0]),
-              quantity: parseFloat(ask[1]),
-            }))
-          : [],
-      };
+      try {
+        const response = await this.makeUnauthenticatedRequest<{
+          lastUpdateId: number;
+          bids: string[][]; // [price, quantity]
+          asks: string[][]; // [price, quantity]
+        }>(
+          '/api/v3/depth', // Corrected endpoint
+          { symbol: binanceSymbol, limit },
+          this.calculateOrderBookWeight(limit), // Calculate weight based on limit
+        );
+
+        // Validate the response
+        if (!response || !response.bids || !response.asks) {
+          console.error(
+            `[BinanceTestnetAdapter] Invalid order book response for ${symbol}:`,
+            response,
+          );
+          throw new Error('Invalid order book response');
+        }
+
+        console.log(
+          `[BinanceTestnetAdapter] Successfully fetched order book for ${symbol} with ${response.bids.length} bids and ${response.asks.length} asks`,
+        );
+
+        return {
+          symbol: symbol,
+          exchangeId: this.exchangeId, // Add exchangeId
+          timestamp: Date.now(), // Use current time as Binance doesn't provide timestamp here
+          lastUpdateId: response.lastUpdateId,
+          bids: response.bids.map((bid: string[]) => ({
+            price: parseFloat(bid[0]),
+            quantity: parseFloat(bid[1]),
+          })),
+          asks: response.asks.map((ask: string[]) => ({
+            price: parseFloat(ask[0]),
+            quantity: parseFloat(ask[1]),
+          })),
+        };
+      } catch (apiError) {
+        console.error(
+          `[BinanceTestnetAdapter] API error getting order book for ${symbol}:`,
+          apiError,
+        );
+
+        // If we get a 404 error, fall back to mock data
+        if (apiError instanceof Error && apiError.message.includes('404')) {
+          console.log(
+            `[BinanceTestnetAdapter] 404 error, falling back to mock data service for ${symbol}`,
+          );
+          return this.mockDataService.generateOrderBook(
+            this.exchangeId,
+            symbol,
+            limit,
+          );
+        }
+
+        // For other errors, rethrow to be handled by the outer catch
+        throw apiError;
+      }
     } catch (error) {
-      console.error(`Error getting order book for ${symbol}:`, error);
-      // Return an empty order book structure on error
-      return {
-        symbol: symbol,
-        exchangeId: this.exchangeId, // Add exchangeId
-        timestamp: Date.now(),
-        lastUpdateId: 0,
-        bids: [],
-        asks: [],
-      };
+      console.error(
+        `[BinanceTestnetAdapter] Error getting order book for ${symbol}:`,
+        error,
+      );
+
+      // Generate mock order book data
+      console.log(
+        `[BinanceTestnetAdapter] Generating mock order book for ${symbol}`,
+      );
+      return this.mockDataService.generateOrderBook(
+        this.exchangeId,
+        symbol,
+        limit,
+      );
     }
   }
 

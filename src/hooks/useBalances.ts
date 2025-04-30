@@ -51,9 +51,16 @@ export function useBalances(assetFilter?: string[]) {
   // Effect to load initial balances and subscribe to updates
   useEffect(() => {
     if (!exchangeId || !apiKeyId || !isInitialized) {
+      console.log(
+        `[useBalances] Missing required data: exchangeId=${exchangeId}, apiKeyId=${apiKeyId}, isInitialized=${isInitialized}`,
+      );
       setBalances({});
       return;
     }
+
+    console.log(
+      `[useBalances] Loading balances for ${exchangeId} with API key ${apiKeyId}`,
+    );
 
     try {
       // Load initial balances
@@ -61,16 +68,68 @@ export function useBalances(assetFilter?: string[]) {
         exchangeId,
         apiKeyId,
       );
+
+      console.log(`[useBalances] Initial balances loaded:`, initialBalances);
+      console.log(
+        `[useBalances] Balance count: ${Object.keys(initialBalances).length}`,
+      );
+
       setBalances(initialBalances);
+
+      // If no balances were found, try to refresh them
+      if (Object.keys(initialBalances).length === 0) {
+        console.log(`[useBalances] No balances found, triggering refresh`);
+        setTimeout(() => {
+          balanceTrackingService
+            .refreshBalances(exchangeId, apiKeyId)
+            .then(() => console.log(`[useBalances] Refresh completed`))
+            .catch((err) =>
+              console.error(`[useBalances] Refresh failed:`, err),
+            );
+        }, 500);
+      }
 
       // Subscribe to balance updates
       const unsubscribe = balanceTrackingService.subscribe(
-        (update: BalanceUpdate) => {
+        (update: BalanceUpdate | any) => {
+          // Check if this is a balancesRefreshed event
+          if (update.type === 'balancesRefreshed') {
+            console.log(
+              `[useBalances] Received balancesRefreshed event for ${update.exchangeId} with API key ${update.apiKeyId}`,
+            );
+
+            // Only process updates for the selected account
+            if (
+              update.exchangeId === exchangeId &&
+              update.apiKeyId === apiKeyId
+            ) {
+              console.log(
+                `[useBalances] Refreshing balances for ${exchangeId} with API key ${apiKeyId}`,
+              );
+
+              // Get the updated balances
+              const updatedBalances = balanceTrackingService.getBalances(
+                exchangeId,
+                apiKeyId,
+              );
+
+              // Update the state with the new balances
+              setBalances(updatedBalances);
+              setLastUpdate(new Date(update.timestamp));
+            }
+            return;
+          }
+
+          // Regular balance update
           // Only process updates for the selected account
           if (
             update.exchangeId === exchangeId &&
             update.apiKeyId === apiKeyId
           ) {
+            console.log(
+              `[useBalances] Received balance update for ${update.asset}: Free=${update.balance.free}, Locked=${update.balance.locked}, Total=${update.balance.total}`,
+            );
+
             setBalances((prev) => ({
               ...prev,
               [update.asset]: {
@@ -85,6 +144,9 @@ export function useBalances(assetFilter?: string[]) {
 
       // Cleanup subscription on unmount or when account changes
       return () => {
+        console.log(
+          `[useBalances] Unsubscribing from balance updates for ${exchangeId} with API key ${apiKeyId}`,
+        );
         unsubscribe();
       };
     } catch (error) {
@@ -113,12 +175,32 @@ export function useBalances(assetFilter?: string[]) {
   // Function to manually refresh balances
   const refreshBalances = async () => {
     if (!exchangeId || !apiKeyId || isRefreshing || !isInitialized) {
+      console.log(
+        `[useBalances] Cannot refresh: exchangeId=${exchangeId}, apiKeyId=${apiKeyId}, isRefreshing=${isRefreshing}, isInitialized=${isInitialized}`,
+      );
       return;
     }
 
+    console.log(
+      `[useBalances] Manually refreshing balances for ${exchangeId} with API key ${apiKeyId}`,
+    );
     setIsRefreshing(true);
     try {
       await balanceTrackingService.refreshBalances(exchangeId, apiKeyId);
+      console.log(`[useBalances] Manual refresh completed`);
+
+      // Get the updated balances
+      const updatedBalances = balanceTrackingService.getBalances(
+        exchangeId,
+        apiKeyId,
+      );
+      console.log(`[useBalances] Updated balances:`, updatedBalances);
+      console.log(
+        `[useBalances] Updated balance count: ${Object.keys(updatedBalances).length}`,
+      );
+
+      // Update the state with the new balances
+      setBalances(updatedBalances);
     } catch (error) {
       console.error('Error refreshing balances:', error);
     } finally {
