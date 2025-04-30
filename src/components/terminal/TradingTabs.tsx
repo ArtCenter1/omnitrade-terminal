@@ -679,37 +679,23 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
           localStorage.getItem('omnitrade_mock_orders') || '[]',
         );
 
-        // Format the order for localStorage
-        const formattedOrder = {
-          id: order.id,
-          userId: 'current-user',
-          exchangeId: order.exchangeId || exchangeId,
-          symbol: order.symbol,
-          side: order.side,
-          type: order.type,
-          status: order.status || 'new',
-          price: order.price,
-          stopPrice: order.stopPrice,
-          quantity: order.quantity,
-          filledQuantity: order.executed || 0,
-          avgFillPrice: order.price,
-          createdAt: order.timestamp
-            ? new Date(order.timestamp).toISOString()
-            : new Date().toISOString(),
-          updatedAt: order.lastUpdated
-            ? new Date(order.lastUpdated).toISOString()
-            : new Date().toISOString(),
-        };
-
         // Check if the order is already in localStorage
         const orderExists = currentOrders.some((o: any) => o.id === order.id);
         if (!orderExists) {
           // Format the order to match what the OrdersTable component expects
           const formattedOrder = {
-            ...order,
-            // Add required fields for OrdersTable
+            id: order.id,
             userId: 'current-user',
+            exchangeId: order.exchangeId || exchangeId,
+            symbol: order.symbol,
+            side: order.side,
+            type: order.type,
+            status: order.status || 'new',
+            price: order.price,
+            stopPrice: order.stopPrice,
+            quantity: order.quantity,
             filledQuantity: order.executed || 0,
+            avgFillPrice: order.price,
             // Ensure dates are in the correct format
             createdAt: order.timestamp
               ? new Date(order.timestamp).toISOString()
@@ -719,30 +705,62 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
               : new Date().toISOString(),
           };
 
-          // Remove fields that might cause confusion
-          delete formattedOrder.executed;
-          delete formattedOrder.remaining;
-          delete formattedOrder.timestamp;
-          delete formattedOrder.lastUpdated;
+          // Log the formatted order for debugging
+          logger.debug('Formatted order for localStorage', {
+            component: 'TradingTabs',
+            method: 'handlePlaceOrder',
+            data: { formattedOrder },
+          });
 
           currentOrders.push(formattedOrder);
 
+          // Save to localStorage
           localStorage.setItem(
             'omnitrade_mock_orders',
             JSON.stringify(currentOrders),
           );
 
-          logger.debug('Order saved to localStorage with correct format', {
+          // Verify the save was successful
+          const savedOrders = localStorage.getItem('omnitrade_mock_orders');
+          if (savedOrders) {
+            const parsedOrders = JSON.parse(savedOrders);
+            const savedOrder = parsedOrders.find((o: any) => o.id === order.id);
+
+            if (savedOrder) {
+              logger.debug('Order successfully saved to localStorage', {
+                component: 'TradingTabs',
+                method: 'handlePlaceOrder',
+                data: {
+                  orderId: order.id,
+                  savedOrder,
+                  totalOrdersCount: parsedOrders.length,
+                },
+              });
+            } else {
+              logger.warn('Order not found in localStorage after save', {
+                component: 'TradingTabs',
+                method: 'handlePlaceOrder',
+                data: {
+                  orderId: order.id,
+                  totalOrdersCount: parsedOrders.length,
+                },
+              });
+            }
+          } else {
+            logger.warn('Failed to verify localStorage save', {
+              component: 'TradingTabs',
+              method: 'handlePlaceOrder',
+            });
+          }
+        } else {
+          logger.debug('Order already exists in localStorage', {
             component: 'TradingTabs',
             method: 'handlePlaceOrder',
-            data: {
-              orderId: order.id,
-              formattedOrder,
-            },
+            data: { orderId: order.id },
           });
         }
       } catch (storageError) {
-        logger.warn('Failed to save order to localStorage', {
+        logger.error('Failed to save order to localStorage', {
           component: 'TradingTabs',
           method: 'handlePlaceOrder',
           data: { error: storageError },
@@ -782,14 +800,9 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
           method: 'handlePlaceOrder',
         });
 
-        // Set up multiple refreshes to ensure orders are updated
-        // First refresh immediately
+        // Call the parent's onOrderPlaced handler to trigger refreshes
+        // The parent component (Terminal) will handle multiple refreshes
         onOrderPlaced();
-
-        // Then refresh a few more times with delays
-        setTimeout(() => onOrderPlaced(), 500);
-        setTimeout(() => onOrderPlaced(), 1500);
-        setTimeout(() => onOrderPlaced(), 3000);
       }
     } catch (error) {
       logger.error('Error placing order', {

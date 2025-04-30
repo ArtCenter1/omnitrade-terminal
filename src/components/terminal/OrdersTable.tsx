@@ -193,11 +193,35 @@ export function OrdersTable({
         combinedOrders,
       );
 
+      // Normalize order data to ensure consistent format
+      const normalizedOrders = combinedOrders.map((order) => {
+        // Ensure all required fields exist
+        return {
+          ...order,
+          // Use fallbacks for missing fields
+          id: order.id || `unknown-${Date.now()}`,
+          exchangeId:
+            order.exchangeId || selectedAccount?.exchangeId || 'unknown',
+          symbol: order.symbol || selectedSymbol || 'unknown',
+          side: order.side || 'buy',
+          type: order.type || 'market',
+          status: order.status || 'new',
+          quantity: order.quantity || 0,
+          filledQuantity: order.filledQuantity || order.executed || 0,
+          price: order.price || 0,
+          createdAt: order.createdAt || order.timestamp || new Date(),
+          updatedAt: order.updatedAt || order.lastUpdated || new Date(),
+        };
+      });
+
       // Sort orders by creation date (newest first)
-      const sortedOrders = [...combinedOrders].sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      );
+      const sortedOrders = [...normalizedOrders].sort((a, b) => {
+        const dateA =
+          a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+        const dateB =
+          b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+        return dateB.getTime() - dateA.getTime();
+      });
 
       console.log('Sorted orders:', sortedOrders);
       setOrders(sortedOrders);
@@ -420,7 +444,7 @@ export function OrdersTable({
                       {order.quantity.toFixed(8)}
                     </td>
                     <td className="py-2 px-4 text-sm text-right text-gray-300">
-                      {order.filledQuantity.toFixed(8)}
+                      {(order.filledQuantity || order.executed || 0).toFixed(8)}
                     </td>
                     <td className="py-2 px-4 text-sm text-right">
                       <span className="px-2 py-1 rounded-full text-xs bg-gray-800 text-gray-300">
@@ -510,7 +534,7 @@ export function OrdersTable({
                       {order.quantity.toFixed(8)}
                     </td>
                     <td className="py-2 px-4 text-sm text-right text-gray-300">
-                      {order.filledQuantity.toFixed(8)}
+                      {(order.filledQuantity || order.executed || 0).toFixed(8)}
                     </td>
                     <td className="py-2 px-4 text-sm text-right">
                       <span

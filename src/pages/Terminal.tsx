@@ -146,11 +146,16 @@ export default function Terminal() {
     // Increment the refresh trigger to cause a refresh of components that depend on it
     setRefreshTrigger((prev) => prev + 1);
 
-    // Add a second refresh after a delay to ensure market orders that are filled after a delay are shown
-    setTimeout(() => {
-      console.log('Terminal: Delayed refresh for market orders...');
-      setRefreshTrigger((prev) => prev + 1);
-    }, 2500); // Slightly longer than the market order fill delay (2000ms)
+    // Set up multiple refreshes with increasing delays to ensure orders are properly updated
+    // This helps catch both immediate updates and delayed updates (like market order fills)
+    const refreshDelays = [500, 1500, 2500, 5000]; // Multiple refresh points
+
+    refreshDelays.forEach((delay) => {
+      setTimeout(() => {
+        console.log(`Terminal: Delayed refresh after ${delay}ms...`);
+        setRefreshTrigger((prev) => prev + 1);
+      }, delay);
+    });
   };
 
   return (
