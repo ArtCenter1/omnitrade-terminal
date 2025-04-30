@@ -378,6 +378,25 @@ async function handleApiWithMockData(
         });
       }
 
+      if (url.includes('trades')) {
+        const urlObj = new URL(url, window.location.origin);
+        const symbol = urlObj.searchParams.get('symbol') || 'BTCUSDT';
+        const limit = parseInt(urlObj.searchParams.get('limit') || '50');
+        console.log(
+          `Generating mock trades for ${symbol} with limit ${limit} (Binance Testnet disabled)`,
+        );
+        const mockData = mockDataService.generateRecentTrades(
+          'binance_testnet',
+          symbol,
+          limit,
+        );
+
+        return new Response(JSON.stringify(mockData), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
       // Default fallback for unhandled endpoints
       return new Response(
         JSON.stringify({
@@ -1260,6 +1279,19 @@ async function handleApiWithMockData(
           interval,
           undefined,
           undefined,
+          limit,
+        );
+        return new Response(JSON.stringify(mockData), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      } else if (path.includes('/trades')) {
+        // Recent trades data
+        const limit = parseInt(urlObj.searchParams.get('limit') || '50');
+        console.log(`Generating mock trades for ${symbol} with limit ${limit}`);
+        const mockData = mockDataService.generateRecentTrades(
+          'binance_testnet',
+          symbol,
           limit,
         );
         return new Response(JSON.stringify(mockData), {
