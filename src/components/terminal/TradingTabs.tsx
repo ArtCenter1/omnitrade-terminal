@@ -155,6 +155,7 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
 
   const handleTotalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTotal = e.target.value;
+    console.log(`Total changed to: ${newTotal}`);
 
     // Format the total to 2 decimal places if it's a valid number
     if (!isNaN(parseFloat(newTotal))) {
@@ -176,12 +177,53 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
 
       let priceToUse = 0;
 
-      if (orderType === 'market' && selectedPair?.price) {
-        // For market orders, use the current pair price
-        priceToUse = parseFloat(selectedPair.price.replace(/,/g, ''));
+      // Determine which price to use based on order type
+      if (orderType === 'market') {
+        // For market orders, try multiple sources to get a valid price
+        if (selectedPair?.price) {
+          // First try the price from the selected pair
+          priceToUse = parseFloat(selectedPair.price.replace(/,/g, ''));
+          console.log(`Using price from selectedPair: ${priceToUse}`);
+        }
+
+        // If we still don't have a valid price, try to get it from mockExchangeService
+        if (!priceToUse || priceToUse <= 0) {
+          const exchangeId = selectedAccount?.exchangeId || 'binance';
+          const pairSymbol =
+            selectedPair?.symbol || `${baseAsset}/${quoteAsset}`;
+          const currentPrice = mockExchangeService.getCurrentPrice(
+            exchangeId,
+            pairSymbol,
+          );
+
+          if (currentPrice && parseFloat(currentPrice) > 0) {
+            priceToUse = parseFloat(currentPrice);
+            console.log(`Using price from mockExchangeService: ${priceToUse}`);
+          }
+        }
+
+        // If we still don't have a valid price, try to get it from PriceContext
+        if (!priceToUse || priceToUse <= 0) {
+          const bestPrice = getBestPrice();
+          if (bestPrice && bestPrice !== '0' && bestPrice !== '0.00') {
+            priceToUse = parseFloat(bestPrice);
+            console.log(`Using price from PriceContext: ${priceToUse}`);
+          }
+        }
+
+        // If we still don't have a valid price, use a default price
+        if (!priceToUse || priceToUse <= 0) {
+          priceToUse =
+            baseAsset === 'BTC' ? 60000 : baseAsset === 'ETH' ? 3000 : 10;
+          console.log(`Using default price: ${priceToUse}`);
+        }
+
+        // Update the price state for consistency
+        setPrice(priceToUse.toString());
       } else if (price && !isNaN(parseFloat(price))) {
         // For limit/stop orders, use the entered price
         priceToUse = parseFloat(price);
+        console.log(`Using entered price: ${priceToUse} for limit/stop order`);
       }
 
       if (priceToUse > 0) {
@@ -192,6 +234,8 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
           `Calculated amount: ${calculatedAmount} using price: ${priceToUse} and total: ${totalValue}`,
         );
         setAmount(calculatedAmount);
+      } else {
+        console.error('Could not determine a valid price for calculation');
       }
     } else {
       // If it's not a valid number, just set the raw value
@@ -922,6 +966,15 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
         <Input
           value={total}
           onChange={handleTotalChange}
+          onBlur={(e) => {
+            // Format the value on blur for better UX
+            if (e.target.value && !isNaN(parseFloat(e.target.value))) {
+              const formattedValue = parseFloat(e.target.value).toFixed(2);
+              setTotal(formattedValue);
+            }
+          }}
+          type="text"
+          inputMode="decimal"
           className="bg-gray-900 border-gray-800 h-7 text-sm py-0"
           placeholder="0.00"
         />

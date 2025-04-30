@@ -52,6 +52,18 @@ export function setupApiMiddleware() {
     // Log all API requests for debugging
     console.log(`API request: ${url}`);
 
+    // Add more detailed logging for Binance Testnet requests
+    if (url.includes('/api/mock/binance_testnet')) {
+      const urlObj = new URL(url, window.location.origin);
+      console.log(`Binance Testnet request details:`, {
+        path: urlObj.pathname,
+        params: Object.fromEntries(urlObj.searchParams.entries()),
+        method: init?.method || 'GET',
+        useBinanceTestnet: flags.useBinanceTestnet,
+        connectionMode: flags.connectionMode,
+      });
+    }
+
     try {
       // First try the original fetch
       const response = await originalFetch(input, init);
@@ -64,16 +76,27 @@ export function setupApiMiddleware() {
       // If we get here, the request failed but the server responded
       console.warn(`API request failed with status ${response.status}: ${url}`);
 
-      // If it's any Binance Testnet endpoint and it returned 404,
+      // If it's any Binance Testnet endpoint and it returned an error,
       // treat it as unavailable and use the proxy/mock logic.
       // This might be bypassed if RateLimitManager throws an error instead of returning the response.
       if (
-        response.status === 404 &&
+        (response.status === 404 ||
+          response.status === 400 ||
+          response.status >= 500) &&
         url.includes('/api/mock/binance_testnet')
       ) {
         console.log(
-          `Middleware: Detected 404 for ${url}, falling back to direct proxy/mock.`,
+          `Middleware: Detected ${response.status} error for ${url}, falling back to direct proxy/mock.`,
         );
+
+        // Log more details about the error
+        try {
+          const errorText = await response.text();
+          console.error(`Error details: ${errorText}`);
+        } catch (e) {
+          console.error('Could not read error details');
+        }
+
         return handleApiWithMockData(url, init);
       }
 
@@ -225,7 +248,7 @@ async function handleApiWithMockData(
           limit,
         );
 
-        // Convert to Binance API format
+        // Convert to Binance API format - properly format the data
         const mockData = {
           lastUpdateId: Date.now(),
           bids: mockOrderBook.bids.map((entry) => [
@@ -238,23 +261,10 @@ async function handleApiWithMockData(
           ]),
         };
 
-        return new Response(
-          JSON.stringify({
-            lastUpdateId: Date.now(),
-            bids: mockData.bids.map((entry) => [
-              entry.price.toString(),
-              entry.quantity.toString(),
-            ]),
-            asks: mockData.asks.map((entry) => [
-              entry.price.toString(),
-              entry.quantity.toString(),
-            ]),
-          }),
-          {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-          },
-        );
+        return new Response(JSON.stringify(mockData), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
       }
 
       if (url.includes('ticker/24hr')) {
@@ -538,14 +548,24 @@ async function handleApiWithMockData(
       const endpoint = urlPath.replace('/api/mock/binance_testnet', '');
 
       // Construct the real Binance Testnet API URL with parameters
-      let realUrl = `https://testnet.binance.vision/api${endpoint}`;
-      console.log(`Using Binance Testnet API URL: ${realUrl}`);
+      const params = new URLSearchParams();
       if (formattedSymbol) {
-        realUrl += `?symbol=${formattedSymbol}`;
-        if (limit) {
-          realUrl += `&limit=${limit}`;
-        }
+        params.append('symbol', formattedSymbol);
       }
+      if (limit) {
+        params.append('limit', limit.toString());
+      }
+
+      // Make sure the endpoint starts with a slash
+      const formattedEndpoint = endpoint.startsWith('/')
+        ? endpoint
+        : `/${endpoint}`;
+
+      // Properly construct the URL with parameters
+      const realUrl = `https://testnet.binance.vision/api${formattedEndpoint}${params.toString() ? '?' + params.toString() : ''}`;
+
+      console.log(`Constructed Binance Testnet API URL: ${realUrl}`);
+      console.log(`Using Binance Testnet API URL: ${realUrl}`);
 
       // Create a cache key based on the URL
       const cacheKey = `binance_testnet_depth_${symbol}_${limit || 'default'}`;
@@ -616,11 +636,24 @@ async function handleApiWithMockData(
 
             // Fall back to mock data
             console.warn('Falling back to mock depth data');
-            const mockData = mockDataService.generateOrderBook(
+            const mockOrderBook = mockDataService.generateOrderBook(
               'binance_testnet',
               symbol || 'BTCUSDT',
               limit ? parseInt(limit) : 20,
             );
+
+            // Convert to Binance API format
+            const mockData = {
+              lastUpdateId: Date.now(),
+              bids: mockOrderBook.bids.map((entry) => [
+                entry.price.toString(),
+                entry.quantity.toString(),
+              ]),
+              asks: mockOrderBook.asks.map((entry) => [
+                entry.price.toString(),
+                entry.quantity.toString(),
+              ]),
+            };
 
             return new Response(JSON.stringify(mockData), {
               status: 200,
@@ -632,11 +665,24 @@ async function handleApiWithMockData(
 
         // Fall back to mock data
         console.warn('Falling back to mock depth data due to unexpected error');
-        const mockData = mockDataService.generateOrderBook(
+        const mockOrderBook = mockDataService.generateOrderBook(
           'binance_testnet',
           symbol || 'BTCUSDT',
           limit ? parseInt(limit) : 20,
         );
+
+        // Convert to Binance API format
+        const mockData = {
+          lastUpdateId: Date.now(),
+          bids: mockOrderBook.bids.map((entry) => [
+            entry.price.toString(),
+            entry.quantity.toString(),
+          ]),
+          asks: mockOrderBook.asks.map((entry) => [
+            entry.price.toString(),
+            entry.quantity.toString(),
+          ]),
+        };
 
         return new Response(JSON.stringify(mockData), {
           status: 200,
@@ -660,11 +706,13 @@ async function handleApiWithMockData(
       const endpoint = urlPath.replace('/api/mock/binance_testnet', '');
 
       // Construct the real Binance Testnet API URL with parameters
-      let realUrl = `https://testnet.binance.vision/api${endpoint}`;
-      console.log(`Using Binance Testnet API URL for ticker: ${realUrl}`);
+      const params = new URLSearchParams();
       if (formattedSymbol) {
-        realUrl += `?symbol=${formattedSymbol}`;
+        params.append('symbol', formattedSymbol);
       }
+
+      const realUrl = `https://testnet.binance.vision/api${endpoint}${params.toString() ? '?' + params.toString() : ''}`;
+      console.log(`Using Binance Testnet API URL for ticker: ${realUrl}`);
 
       // Create a cache key based on the URL
       const cacheKey = `binance_testnet_ticker_${symbol || 'all'}`;
@@ -960,11 +1008,25 @@ async function handleApiWithMockData(
       if (path.includes('/depth')) {
         // Order book data
         const limit = parseInt(urlObj.searchParams.get('limit') || '20');
-        const mockData = mockDataService.generateOrderBook(
+        const mockOrderBook = mockDataService.generateOrderBook(
           'binance_testnet',
           symbol,
           limit,
         );
+
+        // Convert to Binance API format
+        const mockData = {
+          lastUpdateId: Date.now(),
+          bids: mockOrderBook.bids.map((entry) => [
+            entry.price.toString(),
+            entry.quantity.toString(),
+          ]),
+          asks: mockOrderBook.asks.map((entry) => [
+            entry.price.toString(),
+            entry.quantity.toString(),
+          ]),
+        };
+
         return new Response(JSON.stringify(mockData), {
           status: 200,
           headers: { 'Content-Type': 'application/json' },

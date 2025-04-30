@@ -29,6 +29,56 @@ import { WebSocketManager } from '../connection/websocketManager';
 import { BrowserEventEmitter } from '@/utils/browserEventEmitter';
 import { MockDataService } from '../mockData/mockDataService'; // Import mock data service
 
+// --- Interfaces for getAllAssetDetails (/sapi/v1/capital/config/getall) ---
+
+/**
+ * Represents network details for an asset from Binance API.
+ */
+interface BinanceNetworkDetail {
+  network: string;
+  coin: string;
+  name: string;
+  withdrawIntegerMultiple: string; // e.g., "0.00000001"
+  isDefault: boolean;
+  depositEnable: boolean;
+  withdrawEnable: boolean;
+  depositDesc?: string; // e.g., "Wallet Maintenance, Deposit Suspended"
+  withdrawDesc?: string; // e.g., "Wallet Maintenance, Withdraw Suspended"
+  specialTips?: string;
+  resetAddressStatus?: boolean; // Not always present
+  addressRegex: string;
+  addressRule?: string; // Not always present
+  memoRegex: string;
+  withdrawFee: string; // Fee as a string number
+  withdrawMin: string; // Min withdrawal amount as a string number
+  withdrawMax: string; // Max withdrawal amount as a string number
+  minConfirm: number; // Integer, min number for balance confirmation
+  unLockConfirm: number; // Integer, min number for balance unlock confirmation
+  sameAddress?: boolean; // If the deposit address is same for all networks
+  estimatedArrivalTime?: number; // Not always present
+  busy?: boolean; // Not always present
+}
+
+/**
+ * Represents a single asset's details from the Binance /sapi/v1/capital/config/getall endpoint.
+ */
+interface BinanceAssetDetail {
+  coin: string;
+  depositAllEnable: boolean;
+  withdrawAllEnable: boolean;
+  name: string;
+  free: string; // Not part of /sapi/v1/capital/config/getall, but often needed alongside
+  locked: string; // Not part of /sapi/v1/capital/config/getall
+  freeze: string; // Not part of /sapi/v1/capital/config/getall
+  ipoing: string; // Not part of /sapi/v1/capital/config/getall
+  ipoable: string; // Not part of /sapi/v1/capital/config/getall
+  storage: string; // Not part of /sapi/v1/capital/config/getall
+  withdrawing: string; // Not part of /sapi/v1/capital/config/getall
+  isLegalMoney: boolean;
+  trading: boolean;
+  networkList: BinanceNetworkDetail[];
+}
+
 // --- Interfaces for Balance Updates ---
 interface BalanceUpdatePayload {
   e: 'balanceUpdate'; // Event type
@@ -709,19 +759,27 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
     limit: number = 100,
   ): Promise<OrderBook> {
     try {
-      const binanceSymbol = symbol.replace('/', ''); // Convert BTC/USDT to BTCUSDT
+      // Convert symbol format if needed (e.g., BTC/USDT to BTCUSDT)
+      const binanceSymbol = symbol.replace('/', '');
+
+      // Log the symbol conversion for debugging
       console.log(
-        `[BinanceTestnetAdapter] Fetching order book for ${binanceSymbol} with limit ${limit}`,
+        `[BinanceTestnetAdapter] Getting order book for ${symbol} (${binanceSymbol}) with limit ${limit}`,
       );
 
       try {
+        // Make the request to the Binance Testnet API
+        console.log(
+          `[BinanceTestnetAdapter] Making request to /api/v3/depth with symbol=${binanceSymbol} and limit=${limit}`,
+        );
+
         const response = await this.makeUnauthenticatedRequest<{
           lastUpdateId: number;
           bids: string[][]; // [price, quantity]
           asks: string[][]; // [price, quantity]
         }>(
-          '/api/v3/depth', // Corrected endpoint
-          { symbol: binanceSymbol, limit },
+          '/api/v3/depth', // Endpoint path
+          { symbol: binanceSymbol, limit }, // Query parameters
           this.calculateOrderBookWeight(limit), // Calculate weight based on limit
         );
 
@@ -738,9 +796,10 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
           `[BinanceTestnetAdapter] Successfully fetched order book for ${symbol} with ${response.bids.length} bids and ${response.asks.length} asks`,
         );
 
+        // Convert the response to our OrderBook format
         return {
           symbol: symbol,
-          exchangeId: this.exchangeId, // Add exchangeId
+          exchangeId: this.exchangeId,
           timestamp: Date.now(), // Use current time as Binance doesn't provide timestamp here
           lastUpdateId: response.lastUpdateId,
           bids: response.bids.map((bid: string[]) => ({
@@ -753,25 +812,33 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
           })),
         };
       } catch (apiError) {
+        // Log the detailed error for debugging
         console.error(
           `[BinanceTestnetAdapter] API error getting order book for ${symbol}:`,
           apiError,
         );
 
-        // If we get a 404 error, fall back to mock data
-        if (apiError instanceof Error && apiError.message.includes('404')) {
-          console.log(
-            `[BinanceTestnetAdapter] 404 error, falling back to mock data service for ${symbol}`,
-          );
-          return this.mockDataService.generateOrderBook(
-            this.exchangeId,
-            symbol,
-            limit,
-          );
-        }
+        // Always fall back to mock data on API errors
+        console.log(
+          `[BinanceTestnetAdapter] Falling back to mock data service for ${symbol}`,
+        );
 
-        // For other errors, rethrow to be handled by the outer catch
-        throw apiError;
+        // Generate mock order book data
+        const mockOrderBook = this.mockDataService.generateOrderBook(
+          this.exchangeId,
+          symbol,
+          limit,
+        );
+
+        // Log the mock data for debugging
+        console.log(
+          `[BinanceTestnetAdapter] Generated mock order book with ${mockOrderBook.bids.length} bids and ${mockOrderBook.asks.length} asks`,
+        );
+
+        return {
+          ...mockOrderBook,
+          timestamp: Date.now(), // Ensure timestamp is current
+        };
       }
     } catch (error) {
       console.error(
@@ -779,15 +846,25 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
         error,
       );
 
-      // Generate mock order book data
+      // Always fall back to mock data on any error
       console.log(
-        `[BinanceTestnetAdapter] Generating mock order book for ${symbol}`,
+        `[BinanceTestnetAdapter] Falling back to mock data due to error`,
       );
-      return this.mockDataService.generateOrderBook(
+
+      const mockOrderBook = this.mockDataService.generateOrderBook(
         this.exchangeId,
         symbol,
         limit,
       );
+
+      console.log(
+        `[BinanceTestnetAdapter] Generated mock order book with ${mockOrderBook.bids.length} bids and ${mockOrderBook.asks.length} asks`,
+      );
+
+      return {
+        ...mockOrderBook,
+        timestamp: Date.now(), // Ensure timestamp is current
+      };
     }
   }
 
@@ -1230,6 +1307,30 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       'id' | 'status' | 'timestamp' | 'exchangeId' | 'executed' | 'remaining'
     >, // Exclude fields set by exchange
   ): Promise<Order> {
+    // --- Trading Limits Checking ---
+    // Fetch trading pair info to get limits
+    const tradingPairs = await this.getTradingPairs();
+    const pair = tradingPairs.find(p => p.symbol === order.symbol);
+    if (!pair) {
+      throw new Error(`Trading pair ${order.symbol} not found or not supported.`);
+    }
+    // Check min/max quantity
+    if (typeof order.quantity === 'number') {
+      if (pair.minQuantity && order.quantity < pair.minQuantity) {
+        throw new Error(`Order quantity (${order.quantity}) is below the minimum allowed (${pair.minQuantity}).`);
+      }
+      if (pair.maxQuantity && order.quantity > pair.maxQuantity) {
+        throw new Error(`Order quantity (${order.quantity}) exceeds the maximum allowed (${pair.maxQuantity}).`);
+      }
+    }
+    // Check min notional (order value)
+    if (pair.minNotional && order.price && order.quantity) {
+      const notional = order.price * order.quantity;
+      if (notional < pair.minNotional) {
+        throw new Error(`Order notional (${notional}) is below the minimum allowed (${pair.minNotional}).`);
+      }
+    }
+    // --- End Trading Limits Checking ---
     try {
       const binanceSymbol = order.symbol.replace('/', '');
       const params: Record<string, string | number> = {
@@ -2701,4 +2802,90 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
     }
     return mappedStatus;
   }
+\n  // --- Asset Information ---
+
+  /**
+   * Fetches detailed information for all assets available on the exchange.
+   * Uses the /sapi/v1/capital/config/getall endpoint.
+   * Requires API key with Wallet permissions.
+   *
+   * @param apiKeyId The API key ID to use for authentication.
+   * @returns A promise that resolves to an array of normalized AssetInfo objects.
+   */
+  public async getAllAssetDetails(apiKeyId: string): Promise<AssetInfo[]> {
+    if (!apiKeyId) {
+      const errorMsg = 'Missing apiKeyId for getAllAssetDetails';
+      logger.error(`[${this.exchangeId}] ${errorMsg}`);
+      throw new Error('API Key ID is required to fetch asset details.');
+    }
+
+    logger.info(
+      `[${this.exchangeId}] Fetching all asset details for API key: ${apiKeyId}`,
+    );
+
+    try {
+      // TODO: Implement the actual API call and normalization
+      const response = await this.makeAuthenticatedRequest<BinanceAssetDetail[]>(
+        '/sapi/v1/capital/config/getall',
+        'GET',
+        apiKeyId,
+        {},
+        10, // Weight: 10
+      );
+
+      logger.debug(
+        `[${this.exchangeId}] Received raw asset details for ${response.length} assets.`,
+      );
+
+      // --- Normalization Logic --- TODO
+      const normalizedAssets: AssetInfo[] = response.map((asset) => {
+        const networks: AssetNetwork[] = asset.networkList.map((net) => ({
+          network: net.network,
+          name: net.name,
+          isDefault: net.isDefault,
+          depositEnabled: net.depositEnable,
+          withdrawEnabled: net.withdrawEnable,
+          withdrawFee: parseFloat(net.withdrawFee) || undefined,
+          minWithdraw: parseFloat(net.withdrawMin) || undefined,
+          maxWithdraw: parseFloat(net.withdrawMax) || undefined,
+          addressRegex: net.addressRegex,
+          memoRegex: net.memoRegex,
+        }));
+
+        return {
+          symbol: asset.coin,
+          name: asset.name,
+          // fullName: asset.name, // Assuming name is sufficient for fullName initially
+          precision: 8, // Default precision, might need adjustment based on other endpoints or context
+          // withdrawPrecision: undefined, // Determine from networkList if possible or another source
+          exchangeId: this.exchangeId,
+          // iconUrl: undefined, // Needs a separate source
+          networks: networks,
+          isActive: asset.trading, // Assuming 'trading' status indicates activity
+          isFiat: asset.isLegalMoney,
+          // isStablecoin: undefined, // Needs external data or heuristics
+          // description, website, explorer, etc. need external data source
+          lastUpdated: Date.now(),
+        };
+      });
+
+      logger.info(
+        `[${this.exchangeId}] Successfully fetched and normalized ${normalizedAssets.length} asset details.`,
+      );
+
+      return normalizedAssets;
+    } catch (error) {
+      logger.error(
+        `[${this.exchangeId}] Error fetching all asset details:`,
+        error,
+      );
+      // Re-throw or handle specific errors as needed
+      if (error instanceof Error) {
+        throw new Error(`Failed to fetch asset details: ${error.message}`);
+      } else {
+        throw new Error('An unknown error occurred while fetching asset details.');
+      }
+    }
+  }
+
 } // End of BinanceTestnetAdapter class

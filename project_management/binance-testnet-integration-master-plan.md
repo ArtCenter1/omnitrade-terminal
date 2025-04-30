@@ -145,7 +145,7 @@
 - [x] Implement account information retrieval (`/api/v3/account`)
 - [x] Create balance tracking
 - [x] Add position management
-- [ ] Implement asset information retrieval
+- [x] Implement asset information retrieval (using /sapi/v1/capital/config/getall)
 
 ### Balance Updates
 
