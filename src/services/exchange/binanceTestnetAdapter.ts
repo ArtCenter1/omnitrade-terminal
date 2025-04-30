@@ -11,11 +11,55 @@ import {
   Trade,
   TickerStats,
   OrderStatus,
-  OrderType,
-  TimeInForce,
+  OrderType as OrderTypeString,
+  TimeInForce as TimeInForceString,
 } from '@/types/exchange';
 import { AssetInfo, AssetNetwork } from '@/types/assetInfo';
 import axios from 'axios';
+import Big from 'big.js'; // Import Big.js for precise calculations
+
+// Define OrderType enum for use in this adapter
+enum OrderType {
+  MARKET = 'market',
+  LIMIT = 'limit',
+  STOP_LIMIT = 'stop_limit',
+  STOP_MARKET = 'stop_market',
+}
+
+// Define TimeInForce enum for use in this adapter
+enum TimeInForce {
+  GTC = 'GTC',
+  IOC = 'IOC',
+  FOK = 'FOK',
+}
+
+// Define a more specific type for cached exchange info that includes symbols
+interface BinanceExchangeInfo extends Exchange {
+  symbols: Array<{
+    symbol: string;
+    status: string;
+    baseAsset: string;
+    quoteAsset: string;
+    baseAssetPrecision: number;
+    quoteAssetPrecision: number;
+    orderTypes: string[];
+    filters: Array<{
+      filterType: string;
+      tickSize?: string;
+      minQty?: string;
+      maxQty?: string;
+      stepSize?: string;
+      minPrice?: string;
+      maxPrice?: string;
+      minNotional?: string;
+      notional?: string;
+      applyMinToMarket?: boolean;
+      applyToMarket?: boolean;
+      // Add other filter properties as needed
+    }>;
+    // Add other symbol properties as needed
+  }>;
+}
 
 import { BaseExchangeAdapter } from './baseExchangeAdapter';
 import { getExchangeEndpoint } from '@/config/exchangeConfig';
@@ -169,6 +213,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
   private isConnectingUserDataStream: boolean = false;
   private currentApiKeyId: string | null = null; // Store the API key ID used for the stream
   // Removed redundant mockDataService declaration - it's inherited from BaseExchangeAdapter
+  private cachedExchangeInfo: BinanceExchangeInfo | null = null; // Cache for exchange info
 
   constructor(apiKeyId?: string) {
     // Allow passing apiKeyId for initialization
@@ -188,6 +233,31 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
           error,
         );
       });
+    }
+  }
+
+  /**
+   * Ensure exchange information is fetched and cached.
+   */
+  private async ensureExchangeInfoCached(): Promise<void> {
+    if (!this.cachedExchangeInfo) {
+      try {
+        logger.info(`[${this.exchangeId}] Caching exchange info...`);
+        // Use the actual getExchangeInfo method, not the mock one directly
+        // Use type assertion to handle the symbols property
+        this.cachedExchangeInfo =
+          (await this.getExchangeInfo()) as BinanceExchangeInfo;
+        logger.info(`[${this.exchangeId}] Exchange info cached successfully.`);
+      } catch (error) {
+        logger.error(
+          `[${this.exchangeId}] Failed to fetch or cache exchange info:`,
+          error,
+        );
+        // Decide if we should re-throw or handle differently. Re-throwing for now.
+        throw new Error(
+          `Failed to load exchange information needed for order validation: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
     }
   }
 
@@ -586,7 +656,8 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
   public async getExchangeInfo(): Promise<Exchange> {
     try {
       // Make request to exchange info endpoint
-      const response = await this.makeUnauthenticatedRequest<{
+      // We're not using the response data directly, but making the request to ensure the API is accessible
+      await this.makeUnauthenticatedRequest<{
         timezone: string;
         serverTime: number;
         rateLimits: any[]; // Define more specific type if needed
@@ -606,9 +677,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
         website: 'https://testnet.binance.vision',
         description: 'Binance Testnet for sandbox trading',
         isActive: true,
-        // Optionally add more info from response if needed
-        // serverTime: response.serverTime,
-        // timezone: response.timezone,
+        // We could add more info from response if needed in the future
       };
     } catch (error) {
       console.error('Error getting exchange info:', error);
@@ -746,7 +815,6 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
     if (parts.length === 1) return 0; // Integer precision
     // Find the first non-zero digit after the decimal point
     const decimalPart = parts[1];
-    let precision = decimalPart.length;
     // The number of decimal places seems the most reliable indicator for Binance.
     return decimalPart.length;
   }
@@ -1302,94 +1370,264 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
    */
   public async placeOrder(
     apiKeyId: string,
-    order: Omit<
-      Order,
-      'id' | 'status' | 'timestamp' | 'exchangeId' | 'executed' | 'remaining'
-    >, // Exclude fields set by exchange
+    order: Partial<Order>, // Use Partial<Order> to allow flexibility before full validation
   ): Promise<Order> {
+    // Basic validation
+    if (
+      !order.symbol ||
+      !order.side ||
+      !order.type ||
+      (!order.quantity && !order.quoteOrderQty)
+    ) {
+      throw new Error(
+        'Missing required order parameters: symbol, side, type, and quantity or quoteOrderQty.',
+      );
+    }
+    if (order.type === OrderType.LIMIT && !order.price) {
+      throw new Error('Price is required for LIMIT orders.');
+    }
+    if (
+      order.type === OrderType.MARKET &&
+      order.quantity &&
+      order.quoteOrderQty
+    ) {
+      throw new Error(
+        'Cannot specify both quantity and quoteOrderQty for MARKET orders.',
+      );
+    }
+    if (
+      (order.type === OrderType.STOP_LIMIT ||
+        order.type === OrderType.STOP_MARKET) &&
+      !order.stopPrice
+    ) {
+      throw new Error(
+        'stopPrice is required for STOP_LIMIT and STOP_MARKET orders.',
+      );
+    }
+
+    // Ensure exchange info is loaded for checks
+    await this.ensureExchangeInfoCached();
+    if (!this.cachedExchangeInfo) {
+      // Should have been thrown by ensureExchangeInfoCached, but double-check
+      throw new Error(
+        'Exchange information is not available for limit checks.',
+      );
+    }
+
+    const symbolInfo = this.cachedExchangeInfo.symbols.find(
+      (s: any) => s.symbol === order.symbol?.replace('/', ''), // Ensure symbol format matches exchange info
+    );
+
+    if (!symbolInfo) {
+      throw new Error(
+        `Trading rules/limits not found for symbol: ${order.symbol}. Cannot place order.`,
+      );
+    }
+
     // --- Trading Limits Checking ---
-    // Fetch trading pair info to get limits
-    const tradingPairs = await this.getTradingPairs();
-    const pair = tradingPairs.find(p => p.symbol === order.symbol);
-    if (!pair) {
-      throw new Error(`Trading pair ${order.symbol} not found or not supported.`);
-    }
-    // Check min/max quantity
-    if (typeof order.quantity === 'number') {
-      if (pair.minQuantity && order.quantity < pair.minQuantity) {
-        throw new Error(`Order quantity (${order.quantity}) is below the minimum allowed (${pair.minQuantity}).`);
+    const { quantity, price, type, symbol, quoteOrderQty } = order;
+    // Use Big.js for quantity and price from the start if they exist
+    const quantityBig = quantity ? new Big(quantity) : undefined;
+    const priceBig = price ? new Big(price) : undefined;
+
+    // Find relevant filters (handle potential missing filters)
+    const priceFilter = symbolInfo.filters.find(
+      (f: any) => f.filterType === 'PRICE_FILTER',
+    );
+    const lotSizeFilter = symbolInfo.filters.find(
+      (f: any) => f.filterType === 'LOT_SIZE',
+    );
+    // Binance uses NOTIONAL or MIN_NOTIONAL depending on the API/version/symbol
+    const notionalFilter = symbolInfo.filters.find(
+      (f: any) =>
+        f.filterType === 'NOTIONAL' || f.filterType === 'MIN_NOTIONAL',
+    );
+    const marketLotSizeFilter = symbolInfo.filters.find(
+      (f: any) => f.filterType === 'MARKET_LOT_SIZE',
+    ); // Check for market-specific lot size
+
+    // Determine which lot size filter to use
+    const applicableLotSizeFilter =
+      type === OrderType.MARKET && marketLotSizeFilter
+        ? marketLotSizeFilter
+        : lotSizeFilter;
+
+    // --- Quantity Checks (LOT_SIZE or MARKET_LOT_SIZE) ---
+    // Only check quantity if it's provided (MARKET orders might use quoteOrderQty)
+    if (quantityBig && applicableLotSizeFilter) {
+      const minQty = new Big(applicableLotSizeFilter.minQty);
+      const maxQty = new Big(applicableLotSizeFilter.maxQty);
+      const stepSize = new Big(applicableLotSizeFilter.stepSize);
+
+      if (quantityBig.lt(minQty)) {
+        throw new Error(
+          `Order quantity (${quantityBig.toString()}) is less than the minimum allowed (${minQty.toString()}) for ${symbol}.`,
+        );
       }
-      if (pair.maxQuantity && order.quantity > pair.maxQuantity) {
-        throw new Error(`Order quantity (${order.quantity}) exceeds the maximum allowed (${pair.maxQuantity}).`);
+      if (quantityBig.gt(maxQty)) {
+        throw new Error(
+          `Order quantity (${quantityBig.toString()}) is greater than the maximum allowed (${maxQty.toString()}) for ${symbol}.`,
+        );
+      }
+      // Check step size using Big.js for precision
+      if (stepSize.gt(0)) {
+        // Check if (quantity - minQty) is a multiple of stepSize
+        const remainder = quantityBig.minus(minQty).mod(stepSize);
+        // Use a small tolerance for floating point comparisons
+        const tolerance = new Big(1e-9); // Adjust tolerance if needed
+        if (
+          remainder.abs().gt(tolerance) &&
+          stepSize.minus(remainder.abs()).gt(tolerance)
+        ) {
+          throw new Error(
+            `Order quantity (${quantityBig.toString()}) does not meet the step size (${stepSize.toString()}) requirement for ${symbol}. Quantity must be a multiple of stepSize starting from minQty.`,
+          );
+        }
+      }
+    } else if (quantityBig && !applicableLotSizeFilter) {
+      logger.warn(
+        `[${this.exchangeId}] Applicable LOT_SIZE filter not found for symbol ${symbol} and order type ${type}. Skipping quantity checks.`,
+      );
+    }
+
+    // --- Price Checks (PRICE_FILTER) --- - Only for orders with a price (LIMIT, STOP_LIMIT)
+    if (
+      priceBig &&
+      (type === OrderType.LIMIT || type === OrderType.STOP_LIMIT)
+    ) {
+      if (priceFilter) {
+        const minPrice = new Big(priceFilter.minPrice);
+        const maxPrice = new Big(priceFilter.maxPrice);
+        const tickSize = new Big(priceFilter.tickSize);
+
+        if (minPrice.gt(0) && priceBig.lt(minPrice)) {
+          // Check minPrice > 0 as it can be 0
+          throw new Error(
+            `Order price (${priceBig.toString()}) is less than the minimum allowed (${minPrice.toString()}) for ${symbol}.`,
+          );
+        }
+        if (maxPrice.gt(0) && priceBig.gt(maxPrice)) {
+          // Check maxPrice > 0 as it might be unset (0 or large number)
+          throw new Error(
+            `Order price (${priceBig.toString()}) is greater than the maximum allowed (${maxPrice.toString()}) for ${symbol}.`,
+          );
+        }
+        // Check tick size using Big.js for precision
+        if (tickSize.gt(0)) {
+          // Check if (price - minPrice) is a multiple of tickSize
+          const remainder = priceBig.minus(minPrice).mod(tickSize);
+          // Use a small tolerance for floating point comparisons
+          const tolerance = new Big(1e-9); // Adjust tolerance if needed
+          if (
+            remainder.abs().gt(tolerance) &&
+            tickSize.minus(remainder.abs()).gt(tolerance)
+          ) {
+            throw new Error(
+              `Order price (${priceBig.toString()}) does not meet the tick size (${tickSize.toString()}) requirement for ${symbol}. Price must be a multiple of tickSize starting from minPrice.`,
+            );
+          }
+        }
+      } else {
+        logger.warn(
+          `[${this.exchangeId}] PRICE_FILTER not found for symbol ${symbol}. Skipping price checks.`,
+        );
       }
     }
-    // Check min notional (order value)
-    if (pair.minNotional && order.price && order.quantity) {
-      const notional = order.price * order.quantity;
-      if (notional < pair.minNotional) {
-        throw new Error(`Order notional (${notional}) is below the minimum allowed (${pair.minNotional}).`);
+
+    // --- Notional Value Check (NOTIONAL / MIN_NOTIONAL) ---
+    // Apply check if filter exists. For LIMIT orders, use price * quantity.
+    // For MARKET orders using quoteOrderQty, the check might be implicitly handled by Binance or use quoteOrderQty directly.
+    // For MARKET orders using quantity, the actual notional value depends on the execution price.
+    if (notionalFilter) {
+      const minNotionalValueStr =
+        notionalFilter.minNotional ?? notionalFilter.notional;
+      if (minNotionalValueStr !== undefined) {
+        const minNotional = new Big(minNotionalValueStr);
+
+        if (type === OrderType.LIMIT && priceBig && quantityBig) {
+          const notionalValue = quantityBig.times(priceBig);
+          if (notionalValue.lt(minNotional)) {
+            throw new Error(
+              `Order notional value (${notionalValue.toFixed(8)}) is less than the minimum required (${minNotional.toString()}) for ${symbol}.`,
+            );
+          }
+        } else if (type === OrderType.MARKET && quoteOrderQty) {
+          const quoteOrderQtyBig = new Big(quoteOrderQty);
+          // Check if quoteOrderQty itself meets minNotional, as it represents the target spending/receiving amount
+          if (quoteOrderQtyBig.lt(minNotional)) {
+            throw new Error(
+              `Order quoteOrderQty (${quoteOrderQtyBig.toString()}) is less than the minimum notional value required (${minNotional.toString()}) for ${symbol}.`,
+            );
+          }
+        } else if (type === OrderType.MARKET && quantityBig) {
+          // For MARKET orders with quantity, the 'applyMinToMarket' flag determines if the check applies.
+          // Pre-checking is difficult as the execution price isn't known.
+          const applyMin =
+            notionalFilter.applyMinToMarket ?? notionalFilter.applyToMarket; // Check flags
+          if (applyMin) {
+            logger.warn(
+              `[${this.exchangeId}] MIN_NOTIONAL check might apply to this MARKET order for ${symbol} based on quantity, but pre-check requires execution price. Order might fail at execution if value is too low.`,
+            );
+          } else {
+            logger.info(
+              `[${this.exchangeId}] MIN_NOTIONAL check does not apply to MARKET orders (by quantity) for ${symbol} according to filter rules.`,
+            );
+          }
+        }
+        // Note: Binance 'NOTIONAL' filter might also have maxNotional. Add checks if needed.
+      } else {
+        logger.warn(
+          `[${this.exchangeId}] Could not determine minNotional value from filter for symbol ${symbol}. Skipping notional check.`,
+        );
       }
+    } else {
+      logger.warn(
+        `[${this.exchangeId}] MIN_NOTIONAL/NOTIONAL filter not found for symbol ${symbol}. Skipping notional value check.`,
+      );
     }
+
     // --- End Trading Limits Checking ---
+    // Prepare parameters for Binance API
     try {
-      const binanceSymbol = order.symbol.replace('/', '');
+      const binanceSymbol = order.symbol.replace('/', ''); // Use the validated symbol
       const params: Record<string, string | number> = {
         symbol: binanceSymbol,
         side: order.side.toUpperCase(), // 'BUY' or 'SELL'
-        // quantity: order.quantity, // Quantity or quoteOrderQty depending on type
       };
 
       // Map order type and add specific parameters
       switch (order.type) {
-        case 'market':
+        case OrderType.MARKET: // Use enum
           params.type = 'MARKET';
-          // For MARKET orders, Binance allows specifying quoteOrderQty (total cost) instead of quantity
           if (order.quoteOrderQty) {
             params.quoteOrderQty = order.quoteOrderQty;
-            // delete params.quantity; // Remove quantity if quoteOrderQty is used
           } else if (order.quantity) {
             params.quantity = order.quantity;
-          } else {
-            throw new Error(
-              'Either quantity or quoteOrderQty is required for market orders',
-            );
-          }
+          } // Validation already ensured one exists
           break;
-        case 'limit':
+        case OrderType.LIMIT: // Use enum
           params.type = 'LIMIT';
-          if (!order.price)
-            throw new Error('Price is required for limit orders');
-          if (!order.quantity)
-            throw new Error('Quantity is required for limit orders');
-          params.price = order.price;
-          params.quantity = order.quantity;
-          params.timeInForce = order.timeInForce || 'GTC'; // Default to Good-Til-Canceled
+          params.price = order.price; // Already validated
+          params.quantity = order.quantity; // Already validated
+          params.timeInForce = order.timeInForce || TimeInForce.GTC; // Use enum and default
           break;
-        case 'stop_limit':
+        case OrderType.STOP_LIMIT: // Use enum
+          params.type = 'STOP_LOSS_LIMIT'; // Binance uses STOP_LOSS_LIMIT for both buy/sell stop limits
+          params.price = order.price; // Already validated
+          params.stopPrice = order.stopPrice; // Already validated
+          params.quantity = order.quantity; // Already validated
+          params.timeInForce = order.timeInForce || TimeInForce.GTC; // Use enum and default
+          break;
+        case OrderType.STOP_MARKET: // Use enum
+          // Binance uses STOP_LOSS for sell stops and TAKE_PROFIT_MARKET for buy stops
           params.type =
-            order.side === 'buy' ? 'STOP_LOSS_LIMIT' : 'TAKE_PROFIT_LIMIT'; // Use correct type based on side
-          if (!order.price || !order.stopPrice)
-            throw new Error(
-              'Price and stopPrice are required for stop-limit orders',
-            );
-          if (!order.quantity)
-            throw new Error('Quantity is required for stop-limit orders');
-          params.price = order.price;
-          params.stopPrice = order.stopPrice;
-          params.quantity = order.quantity;
-          params.timeInForce = order.timeInForce || 'GTC';
-          break;
-        case 'stop_market': // Binance uses STOP_LOSS or TAKE_PROFIT for market stop orders
-          params.type = order.side === 'buy' ? 'TAKE_PROFIT' : 'STOP_LOSS'; // Use correct type based on side
-          if (!order.stopPrice)
-            throw new Error('stopPrice is required for stop-market orders');
-          if (!order.quantity)
-            throw new Error('Quantity is required for stop-market orders');
-          params.stopPrice = order.stopPrice;
-          params.quantity = order.quantity;
-          // TimeInForce is not applicable for STOP_LOSS/TAKE_PROFIT market orders
+            order.side === 'sell' ? 'STOP_LOSS' : 'TAKE_PROFIT_MARKET';
+          params.stopPrice = order.stopPrice; // Already validated
+          params.quantity = order.quantity; // Already validated
+          // TimeInForce is not typically used with STOP_LOSS/TAKE_PROFIT_MARKET
           break;
         default:
+          // Should not happen due to initial validation, but good practice
           throw new Error(`Unsupported order type: ${order.type}`);
       }
 
@@ -1533,10 +1771,11 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
     } catch (error) {
       console.error(`Error canceling order ${orderId} for ${symbol}:`, error);
       // Try to parse Binance error response
-      let errorMessage = `Failed to cancel order: ${error instanceof Error ? error.message : String(error)}`;
       if (axios.isAxiosError(error) && error.response?.data?.msg) {
         // Example: {"code":-2011,"msg":"Unknown order sent."}
-        errorMessage = `Failed to cancel order: ${error.response.data.msg} (Code: ${error.response.data.code})`;
+        const errorMsg = `Failed to cancel order: ${error.response.data.msg} (Code: ${error.response.data.code})`;
+        logger.error(errorMsg);
+
         if (error.response.data.code === -2011) {
           // Order doesn't exist (already filled or cancelled) - treat as success?
           logger.warn(
@@ -1544,6 +1783,10 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
           );
           return true; // Return true if order already gone
         }
+      } else {
+        logger.error(
+          `Failed to cancel order: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
       // Return failure
       return false; // Return false on error
@@ -1699,7 +1942,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
    * Get performance metrics (not directly supported by Binance API, needs calculation).
    */
   public async getPerformanceMetrics(
-    apiKeyId: string,
+    _apiKeyId: string, // Prefix with underscore to indicate it's unused
   ): Promise<PerformanceMetrics> {
     // Requires fetching order history, trades, and potentially balance snapshots
     // to calculate metrics like PnL, win rate, etc.
@@ -2115,7 +2358,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
     const orderType = payload.o; // LIMIT, MARKET, etc.
     const quantity = parseFloat(payload.q); // Original order quantity
     const price = parseFloat(payload.p); // Order price (for LIMIT orders)
-    const stopPrice = parseFloat(payload.P); // Stop price
+    // const stopPrice = parseFloat(payload.P); // Stop price - commented out as unused
     const lastExecutedQuantity = parseFloat(payload.l); // Quantity of the last fill
     const cumulativeFilledQuantity = parseFloat(payload.z); // Total filled quantity for the order
     const lastExecutedPrice = parseFloat(payload.L); // Price of the last fill
@@ -2463,7 +2706,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       const accountInfo = await this.getAccountInfo(this.currentApiKeyId); // Use existing method
       const restBalances = accountInfo.balances;
       let discrepanciesFound = false;
-      let updated = false; // Declare 'updated'
+      // Variable 'updated' was removed as it's not used
       const now = Date.now();
 
       // Check REST balances against cache
@@ -2502,7 +2745,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
               `[${this.exchangeId}] Asset ${asset} zeroed in REST response (was F:${this.balanceCache[asset].free.toFixed(8)}, L:${this.balanceCache[asset].locked.toFixed(8)}). Removing from cache.`,
             );
             this.emitBalanceUpdate(asset, { free: 0, locked: 0 }); // Emit zero balance
-            updated = true; // Mark as updated
+            // updated = true; // Removed unused update
           }
           delete this.balanceCache[asset];
         }
@@ -2802,7 +3045,8 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
     }
     return mappedStatus;
   }
-\n  // --- Asset Information ---
+
+  // --- Asset Information ---
 
   /**
    * Fetches detailed information for all assets available on the exchange.
@@ -2825,7 +3069,9 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
 
     try {
       // TODO: Implement the actual API call and normalization
-      const response = await this.makeAuthenticatedRequest<BinanceAssetDetail[]>(
+      const response = await this.makeAuthenticatedRequest<
+        BinanceAssetDetail[]
+      >(
         '/sapi/v1/capital/config/getall',
         'GET',
         apiKeyId,
@@ -2883,9 +3129,10 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       if (error instanceof Error) {
         throw new Error(`Failed to fetch asset details: ${error.message}`);
       } else {
-        throw new Error('An unknown error occurred while fetching asset details.');
+        throw new Error(
+          'An unknown error occurred while fetching asset details.',
+        );
       }
     }
   }
-
 } // End of BinanceTestnetAdapter class
