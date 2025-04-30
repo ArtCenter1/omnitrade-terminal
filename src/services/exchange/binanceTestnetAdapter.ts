@@ -247,7 +247,26 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
         // Use type assertion to handle the symbols property
         this.cachedExchangeInfo =
           (await this.getExchangeInfo()) as BinanceExchangeInfo;
-        logger.info(`[${this.exchangeId}] Exchange info cached successfully.`);
+
+        // Log the number of symbols and a few examples for debugging
+        const symbolCount = this.cachedExchangeInfo.symbols.length;
+        const sampleSymbols = this.cachedExchangeInfo.symbols
+          .slice(0, 5)
+          .map((s) => s.symbol);
+        logger.info(
+          `[${this.exchangeId}] Exchange info cached successfully with ${symbolCount} symbols. Examples: ${sampleSymbols.join(', ')}`,
+        );
+
+        // Check if common symbols exist
+        const btcusdt = this.cachedExchangeInfo.symbols.find(
+          (s) => s.symbol === 'BTCUSDT',
+        );
+        const ethusdt = this.cachedExchangeInfo.symbols.find(
+          (s) => s.symbol === 'ETHUSDT',
+        );
+        logger.info(
+          `[${this.exchangeId}] Common symbols check - BTCUSDT: ${btcusdt ? 'Found' : 'Not found'}, ETHUSDT: ${ethusdt ? 'Found' : 'Not found'}`,
+        );
       } catch (error) {
         logger.error(
           `[${this.exchangeId}] Failed to fetch or cache exchange info:`,
@@ -668,17 +687,47 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
         10, // Weight: 10
       );
 
-      // Return formatted exchange info with symbols included
-      return {
-        id: this.exchangeId,
-        name: 'Binance Testnet',
-        logo: '/exchanges/binance.svg',
-        website: 'https://testnet.binance.vision',
-        description: 'Binance Testnet for sandbox trading',
-        isActive: true,
-        // Include symbols from the response for order validation
-        symbols: response.symbols || [],
-      };
+      // Check if the response contains symbols
+      const hasSymbols =
+        response.symbols &&
+        Array.isArray(response.symbols) &&
+        response.symbols.length > 0;
+
+      if (hasSymbols) {
+        console.log(
+          `[${this.exchangeId}] Received ${response.symbols.length} symbols from API`,
+        );
+
+        // Return formatted exchange info with symbols included
+        return {
+          id: this.exchangeId,
+          name: 'Binance Testnet',
+          logo: '/exchanges/binance.svg',
+          website: 'https://testnet.binance.vision',
+          description: 'Binance Testnet for sandbox trading',
+          isActive: true,
+          // Include symbols from the response for order validation
+          symbols: response.symbols,
+        };
+      } else {
+        console.warn(
+          `[${this.exchangeId}] API returned no symbols, using mock symbols`,
+        );
+
+        // Generate mock symbols since API didn't return any
+        const mockSymbols = this.generateMockSymbols();
+
+        return {
+          id: this.exchangeId,
+          name: 'Binance Testnet',
+          logo: '/exchanges/binance.svg',
+          website: 'https://testnet.binance.vision',
+          description:
+            'Binance Testnet for sandbox trading (using mock symbols)',
+          isActive: true,
+          symbols: mockSymbols,
+        };
+      }
     } catch (error) {
       console.error('Error getting exchange info:', error);
 
@@ -697,46 +746,12 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
         };
       }
 
-      // Generate mock symbols for common trading pairs
-      const mockSymbols = [
-        'BTCUSDT',
-        'ETHUSDT',
-        'BNBUSDT',
-        'ADAUSDT',
-        'DOGEUSDT',
-        'XRPUSDT',
-        'LTCUSDT',
-        'DOTUSDT',
-        'LINKUSDT',
-        'BCHUSDT',
-      ].map((symbol) => ({
-        symbol,
-        status: 'TRADING',
-        baseAsset: symbol.slice(0, -4),
-        quoteAsset: 'USDT',
-        baseAssetPrecision: 8,
-        quoteAssetPrecision: 8,
-        orderTypes: ['LIMIT', 'MARKET', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT_LIMIT'],
-        filters: [
-          {
-            filterType: 'PRICE_FILTER',
-            minPrice: '0.00000100',
-            maxPrice: '1000000.00000000',
-            tickSize: '0.00000100',
-          },
-          {
-            filterType: 'LOT_SIZE',
-            minQty: '0.00100000',
-            maxQty: '9000.00000000',
-            stepSize: '0.00100000',
-          },
-          {
-            filterType: 'MIN_NOTIONAL',
-            minNotional: '10.00000000',
-            applyToMarket: true,
-          },
-        ],
-      }));
+      // Use the generateMockSymbols method to create mock symbols
+      const mockSymbols = this.generateMockSymbols();
+
+      console.log(
+        `[${this.exchangeId}] Created mock symbols for fallback: ${mockSymbols.map((s: any) => s.symbol).join(', ')}`,
+      );
 
       return {
         ...exchange,
@@ -1138,6 +1153,62 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
     }
 
     return binanceSymbol; // Return original if formatting fails
+  }
+
+  /**
+   * Generate mock symbols for common trading pairs
+   * @returns Array of mock symbol objects
+   */
+  private generateMockSymbols(): any[] {
+    // Ensure we include all the symbols that might be used in the UI
+    const symbolNames = [
+      'BTCUSDT',
+      'ETHUSDT',
+      'BNBUSDT',
+      'ADAUSDT',
+      'DOGEUSDT',
+      'XRPUSDT',
+      'LTCUSDT',
+      'DOTUSDT',
+      'LINKUSDT',
+      'BCHUSDT',
+      'SOLUSDT', // Added SOL/USDT which is in the UI dropdown
+    ];
+
+    const mockSymbols = symbolNames.map((symbol) => ({
+      symbol,
+      status: 'TRADING',
+      baseAsset: symbol.slice(0, -4),
+      quoteAsset: 'USDT',
+      baseAssetPrecision: 8,
+      quoteAssetPrecision: 8,
+      orderTypes: ['LIMIT', 'MARKET', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT_LIMIT'],
+      filters: [
+        {
+          filterType: 'PRICE_FILTER',
+          minPrice: '0.00000100',
+          maxPrice: '1000000.00000000',
+          tickSize: '0.00000100',
+        },
+        {
+          filterType: 'LOT_SIZE',
+          minQty: '0.00100000',
+          maxQty: '9000.00000000',
+          stepSize: '0.00100000',
+        },
+        {
+          filterType: 'MIN_NOTIONAL',
+          minNotional: '10.00000000',
+          applyToMarket: true,
+        },
+      ],
+    }));
+
+    console.log(
+      `[${this.exchangeId}] Generated ${mockSymbols.length} mock symbols: ${symbolNames.join(', ')}`,
+    );
+
+    return mockSymbols;
   }
 
   /** Format raw Binance ticker response into standard TickerStats */
@@ -1554,14 +1625,91 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       );
     }
 
-    const symbolInfo = this.cachedExchangeInfo.symbols.find(
-      (s: any) => s.symbol === order.symbol?.replace('/', ''), // Ensure symbol format matches exchange info
+    // Convert the order symbol to Binance format (remove slash)
+    const binanceSymbol = order.symbol?.replace('/', '');
+    console.log(
+      `[${this.exchangeId}] Looking for symbol info for ${order.symbol} (${binanceSymbol})`,
+    );
+
+    // Log a few symbols from the cached exchange info for debugging
+    const sampleSymbols = this.cachedExchangeInfo.symbols
+      .slice(0, 5)
+      .map((s) => s.symbol);
+    console.log(
+      `[${this.exchangeId}] Sample symbols in exchange info: ${sampleSymbols.join(', ')}`,
+    );
+    console.log(
+      `[${this.exchangeId}] Total symbols in exchange info: ${this.cachedExchangeInfo.symbols.length}`,
+    );
+
+    // Find the symbol info
+    let symbolInfo = this.cachedExchangeInfo.symbols.find(
+      (s: any) => s.symbol === binanceSymbol,
+    );
+
+    console.log(
+      `[${this.exchangeId}] Symbol info found: ${symbolInfo ? 'Yes' : 'No'}`,
     );
 
     if (!symbolInfo) {
-      throw new Error(
-        `Trading rules/limits not found for symbol: ${order.symbol}. Cannot place order.`,
+      // Try to find similar symbols for debugging
+      const similarSymbols = this.cachedExchangeInfo.symbols
+        .filter((s: any) => s.symbol.includes(binanceSymbol.substring(0, 3)))
+        .map((s: any) => s.symbol)
+        .slice(0, 5);
+
+      console.log(
+        `[${this.exchangeId}] Similar symbols: ${similarSymbols.join(', ') || 'None found'}`,
       );
+
+      // If we have no symbols at all, it's likely a configuration issue
+      if (this.cachedExchangeInfo.symbols.length === 0) {
+        console.error(
+          `[${this.exchangeId}] No symbols found in exchange info. This is likely a configuration issue.`,
+        );
+
+        // Force refresh the exchange info cache
+        this.cachedExchangeInfo = null;
+
+        // Try to get fresh exchange info with mock symbols
+        try {
+          await this.ensureExchangeInfoCached();
+
+          // Try to find the symbol again
+          const refreshedSymbolInfo = this.cachedExchangeInfo?.symbols.find(
+            (s: any) => s.symbol === binanceSymbol,
+          );
+
+          if (refreshedSymbolInfo) {
+            console.log(
+              `[${this.exchangeId}] Symbol ${binanceSymbol} found after refreshing exchange info.`,
+            );
+            symbolInfo = refreshedSymbolInfo;
+          } else {
+            throw new Error(
+              `Symbol ${order.symbol} not found in exchange info even after refresh. Available symbols: ${this.cachedExchangeInfo?.symbols
+                .slice(0, 5)
+                .map((s: any) => s.symbol)
+                .join(
+                  ', ',
+                )}... (${this.cachedExchangeInfo?.symbols.length || 0} total)`,
+            );
+          }
+        } catch (refreshError) {
+          console.error(
+            `[${this.exchangeId}] Failed to refresh exchange info:`,
+            refreshError,
+          );
+
+          throw new Error(
+            `No trading symbols found in exchange info. Please check your Binance Testnet connection and try again.`,
+          );
+        }
+      } else {
+        throw new Error(
+          `Symbol ${order.symbol} not found in exchange info. Available symbols: ${sampleSymbols.join(', ')}... (${this.cachedExchangeInfo.symbols.length} total)`,
+        );
+      }
     }
 
     // --- Trading Limits Checking ---

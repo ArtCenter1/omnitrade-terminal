@@ -56,6 +56,54 @@ export function BinanceTestnetOrderTest() {
   // Get connection status
   const { getStatus, checkConnection } = useConnectionStatus();
 
+  // Debug function to check exchange info
+  const handleCheckExchangeInfo = async () => {
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      // Get the Binance Testnet adapter
+      const adapter = ExchangeFactory.getAdapter('binance_testnet');
+
+      // Force refresh the exchange info by clearing the cache
+      // This is a hack to access the private field - in a real app, you'd add a public method
+      (adapter as any).cachedExchangeInfo = null;
+
+      // Get exchange info
+      const exchangeInfo = await adapter.getExchangeInfo();
+      console.log('Exchange info:', exchangeInfo);
+
+      // Log the adapter instance for debugging
+      console.log('Adapter instance:', adapter);
+
+      // Check if BTC/USDT symbol exists in the exchange info
+      const btcusdt = exchangeInfo.symbols.find((s) => s.symbol === 'BTCUSDT');
+      console.log('BTCUSDT symbol info:', btcusdt);
+
+      // Log all available symbols
+      const availableSymbols = exchangeInfo.symbols.map((s) => s.symbol);
+      console.log('Available symbols:', availableSymbols);
+
+      if (btcusdt) {
+        setSuccess(
+          `Symbol BTCUSDT found in exchange info. Available trading pairs: ${availableSymbols.slice(0, 5).join(', ')}... (${availableSymbols.length} total)`,
+        );
+      } else {
+        setError(
+          `Symbol BTCUSDT not found in exchange info. Available symbols: ${availableSymbols.slice(0, 5).join(', ')}... (${availableSymbols.length} total)`,
+        );
+      }
+    } catch (err) {
+      console.error('Error checking exchange info:', err);
+      setError(
+        err instanceof Error ? err.message : 'Failed to check exchange info',
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Place an order
   const handlePlaceOrder = async () => {
     setLoading(true);
@@ -96,6 +144,11 @@ export function BinanceTestnetOrderTest() {
       console.log('Getting Binance Testnet adapter...');
       // Get the Binance Testnet adapter
       const adapter = ExchangeFactory.getAdapter('binance_testnet');
+
+      // Force refresh the exchange info cache before placing the order
+      // This ensures we have the latest trading rules
+      console.log('Forcing refresh of exchange info cache...');
+      (adapter as any).cachedExchangeInfo = null;
 
       // Prepare order
       const orderParams: Partial<Order> = {
@@ -493,11 +546,19 @@ export function BinanceTestnetOrderTest() {
               )}
             </div>
 
-            <div className="mt-4">
+            <div className="mt-4 flex gap-2">
+              <Button
+                onClick={handleCheckExchangeInfo}
+                disabled={loading}
+                variant="outline"
+                className="flex-1"
+              >
+                Check Exchange Info
+              </Button>
               <Button
                 onClick={handlePlaceOrder}
                 disabled={loading}
-                className="w-full"
+                className="flex-1"
               >
                 {loading ? 'Placing Order...' : 'Place Order'}
               </Button>
