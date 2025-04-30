@@ -150,39 +150,65 @@ export class MockDataService {
     symbol: string,
     depth: number = 20,
   ): OrderBook {
-    const currentPrice = this.getCurrentPrice(exchangeId, symbol);
-    const bids: OrderBookEntry[] = [];
-    const asks: OrderBookEntry[] = [];
+    try {
+      const currentPrice = this.getCurrentPrice(exchangeId, symbol);
+      const bids: OrderBookEntry[] = [];
+      const asks: OrderBookEntry[] = [];
 
-    // Generate bids (buy orders) slightly below current price
-    for (let i = 0; i < depth; i++) {
-      const priceDrop = (i + 1) * (randomInRange(0.1, 0.3) / 100); // 0.1% to 0.3% drop per level
-      const price = roundToDecimals(currentPrice * (1 - priceDrop), 2);
-      const quantity = roundToDecimals(randomInRange(0.1, 10), 4);
-      bids.push({ price, quantity });
+      // Generate bids (buy orders) slightly below current price
+      for (let i = 0; i < depth; i++) {
+        const priceDrop = (i + 1) * (randomInRange(0.1, 0.3) / 100); // 0.1% to 0.3% drop per level
+        const price = roundToDecimals(currentPrice * (1 - priceDrop), 2);
+        const quantity = roundToDecimals(randomInRange(0.1, 10), 4);
+        bids.push({ price, quantity });
+      }
+
+      // Generate asks (sell orders) slightly above current price
+      for (let i = 0; i < depth; i++) {
+        const priceIncrease = (i + 1) * (randomInRange(0.1, 0.3) / 100); // 0.1% to 0.3% increase per level
+        const price = roundToDecimals(currentPrice * (1 + priceIncrease), 2);
+        const quantity = roundToDecimals(randomInRange(0.1, 10), 4);
+        asks.push({ price, quantity });
+      }
+
+      // Sort bids in descending order (highest price first)
+      bids.sort((a, b) => b.price - a.price);
+
+      // Sort asks in ascending order (lowest price first)
+      asks.sort((a, b) => a.price - b.price);
+
+      return {
+        symbol,
+        exchangeId,
+        timestamp: Date.now(),
+        lastUpdateId: Date.now(),
+        bids,
+        asks,
+      };
+    } catch (error) {
+      console.error(
+        `[MockDataService] Error generating order book for ${symbol}:`,
+        error,
+      );
+
+      // Return a simple fallback order book
+      return {
+        symbol,
+        exchangeId,
+        timestamp: Date.now(),
+        lastUpdateId: Date.now(),
+        bids: [
+          { price: 30000, quantity: 1.5 },
+          { price: 29900, quantity: 2.0 },
+          { price: 29800, quantity: 1.0 },
+        ],
+        asks: [
+          { price: 30100, quantity: 1.0 },
+          { price: 30200, quantity: 2.5 },
+          { price: 30300, quantity: 1.2 },
+        ],
+      };
     }
-
-    // Generate asks (sell orders) slightly above current price
-    for (let i = 0; i < depth; i++) {
-      const priceIncrease = (i + 1) * (randomInRange(0.1, 0.3) / 100); // 0.1% to 0.3% increase per level
-      const price = roundToDecimals(currentPrice * (1 + priceIncrease), 2);
-      const quantity = roundToDecimals(randomInRange(0.1, 10), 4);
-      asks.push({ price, quantity });
-    }
-
-    // Sort bids in descending order (highest price first)
-    bids.sort((a, b) => b.price - a.price);
-
-    // Sort asks in ascending order (lowest price first)
-    asks.sort((a, b) => a.price - b.price);
-
-    return {
-      symbol,
-      exchangeId,
-      bids,
-      asks,
-      timestamp: Date.now(),
-    };
   }
 
   // Generate ticker statistics
