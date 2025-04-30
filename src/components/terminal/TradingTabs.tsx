@@ -513,7 +513,7 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
         ? useBinanceTestnet
           ? 'binance_testnet'
           : 'sandbox'
-        : selectedAccount.exchange;
+        : selectedAccount.exchangeId || selectedAccount.exchange;
 
       logger.info('Placing order', {
         component: 'TradingTabs',
@@ -528,6 +528,16 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
 
       // Get the appropriate adapter
       const adapter = ExchangeFactory.getAdapter(exchangeId);
+
+      // Log the adapter being used
+      logger.info(`Using ${exchangeId} adapter for order placement`, {
+        component: 'TradingTabs',
+        method: 'handlePlaceOrder',
+        data: {
+          adapterType: adapter.constructor.name,
+          exchangeId,
+        },
+      });
 
       // Prepare order parameters
       const orderParams: Partial<any> = {
@@ -620,29 +630,58 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
       });
 
       // Manually trigger localStorage save to ensure the order is persisted
-      const currentOrders = JSON.parse(
-        localStorage.getItem('omnitrade_mock_orders') || '[]',
-      );
-
-      // Check if the order is already in localStorage
-      const orderExists = currentOrders.some((o: any) => o.id === order.id);
-      if (!orderExists) {
-        currentOrders.push({
-          ...order,
-          createdAt:
-            order.createdAt instanceof Date
-              ? order.createdAt.toISOString()
-              : order.createdAt,
-          updatedAt:
-            order.updatedAt instanceof Date
-              ? order.updatedAt.toISOString()
-              : order.updatedAt,
-        });
-
-        localStorage.setItem(
-          'omnitrade_mock_orders',
-          JSON.stringify(currentOrders),
+      try {
+        const currentOrders = JSON.parse(
+          localStorage.getItem('omnitrade_mock_orders') || '[]',
         );
+
+        // Check if the order is already in localStorage
+        const orderExists = currentOrders.some((o: any) => o.id === order.id);
+        if (!orderExists) {
+          // Format the order to match what the OrdersTable component expects
+          const formattedOrder = {
+            ...order,
+            // Add required fields for OrdersTable
+            userId: 'current-user',
+            filledQuantity: order.executed || 0,
+            // Ensure dates are in the correct format
+            createdAt: order.timestamp
+              ? new Date(order.timestamp).toISOString()
+              : new Date().toISOString(),
+            updatedAt: order.lastUpdated
+              ? new Date(order.lastUpdated).toISOString()
+              : new Date().toISOString(),
+          };
+
+          // Remove fields that might cause confusion
+          delete formattedOrder.executed;
+          delete formattedOrder.remaining;
+          delete formattedOrder.timestamp;
+          delete formattedOrder.lastUpdated;
+
+          currentOrders.push(formattedOrder);
+
+          localStorage.setItem(
+            'omnitrade_mock_orders',
+            JSON.stringify(currentOrders),
+          );
+
+          logger.debug('Order saved to localStorage with correct format', {
+            component: 'TradingTabs',
+            method: 'handlePlaceOrder',
+            data: {
+              orderId: order.id,
+              formattedOrder,
+            },
+          });
+        }
+      } catch (storageError) {
+        logger.warn('Failed to save order to localStorage', {
+          component: 'TradingTabs',
+          method: 'handlePlaceOrder',
+          data: { error: storageError },
+        });
+        // Continue execution even if localStorage fails
       }
 
       // Show success toast with more details
@@ -764,6 +803,42 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
           variant: 'destructive',
         });
         // Redirect to login page or refresh token
+      }
+      // Handle API key or signature errors
+      else if (
+        errorMessage.includes('API-key') ||
+        errorMessage.includes('signature') ||
+        errorMessage.includes('Authentication')
+      ) {
+        logger.error('API key or signature error', {
+          component: 'TradingTabs',
+          method: 'handlePlaceOrder',
+          data: { errorMessage },
+        });
+
+        toast({
+          title: 'API Key Error',
+          description: 'Please check your API keys in the Admin settings.',
+          variant: 'destructive',
+        });
+      }
+      // Handle 404 errors (API endpoint not found)
+      else if (
+        errorMessage.includes('404') ||
+        errorMessage.includes('Not Found')
+      ) {
+        logger.error('API endpoint not found', {
+          component: 'TradingTabs',
+          method: 'handlePlaceOrder',
+          data: { errorMessage },
+        });
+
+        toast({
+          title: 'API Endpoint Not Found',
+          description:
+            'The API endpoint may be unavailable. The system will fall back to mock data.',
+          variant: 'destructive',
+        });
       }
       // Handle other errors
       else {

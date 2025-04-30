@@ -93,6 +93,7 @@ export function BinanceTestnetOrderTest() {
         throw new Error('Stop price is required for stop orders');
       }
 
+      console.log('Getting Binance Testnet adapter...');
       // Get the Binance Testnet adapter
       const adapter = ExchangeFactory.getAdapter('binance_testnet');
 
@@ -114,9 +115,60 @@ export function BinanceTestnetOrderTest() {
         orderParams.stopPrice = parseFloat(stopPrice);
       }
 
+      console.log('Placing order with params:', orderParams);
+
+      // Check if we have API keys
+      if (!hasKeys) {
+        console.warn('No API keys found, order will likely use mock data');
+      }
+
       // Place order
       const order = await adapter.placeOrder('default', orderParams);
-      console.log('Order placed:', order);
+      console.log('Order placed successfully:', order);
+
+      // Save the order to localStorage for the OrdersTable component to find
+      try {
+        const currentOrders = JSON.parse(
+          localStorage.getItem('omnitrade_mock_orders') || '[]',
+        );
+
+        // Check if the order is already in localStorage
+        const orderExists = currentOrders.some((o: any) => o.id === order.id);
+        if (!orderExists) {
+          // Format the order to match what the OrdersTable component expects
+          const formattedOrder = {
+            ...order,
+            // Add required fields for OrdersTable
+            userId: 'current-user',
+            filledQuantity: order.executed || 0,
+            // Ensure dates are in the correct format
+            createdAt: order.timestamp
+              ? new Date(order.timestamp).toISOString()
+              : new Date().toISOString(),
+            updatedAt: order.lastUpdated
+              ? new Date(order.lastUpdated).toISOString()
+              : new Date().toISOString(),
+          };
+
+          // Remove fields that might cause confusion
+          delete formattedOrder.executed;
+          delete formattedOrder.remaining;
+          delete formattedOrder.timestamp;
+          delete formattedOrder.lastUpdated;
+
+          currentOrders.push(formattedOrder);
+          localStorage.setItem(
+            'omnitrade_mock_orders',
+            JSON.stringify(currentOrders),
+          );
+          console.log(
+            'Order saved to localStorage with correct format:',
+            formattedOrder,
+          );
+        }
+      } catch (storageError) {
+        console.warn('Failed to save order to localStorage:', storageError);
+      }
 
       // Set success message
       setSuccess(`Order placed successfully! Order ID: ${order.id}`);
@@ -129,9 +181,29 @@ export function BinanceTestnetOrderTest() {
       await checkConnection('binance_testnet');
     } catch (err) {
       console.error('Error placing order:', err);
-      setError(
-        err instanceof Error ? err.message : 'Failed to place order',
-      );
+
+      // Provide more detailed error message
+      let errorMessage =
+        err instanceof Error ? err.message : 'Failed to place order';
+
+      // Add suggestions for common errors
+      if (
+        errorMessage.includes('API-key') ||
+        errorMessage.includes('signature')
+      ) {
+        errorMessage += '. Please check your API keys in the API Keys tab.';
+      } else if (errorMessage.includes('Invalid symbol')) {
+        errorMessage +=
+          '. The trading pair may not be supported on Binance Testnet.';
+      } else if (errorMessage.includes('Insufficient balance')) {
+        errorMessage +=
+          '. Make sure you have enough funds in your Binance Testnet account.';
+      } else if (errorMessage.includes('404')) {
+        errorMessage +=
+          '. The Binance Testnet API endpoint may be unavailable. The system will fall back to mock data.';
+      }
+
+      setError(errorMessage);
 
       // Update connection status
       await checkConnection('binance_testnet');
@@ -251,9 +323,7 @@ export function BinanceTestnetOrderTest() {
       await checkConnection('binance_testnet');
     } catch (err) {
       console.error('Error canceling order:', err);
-      setError(
-        err instanceof Error ? err.message : 'Failed to cancel order',
-      );
+      setError(err instanceof Error ? err.message : 'Failed to cancel order');
 
       // Update connection status
       await checkConnection('binance_testnet');
@@ -334,10 +404,7 @@ export function BinanceTestnetOrderTest() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="symbol">Symbol</Label>
-                <Select
-                  value={symbol}
-                  onValueChange={setSymbol}
-                >
+                <Select value={symbol} onValueChange={setSymbol}>
                   <SelectTrigger id="symbol">
                     <SelectValue placeholder="Select symbol" />
                   </SelectTrigger>

@@ -82,15 +82,86 @@ export function OrdersTable({
 
       // Even if there's no selected account, we'll try to get mock orders
       // This allows us to show orders that were created before an account was selected
-      const exchangeId = selectedAccount?.exchange || 'binance'; // Default to binance if no account selected
+      const exchangeId =
+        selectedAccount?.exchangeId || selectedAccount?.exchange || 'binance'; // Default to binance if no account selected
       console.log(`Using exchange ID: ${exchangeId} for fetching orders`);
 
-      const orders = await getOrders(exchangeId, selectedSymbol, status);
+      // Try to get orders from the API first
+      let apiOrders: Order[] = [];
+      try {
+        apiOrders = await getOrders(exchangeId, selectedSymbol, status);
+        console.log(`API Orders received (${apiOrders.length}):`, apiOrders);
+      } catch (apiError) {
+        console.warn(
+          'Error fetching orders from API, will try localStorage:',
+          apiError,
+        );
+      }
 
-      console.log(`Orders received (${orders.length}):`, orders);
+      // Also get orders from localStorage as a fallback or supplement
+      let localOrders: Order[] = [];
+      try {
+        const storedOrders = localStorage.getItem('omnitrade_mock_orders');
+        if (storedOrders) {
+          const parsedOrders = JSON.parse(storedOrders);
+
+          // Filter orders based on the same criteria
+          localOrders = parsedOrders.filter((order: any) => {
+            // Filter by exchange if needed
+            if (exchangeId && order.exchangeId !== exchangeId) {
+              return false;
+            }
+
+            // Filter by symbol if needed
+            if (selectedSymbol && order.symbol !== selectedSymbol) {
+              return false;
+            }
+
+            // Filter by status if needed
+            if (status) {
+              const statusList = status.split(',');
+              if (!statusList.includes(order.status)) {
+                return false;
+              }
+            } else if (activeTab === 'history') {
+              // For history tab, show all except new and partially_filled
+              if (
+                order.status === 'new' ||
+                order.status === 'partially_filled'
+              ) {
+                return false;
+              }
+            }
+
+            return true;
+          });
+
+          console.log(
+            `localStorage Orders filtered (${localOrders.length}):`,
+            localOrders,
+          );
+        }
+      } catch (localError) {
+        console.error('Error getting orders from localStorage:', localError);
+      }
+
+      // Combine orders from both sources, removing duplicates
+      const combinedOrders = [...apiOrders];
+
+      // Add local orders that aren't already in the API orders
+      localOrders.forEach((localOrder: any) => {
+        if (!combinedOrders.some((apiOrder) => apiOrder.id === localOrder.id)) {
+          combinedOrders.push(localOrder);
+        }
+      });
+
+      console.log(
+        `Combined orders (${combinedOrders.length}):`,
+        combinedOrders,
+      );
 
       // Sort orders by creation date (newest first)
-      const sortedOrders = [...orders].sort(
+      const sortedOrders = [...combinedOrders].sort(
         (a, b) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
