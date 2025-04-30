@@ -47,6 +47,28 @@ export function BinanceTestnetOrderTest() {
   const [price, setPrice] = useState<string>('30000');
   const [stopPrice, setStopPrice] = useState<string>('');
 
+  // Helper function to calculate minimum quantity based on symbol and price
+  const calculateMinimumQuantity = (
+    symbolPair: string,
+    currentPrice: number,
+  ): number => {
+    // Binance Testnet minimum notional values (these vary by pair)
+    const minimumNotionalValues: Record<string, number> = {
+      'BTC/USDT': 10,
+      'ETH/USDT': 10,
+      'BNB/USDT': 10,
+      'SOL/USDT': 10,
+      'XRP/USDT': 10,
+      // Add more pairs as needed
+    };
+
+    const minimumNotional = minimumNotionalValues[symbolPair] || 10; // Default to 10 USDT
+
+    // Calculate minimum quantity: minimum notional / current price
+    // Add a small buffer (1.05) to ensure we're above the minimum
+    return (minimumNotional / currentPrice) * 1.05;
+  };
+
   // Effect to suggest minimum quantity when price changes
   useEffect(() => {
     if (orderType !== 'market' && price) {
@@ -107,6 +129,26 @@ export function BinanceTestnetOrderTest() {
 
   // Get connection status
   const { getStatus, checkConnection } = useConnectionStatus();
+
+  // Effect to load orders when component mounts
+  useEffect(() => {
+    // Only load if Binance Testnet is enabled
+    if (featureFlags.useBinanceTestnet) {
+      // Load open orders and order history
+      handleGetOpenOrders();
+      handleGetOrderHistory();
+
+      // Set up an interval to refresh orders periodically
+      const refreshInterval = setInterval(() => {
+        console.log('Auto-refreshing orders...');
+        handleGetOpenOrders();
+        handleGetOrderHistory();
+      }, 10000); // Refresh every 10 seconds
+
+      // Clean up interval on component unmount
+      return () => clearInterval(refreshInterval);
+    }
+  }, [featureFlags.useBinanceTestnet]);
 
   // Debug function to check exchange info
   const handleCheckExchangeInfo = async () => {
@@ -309,6 +351,19 @@ export function BinanceTestnetOrderTest() {
       // Refresh open orders
       await handleGetOpenOrders();
 
+      // Set up an interval to refresh orders a few times after placement
+      // This helps catch any delayed updates from the exchange
+      let refreshCount = 0;
+      const refreshInterval = setInterval(async () => {
+        refreshCount++;
+        console.log(`Auto-refreshing orders (${refreshCount}/3)...`);
+        await handleGetOpenOrders();
+
+        if (refreshCount >= 3) {
+          clearInterval(refreshInterval);
+        }
+      }, 2000); // Refresh every 2 seconds, 3 times
+
       // Update connection status
       await checkConnection('binance_testnet');
     } catch (err) {
@@ -460,37 +515,92 @@ export function BinanceTestnetOrderTest() {
     }
 
     try {
-      // Get the Binance Testnet adapter
-      const adapter = ExchangeFactory.getAdapter('binance_testnet');
+      // First, try to get orders from localStorage
+      let localOrders: any[] = [];
+      try {
+        const storedOrders = localStorage.getItem('omnitrade_mock_orders');
+        if (storedOrders) {
+          console.log('Raw stored orders from localStorage:', storedOrders);
+          const parsedOrders = JSON.parse(storedOrders);
 
-      // Get order history
-      const orders = await adapter.getOrderHistory('default', symbol, 20);
-      console.log('Order history from adapter:', orders);
+          // Filter for completed orders (status = filled, canceled, rejected) and matching symbol
+          localOrders = parsedOrders.filter(
+            (order: any) =>
+              (order.status === 'filled' ||
+                order.status === 'canceled' ||
+                order.status === 'rejected') &&
+              (!symbol || order.symbol === symbol),
+          );
 
-      // Format orders to match what the component expects
-      const formattedOrders = orders.map((order) => ({
-        id: order.id,
-        userId: 'current-user',
-        exchangeId: order.exchangeId || 'binance_testnet',
-        symbol: order.symbol,
-        side: order.side,
-        type: order.type,
-        status: order.status || 'filled',
-        price: order.price,
-        stopPrice: order.stopPrice,
-        quantity: order.quantity,
-        filledQuantity: order.executed || 0,
-        avgFillPrice: order.price,
-        createdAt: order.timestamp
-          ? new Date(order.timestamp).toISOString()
-          : new Date().toISOString(),
-        updatedAt: order.lastUpdated
-          ? new Date(order.lastUpdated).toISOString()
-          : new Date().toISOString(),
-      }));
+          console.log('Order history from localStorage:', localOrders);
+        }
+      } catch (localError) {
+        console.error('Error getting orders from localStorage:', localError);
+      }
 
-      console.log('Formatted order history:', formattedOrders);
-      setOrderHistory(formattedOrders);
+      // Then try to get orders from the adapter as a fallback
+      try {
+        // Get the Binance Testnet adapter
+        const adapter = ExchangeFactory.getAdapter('binance_testnet');
+
+        // Get order history
+        const adapterOrders = await adapter.getOrderHistory(
+          'default',
+          symbol,
+          20,
+        );
+        console.log('Order history from adapter:', adapterOrders);
+
+        // Make sure adapterOrders is an array before mapping
+        if (Array.isArray(adapterOrders) && adapterOrders.length > 0) {
+          // Format orders to match what the component expects
+          const formattedAdapterOrders = adapterOrders.map((order) => ({
+            id: order.id,
+            userId: 'current-user',
+            exchangeId: order.exchangeId || 'binance_testnet',
+            symbol: order.symbol,
+            side: order.side,
+            type: order.type,
+            status: order.status || 'filled',
+            price: order.price,
+            stopPrice: order.stopPrice,
+            quantity: order.quantity,
+            filledQuantity: order.executed || 0,
+            avgFillPrice: order.price,
+            createdAt: order.timestamp
+              ? new Date(order.timestamp).toISOString()
+              : new Date().toISOString(),
+            updatedAt: order.lastUpdated
+              ? new Date(order.lastUpdated).toISOString()
+              : new Date().toISOString(),
+          }));
+
+          console.log(
+            'Formatted adapter order history:',
+            formattedAdapterOrders,
+          );
+
+          // Combine with local orders, removing duplicates
+          formattedAdapterOrders.forEach((adapterOrder) => {
+            if (
+              !localOrders.some(
+                (localOrder) => localOrder.id === adapterOrder.id,
+              )
+            ) {
+              localOrders.push(adapterOrder);
+            }
+          });
+        }
+      } catch (adapterError) {
+        console.warn(
+          'Error getting order history from adapter, using localStorage only:',
+          adapterError,
+        );
+      }
+
+      // Set the combined orders
+      console.log('Final order history:', localOrders);
+      setOrderHistory(localOrders);
 
       // Update connection status
       await checkConnection('binance_testnet');
@@ -523,12 +633,68 @@ export function BinanceTestnetOrderTest() {
     }
 
     try {
-      // Get the Binance Testnet adapter
-      const adapter = ExchangeFactory.getAdapter('binance_testnet');
+      // Check if this is a mock order (starts with "mock_")
+      const isMockOrder = orderId.startsWith('mock_');
+      console.log(
+        `Canceling ${isMockOrder ? 'mock' : 'real'} order: ${orderId}`,
+      );
 
-      // Cancel order
-      const result = await adapter.cancelOrder('default', orderId, symbol);
-      console.log('Cancel order result:', result);
+      let result = false;
+
+      // For mock orders, we'll handle them directly in localStorage
+      if (isMockOrder) {
+        console.log('Handling mock order cancellation via localStorage');
+        try {
+          const storedOrders = localStorage.getItem('omnitrade_mock_orders');
+          if (storedOrders) {
+            const parsedOrders = JSON.parse(storedOrders);
+            const orderExists = parsedOrders.some(
+              (order: any) => order.id === orderId,
+            );
+
+            if (!orderExists) {
+              throw new Error(`Order ${orderId} not found in localStorage`);
+            }
+
+            // Update the order status in localStorage
+            const updatedOrders = parsedOrders.map((order: any) => {
+              if (order.id === orderId) {
+                return {
+                  ...order,
+                  status: 'canceled',
+                  updatedAt: new Date().toISOString(),
+                };
+              }
+              return order;
+            });
+
+            // Save back to localStorage
+            localStorage.setItem(
+              'omnitrade_mock_orders',
+              JSON.stringify(updatedOrders),
+            );
+            console.log(
+              'Updated order in localStorage:',
+              updatedOrders.find((o: any) => o.id === orderId),
+            );
+            result = true;
+          } else {
+            throw new Error('No orders found in localStorage');
+          }
+        } catch (localError) {
+          console.error('Error updating order in localStorage:', localError);
+          throw localError;
+        }
+      } else {
+        // For real orders, use the adapter
+        console.log('Handling real order cancellation via adapter');
+        // Get the Binance Testnet adapter
+        const adapter = ExchangeFactory.getAdapter('binance_testnet');
+
+        // Cancel order
+        result = await adapter.cancelOrder('default', orderId, symbol);
+        console.log('Cancel order result from adapter:', result);
+      }
 
       if (result) {
         setSuccess(`Order ${orderId} canceled successfully!`);
@@ -562,8 +728,9 @@ export function BinanceTestnetOrderTest() {
           );
         }
 
-        // Refresh open orders
+        // Refresh open orders and order history
         await handleGetOpenOrders();
+        await handleGetOrderHistory();
       } else {
         setError(`Failed to cancel order ${orderId}`);
       }
@@ -582,30 +749,25 @@ export function BinanceTestnetOrderTest() {
   };
 
   // Format date
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleString();
+  const formatDate = (timestamp: number | string | undefined) => {
+    if (!timestamp) return 'N/A';
+
+    try {
+      // Handle both number timestamps and ISO string dates
+      const date =
+        typeof timestamp === 'number'
+          ? new Date(timestamp)
+          : new Date(timestamp);
+
+      return date.toLocaleString();
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid date';
+    }
   };
 
-  // Calculate minimum quantity for a given price
-  const calculateMinimumQuantity = (
-    symbolPair: string,
-    priceValue: number,
-  ): number => {
-    // Binance Testnet minimum notional values
-    const minimumNotionalValues: Record<string, number> = {
-      'BTC/USDT': 10,
-      'ETH/USDT': 10,
-      'BNB/USDT': 10,
-      'SOL/USDT': 10,
-      'XRP/USDT': 10,
-      // Add more pairs as needed
-    };
-
-    const minimumNotional = minimumNotionalValues[symbolPair] || 10; // Default to 10 USDT
-
-    // Calculate minimum quantity: minimum notional / price
-    return minimumNotional / priceValue;
-  };
+  // This function is already defined earlier in the file
+  // Removing duplicate declaration
 
   return (
     <Card className="w-full mt-4">
@@ -984,7 +1146,9 @@ export function BinanceTestnetOrderTest() {
                         <td className="p-2 capitalize">
                           {order.status.replace('_', ' ')}
                         </td>
-                        <td className="p-2">{formatDate(order.timestamp)}</td>
+                        <td className="p-2">
+                          {formatDate(order.createdAt || order.timestamp)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
