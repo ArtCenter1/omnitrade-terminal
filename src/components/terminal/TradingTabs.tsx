@@ -679,6 +679,28 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
           localStorage.getItem('omnitrade_mock_orders') || '[]',
         );
 
+        // Format the order for localStorage
+        const formattedOrder = {
+          id: order.id,
+          userId: 'current-user',
+          exchangeId: order.exchangeId || exchangeId,
+          symbol: order.symbol,
+          side: order.side,
+          type: order.type,
+          status: order.status || 'new',
+          price: order.price,
+          stopPrice: order.stopPrice,
+          quantity: order.quantity,
+          filledQuantity: order.executed || 0,
+          avgFillPrice: order.price,
+          createdAt: order.timestamp
+            ? new Date(order.timestamp).toISOString()
+            : new Date().toISOString(),
+          updatedAt: order.lastUpdated
+            ? new Date(order.lastUpdated).toISOString()
+            : new Date().toISOString(),
+        };
+
         // Check if the order is already in localStorage
         const orderExists = currentOrders.some((o: any) => o.id === order.id);
         if (!orderExists) {
@@ -760,10 +782,14 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
           method: 'handlePlaceOrder',
         });
 
-        // Add a small delay to ensure the order is saved before refreshing
-        setTimeout(() => {
-          onOrderPlaced();
-        }, 500);
+        // Set up multiple refreshes to ensure orders are updated
+        // First refresh immediately
+        onOrderPlaced();
+
+        // Then refresh a few more times with delays
+        setTimeout(() => onOrderPlaced(), 500);
+        setTimeout(() => onOrderPlaced(), 1500);
+        setTimeout(() => onOrderPlaced(), 3000);
       }
     } catch (error) {
       logger.error('Error placing order', {

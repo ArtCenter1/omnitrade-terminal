@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
@@ -7,8 +7,11 @@ import {
   getOrders,
   cancelOrder,
   Order,
+  getMockOrders,
 } from '../../services/enhancedOrdersService';
-import { Loader2, X } from 'lucide-react';
+import { Loader2, X, RefreshCw } from 'lucide-react';
+import { useFeatureFlags } from '@/config/featureFlags';
+import { ExchangeFactory } from '@/services/exchange/exchangeFactory';
 
 interface OrdersTableProps {
   selectedSymbol?: string;
@@ -232,7 +235,63 @@ export function OrdersTable({
       console.log(
         `Canceling order ${orderId} on ${exchangeId} for ${orderSymbol}`,
       );
-      const result = await cancelOrder(orderId, exchangeId, orderSymbol);
+
+      // Check if this is a mock order (starts with "mock_")
+      const isMockOrder = orderId.startsWith('mock_');
+      console.log(
+        `Canceling ${isMockOrder ? 'mock' : 'real'} order: ${orderId}`,
+      );
+
+      let result = false;
+
+      // For mock orders, we'll handle them directly in localStorage
+      if (isMockOrder) {
+        console.log('Handling mock order cancellation via localStorage');
+        try {
+          const storedOrders = localStorage.getItem('omnitrade_mock_orders');
+          if (storedOrders) {
+            const parsedOrders = JSON.parse(storedOrders);
+            const orderExists = parsedOrders.some(
+              (order: any) => order.id === orderId,
+            );
+
+            if (!orderExists) {
+              throw new Error(`Order ${orderId} not found in localStorage`);
+            }
+
+            // Update the order status in localStorage
+            const updatedOrders = parsedOrders.map((order: any) => {
+              if (order.id === orderId) {
+                return {
+                  ...order,
+                  status: 'canceled',
+                  updatedAt: new Date().toISOString(),
+                };
+              }
+              return order;
+            });
+
+            // Save back to localStorage
+            localStorage.setItem(
+              'omnitrade_mock_orders',
+              JSON.stringify(updatedOrders),
+            );
+            console.log(
+              'Updated order in localStorage:',
+              updatedOrders.find((o: any) => o.id === orderId),
+            );
+            result = true;
+          } else {
+            throw new Error('No orders found in localStorage');
+          }
+        } catch (localError) {
+          console.error('Error updating order in localStorage:', localError);
+          throw localError;
+        }
+      } else {
+        // For real orders, use the cancelOrder function
+        result = await cancelOrder(orderId, exchangeId, orderSymbol);
+      }
 
       if (result) {
         toast({
@@ -247,6 +306,11 @@ export function OrdersTable({
             order.id === orderId ? { ...order, status: 'canceled' } : order,
           ),
         );
+
+        // Refresh orders to ensure we have the latest data
+        setTimeout(() => {
+          fetchOrders();
+        }, 500);
       } else {
         throw new Error('Failed to cancel order');
       }
