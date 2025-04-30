@@ -103,17 +103,30 @@ export function OrdersTable({
       try {
         const storedOrders = localStorage.getItem('omnitrade_mock_orders');
         if (storedOrders) {
+          console.log('Raw stored orders from localStorage:', storedOrders);
           const parsedOrders = JSON.parse(storedOrders);
+          console.log('Parsed orders from localStorage:', parsedOrders);
 
           // Filter orders based on the same criteria
           localOrders = parsedOrders.filter((order: any) => {
-            // Filter by exchange if needed
-            if (exchangeId && order.exchangeId !== exchangeId) {
+            // Filter by exchange if needed - be more lenient with exchange ID matching
+            if (
+              exchangeId &&
+              order.exchangeId !== exchangeId &&
+              order.exchangeId !== 'binance_testnet' &&
+              exchangeId !== 'binance_testnet'
+            ) {
+              console.log(
+                `Filtering out order ${order.id} due to exchange mismatch: ${order.exchangeId} vs ${exchangeId}`,
+              );
               return false;
             }
 
             // Filter by symbol if needed
             if (selectedSymbol && order.symbol !== selectedSymbol) {
+              console.log(
+                `Filtering out order ${order.id} due to symbol mismatch: ${order.symbol} vs ${selectedSymbol}`,
+              );
               return false;
             }
 
@@ -121,6 +134,9 @@ export function OrdersTable({
             if (status) {
               const statusList = status.split(',');
               if (!statusList.includes(order.status)) {
+                console.log(
+                  `Filtering out order ${order.id} due to status mismatch: ${order.status} not in ${statusList}`,
+                );
                 return false;
               }
             } else if (activeTab === 'history') {
@@ -129,6 +145,20 @@ export function OrdersTable({
                 order.status === 'new' ||
                 order.status === 'partially_filled'
               ) {
+                console.log(
+                  `Filtering out order ${order.id} from history tab due to status: ${order.status}`,
+                );
+                return false;
+              }
+            } else if (activeTab === 'open') {
+              // For open tab, only show new and partially_filled
+              if (
+                order.status !== 'new' &&
+                order.status !== 'partially_filled'
+              ) {
+                console.log(
+                  `Filtering out order ${order.id} from open tab due to status: ${order.status}`,
+                );
                 return false;
               }
             }

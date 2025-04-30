@@ -1,5 +1,5 @@
 // src/components/settings/BinanceTestnetOrderTest.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -43,9 +43,61 @@ export function BinanceTestnetOrderTest() {
   const [symbol, setSymbol] = useState<string>('BTC/USDT');
   const [side, setSide] = useState<OrderSide>('buy');
   const [orderType, setOrderType] = useState<OrderType>('limit');
-  const [quantity, setQuantity] = useState<string>('0.001');
+  const [quantity, setQuantity] = useState<string>('0.0004'); // Default quantity for BTC/USDT (above min)
   const [price, setPrice] = useState<string>('30000');
   const [stopPrice, setStopPrice] = useState<string>('');
+
+  // Effect to suggest minimum quantity when price changes
+  useEffect(() => {
+    if (orderType !== 'market' && price) {
+      const priceValue = parseFloat(price);
+      if (priceValue > 0) {
+        const minQuantity = calculateMinimumQuantity(symbol, priceValue);
+        const currentQuantity = parseFloat(quantity);
+
+        // If current quantity is less than minimum, suggest updating it
+        if (currentQuantity < minQuantity) {
+          console.log(
+            `Current quantity ${currentQuantity} is less than minimum ${minQuantity}`,
+          );
+          // We don't automatically update to avoid disrupting user input
+        }
+      }
+    }
+  }, [price, symbol, orderType]);
+
+  // Effect to set default quantities and prices when symbol changes
+  useEffect(() => {
+    // Default quantities for different symbols (above minimum notional value)
+    const defaultQuantities: Record<string, string> = {
+      'BTC/USDT': '0.0004', // For BTC at ~25,000 USDT
+      'ETH/USDT': '0.08', // For ETH at ~130 USDT
+      'BNB/USDT': '0.04', // For BNB at ~250 USDT
+      'SOL/USDT': '0.2', // For SOL at ~50 USDT
+      'XRP/USDT': '20', // For XRP at ~0.5 USDT
+    };
+
+    // Default prices for different symbols (approximate market prices)
+    const defaultPrices: Record<string, string> = {
+      'BTC/USDT': '25000',
+      'ETH/USDT': '1300',
+      'BNB/USDT': '250',
+      'SOL/USDT': '50',
+      'XRP/USDT': '0.5',
+    };
+
+    // Set the default quantity for the selected symbol
+    const defaultQty = defaultQuantities[symbol];
+    if (defaultQty) {
+      setQuantity(defaultQty);
+    }
+
+    // Set the default price for the selected symbol
+    const defaultPrice = defaultPrices[symbol];
+    if (defaultPrice) {
+      setPrice(defaultPrice);
+    }
+  }, [symbol]);
 
   // Feature flags
   const featureFlags = useFeatureFlags();
@@ -141,6 +193,28 @@ export function BinanceTestnetOrderTest() {
         throw new Error('Stop price is required for stop orders');
       }
 
+      // Check minimum notional value (price * quantity)
+      const notionalValue = parseFloat(price) * parseFloat(quantity);
+      console.log(`Order notional value: ${notionalValue}`);
+
+      // Binance Testnet minimum notional values (these vary by pair)
+      const minimumNotionalValues: Record<string, number> = {
+        'BTC/USDT': 10,
+        'ETH/USDT': 10,
+        'BNB/USDT': 10,
+        'SOL/USDT': 10,
+        'XRP/USDT': 10,
+        // Add more pairs as needed
+      };
+
+      const minimumNotional = minimumNotionalValues[symbol] || 10; // Default to 10 USDT
+
+      if (notionalValue < minimumNotional) {
+        throw new Error(
+          `Order notional value (${notionalValue.toFixed(8)}) is less than the minimum required (${minimumNotional}) for ${symbol}. Try increasing the quantity.`,
+        );
+      }
+
       console.log('Getting Binance Testnet adapter...');
       // Get the Binance Testnet adapter
       const adapter = ExchangeFactory.getAdapter('binance_testnet');
@@ -190,9 +264,16 @@ export function BinanceTestnetOrderTest() {
         if (!orderExists) {
           // Format the order to match what the OrdersTable component expects
           const formattedOrder = {
-            ...order,
-            // Add required fields for OrdersTable
+            id: order.id,
             userId: 'current-user',
+            exchangeId: order.exchangeId || 'binance_testnet',
+            symbol: order.symbol,
+            side: order.side,
+            type: order.type,
+            status: order.status || 'new',
+            price: order.price,
+            stopPrice: order.stopPrice,
+            quantity: order.quantity,
             filledQuantity: order.executed || 0,
             // Ensure dates are in the correct format
             createdAt: order.timestamp
@@ -203,12 +284,7 @@ export function BinanceTestnetOrderTest() {
               : new Date().toISOString(),
           };
 
-          // Remove fields that might cause confusion
-          delete formattedOrder.executed;
-          delete formattedOrder.remaining;
-          delete formattedOrder.timestamp;
-          delete formattedOrder.lastUpdated;
-
+          console.log('Formatted order for localStorage:', formattedOrder);
           currentOrders.push(formattedOrder);
           localStorage.setItem(
             'omnitrade_mock_orders',
@@ -218,6 +294,9 @@ export function BinanceTestnetOrderTest() {
             'Order saved to localStorage with correct format:',
             formattedOrder,
           );
+
+          // Log the current orders in localStorage for debugging
+          console.log('Current orders in localStorage:', currentOrders);
         }
       } catch (storageError) {
         console.warn('Failed to save order to localStorage:', storageError);
@@ -280,13 +359,76 @@ export function BinanceTestnetOrderTest() {
     }
 
     try {
-      // Get the Binance Testnet adapter
-      const adapter = ExchangeFactory.getAdapter('binance_testnet');
+      // First, try to get orders from localStorage
+      let localOrders: any[] = [];
+      try {
+        const storedOrders = localStorage.getItem('omnitrade_mock_orders');
+        if (storedOrders) {
+          console.log('Raw stored orders from localStorage:', storedOrders);
+          const parsedOrders = JSON.parse(storedOrders);
 
-      // Get open orders
-      const orders = await adapter.getOpenOrders('default', symbol);
-      console.log('Open orders:', orders);
-      setOpenOrders(orders);
+          // Filter for open orders (status = new or partially_filled) and matching symbol
+          localOrders = parsedOrders.filter(
+            (order: any) =>
+              (order.status === 'new' || order.status === 'partially_filled') &&
+              (!symbol || order.symbol === symbol),
+          );
+
+          console.log('Open orders from localStorage:', localOrders);
+        }
+      } catch (localError) {
+        console.error('Error getting orders from localStorage:', localError);
+      }
+
+      // Then try to get orders from the adapter as a fallback
+      try {
+        // Get the Binance Testnet adapter
+        const adapter = ExchangeFactory.getAdapter('binance_testnet');
+
+        // Get open orders
+        const adapterOrders = await adapter.getOpenOrders('default', symbol);
+        console.log('Open orders from adapter:', adapterOrders);
+
+        // Make sure adapterOrders is an array before mapping
+        if (Array.isArray(adapterOrders) && adapterOrders.length > 0) {
+          // Format orders to match what the component expects
+          const formattedAdapterOrders = adapterOrders.map((order) => ({
+            id: order.id,
+            userId: 'current-user',
+            exchangeId: order.exchangeId || 'binance_testnet',
+            symbol: order.symbol,
+            side: order.side,
+            type: order.type,
+            status: order.status || 'new',
+            price: order.price,
+            stopPrice: order.stopPrice,
+            quantity: order.quantity,
+            filledQuantity: order.executed || 0,
+          }));
+
+          console.log('Formatted adapter orders:', formattedAdapterOrders);
+
+          // Combine with local orders, removing duplicates
+          formattedAdapterOrders.forEach((adapterOrder) => {
+            if (
+              !localOrders.some(
+                (localOrder) => localOrder.id === adapterOrder.id,
+              )
+            ) {
+              localOrders.push(adapterOrder);
+            }
+          });
+        }
+      } catch (adapterError) {
+        console.warn(
+          'Error getting orders from adapter, using localStorage only:',
+          adapterError,
+        );
+      }
+
+      // Set the combined orders
+      console.log('Final open orders:', localOrders);
+      setOpenOrders(localOrders);
 
       // Update connection status
       await checkConnection('binance_testnet');
@@ -323,8 +465,32 @@ export function BinanceTestnetOrderTest() {
 
       // Get order history
       const orders = await adapter.getOrderHistory('default', symbol, 20);
-      console.log('Order history:', orders);
-      setOrderHistory(orders);
+      console.log('Order history from adapter:', orders);
+
+      // Format orders to match what the component expects
+      const formattedOrders = orders.map((order) => ({
+        id: order.id,
+        userId: 'current-user',
+        exchangeId: order.exchangeId || 'binance_testnet',
+        symbol: order.symbol,
+        side: order.side,
+        type: order.type,
+        status: order.status || 'filled',
+        price: order.price,
+        stopPrice: order.stopPrice,
+        quantity: order.quantity,
+        filledQuantity: order.executed || 0,
+        avgFillPrice: order.price,
+        createdAt: order.timestamp
+          ? new Date(order.timestamp).toISOString()
+          : new Date().toISOString(),
+        updatedAt: order.lastUpdated
+          ? new Date(order.lastUpdated).toISOString()
+          : new Date().toISOString(),
+      }));
+
+      console.log('Formatted order history:', formattedOrders);
+      setOrderHistory(formattedOrders);
 
       // Update connection status
       await checkConnection('binance_testnet');
@@ -366,6 +532,36 @@ export function BinanceTestnetOrderTest() {
 
       if (result) {
         setSuccess(`Order ${orderId} canceled successfully!`);
+
+        // Also update the order in localStorage to ensure it shows up in the OrdersTable
+        try {
+          const storedOrders = localStorage.getItem('omnitrade_mock_orders');
+          if (storedOrders) {
+            const parsedOrders = JSON.parse(storedOrders);
+            const updatedOrders = parsedOrders.map((order: any) => {
+              if (order.id === orderId) {
+                return {
+                  ...order,
+                  status: 'canceled',
+                  updatedAt: new Date().toISOString(),
+                };
+              }
+              return order;
+            });
+
+            localStorage.setItem(
+              'omnitrade_mock_orders',
+              JSON.stringify(updatedOrders),
+            );
+            console.log('Updated order status in localStorage:', updatedOrders);
+          }
+        } catch (storageError) {
+          console.warn(
+            'Failed to update order status in localStorage:',
+            storageError,
+          );
+        }
+
         // Refresh open orders
         await handleGetOpenOrders();
       } else {
@@ -388,6 +584,27 @@ export function BinanceTestnetOrderTest() {
   // Format date
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleString();
+  };
+
+  // Calculate minimum quantity for a given price
+  const calculateMinimumQuantity = (
+    symbolPair: string,
+    priceValue: number,
+  ): number => {
+    // Binance Testnet minimum notional values
+    const minimumNotionalValues: Record<string, number> = {
+      'BTC/USDT': 10,
+      'ETH/USDT': 10,
+      'BNB/USDT': 10,
+      'SOL/USDT': 10,
+      'XRP/USDT': 10,
+      // Add more pairs as needed
+    };
+
+    const minimumNotional = minimumNotionalValues[symbolPair] || 10; // Default to 10 USDT
+
+    // Calculate minimum quantity: minimum notional / price
+    return minimumNotional / priceValue;
   };
 
   return (
@@ -515,6 +732,35 @@ export function BinanceTestnetOrderTest() {
                   onChange={(e) => setQuantity(e.target.value)}
                   placeholder="0.001"
                 />
+                {orderType !== 'market' && price && (
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-xs text-muted-foreground">
+                      Minimum quantity:{' '}
+                      {calculateMinimumQuantity(
+                        symbol,
+                        parseFloat(price),
+                      ).toFixed(6)}{' '}
+                      {symbol.split('/')[0]}
+                      (Min. order value: 10 USDT)
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 text-xs"
+                      onClick={() => {
+                        const minQty = calculateMinimumQuantity(
+                          symbol,
+                          parseFloat(price),
+                        );
+                        // Add a small buffer (5%) to ensure we're above the minimum
+                        const safeQty = (minQty * 1.05).toFixed(6);
+                        setQuantity(safeQty);
+                      }}
+                    >
+                      Use Min
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {orderType !== 'market' && (
@@ -528,6 +774,13 @@ export function BinanceTestnetOrderTest() {
                     onChange={(e) => setPrice(e.target.value)}
                     placeholder="30000"
                   />
+                  {price && quantity && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Total order value:{' '}
+                      {(parseFloat(price) * parseFloat(quantity)).toFixed(2)}{' '}
+                      USDT
+                    </p>
+                  )}
                 </div>
               )}
 

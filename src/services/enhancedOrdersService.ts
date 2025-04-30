@@ -123,8 +123,35 @@ export const saveMockOrders = (orders: Order[]) => {
   }
 };
 
-// Get the current mock orders
-export const mockOrders: Order[] = getMockOrders();
+// Get the current mock orders - initialize as empty array and populate later
+export const mockOrders: Order[] = [];
+
+// Initialize mock orders from localStorage
+(function initializeMockOrders() {
+  try {
+    const storedOrders = localStorage.getItem('omnitrade_mock_orders');
+    if (storedOrders) {
+      const parsedOrders = JSON.parse(storedOrders);
+      console.log(
+        `Initializing mockOrders with ${parsedOrders.length} orders from localStorage`,
+      );
+
+      // Convert date strings to Date objects
+      const orders = parsedOrders.map((order: any) => ({
+        ...order,
+        createdAt: new Date(order.createdAt),
+        updatedAt: new Date(order.updatedAt),
+      }));
+
+      // Clear and repopulate the mockOrders array
+      mockOrders.length = 0;
+      mockOrders.push(...orders);
+      console.log('mockOrders initialized:', mockOrders);
+    }
+  } catch (error) {
+    console.error('Error initializing mock orders from localStorage:', error);
+  }
+})();
 
 // Add a mock order
 export const addMockOrder = (order: Order) => {
