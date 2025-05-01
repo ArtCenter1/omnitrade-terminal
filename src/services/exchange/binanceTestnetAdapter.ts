@@ -79,6 +79,7 @@ import { MockDataService } from '../mockData/mockDataService'; // Import mock da
  */
 export class BinanceTestnetAdapter extends BaseExchangeAdapter {
   private baseUrl: string;
+  private originalApiUrl: string; // Store the original API URL for reference
   private wsBaseUrl: string;
   private webSocketManager: WebSocketManager;
   private eventEmitter: BrowserEventEmitter;
@@ -147,28 +148,17 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
     super('binance_testnet'); // Calls BaseExchangeAdapter constructor, which initializes mockDataService
 
     // Get the correct endpoint from the configuration
-    this.baseUrl = getExchangeEndpoint('binance_testnet');
+    const configEndpoint = getExchangeEndpoint('binance_testnet');
 
     // Log the base URL for debugging
-    console.log(
-      `[${this.exchangeId}] Initialized with base URL: ${this.baseUrl}`,
-    );
+    console.log(`[${this.exchangeId}] Config endpoint: ${configEndpoint}`);
 
-    // Ensure we're using the correct Binance Testnet URL
-    if (!this.baseUrl || !this.baseUrl.includes('testnet.binance.vision')) {
-      console.warn(
-        `[${this.exchangeId}] Invalid base URL: ${this.baseUrl}, using default`,
-      );
-      this.baseUrl = 'https://testnet.binance.vision/api';
-    }
+    // Use our backend proxy to avoid CORS issues
+    this.baseUrl = '/api/proxy/binance-testnet';
+    console.log(`[${this.exchangeId}] Using backend proxy: ${this.baseUrl}`);
 
-    // Check if we should use a CORS proxy
-    const useCorsProxy = false; // Set to true if needed for development
-    if (useCorsProxy) {
-      // Use a CORS proxy like cors-anywhere or your own proxy
-      console.log(`[${this.exchangeId}] Using CORS proxy for API requests`);
-      this.baseUrl = `https://cors-anywhere.herokuapp.com/${this.baseUrl}`;
-    }
+    // Store the original API URL for WebSocket connections
+    this.originalApiUrl = 'https://testnet.binance.vision/api';
 
     this.wsBaseUrl = 'wss://testnet.binance.vision/ws'; // Base URL for user data stream
     this.webSocketManager = WebSocketManager.getInstance();
@@ -193,77 +183,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
     try {
       console.log(`[${this.exchangeId}] Getting exchange info`);
 
-      // Make request to exchange info endpoint directly
-      try {
-        console.log(
-          `[${this.exchangeId}] Using direct fetch for exchange info`,
-        );
-        // Avoid double /api in the URL
-        const url = this.baseUrl.endsWith('/api')
-          ? `${this.baseUrl}/v3/exchangeInfo`
-          : `${this.baseUrl}/api/v3/exchangeInfo`;
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            contentType: 'application/json',
-          },
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (response.ok) {
-          console.log(
-            `[${this.exchangeId}] Exchange info fetch successful with status: ${response.status}`,
-          );
-          const data = await response.json();
-
-          // Check if the response contains symbols
-          const hasSymbols =
-            data.symbols &&
-            Array.isArray(data.symbols) &&
-            data.symbols.length > 0;
-
-          if (hasSymbols) {
-            console.log(
-              `[${this.exchangeId}] Received ${data.symbols.length} symbols from API via direct fetch`,
-            );
-
-            // Return formatted exchange info with symbols included
-            return {
-              id: this.exchangeId,
-              name: 'Binance Testnet',
-              logo: '/exchanges/binance.svg',
-              website: 'https://testnet.binance.vision',
-              description: 'Binance Testnet for sandbox trading',
-              isActive: true,
-              // Include symbols from the response for order validation
-              symbols: data.symbols,
-            };
-          } else {
-            console.warn(
-              `[${this.exchangeId}] API returned no symbols via direct fetch, trying makeUnauthenticatedRequest`,
-            );
-            // Continue to try with makeUnauthenticatedRequest
-          }
-        } else {
-          console.warn(
-            `[${this.exchangeId}] Exchange info direct fetch failed with status: ${response.status}, trying makeUnauthenticatedRequest`,
-          );
-          // Continue to try with makeUnauthenticatedRequest
-        }
-      } catch (fetchError) {
-        console.warn(
-          `[${this.exchangeId}] Exchange info direct fetch failed, trying makeUnauthenticatedRequest:`,
-          fetchError,
-        );
-        // Continue to try with makeUnauthenticatedRequest
-      }
-
-      // Try with makeUnauthenticatedRequest as fallback
+      // Use our makeUnauthenticatedRequest method which now uses the backend proxy
       const response = await this.makeUnauthenticatedRequest<{
         timezone: string;
         serverTime: number;
@@ -271,7 +191,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
         exchangeFilters: any[]; // Define more specific type if needed
         symbols: any[]; // Define more specific type if needed
       }>(
-        '/api/v3/exchangeInfo', // Corrected endpoint
+        '/v3/exchangeInfo', // Endpoint path
         {},
         10, // Weight: 10
       );
@@ -284,7 +204,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
 
       if (hasSymbols) {
         console.log(
-          `[${this.exchangeId}] Received ${response.symbols.length} symbols from API via makeUnauthenticatedRequest`,
+          `[${this.exchangeId}] Received ${response.symbols.length} symbols from API via proxy`,
         );
 
         // Return formatted exchange info with symbols included
@@ -434,22 +354,23 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
     weight: number = 1,
   ): Promise<T> {
     try {
-      // Ensure we have a valid base URL
-      if (!this.baseUrl || !this.baseUrl.includes('testnet.binance.vision')) {
-        console.warn(
-          `[${this.exchangeId}] Invalid base URL detected: ${this.baseUrl}, using default`,
-        );
-        this.baseUrl = 'https://testnet.binance.vision/api';
-      }
-
       // Build URL with query parameters - handle endpoint path correctly
       let url: string;
-      if (endpoint.startsWith('/api') && this.baseUrl.endsWith('/api')) {
-        // Avoid double /api in the URL
-        url = `${this.baseUrl}${endpoint.substring(4)}`;
-      } else {
-        url = `${this.baseUrl}${endpoint}`;
+
+      // Remove /api prefix if it exists since our proxy will add it
+      if (endpoint.startsWith('/api/')) {
+        endpoint = endpoint.substring(4); // Remove '/api/'
+      } else if (endpoint.startsWith('/api')) {
+        endpoint = endpoint.substring(4); // Remove '/api'
       }
+
+      // Ensure endpoint starts with a slash
+      if (!endpoint.startsWith('/')) {
+        endpoint = `/${endpoint}`;
+      }
+
+      // Construct the URL with our proxy endpoint
+      url = `${this.baseUrl}${endpoint}`;
 
       // Add query parameters if any
       if (Object.keys(params).length > 0) {
@@ -465,41 +386,24 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       // Enhanced logging for debugging
       console.log(`[${this.exchangeId}] Making API request to: ${url}`);
 
-      // Check if we're in development mode - CORS issues are common in development
-      const isDevelopment =
-        process.env.NODE_ENV === 'development' ||
-        window.location.hostname === 'localhost' ||
-        window.location.hostname === '127.0.0.1';
+      // Make the request using fetch
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-      if (isDevelopment) {
-        console.warn(
-          `[${this.exchangeId}] Running in development mode. CORS issues are likely. Will use mock data as fallback.`,
-        );
-      }
-
-      // Try direct fetch first to avoid any issues with the makeApiRequest utility
       try {
-        console.log(`[${this.exchangeId}] Using direct fetch to: ${url}`);
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
         const response = await fetch(url, {
           method: 'GET',
-          // Remove all headers that can trigger preflight CORS issues
-          // Don't set any headers at all to avoid CORS problems
-          headers: {},
+          headers: {
+            Accept: 'application/json',
+          },
           signal: controller.signal,
-          // Add credentials: 'omit' to avoid sending cookies which can cause CORS issues
-          credentials: 'omit',
-          // Add mode: 'cors' to explicitly request CORS
-          mode: 'cors',
         });
 
         clearTimeout(timeoutId);
 
         if (response.ok) {
           console.log(
-            `[${this.exchangeId}] Direct fetch successful with status: ${response.status}`,
+            `[${this.exchangeId}] Fetch successful with status: ${response.status}`,
           );
           const data = await response.json();
 
@@ -520,7 +424,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
           return data as T;
         } else {
           console.warn(
-            `[${this.exchangeId}] Direct fetch failed with status: ${response.status}`,
+            `[${this.exchangeId}] Fetch failed with status: ${response.status}`,
           );
 
           // Try to parse error response
@@ -540,135 +444,18 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
             );
           }
 
-          // If we're in development mode and got a CORS error, throw a specific error
-          if (isDevelopment && response.status === 0) {
-            console.error(
-              `[${this.exchangeId}] CORS error detected. Falling back to mock data.`,
-            );
-            throw new Error('CORS_ERROR');
-          }
-
-          // Continue to try with makeApiRequest as fallback
+          // Fall back to mock data if the request failed
+          console.log(`[${this.exchangeId}] Falling back to mock data`);
+          return this.getFallbackMockData(endpoint, params) as T;
         }
       } catch (fetchError) {
-        console.warn(
-          `[${this.exchangeId}] Direct fetch failed, falling back to makeApiRequest:`,
-          fetchError,
-        );
+        clearTimeout(timeoutId);
+        console.warn(`[${this.exchangeId}] Fetch error:`, fetchError);
 
-        // Check if this is a CORS error
-        if (
-          fetchError instanceof Error &&
-          (fetchError.message.includes('CORS') ||
-            fetchError.message === 'CORS_ERROR' ||
-            fetchError.message.includes('Failed to fetch'))
-        ) {
-          console.error(
-            `[${this.exchangeId}] CORS error detected. Falling back to mock data.`,
-          );
-
-          // For CORS errors, immediately fall back to mock data
-          console.log(`[${this.exchangeId}] Using mock data due to CORS error`);
-
-          // Return mock data based on the endpoint type
-          if (endpoint.includes('ticker/24hr')) {
-            // For ticker data
-            const symbol = params.symbol
-              ? String(params.symbol).replace('USDT', '/USDT')
-              : 'BTC/USDT';
-            return this.mockDataService.generateTickerStats(
-              this.exchangeId,
-              symbol,
-            ) as unknown as T;
-          } else if (endpoint.includes('depth')) {
-            // For order book data
-            const symbol = params.symbol
-              ? String(params.symbol).replace('USDT', '/USDT')
-              : 'BTC/USDT';
-            const limit = params.limit ? Number(params.limit) : 20;
-            return this.mockDataService.generateOrderBook(
-              this.exchangeId,
-              symbol,
-              limit,
-            ) as unknown as T;
-          } else if (endpoint.includes('klines')) {
-            // For kline data
-            const symbol = params.symbol
-              ? String(params.symbol).replace('USDT', '/USDT')
-              : 'BTC/USDT';
-            const interval = params.interval ? String(params.interval) : '1h';
-            const limit = params.limit ? Number(params.limit) : 500;
-            return this.mockDataService.generateKlines(
-              this.exchangeId,
-              symbol,
-              interval,
-              undefined,
-              undefined,
-              limit,
-            ) as unknown as T;
-          } else if (endpoint.includes('trades')) {
-            // For trades data
-            const symbol = params.symbol
-              ? String(params.symbol).replace('USDT', '/USDT')
-              : 'BTC/USDT';
-            const limit = params.limit ? Number(params.limit) : 100;
-            return this.mockDataService.generateRecentTrades(
-              this.exchangeId,
-              symbol,
-              limit,
-            ) as unknown as T;
-          } else {
-            // For other endpoints, return a generic mock response
-            return {} as T;
-          }
-        }
-
-        // If this is already a Binance API error, rethrow it
-        if (
-          fetchError instanceof Error &&
-          fetchError.message.includes('Binance API error')
-        ) {
-          throw fetchError;
-        }
-
-        // Continue to try with makeApiRequest as fallback
+        // Fall back to mock data if the request failed
+        console.log(`[${this.exchangeId}] Falling back to mock data`);
+        return this.getFallbackMockData(endpoint, params) as T;
       }
-
-      // Make request with rate limiting as fallback
-      console.log(
-        `[${this.exchangeId}] Falling back to makeApiRequest for: ${url}`,
-      );
-
-      const response = await makeApiRequest<T>(this.exchangeId, url, {
-        method: 'GET',
-        weight,
-        parseJson: true,
-        retries: 3,
-        retryDelay: 1000,
-      });
-
-      // Log successful response (truncated for large responses)
-      const responseStr = JSON.stringify(response).substring(0, 200);
-      console.log(
-        `[${this.exchangeId}] API response via makeApiRequest (truncated): ${responseStr}${responseStr.length >= 200 ? '...' : ''}`,
-      );
-
-      // Check if the response is an error message from Binance
-      if (
-        response &&
-        typeof response === 'object' &&
-        'code' in response &&
-        'msg' in response
-      ) {
-        console.warn(
-          `[${this.exchangeId}] Binance API error via makeApiRequest: Code ${response.code}, Message: ${response.msg}`,
-        );
-        throw new Error(
-          `Binance API error (${response.code}): ${response.msg}`,
-        );
-      }
-
-      return response;
     } catch (error) {
       console.error(
         `[${this.exchangeId}] Error making unauthenticated request to ${endpoint}:`,
@@ -688,6 +475,71 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       }
 
       throw error;
+    }
+  }
+
+  /**
+   * Get fallback mock data for different endpoint types
+   * @param endpoint The API endpoint
+   * @param params The query parameters
+   * @returns Mock data for the endpoint
+   */
+  private getFallbackMockData(
+    endpoint: string,
+    params: Record<string, string | number> = {},
+  ): any {
+    // Return mock data based on the endpoint type
+    if (endpoint.includes('ticker/24hr')) {
+      // For ticker data
+      const symbol = params.symbol
+        ? String(params.symbol).replace('USDT', '/USDT')
+        : 'BTC/USDT';
+      return this.mockDataService.generateTickerStats(this.exchangeId, symbol);
+    } else if (endpoint.includes('depth')) {
+      // For order book data
+      const symbol = params.symbol
+        ? String(params.symbol).replace('USDT', '/USDT')
+        : 'BTC/USDT';
+      const limit = params.limit ? Number(params.limit) : 20;
+      return this.mockDataService.generateOrderBook(
+        this.exchangeId,
+        symbol,
+        limit,
+      );
+    } else if (endpoint.includes('klines')) {
+      // For kline data
+      const symbol = params.symbol
+        ? String(params.symbol).replace('USDT', '/USDT')
+        : 'BTC/USDT';
+      const interval = params.interval ? String(params.interval) : '1h';
+      const limit = params.limit ? Number(params.limit) : 500;
+      return this.mockDataService.generateKlines(
+        this.exchangeId,
+        symbol,
+        interval,
+        undefined,
+        undefined,
+        limit,
+      );
+    } else if (endpoint.includes('trades')) {
+      // For trades data
+      const symbol = params.symbol
+        ? String(params.symbol).replace('USDT', '/USDT')
+        : 'BTC/USDT';
+      const limit = params.limit ? Number(params.limit) : 100;
+      return this.mockDataService.generateRecentTrades(
+        this.exchangeId,
+        symbol,
+        limit,
+      );
+    } else if (endpoint.includes('exchangeInfo')) {
+      // For exchange info, generate mock symbols
+      return {
+        symbols: this.generateMockSymbols(),
+      };
+    } else {
+      // For other endpoints, return a generic mock response
+      return {};
     }
   }
 
@@ -780,90 +632,13 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
 
       console.log(`[${this.exchangeId}] Getting order book for ${symbol}`);
 
-      // Try direct fetch first
-      try {
-        const url = `${this.baseUrl}/api/v3/depth?symbol=${encodeURIComponent(binanceSymbol)}&limit=${Math.min(limit, 5000)}`;
-        console.log(
-          `[${this.exchangeId}] Using direct fetch for order book: ${url}`,
-        );
-
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            contentType: 'application/json',
-            accept: 'application/json',
-          },
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (response.ok) {
-          console.log(
-            `[${this.exchangeId}] Order book fetch successful with status: ${response.status}`,
-          );
-          const data = await response.json();
-
-          // Check if the response contains bids and asks
-          if (
-            data &&
-            data.bids &&
-            data.asks &&
-            (data.bids.length > 0 || data.asks.length > 0)
-          ) {
-            console.log(
-              `[${this.exchangeId}] Received order book for ${symbol} with ${data.bids.length} bids and ${data.asks.length} asks via direct fetch`,
-            );
-
-            // Convert string arrays to OrderBookEntry objects
-            const bids = data.bids.map(([price, quantity]: string[]) => ({
-              price: parseFloat(price),
-              quantity: parseFloat(quantity),
-            }));
-
-            const asks = data.asks.map(([price, quantity]: string[]) => ({
-              price: parseFloat(price),
-              quantity: parseFloat(quantity),
-            }));
-
-            return {
-              symbol,
-              exchangeId: this.exchangeId,
-              bids,
-              asks,
-              timestamp: Date.now(),
-              lastUpdateId: data.lastUpdateId,
-            };
-          } else {
-            console.warn(
-              `[${this.exchangeId}] API returned empty order book via direct fetch for ${symbol}, trying makeUnauthenticatedRequest`,
-            );
-            // Continue to try with makeUnauthenticatedRequest
-          }
-        } else {
-          console.warn(
-            `[${this.exchangeId}] Order book direct fetch failed with status: ${response.status}, trying makeUnauthenticatedRequest`,
-          );
-          // Continue to try with makeUnauthenticatedRequest
-        }
-      } catch (fetchError) {
-        console.warn(
-          `[${this.exchangeId}] Order book direct fetch failed, trying makeUnauthenticatedRequest:`,
-          fetchError,
-        );
-        // Continue to try with makeUnauthenticatedRequest
-      }
-
-      // Make request to depth endpoint using makeUnauthenticatedRequest as fallback
+      // Make request to depth endpoint using our proxy
       const response = await this.makeUnauthenticatedRequest<{
         lastUpdateId: number;
         bids: string[][];
         asks: string[][];
       }>(
-        '/api/v3/depth',
+        '/v3/depth',
         {
           symbol: binanceSymbol,
           limit: Math.min(limit, 5000), // Binance has a max limit of 5000
@@ -880,7 +655,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
         (response.bids.length > 0 || response.asks.length > 0)
       ) {
         console.log(
-          `[${this.exchangeId}] Received order book for ${symbol} with ${response.bids.length} bids and ${response.asks.length} asks via makeUnauthenticatedRequest`,
+          `[${this.exchangeId}] Received order book for ${symbol} with ${response.bids.length} bids and ${response.asks.length} asks via proxy`,
         );
 
         // Convert string arrays to OrderBookEntry objects
@@ -953,9 +728,9 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       if (startTime) params.startTime = startTime;
       if (endTime) params.endTime = endTime;
 
-      // Make request to klines endpoint
+      // Make request to klines endpoint using our proxy
       const response = await this.makeUnauthenticatedRequest<any[][]>(
-        '/api/v3/klines',
+        '/v3/klines',
         params,
         // Weight is 1 regardless of limit
         1,
@@ -1226,102 +1001,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
           `[${this.exchangeId}] Getting ticker stats for ${symbol} (Binance format: ${binanceSymbol})`,
         );
 
-        // Try direct fetch first for better debugging
-        try {
-          // Construct the URL directly
-          const url = `${this.baseUrl}/api/v3/ticker/24hr?symbol=${encodeURIComponent(binanceSymbol)}`;
-          console.log(
-            `[${this.exchangeId}] Trying direct fetch for ticker stats: ${url}`,
-          );
-
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
-          const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-              contentType: 'application/json',
-              accept: 'application/json',
-            },
-            signal: controller.signal,
-          });
-
-          clearTimeout(timeoutId);
-
-          if (response.ok) {
-            const data = await response.json();
-            console.log(
-              `[${this.exchangeId}] Direct fetch successful for ticker stats:`,
-              data,
-            );
-
-            // If we got a valid response, process it
-            if (data && data.lastPrice) {
-              // Ensure symbol is in the correct format (with slash)
-              const formattedSymbol = symbol.includes('/')
-                ? symbol
-                : data.symbol
-                  ? `${data.symbol.replace('USDT', '')}/USDT`
-                  : symbol;
-
-              // Parse the values from the response
-              const parsedStats = {
-                symbol: formattedSymbol, // Use our symbol format with "/"
-                exchangeId: this.exchangeId,
-                priceChange: parseFloat(data.priceChange || '0'),
-                priceChangePercent: parseFloat(data.priceChangePercent || '0'),
-                weightedAvgPrice: parseFloat(data.weightedAvgPrice || '0'),
-                prevClosePrice: parseFloat(data.prevClosePrice || '0'),
-                lastPrice: parseFloat(data.lastPrice || '0'),
-                lastQty: parseFloat(data.lastQty || '0'),
-                bidPrice: parseFloat(data.bidPrice || '0'),
-                bidQty: parseFloat(data.bidQty || '0'),
-                askPrice: parseFloat(data.askPrice || '0'),
-                askQty: parseFloat(data.askQty || '0'),
-                openPrice: parseFloat(data.openPrice || '0'),
-                highPrice: parseFloat(data.highPrice || '0'),
-                lowPrice: parseFloat(data.lowPrice || '0'),
-                volume: parseFloat(data.volume || '0'),
-                quoteVolume: parseFloat(data.quoteVolume || '0'),
-                openTime: data.openTime || Date.now() - 24 * 60 * 60 * 1000,
-                closeTime: data.closeTime || Date.now(),
-                count: data.count || 0,
-              };
-
-              // Check if all important values are zero
-              const allImportantValuesZero =
-                parsedStats.lastPrice === 0 &&
-                parsedStats.highPrice === 0 &&
-                parsedStats.lowPrice === 0 &&
-                parsedStats.volume === 0;
-
-              if (allImportantValuesZero) {
-                console.warn(
-                  `[${this.exchangeId}] Direct fetch returned all zero values for ${symbol}, will try makeUnauthenticatedRequest`,
-                );
-              } else {
-                // If we have valid non-zero values, return them
-                return parsedStats;
-              }
-            }
-          } else {
-            console.warn(
-              `[${this.exchangeId}] Direct fetch failed with status: ${response.status}, will try makeUnauthenticatedRequest`,
-            );
-          }
-        } catch (directFetchError) {
-          console.warn(
-            `[${this.exchangeId}] Direct fetch error for ticker stats:`,
-            directFetchError,
-          );
-        }
-
-        // Fall back to makeUnauthenticatedRequest if direct fetch fails or returns zero values
-        console.log(
-          `[${this.exchangeId}] Trying makeUnauthenticatedRequest for ticker stats`,
-        );
-
-        // Make request to 24hr ticker endpoint for a specific symbol
+        // Make request to 24hr ticker endpoint for a specific symbol using our proxy
         const response = await this.makeUnauthenticatedRequest<{
           symbol: string;
           priceChange: string;
@@ -1345,7 +1025,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
           lastId: number;
           count: number;
         }>(
-          '/api/v3/ticker/24hr',
+          '/v3/ticker/24hr',
           { symbol: binanceSymbol },
           1, // Weight is 1 for a single symbol
         );
@@ -1418,7 +1098,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       } else {
         console.log(`[${this.exchangeId}] Getting ticker stats for all pairs`);
 
-        // Make request to 24hr ticker endpoint for all symbols
+        // Make request to 24hr ticker endpoint for all symbols using our proxy
         const response = await this.makeUnauthenticatedRequest<
           Array<{
             symbol: string;
@@ -1444,7 +1124,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
             count: number;
           }>
         >(
-          '/api/v3/ticker/24hr',
+          '/v3/ticker/24hr',
           {},
           40, // Weight is 40 for all symbols
         );
