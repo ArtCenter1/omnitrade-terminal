@@ -346,31 +346,69 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
    * @param endpoint The API endpoint
    * @param params The query parameters
    * @param weight The request weight
+   * @param options Additional options
    * @returns The response data
    */
   private async makeUnauthenticatedRequest<T>(
     endpoint: string,
     params: Record<string, string | number> = {},
     weight: number = 1,
+    options: {
+      forceRest?: boolean;
+      skipWebSocketCheck?: boolean;
+    } = {},
   ): Promise<T> {
+    const { forceRest = false, skipWebSocketCheck = false } = options;
+
     try {
-      // Build URL with query parameters - handle endpoint path correctly
-      let url: string;
+      // Normalize the endpoint for consistent handling
+      let normalizedEndpoint = endpoint;
 
       // Remove /api prefix if it exists since our proxy will add it
-      if (endpoint.startsWith('/api/')) {
-        endpoint = endpoint.substring(4); // Remove '/api/'
-      } else if (endpoint.startsWith('/api')) {
-        endpoint = endpoint.substring(4); // Remove '/api'
+      if (normalizedEndpoint.startsWith('/api/')) {
+        normalizedEndpoint = normalizedEndpoint.substring(4); // Remove '/api/'
+      } else if (normalizedEndpoint.startsWith('/api')) {
+        normalizedEndpoint = normalizedEndpoint.substring(4); // Remove '/api'
       }
 
       // Ensure endpoint starts with a slash
-      if (!endpoint.startsWith('/')) {
-        endpoint = `/${endpoint}`;
+      if (!normalizedEndpoint.startsWith('/')) {
+        normalizedEndpoint = `/${normalizedEndpoint}`;
+      }
+
+      // Check if we can use WebSocket for this request
+      if (!skipWebSocketCheck && !forceRest) {
+        try {
+          // Import the WebSocket service and market data service
+          const BinanceTestnetWebSocketService = (
+            await import('./binanceTestnetWebSocketService')
+          ).BinanceTestnetWebSocketService;
+          const BinanceTestnetMarketDataService = (
+            await import('./binanceTestnetMarketDataService')
+          ).BinanceTestnetMarketDataService;
+
+          // Try to get data from WebSocket
+          const webSocketData = await this.tryGetDataFromWebSocket<T>(
+            normalizedEndpoint,
+            params,
+            BinanceTestnetWebSocketService.getInstance(),
+            BinanceTestnetMarketDataService.getInstance(),
+          );
+
+          if (webSocketData) {
+            console.log(
+              `[${this.exchangeId}] Using WebSocket data for ${normalizedEndpoint}`,
+            );
+            return webSocketData;
+          }
+        } catch (wsError) {
+          console.warn(`[${this.exchangeId}] WebSocket check failed:`, wsError);
+          // Continue with REST API if WebSocket check fails
+        }
       }
 
       // Construct the URL with our proxy endpoint
-      url = `${this.baseUrl}${endpoint}`;
+      let url = `${this.baseUrl}${normalizedEndpoint}`;
 
       // Add query parameters if any
       if (Object.keys(params).length > 0) {
@@ -383,78 +421,100 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       // Log the constructed URL for debugging
       console.log(`[${this.exchangeId}] Constructed URL: ${url}`);
 
-      // Enhanced logging for debugging
-      console.log(`[${this.exchangeId}] Making API request to: ${url}`);
+      // Import the RateLimitManager
+      const { RateLimitManager } = await import(
+        '../connection/rateLimitManager'
+      );
+      const rateLimitManager = RateLimitManager.getInstance();
 
-      // Make the request using fetch
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      // Check if we should use WebSocket instead of REST API
+      const isWebSocketAvailable = this.isWebSocketAvailableForEndpoint(
+        normalizedEndpoint,
+        params,
+      );
 
+      // Make request with rate limiting
       try {
-        const response = await fetch(url, {
+        return await makeApiRequest<T>(this.exchangeId, url, {
           method: 'GET',
           headers: {
             Accept: 'application/json',
           },
-          signal: controller.signal,
+          weight,
+          parseJson: true,
+          retries: 3,
+          retryDelay: 1000,
+          timeout: 10000,
+          forceRest,
+          isWebSocketAvailable,
+          webSocketFallbackFn: isWebSocketAvailable
+            ? async () => {
+                // Import the WebSocket service and market data service
+                const BinanceTestnetWebSocketService = (
+                  await import('./binanceTestnetWebSocketService')
+                ).BinanceTestnetWebSocketService;
+                const BinanceTestnetMarketDataService = (
+                  await import('./binanceTestnetMarketDataService')
+                ).BinanceTestnetMarketDataService;
+
+                return this.getDataFromWebSocket<T>(
+                  normalizedEndpoint,
+                  params,
+                  BinanceTestnetWebSocketService.getInstance(),
+                  BinanceTestnetMarketDataService.getInstance(),
+                );
+              }
+            : undefined,
         });
+      } catch (apiError) {
+        console.error(`[${this.exchangeId}] API request failed:`, apiError);
 
-        clearTimeout(timeoutId);
+        // If it's a rate limit error, try WebSocket as a last resort
+        if (
+          apiError.message.includes('Rate limited') ||
+          apiError.message.includes('Safety threshold')
+        ) {
+          if (!skipWebSocketCheck && isWebSocketAvailable) {
+            try {
+              console.log(
+                `[${this.exchangeId}] Trying WebSocket fallback after rate limit error`,
+              );
 
-        if (response.ok) {
-          console.log(
-            `[${this.exchangeId}] Fetch successful with status: ${response.status}`,
-          );
-          const data = await response.json();
+              // Import the WebSocket service and market data service
+              const BinanceTestnetWebSocketService = (
+                await import('./binanceTestnetWebSocketService')
+              ).BinanceTestnetWebSocketService;
+              const BinanceTestnetMarketDataService = (
+                await import('./binanceTestnetMarketDataService')
+              ).BinanceTestnetMarketDataService;
 
-          // Log successful response (truncated for large responses)
-          const responseStr = JSON.stringify(data).substring(0, 200);
-          console.log(
-            `[${this.exchangeId}] API response (truncated): ${responseStr}${responseStr.length >= 200 ? '...' : ''}`,
-          );
+              const webSocketData = await this.getDataFromWebSocket<T>(
+                normalizedEndpoint,
+                params,
+                BinanceTestnetWebSocketService.getInstance(),
+                BinanceTestnetMarketDataService.getInstance(),
+              );
 
-          // Check if the response is an error message from Binance
-          if (data && data.code && data.msg) {
-            console.warn(
-              `[${this.exchangeId}] Binance API error: Code ${data.code}, Message: ${data.msg}`,
-            );
-            throw new Error(`Binance API error (${data.code}): ${data.msg}`);
-          }
-
-          return data as T;
-        } else {
-          console.warn(
-            `[${this.exchangeId}] Fetch failed with status: ${response.status}`,
-          );
-
-          // Try to parse error response
-          try {
-            const errorData = await response.json();
-            console.warn(`[${this.exchangeId}] Error response:`, errorData);
-
-            if (errorData && errorData.code && errorData.msg) {
-              throw new Error(
-                `Binance API error (${errorData.code}): ${errorData.msg}`,
+              if (webSocketData) {
+                console.log(
+                  `[${this.exchangeId}] Successfully recovered using WebSocket data for ${normalizedEndpoint}`,
+                );
+                return webSocketData;
+              }
+            } catch (wsError) {
+              console.error(
+                `[${this.exchangeId}] WebSocket fallback also failed:`,
+                wsError,
               );
             }
-          } catch (parseError) {
-            console.warn(
-              `[${this.exchangeId}] Could not parse error response:`,
-              parseError,
-            );
           }
-
-          // Fall back to mock data if the request failed
-          console.log(`[${this.exchangeId}] Falling back to mock data`);
-          return this.getFallbackMockData(endpoint, params) as T;
         }
-      } catch (fetchError) {
-        clearTimeout(timeoutId);
-        console.warn(`[${this.exchangeId}] Fetch error:`, fetchError);
 
-        // Fall back to mock data if the request failed
-        console.log(`[${this.exchangeId}] Falling back to mock data`);
-        return this.getFallbackMockData(endpoint, params) as T;
+        // Fall back to mock data if all else fails
+        console.log(
+          `[${this.exchangeId}] Falling back to mock data due to API error`,
+        );
+        return this.getFallbackMockData(normalizedEndpoint, params) as T;
       }
     } catch (error) {
       console.error(
@@ -474,8 +534,253 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
         throw new Error(enhancedMessage);
       }
 
-      throw error;
+      // Fall back to mock data if all else fails
+      console.log(
+        `[${this.exchangeId}] Falling back to mock data due to error`,
+      );
+      return this.getFallbackMockData(endpoint, params) as T;
     }
+  }
+
+  /**
+   * Check if WebSocket is available for a specific endpoint
+   * @param endpoint The API endpoint
+   * @param params The query parameters
+   * @returns Whether WebSocket is available for this endpoint
+   */
+  private isWebSocketAvailableForEndpoint(
+    endpoint: string,
+    params: Record<string, string | number> = {},
+  ): boolean {
+    // Extract the base endpoint without query parameters
+    const baseEndpoint = endpoint.split('?')[0];
+
+    // Check if the endpoint is supported by WebSocket
+    if (
+      baseEndpoint.includes('/v3/ticker/24hr') ||
+      baseEndpoint.includes('/ticker/24hr')
+    ) {
+      // Ticker data is available via WebSocket
+      return true;
+    }
+
+    if (
+      (baseEndpoint.includes('/v3/depth') || baseEndpoint.includes('/depth')) &&
+      params.symbol
+    ) {
+      // Order book data is available via WebSocket
+      return true;
+    }
+
+    if (
+      (baseEndpoint.includes('/v3/trades') ||
+        baseEndpoint.includes('/trades')) &&
+      params.symbol
+    ) {
+      // Recent trades are available via WebSocket
+      return true;
+    }
+
+    if (
+      (baseEndpoint.includes('/v3/klines') ||
+        baseEndpoint.includes('/klines')) &&
+      params.symbol &&
+      params.interval
+    ) {
+      // Klines/candlestick data is available via WebSocket
+      return true;
+    }
+
+    // Other endpoints are not supported by WebSocket
+    return false;
+  }
+
+  /**
+   * Try to get data from WebSocket if available
+   * @param endpoint The API endpoint
+   * @param params The query parameters
+   * @param wsService The WebSocket service
+   * @param marketDataService The market data service
+   * @returns The data from WebSocket or null if not available
+   */
+  private async tryGetDataFromWebSocket<T>(
+    endpoint: string,
+    params: Record<string, string | number> = {},
+    wsService: any,
+    marketDataService: any,
+  ): Promise<T | null> {
+    try {
+      return await this.getDataFromWebSocket<T>(
+        endpoint,
+        params,
+        wsService,
+        marketDataService,
+      );
+    } catch (error) {
+      console.warn(
+        `[${this.exchangeId}] WebSocket data not available for ${endpoint}:`,
+        error,
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Get data from WebSocket
+   * @param endpoint The API endpoint
+   * @param params The query parameters
+   * @param wsService The WebSocket service
+   * @param marketDataService The market data service
+   * @returns The data from WebSocket
+   */
+  private async getDataFromWebSocket<T>(
+    endpoint: string,
+    params: Record<string, string | number> = {},
+    wsService: any,
+    marketDataService: any,
+  ): Promise<T> {
+    // Extract the base endpoint without query parameters
+    const baseEndpoint = endpoint.split('?')[0];
+
+    // Handle different endpoints
+    if (
+      baseEndpoint.includes('/v3/ticker/24hr') ||
+      baseEndpoint.includes('/ticker/24hr')
+    ) {
+      // Ticker data
+      const symbol = params.symbol as string;
+      if (symbol) {
+        // Format symbol from BTCUSDT to BTC/USDT
+        const formattedSymbol = this.formatSymbolForWebSocket(symbol);
+
+        // Subscribe to ticker updates if not already subscribed
+        marketDataService.subscribeTicker(formattedSymbol);
+
+        // Wait a short time for data to be received
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // Get cached ticker data
+        const tickerData = marketDataService.getCachedTicker(formattedSymbol);
+        if (tickerData) {
+          return tickerData as unknown as T;
+        }
+      }
+    }
+
+    if (
+      (baseEndpoint.includes('/v3/depth') || baseEndpoint.includes('/depth')) &&
+      params.symbol
+    ) {
+      // Order book data
+      const symbol = params.symbol as string;
+      const limit = params.limit ? Number(params.limit) : 100;
+
+      // Format symbol from BTCUSDT to BTC/USDT
+      const formattedSymbol = this.formatSymbolForWebSocket(symbol);
+
+      // Subscribe to order book updates if not already subscribed
+      marketDataService.subscribeOrderBook(formattedSymbol, limit);
+
+      // Wait a short time for data to be received
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Get cached order book data
+      const orderBookData =
+        marketDataService.getCachedOrderBook(formattedSymbol);
+      if (orderBookData) {
+        return orderBookData as unknown as T;
+      }
+    }
+
+    if (
+      (baseEndpoint.includes('/v3/trades') ||
+        baseEndpoint.includes('/trades')) &&
+      params.symbol
+    ) {
+      // Recent trades
+      const symbol = params.symbol as string;
+      const limit = params.limit ? Number(params.limit) : 100;
+
+      // Format symbol from BTCUSDT to BTC/USDT
+      const formattedSymbol = this.formatSymbolForWebSocket(symbol);
+
+      // Subscribe to trade updates if not already subscribed
+      marketDataService.subscribeTrades(formattedSymbol);
+
+      // Wait a short time for data to be received
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Get cached trades data
+      const tradesData = marketDataService.getCachedTrades(formattedSymbol);
+      if (tradesData && tradesData.length > 0) {
+        // Limit the number of trades returned
+        return tradesData.slice(0, limit) as unknown as T;
+      }
+    }
+
+    if (
+      (baseEndpoint.includes('/v3/klines') ||
+        baseEndpoint.includes('/klines')) &&
+      params.symbol &&
+      params.interval
+    ) {
+      // Klines/candlestick data
+      const symbol = params.symbol as string;
+      const interval = params.interval as string;
+
+      // Format symbol from BTCUSDT to BTC/USDT
+      const formattedSymbol = this.formatSymbolForWebSocket(symbol);
+
+      // Subscribe to klines updates if not already subscribed
+      marketDataService.subscribeKlines(formattedSymbol, interval);
+
+      // Wait a short time for data to be received
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Get cached klines data
+      const klinesData = marketDataService.getCachedKlines(
+        formattedSymbol,
+        interval,
+      );
+      if (klinesData && klinesData.length > 0) {
+        return klinesData as unknown as T;
+      }
+    }
+
+    // If we get here, WebSocket data is not available for this endpoint
+    throw new Error(`WebSocket data not available for ${endpoint}`);
+  }
+
+  /**
+   * Format symbol for WebSocket (e.g., BTCUSDT -> BTC/USDT)
+   * @param symbol The symbol to format
+   * @returns The formatted symbol
+   */
+  private formatSymbolForWebSocket(symbol: string): string {
+    // If symbol already contains a slash, return as is
+    if (symbol.includes('/')) {
+      return symbol;
+    }
+
+    // Try to find a common quote asset
+    const quoteAssets = ['USDT', 'BTC', 'ETH', 'BNB', 'BUSD', 'USDC'];
+    for (const quote of quoteAssets) {
+      if (symbol.endsWith(quote)) {
+        const base = symbol.substring(0, symbol.length - quote.length);
+        return `${base}/${quote}`;
+      }
+    }
+
+    // If no common quote asset found, try to split in the middle
+    if (symbol.length >= 6) {
+      const midPoint = Math.floor(symbol.length / 2);
+      const base = symbol.substring(0, midPoint);
+      const quote = symbol.substring(midPoint);
+      return `${base}/${quote}`;
+    }
+
+    // If all else fails, return the original symbol
+    return symbol;
   }
 
   /**
