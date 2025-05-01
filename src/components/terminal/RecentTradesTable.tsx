@@ -84,32 +84,7 @@ export function RecentTradesTable({
 
   return (
     <div>
-      {isMockData && (
-        <div className="flex items-center mb-4 bg-yellow-900/20 p-2 rounded border border-yellow-900/50">
-          <AlertTriangle className="text-yellow-500 mr-2" size={16} />
-          <span className="text-xs text-yellow-500">
-            Using mock data for recent trades
-          </span>
-          <button
-            ref={tryRealDataButtonRef}
-            onClick={(e) => {
-              e.preventDefault();
-              // Disable the button to prevent multiple clicks
-              if (tryRealDataButtonRef.current) {
-                tryRealDataButtonRef.current.disabled = true;
-                setTimeout(() => {
-                  if (tryRealDataButtonRef.current) {
-                    tryRealDataButtonRef.current.disabled = false;
-                  }
-                }, 2000);
-              }
-            }}
-            className="ml-auto px-2 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors disabled:opacity-50"
-          >
-            Try Real Data
-          </button>
-        </div>
-      )}
+      {/* Mock data warning removed to save space */}
 
       <div className="overflow-x-auto">
         <table className="w-full">

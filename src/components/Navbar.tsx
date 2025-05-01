@@ -37,6 +37,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useRoleBasedAccess, switchRole } from '@/hooks/useRoleBasedAccess';
 import { useTheme } from 'next-themes';
+import { TopNavWarningIndicator } from '@/components/connection/TopNavWarningIndicator';
 
 export default function Navbar() {
   const { user, signOut } = useAuth();
@@ -170,6 +171,9 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center space-x-4">
+          {/* Warning Indicator */}
+          <TopNavWarningIndicator className="mr-1" />
+
           {/* Settings Gear */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

@@ -324,29 +324,7 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
             Order Book{' '}
             <span className="text-xs text-gray-400">({exchangeName})</span>
           </h3>
-          {/* Data source indicator */}
-          <div className="flex items-center mt-1">
-            <div
-              className={`w-2 h-2 rounded-full mr-1 ${
-                useBinanceTestnet &&
-                selectedAccount?.isSandbox &&
-                !usingFallbackData
-                  ? 'bg-crypto-green'
-                  : 'bg-yellow-500'
-              }`}
-            />
-            <span className="text-xs text-gray-400">
-              {useBinanceTestnet &&
-              selectedAccount?.isSandbox &&
-              !usingFallbackData
-                ? 'Using Binance Testnet data'
-                : useMockData || !useRealMarketData
-                  ? 'Using mock data'
-                  : usingFallbackData
-                    ? 'Using fallback data'
-                    : 'Using real data'}
-            </span>
-          </div>
+          {/* Data source indicator removed to save space */}
         </div>
         <div className="flex items-center space-x-2">
           <span className="text-xs text-gray-400">
@@ -517,29 +495,7 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
             <div className="flex justify-between items-center mb-2">
               <div>
                 <h3 className="text-white font-medium">Recent Trades</h3>
-                {/* Data source indicator */}
-                <div className="flex items-center mt-1">
-                  <div
-                    className={`w-2 h-2 rounded-full mr-1 ${
-                      useBinanceTestnet &&
-                      selectedAccount?.isSandbox &&
-                      !usingFallbackData
-                        ? 'bg-crypto-green'
-                        : 'bg-yellow-500'
-                    }`}
-                  />
-                  <span className="text-xs text-gray-400">
-                    {useBinanceTestnet &&
-                    selectedAccount?.isSandbox &&
-                    !usingFallbackData
-                      ? 'Using Binance Testnet data'
-                      : useMockData || !useRealMarketData
-                        ? 'Using mock data'
-                        : usingFallbackData
-                          ? 'Using fallback data'
-                          : 'Using real data'}
-                  </span>
-                </div>
+                {/* Data source indicator removed to save space */}
               </div>
               <div className="text-xs text-gray-400">
                 Last updated: {lastUpdated.toLocaleTimeString()}

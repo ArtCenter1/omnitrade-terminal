@@ -47,7 +47,6 @@ import Navbar from './components/Navbar';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 import { ConnectionStatusProvider } from './contexts/connectionStatusContext';
-import { ConnectionStatusBar } from './components/connection/ConnectionStatusBar';
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -90,7 +89,6 @@ function App() {
     return (
       <>
         <Navbar />
-        <ConnectionStatusBar />
         {children}
       </>
     );
