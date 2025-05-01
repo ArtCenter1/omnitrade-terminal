@@ -84,61 +84,13 @@ export function FeatureFlagsPanel() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="flex items-center gap-1 cursor-help">
-                  <Label htmlFor="use-mock-data">Use Mock Data</Label>
-                  <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="max-w-xs">
-                  Use mock data instead of real API calls
-                </p>
-              </TooltipContent>
-            </Tooltip>
-            <Switch
-              id="use-mock-data"
-              checked={flags.useMockData}
-              onCheckedChange={(checked) =>
-                handleToggle('useMockData', checked)
-              }
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center gap-1 cursor-help">
-                  <Label htmlFor="use-real-market-data">
-                    Use Real Market Data
-                  </Label>
-                  <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="max-w-xs">
-                  Use real market data for charts and prices
-                </p>
-              </TooltipContent>
-            </Tooltip>
-            <Switch
-              id="use-real-market-data"
-              checked={flags.useRealMarketData}
-              onCheckedChange={(checked) =>
-                handleToggle('useRealMarketData', checked)
-              }
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center gap-1 cursor-help">
                   <Label htmlFor="connection-mode">Connection Mode</Label>
                   <HelpCircle className="h-4 w-4 text-muted-foreground" />
                 </div>
               </TooltipTrigger>
               <TooltipContent>
                 <p className="max-w-xs">
-                  Switch between Mock, Sandbox, and Live modes
+                  Controls data source and API connections
                 </p>
               </TooltipContent>
             </Tooltip>
@@ -155,6 +107,32 @@ export function FeatureFlagsPanel() {
                 <SelectItem value="live">Live</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="flex flex-col space-y-2 bg-gray-800 p-2 rounded-md text-xs">
+            <div className="flex justify-between items-center">
+              <span>Use Mock Data:</span>
+              <span
+                className={
+                  flags.useMockData ? 'text-green-400' : 'text-gray-400'
+                }
+              >
+                {flags.useMockData ? 'Yes' : 'No'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span>Use Real Market Data:</span>
+              <span
+                className={
+                  flags.useRealMarketData ? 'text-green-400' : 'text-gray-400'
+                }
+              >
+                {flags.useRealMarketData ? 'Yes' : 'No'}
+              </span>
+            </div>
+            <div className="text-gray-400 italic mt-1">
+              These values are derived from Connection Mode
+            </div>
           </div>
 
           <div className="flex items-center justify-between">

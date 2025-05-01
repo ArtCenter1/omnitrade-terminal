@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
@@ -7,8 +7,11 @@ import {
   getOrders,
   cancelOrder,
   Order,
+  getMockOrders,
 } from '../../services/enhancedOrdersService';
-import { Loader2, X } from 'lucide-react';
+import { Loader2, X, RefreshCw } from 'lucide-react';
+import { useFeatureFlags } from '@/config/featureFlags';
+import { ExchangeFactory } from '@/services/exchange/exchangeFactory';
 
 interface OrdersTableProps {
   selectedSymbol?: string;
@@ -44,6 +47,30 @@ export function OrdersTable({
       selectedSymbol,
       refreshTrigger,
     });
+
+    // Log localStorage content directly
+    try {
+      const rawOrders = localStorage.getItem('omnitrade_mock_orders');
+      console.log('Current localStorage content (raw):', rawOrders);
+
+      if (rawOrders) {
+        try {
+          const parsedOrders = JSON.parse(rawOrders);
+          console.log('Current localStorage content (parsed):', parsedOrders);
+          console.log('Number of orders in localStorage:', parsedOrders.length);
+          console.log(
+            'Order IDs in localStorage:',
+            parsedOrders.map((o: any) => o.id),
+          );
+        } catch (parseError) {
+          console.error('Error parsing localStorage content:', parseError);
+        }
+      } else {
+        console.log('No orders found in localStorage');
+      }
+    } catch (localStorageError) {
+      console.error('Error accessing localStorage:', localStorageError);
+    }
 
     // Always fetch orders, even if selectedAccount is null
     // This ensures we clear the orders list when no account is selected
@@ -101,45 +128,110 @@ export function OrdersTable({
       // Also get orders from localStorage as a fallback or supplement
       let localOrders: Order[] = [];
       try {
+        console.log('Attempting to get orders from localStorage...');
         const storedOrders = localStorage.getItem('omnitrade_mock_orders');
+
         if (storedOrders) {
-          const parsedOrders = JSON.parse(storedOrders);
+          console.log('Raw stored orders from localStorage:', storedOrders);
+          console.log('localStorage data length:', storedOrders.length);
 
-          // Filter orders based on the same criteria
-          localOrders = parsedOrders.filter((order: any) => {
-            // Filter by exchange if needed
-            if (exchangeId && order.exchangeId !== exchangeId) {
-              return false;
-            }
+          try {
+            const parsedOrders = JSON.parse(storedOrders);
+            console.log('Successfully parsed orders from localStorage');
+            console.log('Parsed orders count:', parsedOrders.length);
+            console.log('Parsed orders from localStorage:', parsedOrders);
 
-            // Filter by symbol if needed
-            if (selectedSymbol && order.symbol !== selectedSymbol) {
-              return false;
-            }
+            // Filter orders based on the same criteria
+            localOrders = parsedOrders.filter((order: any) => {
+              // Log each order for debugging
+              console.log(
+                `Checking order: ${order.id}, exchange: ${order.exchangeId}, symbol: ${order.symbol}, status: ${order.status}`,
+              );
 
-            // Filter by status if needed
-            if (status) {
-              const statusList = status.split(',');
-              if (!statusList.includes(order.status)) {
-                return false;
-              }
-            } else if (activeTab === 'history') {
-              // For history tab, show all except new and partially_filled
+              // Filter by exchange if needed - be more lenient with exchange ID matching
+              // Allow orders from any exchange if no specific exchange is selected
               if (
-                order.status === 'new' ||
-                order.status === 'partially_filled'
+                exchangeId &&
+                order.exchangeId !== exchangeId &&
+                order.exchangeId !== 'binance_testnet' &&
+                exchangeId !== 'binance_testnet' &&
+                order.exchangeId !== 'binance' &&
+                exchangeId !== 'binance'
               ) {
+                console.log(
+                  `Filtering out order ${order.id} due to exchange mismatch: ${order.exchangeId} vs ${exchangeId}`,
+                );
                 return false;
               }
-            }
 
-            return true;
-          });
+              // Filter by symbol if needed
+              if (selectedSymbol && order.symbol !== selectedSymbol) {
+                console.log(
+                  `Filtering out order ${order.id} due to symbol mismatch: ${order.symbol} vs ${selectedSymbol}`,
+                );
+                return false;
+              }
 
-          console.log(
-            `localStorage Orders filtered (${localOrders.length}):`,
-            localOrders,
-          );
+              // Filter by status if needed
+              if (status) {
+                const statusList = status.split(',');
+                // Log the status check for debugging
+                console.log(
+                  `Checking status for order ${order.id}: ${order.status} against ${statusList}`,
+                );
+
+                // Handle both status and status property names for compatibility
+                const orderStatus = order.status || '';
+
+                if (!statusList.includes(orderStatus)) {
+                  console.log(
+                    `Filtering out order ${order.id} due to status mismatch: ${orderStatus} not in ${statusList}`,
+                  );
+                  return false;
+                }
+              } else if (activeTab === 'history') {
+                // For history tab, show all except new and partially_filled
+                // Handle both status and status property names for compatibility
+                const orderStatus = order.status || '';
+
+                if (
+                  orderStatus === 'new' ||
+                  orderStatus === 'partially_filled'
+                ) {
+                  console.log(
+                    `Filtering out order ${order.id} from history tab due to status: ${orderStatus}`,
+                  );
+                  return false;
+                }
+              } else if (activeTab === 'open') {
+                // For open tab, only show new and partially_filled
+                // Handle both status and status property names for compatibility
+                const orderStatus = order.status || '';
+
+                if (
+                  orderStatus !== 'new' &&
+                  orderStatus !== 'partially_filled'
+                ) {
+                  console.log(
+                    `Filtering out order ${order.id} from open tab due to status: ${orderStatus}`,
+                  );
+                  return false;
+                }
+              }
+
+              return true;
+            });
+
+            console.log(
+              `localStorage Orders filtered (${localOrders.length}):`,
+              localOrders,
+            );
+          } catch (parseError) {
+            console.error(
+              'Error parsing orders from localStorage:',
+              parseError,
+            );
+          }
         }
       } catch (localError) {
         console.error('Error getting orders from localStorage:', localError);
@@ -160,11 +252,53 @@ export function OrdersTable({
         combinedOrders,
       );
 
+      // Normalize order data to ensure consistent format
+      const normalizedOrders = combinedOrders.map((order) => {
+        // Log the raw order for debugging
+        console.log('Normalizing order:', order);
+
+        // Ensure all required fields exist
+        return {
+          ...order,
+          // Use fallbacks for missing fields
+          id: order.id || `unknown-${Date.now()}`,
+          exchangeId:
+            order.exchangeId || selectedAccount?.exchangeId || 'unknown',
+          symbol: order.symbol || selectedSymbol || 'unknown',
+          side: order.side || 'buy',
+          type: order.type || 'market',
+          status: order.status || 'new',
+          quantity: order.quantity || 0,
+          filledQuantity: order.filledQuantity || order.executed || 0,
+          executed: order.executed || order.filledQuantity || 0, // Ensure executed field exists
+          remaining:
+            order.remaining ||
+            order.quantity - (order.executed || order.filledQuantity || 0) ||
+            0, // Ensure remaining field exists
+          price: order.price || 0,
+          createdAt: order.createdAt || order.timestamp || new Date(),
+          updatedAt: order.updatedAt || order.lastUpdated || new Date(),
+          timestamp:
+            order.timestamp ||
+            (order.createdAt
+              ? new Date(order.createdAt).getTime()
+              : Date.now()), // Ensure timestamp field exists
+          lastUpdated:
+            order.lastUpdated ||
+            (order.updatedAt
+              ? new Date(order.updatedAt).getTime()
+              : Date.now()), // Ensure lastUpdated field exists
+        };
+      });
+
       // Sort orders by creation date (newest first)
-      const sortedOrders = [...combinedOrders].sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      );
+      const sortedOrders = [...normalizedOrders].sort((a, b) => {
+        const dateA =
+          a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+        const dateB =
+          b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+        return dateB.getTime() - dateA.getTime();
+      });
 
       console.log('Sorted orders:', sortedOrders);
       setOrders(sortedOrders);
@@ -202,7 +336,63 @@ export function OrdersTable({
       console.log(
         `Canceling order ${orderId} on ${exchangeId} for ${orderSymbol}`,
       );
-      const result = await cancelOrder(orderId, exchangeId, orderSymbol);
+
+      // Check if this is a mock order (starts with "mock_")
+      const isMockOrder = orderId.startsWith('mock_');
+      console.log(
+        `Canceling ${isMockOrder ? 'mock' : 'real'} order: ${orderId}`,
+      );
+
+      let result = false;
+
+      // For mock orders, we'll handle them directly in localStorage
+      if (isMockOrder) {
+        console.log('Handling mock order cancellation via localStorage');
+        try {
+          const storedOrders = localStorage.getItem('omnitrade_mock_orders');
+          if (storedOrders) {
+            const parsedOrders = JSON.parse(storedOrders);
+            const orderExists = parsedOrders.some(
+              (order: any) => order.id === orderId,
+            );
+
+            if (!orderExists) {
+              throw new Error(`Order ${orderId} not found in localStorage`);
+            }
+
+            // Update the order status in localStorage
+            const updatedOrders = parsedOrders.map((order: any) => {
+              if (order.id === orderId) {
+                return {
+                  ...order,
+                  status: 'canceled',
+                  updatedAt: new Date().toISOString(),
+                };
+              }
+              return order;
+            });
+
+            // Save back to localStorage
+            localStorage.setItem(
+              'omnitrade_mock_orders',
+              JSON.stringify(updatedOrders),
+            );
+            console.log(
+              'Updated order in localStorage:',
+              updatedOrders.find((o: any) => o.id === orderId),
+            );
+            result = true;
+          } else {
+            throw new Error('No orders found in localStorage');
+          }
+        } catch (localError) {
+          console.error('Error updating order in localStorage:', localError);
+          throw localError;
+        }
+      } else {
+        // For real orders, use the cancelOrder function
+        result = await cancelOrder(orderId, exchangeId, orderSymbol);
+      }
 
       if (result) {
         toast({
@@ -217,6 +407,11 @@ export function OrdersTable({
             order.id === orderId ? { ...order, status: 'canceled' } : order,
           ),
         );
+
+        // Refresh orders to ensure we have the latest data
+        setTimeout(() => {
+          fetchOrders();
+        }, 500);
       } else {
         throw new Error('Failed to cancel order');
       }
@@ -326,7 +521,7 @@ export function OrdersTable({
                       {order.quantity.toFixed(8)}
                     </td>
                     <td className="py-2 px-4 text-sm text-right text-gray-300">
-                      {order.filledQuantity.toFixed(8)}
+                      {(order.filledQuantity || order.executed || 0).toFixed(8)}
                     </td>
                     <td className="py-2 px-4 text-sm text-right">
                       <span className="px-2 py-1 rounded-full text-xs bg-gray-800 text-gray-300">
@@ -416,7 +611,7 @@ export function OrdersTable({
                       {order.quantity.toFixed(8)}
                     </td>
                     <td className="py-2 px-4 text-sm text-right text-gray-300">
-                      {order.filledQuantity.toFixed(8)}
+                      {(order.filledQuantity || order.executed || 0).toFixed(8)}
                     </td>
                     <td className="py-2 px-4 text-sm text-right">
                       <span

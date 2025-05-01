@@ -257,4 +257,42 @@ export class BinanceTestnetService {
   public async deleteApiKey(apiKeyId: string): Promise<boolean> {
     return this.apiKeyManager.deleteApiKey(apiKeyId);
   }
+
+  /**
+   * Get open orders for a specific trading pair or all pairs
+   * @param apiKeyId The API key ID
+   * @param symbol Optional symbol filter
+   * @returns Array of open orders
+   */
+  public async getOpenOrders(apiKeyId: string, symbol?: string) {
+    return this.adapter.getOpenOrders(apiKeyId, symbol);
+  }
+
+  /**
+   * Get order history for a specific trading pair
+   * @param apiKeyId The API key ID
+   * @param symbol The trading pair symbol
+   * @param limit Optional limit for the number of orders to return
+   * @param startTime Optional start time filter
+   * @param endTime Optional end time filter
+   * @param fromOrderId Optional order ID to start from
+   * @returns Array of orders
+   */
+  public async getOrderHistory(
+    apiKeyId: string,
+    symbol: string,
+    limit?: number,
+    startTime?: number,
+    endTime?: number,
+    fromOrderId?: string,
+  ) {
+    return this.adapter.getOrderHistory(
+      apiKeyId,
+      symbol,
+      limit,
+      startTime,
+      endTime,
+      fromOrderId,
+    );
+  }
 }

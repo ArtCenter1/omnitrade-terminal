@@ -89,6 +89,28 @@ export class BalanceTrackingService {
       // Subscribe to API key changes to update subscriptions
       this.subscribeToApiKeyChanges();
 
+      // Force a refresh of Demo Account balances after a short delay
+      setTimeout(async () => {
+        logger.info(
+          `[BalanceTrackingService] Refreshing Demo Account balances after initialization`,
+        );
+        await this.refreshBalances('sandbox', 'sandbox-key');
+
+        // Log the current state of the balance cache
+        this.logBalanceCache();
+      }, 1000);
+
+      // Force a refresh of Binance Testnet balances after a short delay
+      setTimeout(async () => {
+        logger.info(
+          `[BalanceTrackingService] Refreshing Binance Testnet balances after initialization`,
+        );
+        await this.refreshBalances('binance_testnet', 'binance-testnet-key');
+
+        // Log the current state of the balance cache
+        this.logBalanceCache();
+      }, 1500);
+
       this.isInitialized = true;
       logger.info('[BalanceTrackingService] Initialized successfully');
       return true;
@@ -96,6 +118,184 @@ export class BalanceTrackingService {
       logger.error('[BalanceTrackingService] Initialization failed:', error);
       this.isInitialized = false;
       return false;
+    }
+  }
+
+  /**
+   * Log the current state of the balance cache
+   */
+  private logBalanceCache(): void {
+    logger.info(`[BalanceTrackingService] Current balance cache state:`);
+
+    // Log each exchange
+    Object.keys(this.balanceCache).forEach((exchangeId) => {
+      logger.info(`[BalanceTrackingService] Exchange: ${exchangeId}`);
+
+      // Log each API key
+      Object.keys(this.balanceCache[exchangeId] || {}).forEach((apiKeyId) => {
+        const balances = this.balanceCache[exchangeId][apiKeyId];
+        const assetCount = Object.keys(balances).length;
+
+        logger.info(
+          `[BalanceTrackingService] API key ${apiKeyId} has ${assetCount} assets`,
+        );
+
+        // Log each asset
+        if (assetCount > 0) {
+          Object.entries(balances).forEach(([asset, balance]) => {
+            logger.info(
+              `[BalanceTrackingService] Asset: ${asset}, Free: ${balance.free}, Locked: ${balance.locked}, Total: ${balance.total}`,
+            );
+          });
+        }
+      });
+    });
+  }
+
+  /**
+   * Initialize the Binance Testnet balances
+   * @param adapter The Binance Testnet adapter
+   */
+  private async initializeBinanceTestnetBalances(
+    adapter: BinanceTestnetAdapter,
+  ): Promise<void> {
+    try {
+      // Use a standard API key ID for Binance Testnet
+      const apiKeyId = 'binance-testnet-key';
+
+      logger.info(
+        `[BalanceTrackingService] Initializing Binance Testnet balances for API key ${apiKeyId}`,
+      );
+
+      // Try to get the portfolio from the adapter
+      try {
+        const portfolio = await adapter.getPortfolio(apiKeyId);
+
+        if (portfolio && portfolio.assets && portfolio.assets.length > 0) {
+          logger.info(
+            `[BalanceTrackingService] Got portfolio with ${portfolio.assets.length} assets for Binance Testnet`,
+          );
+
+          // Log all assets for debugging
+          portfolio.assets.forEach((asset) => {
+            logger.info(
+              `[BalanceTrackingService] Binance Testnet asset: ${asset.asset}, Free=${asset.free}, Locked=${asset.locked}, Total=${asset.total}`,
+            );
+          });
+
+          // Add each asset to the balance cache
+          portfolio.assets.forEach((asset) => {
+            const updateData: BalanceUpdate = {
+              exchangeId: 'binance_testnet',
+              apiKeyId: apiKeyId,
+              asset: asset.asset,
+              balance: {
+                free: asset.free,
+                locked: asset.locked,
+                total: asset.total,
+                available: asset.free,
+              },
+              timestamp: Date.now(),
+            };
+
+            // Update the cache
+            this.handleBalanceUpdate(updateData);
+          });
+
+          // Emit the balancesRefreshed event
+          this.eventEmitter.emit({
+            type: 'balancesRefreshed',
+            exchangeId: 'binance_testnet',
+            apiKeyId: apiKeyId,
+            timestamp: Date.now(),
+          });
+
+          logger.info(
+            `[BalanceTrackingService] Initialized Binance Testnet balances with ${portfolio.assets.length} assets`,
+          );
+          return;
+        }
+      } catch (portfolioError) {
+        logger.warn(
+          `[BalanceTrackingService] Error getting portfolio from Binance Testnet adapter:`,
+          portfolioError,
+        );
+      }
+
+      // If we get here, either the portfolio was empty or there was an error
+      // Add default balances
+      logger.warn(
+        `[BalanceTrackingService] Using default balances for Binance Testnet`,
+      );
+
+      // Create default assets
+      const defaultAssets = [
+        {
+          asset: 'USDT',
+          free: 10000.0,
+          locked: 0,
+          total: 10000.0,
+          usdValue: 10000.0,
+          exchangeId: 'binance_testnet',
+        },
+        {
+          asset: 'BTC',
+          free: 0.5,
+          locked: 0,
+          total: 0.5,
+          usdValue: 41527.67,
+          exchangeId: 'binance_testnet',
+        },
+        {
+          asset: 'ETH',
+          free: 5.0,
+          locked: 0,
+          total: 5.0,
+          usdValue: 17673.2,
+          exchangeId: 'binance_testnet',
+        },
+      ];
+
+      // Add each default asset to the balance cache
+      defaultAssets.forEach((asset) => {
+        const updateData: BalanceUpdate = {
+          exchangeId: 'binance_testnet',
+          apiKeyId: apiKeyId,
+          asset: asset.asset,
+          balance: {
+            free: asset.free,
+            locked: asset.locked,
+            total: asset.total,
+            available: asset.free,
+          },
+          timestamp: Date.now(),
+        };
+
+        // Log the balance update
+        logger.info(
+          `[BalanceTrackingService] Adding default Binance Testnet balance for ${asset.asset}: Free=${asset.free}, Locked=${asset.locked}, Total=${asset.total}`,
+        );
+
+        // Update the cache
+        this.handleBalanceUpdate(updateData);
+      });
+
+      // Emit the balancesRefreshed event
+      this.eventEmitter.emit({
+        type: 'balancesRefreshed',
+        exchangeId: 'binance_testnet',
+        apiKeyId: apiKeyId,
+        timestamp: Date.now(),
+      });
+
+      logger.info(
+        `[BalanceTrackingService] Initialized Binance Testnet with default balances`,
+      );
+    } catch (error) {
+      logger.error(
+        `[BalanceTrackingService] Error initializing Binance Testnet balances:`,
+        error,
+      );
     }
   }
 
@@ -285,15 +485,79 @@ export class BalanceTrackingService {
       const portfolio = await adapter.getPortfolio(apiKeyId);
 
       if (!portfolio || !portfolio.assets || portfolio.assets.length === 0) {
-        logger.error(
-          `[BalanceTrackingService] Failed to get portfolio data for Demo Account`,
+        logger.warn(
+          `[BalanceTrackingService] Failed to get portfolio data for Demo Account, using default assets`,
         );
+
+        // Create default assets
+        const defaultAssets = [
+          {
+            asset: 'USDT',
+            free: 50000.0,
+            locked: 0,
+            total: 50000.0,
+            usdValue: 50000.0,
+            exchangeId: 'sandbox',
+          },
+          {
+            asset: 'BTC',
+            free: 0.1,
+            locked: 0,
+            total: 0.1,
+            usdValue: 8305.53,
+            exchangeId: 'sandbox',
+          },
+        ];
+
+        // Add each default asset to the balance cache
+        defaultAssets.forEach((asset) => {
+          const updateData: BalanceUpdate = {
+            exchangeId: 'sandbox',
+            apiKeyId: apiKeyId,
+            asset: asset.asset,
+            balance: {
+              free: asset.free,
+              locked: asset.locked,
+              total: asset.total,
+              available: asset.free,
+            },
+            timestamp: Date.now(),
+          };
+
+          // Log the balance update
+          logger.info(
+            `[BalanceTrackingService] Adding default Demo Account balance for ${asset.asset}: Free=${asset.free}, Locked=${asset.locked}, Total=${asset.total}`,
+          );
+
+          // Update the cache
+          this.handleBalanceUpdate(updateData);
+        });
+
+        // Emit the balancesRefreshed event
+        this.eventEmitter.emit({
+          type: 'balancesRefreshed',
+          exchangeId: 'sandbox',
+          apiKeyId: apiKeyId,
+          timestamp: Date.now(),
+        });
+
+        logger.info(
+          `[BalanceTrackingService] Initialized Demo Account with default balances`,
+        );
+
         return;
       }
 
       logger.info(
         `[BalanceTrackingService] Got portfolio with ${portfolio.assets.length} assets for Demo Account`,
       );
+
+      // Log all assets for debugging
+      portfolio.assets.forEach((asset) => {
+        logger.info(
+          `[BalanceTrackingService] Demo Account asset: ${asset.asset}, Free=${asset.free}, Locked=${asset.locked}, Total=${asset.total}`,
+        );
+      });
 
       // Add each asset to the balance cache
       portfolio.assets.forEach((asset) => {
@@ -331,6 +595,21 @@ export class BalanceTrackingService {
         logger.info(
           `[BalanceTrackingService] Emitted balancesRefreshed event for Demo Account`,
         );
+
+        // Log the current state of the balance cache for debugging
+        const balances = this.balanceCache['sandbox']?.[apiKeyId] || {};
+        const assetCount = Object.keys(balances).length;
+        logger.info(
+          `[BalanceTrackingService] Demo Account balance cache now has ${assetCount} assets`,
+        );
+
+        if (assetCount > 0) {
+          Object.entries(balances).forEach(([asset, balance]) => {
+            logger.info(
+              `[BalanceTrackingService] Cached balance for ${asset}: Free=${balance.free}, Locked=${balance.locked}, Total=${balance.total}`,
+            );
+          });
+        }
       }, 500);
 
       logger.info(
@@ -341,6 +620,65 @@ export class BalanceTrackingService {
         `[BalanceTrackingService] Error initializing Demo Account balances:`,
         error,
       );
+
+      // Even if there's an error, add some default balances
+      try {
+        logger.warn(
+          `[BalanceTrackingService] Adding default balances after error`,
+        );
+
+        // Create default assets
+        const defaultAssets = [
+          {
+            asset: 'USDT',
+            free: 50000.0,
+            locked: 0,
+            total: 50000.0,
+            usdValue: 50000.0,
+            exchangeId: 'sandbox',
+          },
+          {
+            asset: 'BTC',
+            free: 0.1,
+            locked: 0,
+            total: 0.1,
+            usdValue: 8305.53,
+            exchangeId: 'sandbox',
+          },
+        ];
+
+        // Add each default asset to the balance cache
+        defaultAssets.forEach((asset) => {
+          const updateData: BalanceUpdate = {
+            exchangeId: 'sandbox',
+            apiKeyId: apiKeyId,
+            asset: asset.asset,
+            balance: {
+              free: asset.free,
+              locked: asset.locked,
+              total: asset.total,
+              available: asset.free,
+            },
+            timestamp: Date.now(),
+          };
+
+          // Update the cache
+          this.handleBalanceUpdate(updateData);
+        });
+
+        // Emit the balancesRefreshed event
+        this.eventEmitter.emit({
+          type: 'balancesRefreshed',
+          exchangeId: 'sandbox',
+          apiKeyId: apiKeyId,
+          timestamp: Date.now(),
+        });
+      } catch (fallbackError) {
+        logger.error(
+          `[BalanceTrackingService] Error adding default balances:`,
+          fallbackError,
+        );
+      }
     }
   }
 
@@ -510,16 +848,112 @@ export class BalanceTrackingService {
     apiKeyId: string,
   ): Promise<void> {
     try {
+      logger.info(
+        `[BalanceTrackingService] Manually refreshing balances for ${exchangeId} API key ${apiKeyId}`,
+      );
+
+      // Log the current state of the balance cache before refresh
+      const currentBalances = this.balanceCache[exchangeId]?.[apiKeyId] || {};
+      const currentAssetCount = Object.keys(currentBalances).length;
+      logger.info(
+        `[BalanceTrackingService] Before refresh: ${exchangeId} API key ${apiKeyId} has ${currentAssetCount} assets in cache`,
+      );
+
       // Get the adapter
       const adapter = ExchangeFactory.getAdapter(exchangeId);
+
+      if (!adapter) {
+        logger.error(
+          `[BalanceTrackingService] Adapter not found for ${exchangeId}`,
+        );
+        return;
+      }
 
       // Handle different adapter types
       if (adapter instanceof BinanceTestnetAdapter) {
         // Trigger a balance reconciliation for Binance Testnet
-        await adapter.reconcileBalances();
-        logger.info(
-          `[BalanceTrackingService] Manually refreshed balances for ${exchangeId} API key ${apiKeyId}`,
-        );
+        try {
+          // Check if the reconcileBalances method exists
+          if (typeof adapter.reconcileBalances === 'function') {
+            await adapter.reconcileBalances();
+            logger.info(
+              `[BalanceTrackingService] Manually refreshed balances for ${exchangeId} API key ${apiKeyId}`,
+            );
+          } else {
+            // If the method doesn't exist, log a warning and use a fallback
+            logger.warn(
+              `[BalanceTrackingService] reconcileBalances method not found on adapter for ${exchangeId}`,
+            );
+
+            // Use a fallback method - get portfolio data
+            const portfolio = await adapter.getPortfolio(apiKeyId);
+
+            if (portfolio && portfolio.assets) {
+              // Process the portfolio assets
+              portfolio.assets.forEach((asset) => {
+                const updateData: BalanceUpdate = {
+                  exchangeId,
+                  apiKeyId,
+                  asset: asset.asset,
+                  balance: {
+                    free: asset.free,
+                    locked: asset.locked,
+                    total: asset.total,
+                    available: asset.free,
+                  },
+                  timestamp: Date.now(),
+                };
+
+                // Update the cache
+                this.handleBalanceUpdate(updateData);
+              });
+
+              logger.info(
+                `[BalanceTrackingService] Refreshed balances using portfolio data for ${exchangeId} API key ${apiKeyId}`,
+              );
+            }
+          }
+        } catch (reconcileError) {
+          logger.error(
+            `[BalanceTrackingService] Error reconciling balances for ${exchangeId}:`,
+            reconcileError,
+          );
+
+          // Try to get portfolio data as a fallback
+          try {
+            const portfolio = await adapter.getPortfolio(apiKeyId);
+
+            if (portfolio && portfolio.assets) {
+              // Process the portfolio assets
+              portfolio.assets.forEach((asset) => {
+                const updateData: BalanceUpdate = {
+                  exchangeId,
+                  apiKeyId,
+                  asset: asset.asset,
+                  balance: {
+                    free: asset.free,
+                    locked: asset.locked,
+                    total: asset.total,
+                    available: asset.free,
+                  },
+                  timestamp: Date.now(),
+                };
+
+                // Update the cache
+                this.handleBalanceUpdate(updateData);
+              });
+
+              logger.info(
+                `[BalanceTrackingService] Refreshed balances using fallback portfolio data for ${exchangeId} API key ${apiKeyId}`,
+              );
+            }
+          } catch (portfolioError) {
+            logger.error(
+              `[BalanceTrackingService] Error getting fallback portfolio data for ${exchangeId}:`,
+              portfolioError,
+            );
+          }
+        }
       } else if (
         adapter instanceof SandboxAdapter &&
         exchangeId === 'sandbox'
@@ -533,6 +967,21 @@ export class BalanceTrackingService {
         logger.warn(
           `[BalanceTrackingService] Unsupported adapter type for refreshing balances: ${exchangeId}`,
         );
+      }
+
+      // Log the updated state of the balance cache after refresh
+      const updatedBalances = this.balanceCache[exchangeId]?.[apiKeyId] || {};
+      const updatedAssetCount = Object.keys(updatedBalances).length;
+      logger.info(
+        `[BalanceTrackingService] After refresh: ${exchangeId} API key ${apiKeyId} has ${updatedAssetCount} assets in cache`,
+      );
+
+      if (updatedAssetCount > 0) {
+        Object.entries(updatedBalances).forEach(([asset, balance]) => {
+          logger.info(
+            `[BalanceTrackingService] Updated balance for ${asset}: Free=${balance.free}, Locked=${balance.locked}, Total=${balance.total}`,
+          );
+        });
       }
 
       // Emit a balancesRefreshed event

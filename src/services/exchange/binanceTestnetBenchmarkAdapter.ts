@@ -32,105 +32,11 @@ export class BinanceTestnetBenchmarkAdapter extends BinanceTestnetAdapter {
     );
   }
 
-  /**
-   * Override the makeUnauthenticatedRequest method to add performance logging
-   */
-  private async makeUnauthenticatedRequest<T>(
-    endpoint: string,
-    params: Record<string, string | number> = {},
-    weight: number = 1,
-  ): Promise<T> {
-    // Get the endpoint name for logging
-    const endpointName =
-      endpoint.split('/api/v3/')[1]?.split('?')[0] || endpoint;
+  // We're not overriding the private makeUnauthenticatedRequest method directly
+  // Instead, we'll override the public methods that use it
 
-    // Start measuring performance
-    const endMeasuring = this.performanceLogger.startMeasuring(
-      endpointName,
-      'GET',
-    );
-
-    try {
-      // Call the original method from the parent class
-      const result = await super.makeUnauthenticatedRequest<T>(
-        endpoint,
-        params,
-        weight,
-      );
-
-      // Calculate response size (approximate)
-      const responseSize = JSON.stringify(result).length;
-
-      // End measuring with success
-      endMeasuring('success', {
-        responseSize,
-        rateLimitInfo: {
-          usedWeight: weight,
-        },
-      });
-
-      return result;
-    } catch (error) {
-      // End measuring with error
-      endMeasuring('error', {
-        error: error instanceof Error ? error.message : String(error),
-      });
-
-      throw error;
-    }
-  }
-
-  /**
-   * Override the makeAuthenticatedRequest method to add performance logging
-   */
-  private async makeAuthenticatedRequest<T>(
-    endpoint: string,
-    method: 'GET' | 'POST' | 'DELETE',
-    apiKeyId: string,
-    params: Record<string, string | number> = {},
-    weight: number = 1,
-  ): Promise<T> {
-    // Get the endpoint name for logging
-    const endpointName =
-      endpoint.split('/api/v3/')[1]?.split('?')[0] || endpoint;
-
-    // Start measuring performance
-    const endMeasuring = this.performanceLogger.startMeasuring(
-      endpointName,
-      method,
-    );
-
-    try {
-      // Call the original method from the parent class
-      const result = await super.makeAuthenticatedRequest<T>(
-        endpoint,
-        method,
-        apiKeyId,
-        params,
-        weight,
-      );
-
-      // Calculate response size (approximate)
-      const responseSize = JSON.stringify(result).length;
-
-      // End measuring with success
-      endMeasuring('success', {
-        responseSize,
-        rateLimitInfo: {
-          usedWeight: weight,
-        },
-      });
-
-      return result;
-    } catch (error) {
-      // End measuring with error
-      endMeasuring('error', {
-        error: error instanceof Error ? error.message : String(error),
-      });
-
-      throw error;
-    }
-  }
+  // We're not overriding the private makeAuthenticatedRequest method directly
+  // Instead, we'll override the public methods that use it
 
   /**
    * Override getExchangeInfo to add performance logging

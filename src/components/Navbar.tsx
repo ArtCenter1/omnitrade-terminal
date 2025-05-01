@@ -147,19 +147,7 @@ export default function Navbar() {
                 </NavigationMenuLink>
               </NavigationMenuItem>
 
-              {/* Demo link */}
-              <NavigationMenuItem>
-                <NavigationMenuLink asChild>
-                  <Link
-                    to="/demo/exchange"
-                    className={`${navigationMenuTriggerStyle()} hover:text-white ${location.startsWith('/demo/exchange') ? 'bg-[#1e2230] font-bold border-b-2 border-blue-500' : ''}`}
-                  >
-                    <span className="flex items-center text-blue-400 hover:text-blue-300">
-                      Exchange Demo
-                    </span>
-                  </Link>
-                </NavigationMenuLink>
-              </NavigationMenuItem>
+              {/* Exchange Demo link removed */}
 
               {/* Admin link - only visible to admins */}
               {isAdmin && (

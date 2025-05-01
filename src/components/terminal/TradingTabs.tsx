@@ -6,19 +6,31 @@ import { TradingPair } from '@/types/trading';
 import { useToast } from '@/components/ui/use-toast';
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import { CreateOrderDto, Order } from '@/services/enhancedOrdersService';
-import { getMockPortfolioData } from '@/mocks/mockPortfolio';
 import { usePrice } from '@/contexts/PriceContext';
 import { mockExchangeService } from '@/services/mockExchangeService';
 import logger from '@/utils/logger';
 import { ExchangeFactory } from '@/services/exchange/exchangeFactory';
 import { useFeatureFlags } from '@/config/featureFlags';
+import { useBalances } from '@/hooks/useBalances';
 
 interface TradingTabsProps {
   selectedPair?: TradingPair;
   onOrderPlaced?: () => void;
+  refreshTrigger?: number;
 }
 
-export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
+export function TradingTabs({
+  selectedPair,
+  onOrderPlaced,
+  refreshTrigger = 0,
+}: TradingTabsProps) {
+  // Log when refreshTrigger changes
+  useEffect(() => {
+    logger.info('TradingTabs received refreshTrigger update', {
+      component: 'TradingTabs',
+      data: { refreshTrigger },
+    });
+  }, [refreshTrigger]);
   const [orderType, setOrderType] = useState<'market' | 'limit' | 'stop'>(
     'market',
   );
@@ -243,6 +255,12 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
     }
   };
 
+  // Get balances using the useBalances hook
+  const assetFilter = selectedPair
+    ? [selectedPair.baseAsset, selectedPair.quoteAsset]
+    : [];
+  const { balances } = useBalances(assetFilter);
+
   const handleOrderTypeChange = (value: string) => {
     setOrderType(value as 'market' | 'limit' | 'stop');
   };
@@ -253,16 +271,11 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
       `Current side: ${side}, baseAsset: ${baseAsset}, quoteAsset: ${quoteAsset}`,
     );
 
-    // Get the available balance for the current asset from the mock portfolio data
+    // Get the available balance for the current asset from the balances hook
     let availableBalance = 0;
     let priceToUse = 0;
 
-    // Use the selectedAccount from the component state
-    const portfolioData = selectedAccount
-      ? getMockPortfolioData(selectedAccount.apiKeyId).data
-      : null;
-
-    console.log('Portfolio data:', portfolioData);
+    console.log('Available balances:', balances);
 
     // Get the best price to use from the PriceContext
     const bestPrice = getBestPrice();
@@ -321,28 +334,14 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
     const assetToUse = side === 'buy' ? quoteAsset : baseAsset;
     console.log(`Using ${assetToUse} balance for ${side} order`);
 
-    // Get the balance of the asset we need to use
-    if (portfolioData && portfolioData.assets) {
-      const assetData = portfolioData.assets.find(
-        (asset) => asset.asset === assetToUse,
+    // Get the balance of the asset we need to use from the balances hook
+    if (balances && balances[assetToUse]) {
+      availableBalance = balances[assetToUse].free;
+      console.log(
+        `Found ${assetToUse} balance from useBalances hook: ${availableBalance}`,
       );
-
-      if (assetData) {
-        availableBalance = assetData.total;
-        console.log(`Found ${assetToUse} balance: ${availableBalance}`);
-      } else {
-        console.log(
-          `${assetToUse} not found in portfolio, using default value`,
-        );
-        // Set default balance based on the asset
-        if (assetToUse === 'USDT') availableBalance = 16000;
-        else if (assetToUse === 'BTC') availableBalance = 0.28;
-        else if (assetToUse === 'ETH') availableBalance = 2.5;
-        else if (assetToUse === 'DOT') availableBalance = 43.41;
-        else availableBalance = 10; // Default for other assets
-      }
     } else {
-      console.log('No portfolio data available, using default values');
+      console.log(`${assetToUse} not found in balances, using default value`);
       // Set default balance based on the asset
       if (assetToUse === 'USDT') availableBalance = 16000;
       else if (assetToUse === 'BTC') availableBalance = 0.28;
@@ -659,8 +658,30 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
       // Place the order using the adapter
       // Use 'default' as the API key ID for now - in a real app, you would use the actual API key ID
       const startTime = Date.now();
+      logger.info('Calling adapter.placeOrder', {
+        component: 'TradingTabs',
+        method: 'handlePlaceOrder',
+        data: {
+          exchangeId,
+          adapterType: adapter.constructor.name,
+          orderParams,
+        },
+      });
+
       const order = await adapter.placeOrder('default', orderParams);
       const endTime = Date.now();
+
+      // Log the order details
+      logger.info('Order returned from adapter', {
+        component: 'TradingTabs',
+        method: 'handlePlaceOrder',
+        data: {
+          order,
+          orderId: order?.id,
+          orderSymbol: order?.symbol,
+          orderStatus: order?.status,
+        },
+      });
 
       logger.info('Order placed successfully', {
         component: 'TradingTabs',
@@ -675,19 +696,53 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
 
       // Manually trigger localStorage save to ensure the order is persisted
       try {
-        const currentOrders = JSON.parse(
-          localStorage.getItem('omnitrade_mock_orders') || '[]',
-        );
+        logger.info('Saving order to localStorage', {
+          component: 'TradingTabs',
+          method: 'handlePlaceOrder',
+          data: { orderId: order.id },
+        });
+
+        // Get current orders from localStorage
+        const storedOrders = localStorage.getItem('omnitrade_mock_orders');
+        logger.debug('Retrieved orders from localStorage', {
+          component: 'TradingTabs',
+          method: 'handlePlaceOrder',
+          data: { rawStoredOrders: storedOrders },
+        });
+
+        const currentOrders = JSON.parse(storedOrders || '[]');
+        logger.debug('Parsed orders from localStorage', {
+          component: 'TradingTabs',
+          method: 'handlePlaceOrder',
+          data: { parsedOrdersCount: currentOrders.length },
+        });
 
         // Check if the order is already in localStorage
         const orderExists = currentOrders.some((o: any) => o.id === order.id);
+        logger.debug('Checked if order exists in localStorage', {
+          component: 'TradingTabs',
+          method: 'handlePlaceOrder',
+          data: { orderExists, orderId: order.id },
+        });
+
         if (!orderExists) {
           // Format the order to match what the OrdersTable component expects
+          // Using the same format as the Binance Testnet integration
           const formattedOrder = {
-            ...order,
-            // Add required fields for OrdersTable
+            id: order.id,
             userId: 'current-user',
+            exchangeId: order.exchangeId || exchangeId,
+            symbol: order.symbol,
+            side: order.side,
+            type: order.type,
+            status: order.status || 'new',
+            price: order.price,
+            stopPrice: order.stopPrice,
+            quantity: order.quantity,
             filledQuantity: order.executed || 0,
+            executed: order.executed || 0, // Add executed field for compatibility
+            remaining: order.remaining || order.quantity, // Add remaining field for compatibility
+            avgFillPrice: order.price,
             // Ensure dates are in the correct format
             createdAt: order.timestamp
               ? new Date(order.timestamp).toISOString()
@@ -695,32 +750,90 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
             updatedAt: order.lastUpdated
               ? new Date(order.lastUpdated).toISOString()
               : new Date().toISOString(),
+            timestamp: order.timestamp || Date.now(), // Add timestamp field for compatibility
+            lastUpdated: order.lastUpdated || Date.now(), // Add lastUpdated field for compatibility
           };
 
-          // Remove fields that might cause confusion
-          delete formattedOrder.executed;
-          delete formattedOrder.remaining;
-          delete formattedOrder.timestamp;
-          delete formattedOrder.lastUpdated;
+          // Log the formatted order for debugging
+          logger.debug('Formatted order for localStorage', {
+            component: 'TradingTabs',
+            method: 'handlePlaceOrder',
+            data: { formattedOrder },
+          });
 
           currentOrders.push(formattedOrder);
 
-          localStorage.setItem(
-            'omnitrade_mock_orders',
-            JSON.stringify(currentOrders),
-          );
-
-          logger.debug('Order saved to localStorage with correct format', {
+          // Save to localStorage
+          logger.info('Saving orders to localStorage', {
             component: 'TradingTabs',
             method: 'handlePlaceOrder',
             data: {
-              orderId: order.id,
-              formattedOrder,
+              ordersCount: currentOrders.length,
+              newOrderId: order.id,
+              allOrderIds: currentOrders.map((o: any) => o.id),
             },
+          });
+
+          try {
+            localStorage.setItem(
+              'omnitrade_mock_orders',
+              JSON.stringify(currentOrders),
+            );
+
+            logger.info('Successfully saved orders to localStorage', {
+              component: 'TradingTabs',
+              method: 'handlePlaceOrder',
+              data: { ordersCount: currentOrders.length },
+            });
+          } catch (saveError) {
+            logger.error('Error saving to localStorage', {
+              component: 'TradingTabs',
+              method: 'handlePlaceOrder',
+              data: { error: saveError },
+            });
+          }
+
+          // Verify the save was successful
+          const savedOrders = localStorage.getItem('omnitrade_mock_orders');
+          if (savedOrders) {
+            const parsedOrders = JSON.parse(savedOrders);
+            const savedOrder = parsedOrders.find((o: any) => o.id === order.id);
+
+            if (savedOrder) {
+              logger.debug('Order successfully saved to localStorage', {
+                component: 'TradingTabs',
+                method: 'handlePlaceOrder',
+                data: {
+                  orderId: order.id,
+                  savedOrder,
+                  totalOrdersCount: parsedOrders.length,
+                },
+              });
+            } else {
+              logger.warn('Order not found in localStorage after save', {
+                component: 'TradingTabs',
+                method: 'handlePlaceOrder',
+                data: {
+                  orderId: order.id,
+                  totalOrdersCount: parsedOrders.length,
+                },
+              });
+            }
+          } else {
+            logger.warn('Failed to verify localStorage save', {
+              component: 'TradingTabs',
+              method: 'handlePlaceOrder',
+            });
+          }
+        } else {
+          logger.debug('Order already exists in localStorage', {
+            component: 'TradingTabs',
+            method: 'handlePlaceOrder',
+            data: { orderId: order.id },
           });
         }
       } catch (storageError) {
-        logger.warn('Failed to save order to localStorage', {
+        logger.error('Failed to save order to localStorage', {
           component: 'TradingTabs',
           method: 'handlePlaceOrder',
           data: { error: storageError },
@@ -755,15 +868,36 @@ export function TradingTabs({ selectedPair, onOrderPlaced }: TradingTabsProps) {
 
       // Notify parent component to refresh orders
       if (onOrderPlaced) {
-        logger.debug('Notifying parent component that order was placed', {
+        logger.info('Notifying parent component that order was placed', {
+          component: 'TradingTabs',
+          method: 'handlePlaceOrder',
+          data: {
+            orderId: order.id,
+            hasCallback: !!onOrderPlaced,
+            callbackType: typeof onOrderPlaced,
+          },
+        });
+
+        // Call the parent's onOrderPlaced handler to trigger refreshes
+        // The parent component (Terminal) will handle multiple refreshes
+        try {
+          onOrderPlaced();
+          logger.info('Successfully called onOrderPlaced callback', {
+            component: 'TradingTabs',
+            method: 'handlePlaceOrder',
+          });
+        } catch (callbackError) {
+          logger.error('Error calling onOrderPlaced callback', {
+            component: 'TradingTabs',
+            method: 'handlePlaceOrder',
+            data: { error: callbackError },
+          });
+        }
+      } else {
+        logger.warn('No onOrderPlaced callback provided', {
           component: 'TradingTabs',
           method: 'handlePlaceOrder',
         });
-
-        // Add a small delay to ensure the order is saved before refreshing
-        setTimeout(() => {
-          onOrderPlaced();
-        }, 500);
       }
     } catch (error) {
       logger.error('Error placing order', {

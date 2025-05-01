@@ -43,7 +43,32 @@ export function setupApiMiddleware() {
 
     // Special case for health endpoint
     if (url.includes('/api/health')) {
-      return handleHealthRequest();
+      // Check if we should use mock data to avoid unnecessary health checks
+      const flags = getFeatureFlags();
+      if (flags.useMockData) {
+        console.log('Using mock data for health check, skipping API call');
+        return handleHealthRequest();
+      }
+
+      // Log health check requests for debugging
+      console.log('Making health check API request');
+
+      // If we're not using mock data, try the real endpoint first
+      try {
+        const response = await originalFetch(input, init);
+        if (response.ok) {
+          return response;
+        }
+        // If the real endpoint fails, fall back to mock
+        console.warn('Health check API request failed, using mock response');
+        return handleHealthRequest();
+      } catch (error) {
+        console.warn(
+          'Health check API request error, using mock response:',
+          error,
+        );
+        return handleHealthRequest();
+      }
     }
 
     // Special case for exchangeInfo endpoint

@@ -143,14 +143,67 @@ export default function Terminal() {
   const handleOrderPlaced = () => {
     console.log('Terminal: Order placed, refreshing components...');
 
-    // Increment the refresh trigger to cause a refresh of components that depend on it
-    setRefreshTrigger((prev) => prev + 1);
+    // Debug localStorage content
+    try {
+      const rawOrders = localStorage.getItem('omnitrade_mock_orders');
+      console.log('Terminal - Current localStorage content (raw):', rawOrders);
 
-    // Add a second refresh after a delay to ensure market orders that are filled after a delay are shown
-    setTimeout(() => {
-      console.log('Terminal: Delayed refresh for market orders...');
-      setRefreshTrigger((prev) => prev + 1);
-    }, 2500); // Slightly longer than the market order fill delay (2000ms)
+      if (rawOrders) {
+        try {
+          const parsedOrders = JSON.parse(rawOrders);
+          console.log(
+            'Terminal - Current localStorage content (parsed):',
+            parsedOrders,
+          );
+          console.log(
+            'Terminal - Number of orders in localStorage:',
+            parsedOrders.length,
+          );
+          console.log(
+            'Terminal - Order IDs in localStorage:',
+            parsedOrders.map((o: any) => o.id),
+          );
+        } catch (parseError) {
+          console.error(
+            'Terminal - Error parsing localStorage content:',
+            parseError,
+          );
+        }
+      } else {
+        console.log('Terminal - No orders found in localStorage');
+      }
+    } catch (localStorageError) {
+      console.error(
+        'Terminal - Error accessing localStorage:',
+        localStorageError,
+      );
+    }
+
+    // Increment the refresh trigger to cause a refresh of components that depend on it
+    setRefreshTrigger((prev) => {
+      const newValue = prev + 1;
+      console.log(
+        `Terminal: Incrementing refreshTrigger from ${prev} to ${newValue}`,
+      );
+      return newValue;
+    });
+
+    // Set up multiple refreshes with increasing delays to ensure orders are properly updated
+    // This helps catch both immediate updates and delayed updates (like market order fills)
+    const refreshDelays = [500, 1500, 2500, 5000]; // Multiple refresh points
+
+    refreshDelays.forEach((delay) => {
+      setTimeout(() => {
+        console.log(`Terminal: Delayed refresh after ${delay}ms...`);
+        setRefreshTrigger((prev) => {
+          const newValue = prev + 1;
+          console.log(
+            `Terminal: Delayed increment of refreshTrigger from ${prev} to ${newValue}`,
+          );
+          return newValue;
+        });
+      }, delay);
+    });
   };
 
   return (
