@@ -36,7 +36,7 @@ import Security from './pages/profile/Security';
 import ChangePassword from './pages/profile/ChangePassword';
 import Preferences from './pages/profile/Preferences';
 import PlanSubscription from './pages/profile/PlanSubscription';
-import ExchangeDemo from './pages/demo/ExchangeDemo';
+// Exchange Demo page removed
 import { useAuth } from './hooks/useAuth';
 
 // Add import for our new components
@@ -173,15 +173,7 @@ function App() {
           />
           <Route path="/ai-driven" element={<AIDrivenPage />} />
 
-          {/* Demo routes */}
-          <Route
-            path="/demo/exchange"
-            element={
-              <ProtectedRouteWrapper>
-                <ExchangeDemo />
-              </ProtectedRouteWrapper>
-            }
-          />
+          {/* Demo routes removed */}
 
           {/* Profile routes (reverted to individual wrappers) */}
           <Route

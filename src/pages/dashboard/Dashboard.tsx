@@ -29,10 +29,7 @@ import { getMockPortfolioData } from '@/mocks/mockPortfolio';
 import { generatePriceChartData } from '@/lib/utils';
 import { generate7DayChartData } from '@/utils/chartUtils';
 import { DashboardAssetChart } from '@/components/DashboardAssetChart';
-// Import the ExchangeAdapterExample component with React.lazy for code splitting
-const ExchangeAdapterExample = React.lazy(
-  () => import('@/components/examples/ExchangeAdapterExample'),
-);
+// Exchange Adapter Example component removed
 
 const mockPerformanceData = [
   { date: 'Mon', value: 40000 },
@@ -927,29 +924,7 @@ const Dashboard: React.FC = () => {
           </ErrorBoundary>
         </div>
 
-        {/* Exchange Adapter Example */}
-        <div
-          className="dashboard-card p-5 mb-4"
-          style={{ background: tradingViewBg }}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-theme-primary">
-              Exchange Integration Demo
-            </h2>
-            <div className="text-xs text-gray-400">Mock Data System Demo</div>
-          </div>
-          <Suspense
-            fallback={
-              <div className="p-4 bg-gray-800 rounded-lg text-center">
-                <p className="text-gray-400">Loading exchange adapter...</p>
-              </div>
-            }
-          >
-            <ErrorBoundary>
-              <ExchangeAdapterExample />
-            </ErrorBoundary>
-          </Suspense>
-        </div>
+        {/* Exchange Adapter Example removed */}
       </div>
     </div>
   );
