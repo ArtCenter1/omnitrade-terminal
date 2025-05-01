@@ -125,7 +125,7 @@ export function createMockOrderBook(symbol: string, limit: number) {
   const mockOrderBook = mockDataService.generateOrderBook(
     'binance_testnet',
     symbol || 'BTCUSDT',
-    limit || 20
+    limit || 20,
   );
 
   return {
@@ -149,7 +149,7 @@ export function createMockOrderBook(symbol: string, limit: number) {
 export function createMockTickerStats(symbol: string) {
   return mockDataService.generateTickerStats(
     'binance_testnet',
-    symbol || 'BTCUSDT'
+    symbol || 'BTCUSDT',
   );
 }
 
@@ -160,14 +160,18 @@ export function createMockTickerStats(symbol: string) {
  * @param limit The number of entries to include
  * @returns Mock klines data
  */
-export function createMockKlines(symbol: string, interval: string, limit: number) {
+export function createMockKlines(
+  symbol: string,
+  interval: string,
+  limit: number,
+) {
   return mockDataService.generateKlines(
     'binance_testnet',
     symbol || 'BTCUSDT',
     interval || '1h',
     undefined,
     undefined,
-    limit || 100
+    limit || 100,
   );
 }
 
@@ -181,7 +185,7 @@ export function createMockTrades(symbol: string, limit: number) {
   return mockDataService.generateRecentTrades(
     'binance_testnet',
     symbol || 'BTCUSDT',
-    limit || 50
+    limit || 50,
   );
 }
 
@@ -198,6 +202,12 @@ export function createMockHealthCheck() {
       api: 'healthy',
       database: 'healthy',
       cache: 'healthy',
+    },
+    exchanges: {
+      binance_testnet: 'ok',
+      binance: 'ok',
+      kraken: 'ok',
+      coinbase: 'ok',
     },
   };
 }

@@ -20,6 +20,7 @@ import {
 import { Button } from '@/components/ui/button';
 import * as enhancedCoinGeckoService from '@/services/enhancedCoinGeckoService';
 import { BinanceTestnetSettings } from '@/components/settings/BinanceTestnetSettings';
+import { useConnectionStatus } from '@/contexts/connectionStatusContext';
 
 /**
  * Developer tools component
@@ -195,164 +196,137 @@ export function DevTools() {
  */
 function ConnectionStatus() {
   const flags = useFeatureFlagsContext();
+  const { statuses, checkConnection } = useConnectionStatus();
+  const [lastChecked, setLastChecked] = React.useState(new Date());
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
 
-  // Use the same backendStatus from the parent component
-  const [backendStatus, setBackendStatus] = React.useState<
-    'connected' | 'disconnected' | 'checking'
-  >('checking');
-
-  // Add more connection statuses
-  const [databaseStatus, setDatabaseStatus] = React.useState<
-    'connected' | 'disconnected' | 'checking'
-  >('checking');
-
-  const [redisStatus, setRedisStatus] = React.useState<
-    'connected' | 'disconnected' | 'checking'
-  >('checking');
-
-  const [exchangeStatuses, setExchangeStatuses] = React.useState<{
-    [key: string]: 'connected' | 'disconnected' | 'checking';
-  }>({});
-
-  // Check connections on mount
-  React.useEffect(() => {
-    const checkConnections = async () => {
-      console.log(
-        '[ConnectionStatus] Checking connections, useMockData:',
-        flags.useMockData,
-      );
-
-      // If using mock data, set mock statuses and DO NOT make API calls
-      if (flags.useMockData) {
-        console.log(
-          '[ConnectionStatus] Using mock data, skipping health check API calls',
-        );
-        setBackendStatus('connected');
-        setDatabaseStatus('connected');
-        setRedisStatus('connected');
-
-        // Set mock exchange statuses
-        setExchangeStatuses({
-          binance: 'connected',
-          kraken: 'connected',
-          coinbase: 'connected',
-        });
-        return;
-      }
-
-      // Only proceed with health check if we're not using mock data
-      console.log('[ConnectionStatus] Making health check API call');
-
-      // Check backend connection
-      try {
-        const response = await fetch('/api/health');
-        if (response.ok) {
-          setBackendStatus('connected');
-          // If we get a successful response, assume database is connected
-          setDatabaseStatus('connected');
-
-          // Try to parse the response for more detailed status
-          const data = await response.json().catch(() => ({}));
-          if (data.redis === 'ok') {
-            setRedisStatus('connected');
-          } else if (data.redis === 'error') {
-            setRedisStatus('disconnected');
-          }
-
-          // Check exchange statuses if available
-          if (data.exchanges) {
-            const statuses: {
-              [key: string]: 'connected' | 'disconnected' | 'checking';
-            } = {};
-            Object.entries(data.exchanges).forEach(([exchange, status]) => {
-              statuses[exchange] =
-                status === 'ok' ? 'connected' : 'disconnected';
-            });
-            setExchangeStatuses(statuses);
-          }
-        } else {
-          setBackendStatus('disconnected');
-          setDatabaseStatus('disconnected');
-          setRedisStatus('disconnected');
-        }
-      } catch (error) {
-        console.error('[ConnectionStatus] Error checking connections:', error);
-        setBackendStatus('disconnected');
-        setDatabaseStatus('disconnected');
-        setRedisStatus('disconnected');
-      }
-    };
-
-    // Initial check
-    checkConnections();
-
-    // Check connections every 60 seconds (reduced from 30 seconds)
-    // Only set up the interval if we're not using mock data
-    let interval: NodeJS.Timeout | null = null;
-
-    if (!flags.useMockData) {
-      console.log('[ConnectionStatus] Setting up health check interval (60s)');
-      interval = setInterval(checkConnections, 60000); // Increased to 60 seconds
+  // If we should show the connection status section
+  const shouldShowConnectionStatus = React.useMemo(() => {
+    // If we're using mock data and in development mode, don't show connection status
+    if (flags.useMockData && import.meta.env.DEV) {
+      return false;
     }
-
-    return () => {
-      if (interval) {
-        console.log('[ConnectionStatus] Clearing health check interval');
-        clearInterval(interval);
-      }
-    };
+    return true;
   }, [flags.useMockData]);
 
-  // Mock some exchange statuses for demonstration if not using mock data
-  React.useEffect(() => {
-    if (!flags.useMockData && Object.keys(exchangeStatuses).length === 0) {
-      setExchangeStatuses({
-        binance: Math.random() > 0.2 ? 'connected' : 'disconnected',
-        kraken: Math.random() > 0.2 ? 'connected' : 'disconnected',
-        coinbase: Math.random() > 0.2 ? 'connected' : 'disconnected',
-      });
+  // If we shouldn't show connection status, return null
+  if (!shouldShowConnectionStatus) {
+    return (
+      <div className="p-4 border rounded-lg bg-yellow-500/10 text-center">
+        <p className="text-sm text-muted-foreground">
+          Connection status indicators are disabled when using mock data.
+        </p>
+        <p className="text-xs text-muted-foreground mt-2">
+          To see actual connection status, disable "Use Mock Data" in the
+          Feature Flags panel.
+        </p>
+      </div>
+    );
+  }
+
+  // Convert ConnectionStatus enum to our component status type
+  const mapConnectionStatus = (
+    status: string,
+  ): 'connected' | 'disconnected' | 'checking' => {
+    switch (status) {
+      case 'connected':
+        return 'connected';
+      case 'disconnected':
+      case 'error':
+        return 'disconnected';
+      case 'connecting':
+        return 'checking';
+      default:
+        return 'disconnected';
     }
-  }, [exchangeStatuses, flags.useMockData]);
+  };
+
+  // Get active exchanges from the connection manager
+  const activeExchanges = React.useMemo(() => {
+    return Array.from(statuses.entries()).map(([id, status]) => ({
+      id,
+      name: id.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
+      status: mapConnectionStatus(status.status),
+      type: status.type,
+      message: status.message,
+    }));
+  }, [statuses]);
+
+  // Refresh all connections
+  const refreshConnections = React.useCallback(async () => {
+    setIsRefreshing(true);
+    setLastChecked(new Date());
+
+    // Check exchange connections
+    const exchangeIds = Array.from(statuses.keys());
+    for (const exchangeId of exchangeIds) {
+      await checkConnection(exchangeId);
+    }
+
+    setIsRefreshing(false);
+  }, [checkConnection, statuses]);
+
+  // Initial check on mount
+  React.useEffect(() => {
+    refreshConnections();
+
+    // Set up interval for periodic checks (every 60 seconds)
+    const interval = setInterval(refreshConnections, 60000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [refreshConnections]);
 
   return (
     <div className="space-y-4">
-      <div className="border rounded-lg p-2">
-        <h3 className="text-sm font-medium text-muted-foreground mb-2">
-          System Connections
+      <div className="flex justify-between items-center mb-2">
+        <h3 className="text-sm font-medium text-muted-foreground">
+          Exchange Connections
         </h3>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Backend API</span>
-            <StatusIndicator status={backendStatus} />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Database</span>
-            <StatusIndicator status={databaseStatus} />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Redis Cache</span>
-            <StatusIndicator status={redisStatus} />
-          </div>
-        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={refreshConnections}
+          disabled={isRefreshing}
+          className="h-7 px-2 text-xs"
+        >
+          <RefreshCw
+            className={`h-3 w-3 mr-1 ${isRefreshing ? 'animate-spin' : ''}`}
+          />
+          Refresh
+        </Button>
       </div>
 
       <div className="border rounded-lg p-2">
-        <h3 className="text-sm font-medium text-muted-foreground mb-2">
-          Exchange Connections
-        </h3>
         <div className="space-y-2">
-          {Object.entries(exchangeStatuses).map(([exchange, status]) => (
-            <div key={exchange} className="flex items-center justify-between">
-              <span className="capitalize text-muted-foreground">
-                {exchange}
-              </span>
-              <StatusIndicator status={status} />
+          {activeExchanges.map((exchange) => (
+            <div
+              key={exchange.id}
+              className="flex items-center justify-between"
+            >
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="capitalize text-muted-foreground cursor-help">
+                      {exchange.name}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      {exchange.message || `${exchange.name} connection status`}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Type: {exchange.type}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <StatusIndicator status={exchange.status} />
             </div>
           ))}
 
-          {Object.keys(exchangeStatuses).length === 0 && (
+          {activeExchanges.length === 0 && (
             <div className="text-muted-foreground text-sm">
               No exchange connections configured
             </div>
@@ -368,54 +342,8 @@ function ConnectionStatus() {
           <p>Backend URL: {window.location.origin}/api</p>
           <p className="flex items-center gap-1">
             Environment: {import.meta.env.MODE}
-            {import.meta.env.MODE === 'development' && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="cursor-help">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="text-yellow-500"
-                      >
-                        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
-                        <path d="M12 9v4"></path>
-                        <path d="M12 17h.01"></path>
-                      </svg>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p>
-                      In development mode, connection statuses show as
-                      "Connected" when using mock data, regardless of the
-                      Connection Mode setting.
-                    </p>
-                    <p className="mt-1">
-                      These are virtual connections for development purposes
-                      only and do not represent actual connections to external
-                      services.
-                    </p>
-                    <p className="mt-1">To implement real connection checks:</p>
-                    <ol className="list-decimal pl-4 mt-1">
-                      <li>Turn off "Use Mock Data" toggle</li>
-                      <li>Implement health check endpoints in the backend</li>
-                      <li>
-                        Update the connection status logic in the frontend
-                      </li>
-                    </ol>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
           </p>
-          <p>Last checked: {new Date().toLocaleTimeString()}</p>
+          <p>Last checked: {lastChecked.toLocaleTimeString()}</p>
         </div>
       </div>
     </div>

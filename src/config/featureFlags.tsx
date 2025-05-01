@@ -7,9 +7,11 @@ import React from 'react';
  * These can be toggled at runtime to enable/disable features
  */
 export interface FeatureFlags {
-  // Data source flags
-  useMockData: boolean;
-  useRealMarketData: boolean;
+  // Data source flags - these are derived from connectionMode
+  // useMockData is true when connectionMode is 'mock'
+  // useRealMarketData is true when connectionMode is 'sandbox' or 'live'
+  readonly useMockData: boolean;
+  readonly useRealMarketData: boolean;
 
   // Connection mode (mock, sandbox, live)
   connectionMode: ConnectionMode;
@@ -24,11 +26,19 @@ export interface FeatureFlags {
   showPerformanceMetrics: boolean;
 }
 
+// Default connection mode based on environment
+const defaultConnectionMode: ConnectionMode = import.meta.env.DEV
+  ? 'mock'
+  : 'sandbox';
+
 // Default feature flags
-const defaultFeatureFlags: FeatureFlags = {
-  useMockData: import.meta.env.DEV, // Use mock data in development by default
-  useRealMarketData: false, // Don't use real market data by default
-  connectionMode: import.meta.env.DEV ? 'mock' : 'sandbox', // Use mock in dev, sandbox in prod
+const defaultFeatureFlags: Omit<
+  FeatureFlags,
+  'useMockData' | 'useRealMarketData'
+> & {
+  connectionMode: ConnectionMode;
+} = {
+  connectionMode: defaultConnectionMode, // Use mock in dev, sandbox in prod
   enableDemoAccount: true, // Always enable demo account
   enableDebugTools: import.meta.env.DEV, // Only enable debug tools in development
   useBinanceTestnet: import.meta.env.DEV, // Use Binance Testnet in development by default
@@ -42,26 +52,49 @@ const FEATURE_FLAGS_STORAGE_KEY = 'omnitrade_feature_flags';
 /**
  * Get the current feature flags
  * Combines default flags with any stored flags
+ * Derives useMockData and useRealMarketData from connectionMode
  */
 export function getFeatureFlags(): FeatureFlags {
   try {
     // Get stored flags from local storage
     const storedFlags = localStorage.getItem(FEATURE_FLAGS_STORAGE_KEY);
-    if (!storedFlags) {
-      return defaultFeatureFlags;
-    }
 
-    // Parse stored flags
-    const parsedFlags = JSON.parse(storedFlags) as Partial<FeatureFlags>;
+    // Parse stored flags or use empty object if none exist
+    const parsedFlags = storedFlags
+      ? (JSON.parse(storedFlags) as Partial<FeatureFlags>)
+      : {};
 
-    // Combine default flags with stored flags
-    return {
+    // Merge with default flags, giving priority to stored values
+    const mergedFlags = {
       ...defaultFeatureFlags,
       ...parsedFlags,
     };
+
+    // Ensure connectionMode is valid
+    const connectionMode = mergedFlags.connectionMode || defaultConnectionMode;
+
+    // Create the complete flags object with derived values
+    const completeFlags: FeatureFlags = {
+      ...mergedFlags,
+      connectionMode,
+      // useMockData is true only in mock mode
+      useMockData: connectionMode === 'mock',
+      // useRealMarketData is true in sandbox or live mode
+      useRealMarketData:
+        connectionMode === 'sandbox' || connectionMode === 'live',
+    };
+
+    return completeFlags;
   } catch (error) {
     console.error('Error getting feature flags:', error);
-    return defaultFeatureFlags;
+
+    // Return default flags with derived values
+    return {
+      ...defaultFeatureFlags,
+      useMockData: defaultConnectionMode === 'mock',
+      useRealMarketData:
+        defaultConnectionMode === 'sandbox' || defaultConnectionMode === 'live',
+    };
   }
 }
 
@@ -75,12 +108,65 @@ export function setFeatureFlag<K extends keyof FeatureFlags>(
   value: FeatureFlags[K],
 ): void {
   try {
-    // Get current flags
-    const currentFlags = getFeatureFlags();
+    // Get current flags from storage
+    const storedFlags = localStorage.getItem(FEATURE_FLAGS_STORAGE_KEY);
+    const parsedFlags = storedFlags
+      ? (JSON.parse(storedFlags) as Partial<FeatureFlags>)
+      : {};
 
-    // Update flag
+    // Special handling for useMockData and useRealMarketData
+    // These are derived from connectionMode and cannot be set directly
+    if (flag === 'useMockData' || flag === 'useRealMarketData') {
+      console.warn(
+        `Cannot directly set ${String(flag)}. This value is derived from connectionMode.`,
+      );
+
+      // Instead of recursively calling setFeatureFlag, we'll directly update connectionMode
+      let newConnectionMode: ConnectionMode | null = null;
+
+      // If trying to set useMockData to true, set connectionMode to 'mock'
+      if (flag === 'useMockData' && value === true) {
+        newConnectionMode = 'mock';
+      }
+      // If trying to set useRealMarketData to true, set connectionMode to 'sandbox'
+      else if (flag === 'useRealMarketData' && value === true) {
+        newConnectionMode = 'sandbox';
+      }
+
+      // If we determined a new connection mode, update it directly
+      if (newConnectionMode) {
+        const updatedFlags = {
+          ...parsedFlags,
+          connectionMode: newConnectionMode,
+        };
+
+        // Store updated flags
+        localStorage.setItem(
+          FEATURE_FLAGS_STORAGE_KEY,
+          JSON.stringify(updatedFlags),
+        );
+
+        // Get the complete flags with derived values
+        const completeFlags = getFeatureFlags();
+
+        // Dispatch event to notify subscribers
+        window.dispatchEvent(
+          new CustomEvent('feature-flags-changed', {
+            detail: {
+              flag: 'connectionMode' as keyof FeatureFlags,
+              value: newConnectionMode,
+              flags: completeFlags,
+            },
+          }),
+        );
+      }
+
+      return;
+    }
+
+    // For all other flags, update normally
     const updatedFlags = {
-      ...currentFlags,
+      ...parsedFlags,
       [flag]: value,
     };
 
@@ -90,13 +176,16 @@ export function setFeatureFlag<K extends keyof FeatureFlags>(
       JSON.stringify(updatedFlags),
     );
 
+    // Get the complete flags with derived values
+    const completeFlags = getFeatureFlags();
+
     // Dispatch event to notify subscribers
     window.dispatchEvent(
       new CustomEvent('feature-flags-changed', {
         detail: {
           flag,
           value,
-          flags: updatedFlags,
+          flags: completeFlags,
         },
       }),
     );
@@ -109,16 +198,27 @@ export function setFeatureFlag<K extends keyof FeatureFlags>(
  * Reset feature flags to defaults
  */
 export function resetFeatureFlags(): void {
+  // Remove stored flags
   localStorage.removeItem(FEATURE_FLAGS_STORAGE_KEY);
+
+  // Create a complete default flags object with derived values
+  const completeDefaultFlags: FeatureFlags = {
+    ...defaultFeatureFlags,
+    useMockData: defaultConnectionMode === 'mock',
+    useRealMarketData:
+      defaultConnectionMode === 'sandbox' || defaultConnectionMode === 'live',
+  };
 
   // Dispatch event to notify subscribers
   window.dispatchEvent(
     new CustomEvent('feature-flags-changed', {
       detail: {
-        flags: defaultFeatureFlags,
+        flags: completeDefaultFlags,
       },
     }),
   );
+
+  console.log('Feature flags reset to defaults:', completeDefaultFlags);
 }
 
 /**
