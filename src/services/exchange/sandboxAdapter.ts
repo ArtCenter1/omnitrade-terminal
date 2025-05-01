@@ -17,6 +17,7 @@ import {
 import { BinanceAdapter } from './binanceAdapter';
 import { BinanceTestnetAdapter } from './binanceTestnetAdapter';
 import { getFeatureFlags } from '@/config/featureFlags';
+import { getExchangeEndpoint } from '@/config/exchangeConfig';
 import { BrowserEventEmitter } from '@/utils/browserEventEmitter';
 import { getMockPortfolioData } from '@/mocks/mockPortfolio';
 
@@ -24,7 +25,6 @@ import { getMockPortfolioData } from '@/mocks/mockPortfolio';
  * Sandbox exchange adapter for practice trading
  */
 export class SandboxAdapter extends BaseExchangeAdapter {
-  private readonly mockDataService: MockDataService;
   private readonly binanceTestAdapter: BinanceAdapter | BinanceTestnetAdapter;
   private readonly useBinanceTestnet: boolean;
   protected eventEmitter: BrowserEventEmitter;
@@ -42,6 +42,9 @@ export class SandboxAdapter extends BaseExchangeAdapter {
     if (this.useBinanceTestnet) {
       console.log('[SandboxAdapter] Using Binance Testnet adapter');
       this.binanceTestAdapter = new BinanceTestnetAdapter();
+
+      // Test the Binance Testnet API accessibility
+      this.testBinanceTestnetApiAccessibility();
     } else {
       this.binanceTestAdapter = new BinanceAdapter();
     }
@@ -51,6 +54,55 @@ export class SandboxAdapter extends BaseExchangeAdapter {
         this.useBinanceTestnet ? ' Testnet' : ''
       } as primary data source`,
     );
+  }
+
+  /**
+   * Test if the Binance Testnet API is accessible
+   * This helps determine if we should use the Binance Testnet API or fall back to mock data
+   */
+  private async testBinanceTestnetApiAccessibility(): Promise<void> {
+    try {
+      console.log('[SandboxAdapter] Testing Binance Testnet API accessibility');
+
+      // Get the base URL from the Binance Testnet adapter
+      const baseUrl = getExchangeEndpoint('binance_testnet');
+
+      if (!baseUrl || !baseUrl.includes('testnet.binance.vision')) {
+        console.warn(
+          '[SandboxAdapter] Invalid Binance Testnet base URL:',
+          baseUrl,
+        );
+        return;
+      }
+
+      // Make a simple ping request to test connectivity
+      const testUrl = `${baseUrl}/api/v3/ping`;
+      console.log('[SandboxAdapter] Testing connection to:', testUrl);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+      const response = await fetch(testUrl, {
+        method: 'GET',
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        console.log('[SandboxAdapter] Binance Testnet API is accessible!');
+      } else {
+        console.warn(
+          '[SandboxAdapter] Binance Testnet API is not accessible. Status:',
+          response.status,
+        );
+      }
+    } catch (error) {
+      console.error(
+        '[SandboxAdapter] Error testing Binance Testnet API accessibility:',
+        error,
+      );
+    }
   }
 
   /**
@@ -66,17 +118,11 @@ export class SandboxAdapter extends BaseExchangeAdapter {
     return {
       id: this.exchangeId,
       name,
-      url: this.useBinanceTestnet
+      website: this.useBinanceTestnet
         ? 'https://testnet.binance.vision'
         : 'https://omnitrade.io/demo',
       description,
-      features: ['spot', 'margin', 'futures'],
-      fees: {
-        maker: 0.0, // No fees in sandbox
-        taker: 0.0, // No fees in sandbox
-      },
-      requiredCredentials: this.useBinanceTestnet ? ['apiKey', 'secret'] : [],
-      countries: ['*'], // Available worldwide
+      isActive: true,
       logo: this.useBinanceTestnet
         ? '/exchanges/binance.svg'
         : '/exchanges/demo.svg',
@@ -127,39 +173,81 @@ export class SandboxAdapter extends BaseExchangeAdapter {
     symbol: string,
     limit: number = 20,
   ): Promise<OrderBook> {
-    try {
-      // Try to get order book from Binance Testnet
-      const testOrderBook = await this.binanceTestAdapter.getOrderBook(
-        symbol,
-        limit,
-      );
+    // Only try to get data from Binance Testnet if it's enabled
+    if (this.useBinanceTestnet) {
+      try {
+        // First check if the API is accessible with a direct ping
+        let isApiAccessible = false;
+        try {
+          const baseUrl = getExchangeEndpoint('binance_testnet');
+          const testUrl = `${baseUrl}/api/v3/ping`;
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
 
-      // If we got an order book from Binance, use it but mark it as sandbox
-      if (
-        testOrderBook &&
-        (testOrderBook.bids.length > 0 || testOrderBook.asks.length > 0)
-      ) {
-        console.log(
-          `[SandboxAdapter] Using order book from Binance${
-            this.useBinanceTestnet ? ' Testnet' : ''
-          } for ${symbol}`,
+          const testResponse = await fetch(testUrl, {
+            method: 'GET',
+            signal: controller.signal,
+          });
+
+          clearTimeout(timeoutId);
+
+          if (testResponse.ok) {
+            console.log(
+              `[SandboxAdapter] Binance Testnet API is accessible for order book request`,
+            );
+            isApiAccessible = true;
+          } else {
+            console.warn(
+              `[SandboxAdapter] Binance Testnet API is not accessible for order book request. Status: ${testResponse.status}`,
+            );
+          }
+        } catch (testError) {
+          console.warn(
+            `[SandboxAdapter] API accessibility test failed for order book request:`,
+            testError,
+          );
+        }
+
+        // Only proceed with the API request if the ping was successful
+        if (isApiAccessible) {
+          // Try to get order book from Binance Testnet
+          const testOrderBook = await this.binanceTestAdapter.getOrderBook(
+            symbol,
+            limit,
+          );
+
+          // If we got an order book from Binance, use it but mark it as sandbox
+          if (
+            testOrderBook &&
+            (testOrderBook.bids.length > 0 || testOrderBook.asks.length > 0)
+          ) {
+            console.log(
+              `[SandboxAdapter] Using order book from Binance Testnet for ${symbol}`,
+            );
+
+            return {
+              ...testOrderBook,
+              exchangeId: this.exchangeId,
+            };
+          } else {
+            console.warn(
+              `[SandboxAdapter] Binance Testnet returned empty order book for ${symbol}`,
+            );
+          }
+        }
+      } catch (error) {
+        console.error(
+          `[SandboxAdapter] Error getting order book from Binance Testnet:`,
+          error,
         );
-
-        return {
-          ...testOrderBook,
-          exchangeId: this.exchangeId,
-        };
       }
-    } catch (error) {
-      console.error(
-        `[SandboxAdapter] Error getting order book from Binance${
-          this.useBinanceTestnet ? ' Testnet' : ''
-        }:`,
-        error,
+    } else {
+      console.log(
+        `[SandboxAdapter] Binance Testnet is disabled, using mock order book for ${symbol}`,
       );
     }
 
-    // Fallback to mock data if Binance fails
+    // Fallback to mock data if Binance fails or is disabled
     console.log(
       `[SandboxAdapter] Falling back to mock order book for ${symbol}`,
     );
@@ -565,5 +653,38 @@ export class SandboxAdapter extends BaseExchangeAdapter {
    */
   public getEventEmitter(): BrowserEventEmitter {
     return this.eventEmitter;
+  }
+
+  /**
+   * Validate API key credentials with the exchange.
+   * For sandbox mode, we'll always return true since it's a practice environment.
+   * @param apiKey The API key to validate
+   * @param apiSecret The API secret to validate
+   * @returns Always true for sandbox mode
+   */
+  public async validateApiKey(
+    apiKey: string,
+    apiSecret: string,
+  ): Promise<boolean> {
+    console.log(`[SandboxAdapter] Validating API key (sandbox mode)`);
+
+    // For Binance Testnet, we can try to validate the key if it's enabled
+    if (
+      this.useBinanceTestnet &&
+      this.binanceTestAdapter instanceof BinanceTestnetAdapter
+    ) {
+      try {
+        // Try to validate with Binance Testnet
+        return await this.binanceTestAdapter.validateApiKey(apiKey, apiSecret);
+      } catch (error) {
+        console.error(
+          `[SandboxAdapter] Error validating API key with Binance Testnet:`,
+          error,
+        );
+      }
+    }
+
+    // For sandbox mode, we'll accept any non-empty key/secret
+    return apiKey.length > 0 && apiSecret.length > 0;
   }
 }

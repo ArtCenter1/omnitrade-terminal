@@ -31,35 +31,17 @@ export function DevTools() {
     'connected' | 'disconnected' | 'checking'
   >('checking');
 
-  // Check backend connection on mount
+  // We'll use the ConnectionStatus component to handle all health checks
+  // This eliminates duplicate health check polling
   React.useEffect(() => {
-    const checkBackendConnection = async () => {
-      // Skip API health check if using mock data
-      if (flags.useMockData) {
-        setBackendStatus('connected'); // Assume connected when using mock data
-        return;
-      }
+    // Just set an initial status based on mock data flag
+    if (flags.useMockData) {
+      setBackendStatus('connected'); // Assume connected when using mock data
+    } else {
+      setBackendStatus('checking');
+    }
 
-      try {
-        const response = await fetch('/api/health');
-        if (response.ok) {
-          setBackendStatus('connected');
-        } else {
-          setBackendStatus('disconnected');
-        }
-      } catch (error) {
-        setBackendStatus('disconnected');
-      }
-    };
-
-    checkBackendConnection();
-
-    // Check connection every 30 seconds
-    const interval = setInterval(checkBackendConnection, 30000);
-
-    return () => {
-      clearInterval(interval);
-    };
+    // No interval here - we'll rely on the ConnectionStatus component
   }, [flags.useMockData]);
 
   // Only show in development mode or when debug tools are enabled
@@ -235,8 +217,16 @@ function ConnectionStatus() {
   // Check connections on mount
   React.useEffect(() => {
     const checkConnections = async () => {
-      // If using mock data, set mock statuses
+      console.log(
+        '[ConnectionStatus] Checking connections, useMockData:',
+        flags.useMockData,
+      );
+
+      // If using mock data, set mock statuses and DO NOT make API calls
       if (flags.useMockData) {
+        console.log(
+          '[ConnectionStatus] Using mock data, skipping health check API calls',
+        );
         setBackendStatus('connected');
         setDatabaseStatus('connected');
         setRedisStatus('connected');
@@ -249,6 +239,9 @@ function ConnectionStatus() {
         });
         return;
       }
+
+      // Only proceed with health check if we're not using mock data
+      console.log('[ConnectionStatus] Making health check API call');
 
       // Check backend connection
       try {
@@ -283,19 +276,30 @@ function ConnectionStatus() {
           setRedisStatus('disconnected');
         }
       } catch (error) {
+        console.error('[ConnectionStatus] Error checking connections:', error);
         setBackendStatus('disconnected');
         setDatabaseStatus('disconnected');
         setRedisStatus('disconnected');
       }
     };
 
+    // Initial check
     checkConnections();
 
-    // Check connections every 30 seconds
-    const interval = setInterval(checkConnections, 30000);
+    // Check connections every 60 seconds (reduced from 30 seconds)
+    // Only set up the interval if we're not using mock data
+    let interval: NodeJS.Timeout | null = null;
+
+    if (!flags.useMockData) {
+      console.log('[ConnectionStatus] Setting up health check interval (60s)');
+      interval = setInterval(checkConnections, 60000); // Increased to 60 seconds
+    }
 
     return () => {
-      clearInterval(interval);
+      if (interval) {
+        console.log('[ConnectionStatus] Clearing health check interval');
+        clearInterval(interval);
+      }
     };
   }, [flags.useMockData]);
 
