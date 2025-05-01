@@ -156,9 +156,9 @@
 
 ### Account Limits
 
-- [ ] Implement trading limits checking
+- [x] Implement trading limits checking
 - [ ] Add leverage limits (if applicable)
-- [ ] Create position size validation
+- [x] Create position size validation
 
 ### Testing Account Management
 
