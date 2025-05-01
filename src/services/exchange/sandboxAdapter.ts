@@ -421,7 +421,7 @@ export class SandboxAdapter extends BaseExchangeAdapter {
     // Use the getMockPortfolioData function to get a consistent demo portfolio
     console.log(`[SandboxAdapter] Getting portfolio for ${apiKeyId}`);
 
-    // Use the sandbox-key to get the demo portfolio
+    // Always use the sandbox-key to get the demo portfolio for consistency
     const portfolioData = getMockPortfolioData('sandbox-key');
 
     if (!portfolioData.data) {
@@ -434,6 +434,16 @@ export class SandboxAdapter extends BaseExchangeAdapter {
         42,
       );
 
+      // Log the fallback portfolio data
+      console.log(
+        `[SandboxAdapter] Using fallback portfolio with ${fallbackPortfolio.assets.length} assets for ${apiKeyId}`,
+      );
+      fallbackPortfolio.assets.forEach((asset) => {
+        console.log(
+          `[SandboxAdapter] Fallback asset: ${asset.asset}, Free: ${asset.free}, Locked: ${asset.locked}, Total: ${asset.total}`,
+        );
+      });
+
       // Emit balance updates for the fallback portfolio
       this.emitBalanceUpdates(apiKeyId, fallbackPortfolio);
 
@@ -441,6 +451,35 @@ export class SandboxAdapter extends BaseExchangeAdapter {
     }
 
     const portfolio = portfolioData.data;
+
+    // Ensure we have at least some standard assets for testing
+    if (!portfolio.assets || portfolio.assets.length === 0) {
+      console.warn(
+        `[SandboxAdapter] Portfolio has no assets, adding default assets`,
+      );
+
+      // Add some default assets
+      portfolio.assets = [
+        {
+          asset: 'USDT',
+          free: 50000.0,
+          locked: 0,
+          total: 50000.0,
+          usdValue: 50000.0,
+          exchangeId: this.exchangeId,
+        },
+        {
+          asset: 'BTC',
+          free: 0.1,
+          locked: 0,
+          total: 0.1,
+          usdValue: 8305.53,
+          exchangeId: this.exchangeId,
+        },
+      ];
+
+      portfolio.totalUsdValue = 58305.53;
+    }
 
     // Emit balance updates for each asset in the portfolio
     this.emitBalanceUpdates(apiKeyId, portfolio);

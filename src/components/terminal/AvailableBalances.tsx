@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import { PortfolioAsset } from '@/types/exchange';
@@ -54,6 +54,7 @@ export function AvailableBalances({
   refreshTrigger = 0,
 }: AvailableBalancesProps = {}) {
   const { selectedAccount } = useSelectedAccount();
+  const [forceRefresh, setForceRefresh] = useState(0);
 
   // Get crypto icons from CoinGecko or use placeholders
   const getIconUrl = (symbol: string) => {
@@ -69,6 +70,32 @@ export function AvailableBalances({
   // Use our new hook to get real-time balance data
   const { balancesArray, isRefreshing, refreshBalances, lastUpdate } =
     useBalances(assetFilter);
+
+  // Force a refresh when the component mounts or when the selected pair changes
+  useEffect(() => {
+    console.log(
+      '[AvailableBalances] Selected pair changed, refreshing balances',
+    );
+    console.log('[AvailableBalances] Selected pair:', selectedPair);
+    console.log('[AvailableBalances] Selected account:', selectedAccount);
+
+    // Log the current state of balances before refresh
+    console.log(
+      '[AvailableBalances] Current balances before refresh:',
+      balancesArray,
+    );
+
+    // Refresh balances
+    refreshBalances();
+
+    // Also refresh when refreshTrigger changes
+  }, [
+    selectedPair,
+    refreshTrigger,
+    refreshBalances,
+    selectedAccount,
+    balancesArray,
+  ]);
 
   // Convert balance data to portfolio assets format
   const assets = useMemo(() => {
@@ -96,11 +123,17 @@ export function AvailableBalances({
     const baseAsset = selectedPair.baseAsset;
     const quoteAsset = selectedPair.quoteAsset;
 
+    console.log('[AvailableBalances] Filtering assets for pair:', selectedPair);
+    console.log('[AvailableBalances] Available assets:', assets);
+
     // Find existing assets in the user's portfolio
     const existingBaseAsset = assets.find((asset) => asset.asset === baseAsset);
     const existingQuoteAsset = assets.find(
       (asset) => asset.asset === quoteAsset,
     );
+
+    console.log('[AvailableBalances] Found base asset:', existingBaseAsset);
+    console.log('[AvailableBalances] Found quote asset:', existingQuoteAsset);
 
     // Create array with both assets, using zero values if not found
     const result = [];
@@ -129,6 +162,7 @@ export function AvailableBalances({
       },
     );
 
+    console.log('[AvailableBalances] Filtered assets result:', result);
     return result;
   }, [assets, selectedPair, selectedAccount]);
 

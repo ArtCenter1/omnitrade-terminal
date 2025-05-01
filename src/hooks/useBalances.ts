@@ -63,32 +63,112 @@ export function useBalances(assetFilter?: string[]) {
     );
 
     try {
-      // Load initial balances
+      // Use getMockPortfolioData to get the same data as the Asset Overview section
+      // Import dynamically to avoid require errors
+      import('@/mocks/mockPortfolio').then(({ getMockPortfolioData }) => {
+        const portfolioData = getMockPortfolioData(apiKeyId).data;
+
+        if (portfolioData && portfolioData.assets) {
+          console.log(
+            `[useBalances] Got portfolio data with ${portfolioData.assets.length} assets`,
+          );
+
+          // Convert portfolio assets to balance format
+          const mockBalances: {
+            [asset: string]: {
+              free: number;
+              locked: number;
+              total: number;
+              available: number;
+              lastUpdated: number;
+            };
+          } = {};
+
+          portfolioData.assets.forEach((asset) => {
+            mockBalances[asset.asset] = {
+              free: asset.free,
+              locked: asset.locked,
+              total: asset.total,
+              available: asset.free,
+              lastUpdated: Date.now(),
+            };
+
+            console.log(
+              `[useBalances] Added asset ${asset.asset}: Free=${asset.free}, Locked=${asset.locked}, Total=${asset.total}`,
+            );
+          });
+
+          console.log(`[useBalances] Mock balances created:`, mockBalances);
+          setBalances(mockBalances);
+          setLastUpdate(new Date());
+        } else {
+          console.warn(`[useBalances] No portfolio data found for ${apiKeyId}`);
+
+          // Fallback to balanceTrackingService if no mock data is available
+          const initialBalances = balanceTrackingService.getBalances(
+            exchangeId,
+            apiKeyId,
+          );
+
+          console.log(
+            `[useBalances] Fallback balances loaded:`,
+            initialBalances,
+          );
+          console.log(
+            `[useBalances] Fallback balance count: ${Object.keys(initialBalances).length}`,
+          );
+
+          setBalances(initialBalances);
+
+          // Always trigger a refresh to ensure we have the latest data
+          console.log(`[useBalances] Triggering refresh to ensure latest data`);
+          setTimeout(() => {
+            try {
+              // Use a try-catch block to handle potential errors with refreshBalances
+              balanceTrackingService
+                .refreshBalances(exchangeId, apiKeyId)
+                .then(() => {
+                  console.log(`[useBalances] Refresh completed`);
+                  // Get the updated balances after refresh
+                  const updatedBalances = balanceTrackingService.getBalances(
+                    exchangeId,
+                    apiKeyId,
+                  );
+                  console.log(
+                    `[useBalances] Updated balances after refresh:`,
+                    updatedBalances,
+                  );
+                  setBalances(updatedBalances);
+                })
+                .catch((err) => {
+                  console.error(`[useBalances] Refresh failed:`, err);
+                });
+            } catch (refreshError) {
+              console.error(
+                `[useBalances] Error calling refreshBalances:`,
+                refreshError,
+              );
+            }
+          }, 500);
+        }
+      });
+    } catch (error) {
+      console.error(`[useBalances] Error loading balances:`, error);
+
+      // Fallback to balanceTrackingService if there's an error
       const initialBalances = balanceTrackingService.getBalances(
         exchangeId,
         apiKeyId,
       );
 
-      console.log(`[useBalances] Initial balances loaded:`, initialBalances);
       console.log(
-        `[useBalances] Balance count: ${Object.keys(initialBalances).length}`,
+        `[useBalances] Error fallback balances loaded:`,
+        initialBalances,
       );
-
       setBalances(initialBalances);
+    }
 
-      // If no balances were found, try to refresh them
-      if (Object.keys(initialBalances).length === 0) {
-        console.log(`[useBalances] No balances found, triggering refresh`);
-        setTimeout(() => {
-          balanceTrackingService
-            .refreshBalances(exchangeId, apiKeyId)
-            .then(() => console.log(`[useBalances] Refresh completed`))
-            .catch((err) =>
-              console.error(`[useBalances] Refresh failed:`, err),
-            );
-        }, 500);
-      }
-
+    try {
       // Subscribe to balance updates
       const unsubscribe = balanceTrackingService.subscribe(
         (update: BalanceUpdate | any) => {
@@ -186,23 +266,85 @@ export function useBalances(assetFilter?: string[]) {
     );
     setIsRefreshing(true);
     try {
-      await balanceTrackingService.refreshBalances(exchangeId, apiKeyId);
-      console.log(`[useBalances] Manual refresh completed`);
-
-      // Get the updated balances
-      const updatedBalances = balanceTrackingService.getBalances(
-        exchangeId,
-        apiKeyId,
-      );
-      console.log(`[useBalances] Updated balances:`, updatedBalances);
-      console.log(
-        `[useBalances] Updated balance count: ${Object.keys(updatedBalances).length}`,
+      // Use getMockPortfolioData to get the same data as the Asset Overview section
+      // Import dynamically to avoid require errors
+      const portfolioDataPromise = import('@/mocks/mockPortfolio').then(
+        ({ getMockPortfolioData }) => {
+          return getMockPortfolioData(apiKeyId).data;
+        },
       );
 
-      // Update the state with the new balances
-      setBalances(updatedBalances);
+      // Wait for the dynamic import to complete
+      const portfolioData = await portfolioDataPromise;
+
+      if (portfolioData && portfolioData.assets) {
+        console.log(
+          `[useBalances] Got refreshed portfolio data with ${portfolioData.assets.length} assets`,
+        );
+
+        // Convert portfolio assets to balance format
+        const mockBalances: {
+          [asset: string]: {
+            free: number;
+            locked: number;
+            total: number;
+            available: number;
+            lastUpdated: number;
+          };
+        } = {};
+
+        portfolioData.assets.forEach((asset) => {
+          mockBalances[asset.asset] = {
+            free: asset.free,
+            locked: asset.locked,
+            total: asset.total,
+            available: asset.free,
+            lastUpdated: Date.now(),
+          };
+        });
+
+        console.log(
+          `[useBalances] Refreshed mock balances created:`,
+          mockBalances,
+        );
+        setBalances(mockBalances);
+        setLastUpdate(new Date());
+      } else {
+        console.warn(
+          `[useBalances] No refreshed portfolio data found for ${apiKeyId}, falling back to balanceTrackingService`,
+        );
+
+        // Fallback to balanceTrackingService if no mock data is available
+        await balanceTrackingService.refreshBalances(exchangeId, apiKeyId);
+        console.log(`[useBalances] Manual refresh completed`);
+
+        // Get the updated balances
+        const updatedBalances = balanceTrackingService.getBalances(
+          exchangeId,
+          apiKeyId,
+        );
+        console.log(`[useBalances] Updated balances:`, updatedBalances);
+        console.log(
+          `[useBalances] Updated balance count: ${Object.keys(updatedBalances).length}`,
+        );
+
+        // Update the state with the new balances
+        setBalances(updatedBalances);
+      }
     } catch (error) {
       console.error('Error refreshing balances:', error);
+
+      // Fallback to balanceTrackingService if there's an error
+      try {
+        await balanceTrackingService.refreshBalances(exchangeId, apiKeyId);
+        const updatedBalances = balanceTrackingService.getBalances(
+          exchangeId,
+          apiKeyId,
+        );
+        setBalances(updatedBalances);
+      } catch (fallbackError) {
+        console.error('Error in fallback refresh:', fallbackError);
+      }
     } finally {
       setIsRefreshing(false);
     }

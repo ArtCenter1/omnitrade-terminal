@@ -48,6 +48,30 @@ export function OrdersTable({
       refreshTrigger,
     });
 
+    // Log localStorage content directly
+    try {
+      const rawOrders = localStorage.getItem('omnitrade_mock_orders');
+      console.log('Current localStorage content (raw):', rawOrders);
+
+      if (rawOrders) {
+        try {
+          const parsedOrders = JSON.parse(rawOrders);
+          console.log('Current localStorage content (parsed):', parsedOrders);
+          console.log('Number of orders in localStorage:', parsedOrders.length);
+          console.log(
+            'Order IDs in localStorage:',
+            parsedOrders.map((o: any) => o.id),
+          );
+        } catch (parseError) {
+          console.error('Error parsing localStorage content:', parseError);
+        }
+      } else {
+        console.log('No orders found in localStorage');
+      }
+    } catch (localStorageError) {
+      console.error('Error accessing localStorage:', localStorageError);
+    }
+
     // Always fetch orders, even if selectedAccount is null
     // This ensures we clear the orders list when no account is selected
     fetchOrders();
@@ -104,75 +128,110 @@ export function OrdersTable({
       // Also get orders from localStorage as a fallback or supplement
       let localOrders: Order[] = [];
       try {
+        console.log('Attempting to get orders from localStorage...');
         const storedOrders = localStorage.getItem('omnitrade_mock_orders');
+
         if (storedOrders) {
           console.log('Raw stored orders from localStorage:', storedOrders);
-          const parsedOrders = JSON.parse(storedOrders);
-          console.log('Parsed orders from localStorage:', parsedOrders);
+          console.log('localStorage data length:', storedOrders.length);
 
-          // Filter orders based on the same criteria
-          localOrders = parsedOrders.filter((order: any) => {
-            // Filter by exchange if needed - be more lenient with exchange ID matching
-            if (
-              exchangeId &&
-              order.exchangeId !== exchangeId &&
-              order.exchangeId !== 'binance_testnet' &&
-              exchangeId !== 'binance_testnet'
-            ) {
+          try {
+            const parsedOrders = JSON.parse(storedOrders);
+            console.log('Successfully parsed orders from localStorage');
+            console.log('Parsed orders count:', parsedOrders.length);
+            console.log('Parsed orders from localStorage:', parsedOrders);
+
+            // Filter orders based on the same criteria
+            localOrders = parsedOrders.filter((order: any) => {
+              // Log each order for debugging
               console.log(
-                `Filtering out order ${order.id} due to exchange mismatch: ${order.exchangeId} vs ${exchangeId}`,
+                `Checking order: ${order.id}, exchange: ${order.exchangeId}, symbol: ${order.symbol}, status: ${order.status}`,
               );
-              return false;
-            }
 
-            // Filter by symbol if needed
-            if (selectedSymbol && order.symbol !== selectedSymbol) {
-              console.log(
-                `Filtering out order ${order.id} due to symbol mismatch: ${order.symbol} vs ${selectedSymbol}`,
-              );
-              return false;
-            }
-
-            // Filter by status if needed
-            if (status) {
-              const statusList = status.split(',');
-              if (!statusList.includes(order.status)) {
-                console.log(
-                  `Filtering out order ${order.id} due to status mismatch: ${order.status} not in ${statusList}`,
-                );
-                return false;
-              }
-            } else if (activeTab === 'history') {
-              // For history tab, show all except new and partially_filled
+              // Filter by exchange if needed - be more lenient with exchange ID matching
+              // Allow orders from any exchange if no specific exchange is selected
               if (
-                order.status === 'new' ||
-                order.status === 'partially_filled'
+                exchangeId &&
+                order.exchangeId !== exchangeId &&
+                order.exchangeId !== 'binance_testnet' &&
+                exchangeId !== 'binance_testnet' &&
+                order.exchangeId !== 'binance' &&
+                exchangeId !== 'binance'
               ) {
                 console.log(
-                  `Filtering out order ${order.id} from history tab due to status: ${order.status}`,
+                  `Filtering out order ${order.id} due to exchange mismatch: ${order.exchangeId} vs ${exchangeId}`,
                 );
                 return false;
               }
-            } else if (activeTab === 'open') {
-              // For open tab, only show new and partially_filled
-              if (
-                order.status !== 'new' &&
-                order.status !== 'partially_filled'
-              ) {
+
+              // Filter by symbol if needed
+              if (selectedSymbol && order.symbol !== selectedSymbol) {
                 console.log(
-                  `Filtering out order ${order.id} from open tab due to status: ${order.status}`,
+                  `Filtering out order ${order.id} due to symbol mismatch: ${order.symbol} vs ${selectedSymbol}`,
                 );
                 return false;
               }
-            }
 
-            return true;
-          });
+              // Filter by status if needed
+              if (status) {
+                const statusList = status.split(',');
+                // Log the status check for debugging
+                console.log(
+                  `Checking status for order ${order.id}: ${order.status} against ${statusList}`,
+                );
 
-          console.log(
-            `localStorage Orders filtered (${localOrders.length}):`,
-            localOrders,
-          );
+                // Handle both status and status property names for compatibility
+                const orderStatus = order.status || '';
+
+                if (!statusList.includes(orderStatus)) {
+                  console.log(
+                    `Filtering out order ${order.id} due to status mismatch: ${orderStatus} not in ${statusList}`,
+                  );
+                  return false;
+                }
+              } else if (activeTab === 'history') {
+                // For history tab, show all except new and partially_filled
+                // Handle both status and status property names for compatibility
+                const orderStatus = order.status || '';
+
+                if (
+                  orderStatus === 'new' ||
+                  orderStatus === 'partially_filled'
+                ) {
+                  console.log(
+                    `Filtering out order ${order.id} from history tab due to status: ${orderStatus}`,
+                  );
+                  return false;
+                }
+              } else if (activeTab === 'open') {
+                // For open tab, only show new and partially_filled
+                // Handle both status and status property names for compatibility
+                const orderStatus = order.status || '';
+
+                if (
+                  orderStatus !== 'new' &&
+                  orderStatus !== 'partially_filled'
+                ) {
+                  console.log(
+                    `Filtering out order ${order.id} from open tab due to status: ${orderStatus}`,
+                  );
+                  return false;
+                }
+              }
+
+              return true;
+            });
+
+            console.log(
+              `localStorage Orders filtered (${localOrders.length}):`,
+              localOrders,
+            );
+          } catch (parseError) {
+            console.error(
+              'Error parsing orders from localStorage:',
+              parseError,
+            );
+          }
         }
       } catch (localError) {
         console.error('Error getting orders from localStorage:', localError);
@@ -195,6 +254,9 @@ export function OrdersTable({
 
       // Normalize order data to ensure consistent format
       const normalizedOrders = combinedOrders.map((order) => {
+        // Log the raw order for debugging
+        console.log('Normalizing order:', order);
+
         // Ensure all required fields exist
         return {
           ...order,
@@ -208,9 +270,24 @@ export function OrdersTable({
           status: order.status || 'new',
           quantity: order.quantity || 0,
           filledQuantity: order.filledQuantity || order.executed || 0,
+          executed: order.executed || order.filledQuantity || 0, // Ensure executed field exists
+          remaining:
+            order.remaining ||
+            order.quantity - (order.executed || order.filledQuantity || 0) ||
+            0, // Ensure remaining field exists
           price: order.price || 0,
           createdAt: order.createdAt || order.timestamp || new Date(),
           updatedAt: order.updatedAt || order.lastUpdated || new Date(),
+          timestamp:
+            order.timestamp ||
+            (order.createdAt
+              ? new Date(order.createdAt).getTime()
+              : Date.now()), // Ensure timestamp field exists
+          lastUpdated:
+            order.lastUpdated ||
+            (order.updatedAt
+              ? new Date(order.updatedAt).getTime()
+              : Date.now()), // Ensure lastUpdated field exists
         };
       });
 
