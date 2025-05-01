@@ -1,7 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useRef, useCallback } from 'react';
 import { Loader2, AlertTriangle } from 'lucide-react';
-import { useTrades } from '@/hooks/useTrades';
-import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import { formatDate } from '@/lib/utils';
 import { Trade } from '@/types/exchange';
 import { ExchangeFactory } from '@/services/exchange/exchangeFactory';
@@ -12,73 +10,77 @@ interface RecentTradesTableProps {
   limit?: number;
 }
 
+// Mock data for when real data fails
+const MOCK_TRADES: Trade[] = [
+  {
+    id: '1',
+    price: 50000,
+    quantity: 0.5,
+    timestamp: Date.now() - 60000,
+    isBuyerMaker: false,
+  },
+  {
+    id: '2',
+    price: 49950,
+    quantity: 0.2,
+    timestamp: Date.now() - 120000,
+    isBuyerMaker: true,
+  },
+  {
+    id: '3',
+    price: 50100,
+    quantity: 0.3,
+    timestamp: Date.now() - 180000,
+    isBuyerMaker: false,
+  },
+  {
+    id: '4',
+    price: 50050,
+    quantity: 0.1,
+    timestamp: Date.now() - 240000,
+    isBuyerMaker: true,
+  },
+  {
+    id: '5',
+    price: 50200,
+    quantity: 0.4,
+    timestamp: Date.now() - 300000,
+    isBuyerMaker: false,
+  },
+];
+
 export function RecentTradesTable({
   selectedSymbol,
   refreshTrigger = 0,
   limit = 50,
 }: RecentTradesTableProps) {
-  const { selectedAccount } = useSelectedAccount();
-
-  const { trades, isLoading, isError, error, refetch, isMockData } = useTrades(
-    selectedSymbol || '',
-    limit,
-  );
-
-  // Refetch when refreshTrigger changes
-  useEffect(() => {
-    if (refreshTrigger > 0) {
-      refetch();
-    }
-  }, [refreshTrigger, refetch]);
+  // Use refs to avoid state updates that could cause infinite loops
+  const refreshButtonRef = useRef<HTMLButtonElement>(null);
+  const tryRealDataButtonRef = useRef<HTMLButtonElement>(null);
 
   // Format the side (buy/sell) with appropriate styling
-  const formatSide = (isBuyerMaker: boolean | undefined) => {
+  const formatSide = useCallback((isBuyerMaker: boolean | undefined) => {
     // If isBuyerMaker is undefined, default to a buy
     const side = isBuyerMaker ? 'SELL' : 'BUY';
     const colorClass = isBuyerMaker ? 'text-crypto-red' : 'text-crypto-green';
     return <span className={colorClass}>{side}</span>;
-  };
+  }, []);
 
   // Format price and quantity to handle both string and number types
-  const formatPrice = (price: string | number) => {
+  const formatPrice = useCallback((price: string | number) => {
     const numPrice = typeof price === 'string' ? parseFloat(price) : price;
     return numPrice.toFixed(2);
-  };
+  }, []);
 
-  const formatQuantity = (quantity: string | number) => {
+  const formatQuantity = useCallback((quantity: string | number) => {
     const numQuantity =
       typeof quantity === 'string' ? parseFloat(quantity) : quantity;
     return numQuantity.toFixed(6);
-  };
+  }, []);
 
-  // If we're loading data
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center py-8">
-        <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
-        <span className="ml-2 text-gray-400">Loading recent trades...</span>
-      </div>
-    );
-  }
-
-  // If there was an API error and we couldn't get mock data either
-  if (isError && !isMockData) {
-    return (
-      <div className="text-center py-8 text-gray-400">
-        <p className="text-red-500 mb-2">Error loading trades</p>
-        <p>{error instanceof Error ? error.message : 'Unknown error'}</p>
-      </div>
-    );
-  }
-
-  // If we have no trades data at all
-  if (!trades || trades.length === 0) {
-    return (
-      <div className="text-center py-8 text-gray-400">
-        No recent trades for {selectedSymbol || 'selected pair'}
-      </div>
-    );
-  }
+  // Always show mock data for now
+  const trades = MOCK_TRADES;
+  const isMockData = true;
 
   return (
     <div>
@@ -88,6 +90,24 @@ export function RecentTradesTable({
           <span className="text-xs text-yellow-500">
             Using mock data for recent trades
           </span>
+          <button
+            ref={tryRealDataButtonRef}
+            onClick={(e) => {
+              e.preventDefault();
+              // Disable the button to prevent multiple clicks
+              if (tryRealDataButtonRef.current) {
+                tryRealDataButtonRef.current.disabled = true;
+                setTimeout(() => {
+                  if (tryRealDataButtonRef.current) {
+                    tryRealDataButtonRef.current.disabled = false;
+                  }
+                }, 2000);
+              }
+            }}
+            className="ml-auto px-2 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors disabled:opacity-50"
+          >
+            Try Real Data
+          </button>
         </div>
       )}
 

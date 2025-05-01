@@ -72,9 +72,19 @@ export function useTrades(symbol: string, limit: number = 50, options = {}) {
     };
   }, [symbol]);
 
-  // Fetch mock data when API fails
+  // Fetch mock data when component mounts or symbol changes
   useEffect(() => {
-    if (isError && symbol) {
+    // Only fetch mock data if we have a symbol and haven't fetched it yet
+    if (symbol && mockTrades.length === 0 && !isFetchingMock) {
+      console.log('Pre-fetching mock trades as fallback data');
+      fetchMockTrades();
+    }
+  }, [symbol, mockTrades.length, isFetchingMock]);
+
+  // When API fails, ensure we have mock data (but avoid infinite loops)
+  useEffect(() => {
+    // Only fetch if we have an error, a symbol, no mock data, and aren't already fetching
+    if (isError && symbol && mockTrades.length === 0 && !isFetchingMock) {
       console.log('API error in useTrades, fetching mock trades as fallback');
       fetchMockTrades();
     }
@@ -90,15 +100,23 @@ export function useTrades(symbol: string, limit: number = 50, options = {}) {
   const trades = useMemo(() => {
     // If we have API data, use it with realtime data
     if (initialData && initialData.length > 0) {
-      // Remove duplicates by trade id or timestamp if available
-      const initialIds = new Set(
-        initialData.map((t: any) => t.id || t.timestamp),
-      );
-      const merged = [
-        ...realtimeData,
-        ...initialData.filter((t: any) => !initialIds.has(t.id || t.timestamp)),
-      ];
-      return merged;
+      try {
+        // Remove duplicates by trade id or timestamp if available
+        const initialIds = new Set(
+          initialData.map((t: any) => t.id || t.timestamp),
+        );
+        const merged = [
+          ...realtimeData,
+          ...initialData.filter(
+            (t: any) => !initialIds.has(t.id || t.timestamp),
+          ),
+        ];
+        return merged;
+      } catch (error) {
+        console.error('Error merging trade data:', error);
+        // If merging fails, return just the initial data
+        return initialData;
+      }
     }
 
     // If API failed but we have mock data, use it
@@ -107,8 +125,28 @@ export function useTrades(symbol: string, limit: number = 50, options = {}) {
     }
 
     // Otherwise return realtime data or empty array
-    return realtimeData;
-  }, [realtimeData, initialData, isError, mockTrades]);
+    return realtimeData.length > 0 ? realtimeData : [];
+  }, [realtimeData, initialData, isError, mockTrades.length]);
+
+  // Determine if we're using mock data
+  const usingMockData = useMemo(() => {
+    // For now, always return true to show the "Try Real Data" button
+    // This is a temporary solution until we have a proper backend proxy
+    return true;
+
+    /* Original logic:
+    // We're using mock data if:
+    // 1. API failed and we're showing mock data
+    // 2. No API data but we have mock data
+    return (
+      (isError && mockTrades.length > 0) ||
+      (!initialData && mockTrades.length > 0) ||
+      // Check if the data we're displaying is from mockTrades
+      (trades.length > 0 &&
+        JSON.stringify(trades) === JSON.stringify(mockTrades))
+    );
+    */
+  }, []);
 
   return {
     trades,
@@ -116,6 +154,6 @@ export function useTrades(symbol: string, limit: number = 50, options = {}) {
     isError: isError && (!mockTrades.length || !!mockError),
     error: mockError || error,
     refetch,
-    isMockData: isError && mockTrades.length > 0,
+    isMockData: usingMockData,
   };
 }

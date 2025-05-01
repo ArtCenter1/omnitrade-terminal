@@ -1080,11 +1080,81 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
     symbol: string,
     limit: number = 20,
   ): Promise<Trade[]> {
+    // Generate mock data first as a fallback
+    const mockTrades = this.mockDataService.generateRecentTrades(
+      this.exchangeId,
+      symbol,
+      limit,
+    );
+
+    // ALWAYS use mock data for recent trades to avoid CORS errors
+    // This is a temporary solution until we have a proper backend proxy
+    console.log(
+      `[${this.exchangeId}] Using mock trades for ${symbol} to avoid CORS issues`,
+    );
+
+    // Add a small delay to simulate network latency
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    return mockTrades;
+
+    /* Commented out real API call code to avoid CORS errors
     try {
       // Convert symbol format from "BTC/USDT" to "BTCUSDT" for Binance API
       const binanceSymbol = symbol.replace('/', '');
 
-      // Make request to trades endpoint
+      console.log(
+        `[${this.exchangeId}] Fetching recent trades for ${symbol} (${binanceSymbol})`,
+      );
+
+      // Try direct fetch first with better error handling
+      try {
+        const url = `${this.baseUrl}/api/v3/trades?symbol=${encodeURIComponent(binanceSymbol)}&limit=${Math.min(limit, 1000)}`;
+        console.log(
+          `[${this.exchangeId}] Using direct fetch for recent trades: ${url}`,
+        );
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout (shorter to fail faster)
+
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {},
+          signal: controller.signal,
+          credentials: 'omit',
+          mode: 'cors',
+        });
+
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          const data = await response.json();
+
+          if (Array.isArray(data) && data.length > 0) {
+            console.log(
+              `[${this.exchangeId}] Received ${data.length} recent trades for ${symbol} via direct fetch`,
+            );
+
+            // Convert Binance trade format to our Trade format
+            return data.map((trade) => ({
+              id: trade.id.toString(),
+              price: parseFloat(trade.price),
+              quantity: parseFloat(trade.qty),
+              timestamp: trade.time,
+              isBuyerMaker: trade.isBuyerMaker,
+              isBestMatch: trade.isBestMatch,
+            }));
+          }
+        }
+      } catch (directFetchError) {
+        console.warn(
+          `[${this.exchangeId}] Direct fetch for recent trades failed:`,
+          directFetchError,
+        );
+        // Continue to try with makeUnauthenticatedRequest
+      }
+
+      // Make request to trades endpoint using makeUnauthenticatedRequest as fallback
       const response = await this.makeUnauthenticatedRequest<
         Array<{
           id: number;
@@ -1107,7 +1177,7 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       // Check if the response contains data
       if (response && Array.isArray(response) && response.length > 0) {
         console.log(
-          `[${this.exchangeId}] Received ${response.length} recent trades for ${symbol}`,
+          `[${this.exchangeId}] Received ${response.length} recent trades for ${symbol} via makeUnauthenticatedRequest`,
         );
 
         // Convert Binance trade format to our Trade format
@@ -1131,15 +1201,10 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
       );
     }
 
-    // Fallback to mock data if API request fails or returns empty data
-    console.log(
-      `[${this.exchangeId}] Falling back to mock trades for ${symbol}`,
-    );
-    return this.mockDataService.generateRecentTrades(
-      this.exchangeId,
-      symbol,
-      limit,
-    );
+    // Return the mock data we generated at the beginning
+    console.log(`[${this.exchangeId}] Returning mock trades for ${symbol}`);
+    return mockTrades;
+    */
   }
 
   /**
@@ -1542,14 +1607,110 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
     apiKeyId: string,
     order: Partial<Order>,
   ): Promise<Order> {
-    // Placeholder implementation - using apiKeyId as a comment to avoid unused parameter warning
-    console.log(`Placing order for API key: ${apiKeyId}`);
+    console.log(
+      `[${this.exchangeId}] Placing order for API key: ${apiKeyId}`,
+      order,
+    );
 
-    // Use placeOrder method from mockDataService
-    return this.mockDataService.placeOrder('mock_user', {
-      ...order,
-      exchangeId: this.exchangeId,
-    });
+    try {
+      // Use placeOrder method from mockDataService
+      const newOrder = this.mockDataService.placeOrder('mock_user', {
+        ...order,
+        exchangeId: this.exchangeId,
+      });
+
+      console.log(
+        `[${this.exchangeId}] Order placed successfully with ID: ${newOrder.id}`,
+      );
+
+      // Also save the order to localStorage for better persistence
+      try {
+        // Get existing orders from localStorage
+        const storedOrders = localStorage.getItem('omnitrade_mock_orders');
+        let parsedOrders: any[] = [];
+
+        if (storedOrders) {
+          parsedOrders = JSON.parse(storedOrders);
+        }
+
+        // Add the new order
+        parsedOrders.push({
+          ...newOrder,
+          // Ensure dates are serialized properly
+          timestamp: newOrder.timestamp || Date.now(),
+          lastUpdated: newOrder.lastUpdated || Date.now(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+
+        // Save back to localStorage
+        localStorage.setItem(
+          'omnitrade_mock_orders',
+          JSON.stringify(parsedOrders),
+        );
+        console.log(`[${this.exchangeId}] Order also saved to localStorage`);
+
+        // For market orders, simulate immediate execution after a delay
+        if (newOrder.type === 'market') {
+          console.log(
+            `[${this.exchangeId}] Scheduling market order fill in 1 second`,
+          );
+
+          setTimeout(() => {
+            try {
+              // Get the latest orders from localStorage
+              const latestStoredOrders = localStorage.getItem(
+                'omnitrade_mock_orders',
+              );
+              if (latestStoredOrders) {
+                const latestParsedOrders = JSON.parse(latestStoredOrders);
+
+                // Find the order
+                const orderIndex = latestParsedOrders.findIndex(
+                  (o: any) => o.id === newOrder.id,
+                );
+
+                if (orderIndex !== -1) {
+                  // Update the order
+                  latestParsedOrders[orderIndex] = {
+                    ...latestParsedOrders[orderIndex],
+                    status: 'filled',
+                    executed: newOrder.quantity,
+                    remaining: 0,
+                    lastUpdated: Date.now(),
+                    updatedAt: new Date().toISOString(),
+                  };
+
+                  // Save back to localStorage
+                  localStorage.setItem(
+                    'omnitrade_mock_orders',
+                    JSON.stringify(latestParsedOrders),
+                  );
+                  console.log(
+                    `[${this.exchangeId}] Market order ${newOrder.id} filled in localStorage`,
+                  );
+                }
+              }
+            } catch (fillError) {
+              console.error(
+                `[${this.exchangeId}] Error filling market order in localStorage:`,
+                fillError,
+              );
+            }
+          }, 1000);
+        }
+      } catch (localStorageError) {
+        console.error(
+          `[${this.exchangeId}] Error saving order to localStorage:`,
+          localStorageError,
+        );
+      }
+
+      return newOrder;
+    } catch (error) {
+      console.error(`[${this.exchangeId}] Error placing order:`, error);
+      throw error;
+    }
   }
 
   /**
@@ -1560,11 +1721,86 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
     orderId: string,
     symbol: string,
   ): Promise<boolean> {
-    // Placeholder implementation
     console.log(
-      `Cancelling order ${orderId} for ${symbol} with API key: ${apiKeyId}`,
+      `[${this.exchangeId}] Cancelling order ${orderId} for ${symbol} with API key: ${apiKeyId}`,
     );
-    return this.mockDataService.cancelOrder('mock_user', orderId);
+
+    try {
+      // First try to cancel the order using the mockDataService
+      const result = this.mockDataService.cancelOrder('mock_user', orderId);
+
+      // If that succeeded, we're done
+      if (result) {
+        console.log(
+          `[${this.exchangeId}] Successfully cancelled order ${orderId} using mockDataService`,
+        );
+        return true;
+      }
+
+      // If mockDataService couldn't cancel the order, try to cancel it in localStorage
+      console.log(
+        `[${this.exchangeId}] Order not found in mockDataService, trying localStorage`,
+      );
+
+      // Get orders from localStorage
+      const storedOrders = localStorage.getItem('omnitrade_mock_orders');
+      if (storedOrders) {
+        try {
+          const parsedOrders = JSON.parse(storedOrders);
+          const orderIndex = parsedOrders.findIndex(
+            (o: any) => o.id === orderId,
+          );
+
+          if (orderIndex !== -1) {
+            // Found the order, check if it can be cancelled
+            const order = parsedOrders[orderIndex];
+
+            if (order.status !== 'new' && order.status !== 'partially_filled') {
+              console.log(
+                `[${this.exchangeId}] Order ${orderId} cannot be cancelled (status: ${order.status})`,
+              );
+              return false;
+            }
+
+            // Update the order status
+            parsedOrders[orderIndex] = {
+              ...order,
+              status: 'canceled',
+              updatedAt: new Date().toISOString(),
+              lastUpdated: Date.now(),
+            };
+
+            // Save back to localStorage
+            localStorage.setItem(
+              'omnitrade_mock_orders',
+              JSON.stringify(parsedOrders),
+            );
+            console.log(
+              `[${this.exchangeId}] Successfully cancelled order ${orderId} in localStorage`,
+            );
+            return true;
+          } else {
+            console.log(
+              `[${this.exchangeId}] Order ${orderId} not found in localStorage`,
+            );
+          }
+        } catch (error) {
+          console.error(
+            `[${this.exchangeId}] Error parsing or updating orders in localStorage:`,
+            error,
+          );
+        }
+      }
+
+      console.log(`[${this.exchangeId}] Failed to cancel order ${orderId}`);
+      return false;
+    } catch (error) {
+      console.error(
+        `[${this.exchangeId}] Error cancelling order ${orderId}:`,
+        error,
+      );
+      return false;
+    }
   }
 
   /**
@@ -1574,15 +1810,84 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
     apiKeyId: string,
     symbol?: string,
   ): Promise<Order[]> {
-    // Placeholder implementation
     console.log(
-      `Getting open orders for API key: ${apiKeyId}, symbol: ${symbol || 'all'}`,
+      `[${this.exchangeId}] Getting open orders for API key: ${apiKeyId}, symbol: ${symbol || 'all'}`,
     );
-    return this.mockDataService.getOpenOrders(
-      'mock_user',
-      this.exchangeId,
-      symbol,
-    );
+
+    try {
+      // First try to get orders from mockDataService
+      const mockOrders = this.mockDataService.getOpenOrders(
+        'mock_user',
+        this.exchangeId,
+        symbol,
+      );
+
+      // Also try to get orders from localStorage
+      const storedOrders = localStorage.getItem('omnitrade_mock_orders');
+      if (storedOrders) {
+        try {
+          const parsedOrders = JSON.parse(storedOrders);
+
+          // Filter orders based on criteria
+          const localStorageOrders = parsedOrders.filter((order: any) => {
+            // Check status - only include new and partially_filled
+            const statusMatch =
+              order.status === 'new' || order.status === 'partially_filled';
+
+            // Check exchange - be more lenient with exchange ID matching
+            const exchangeMatch =
+              !this.exchangeId ||
+              order.exchangeId === this.exchangeId ||
+              (this.exchangeId === 'binance_testnet' &&
+                order.exchangeId === 'binance') ||
+              (this.exchangeId === 'binance' &&
+                order.exchangeId === 'binance_testnet');
+
+            // Check symbol if provided
+            const symbolMatch = !symbol || order.symbol === symbol;
+
+            return statusMatch && exchangeMatch && symbolMatch;
+          });
+
+          console.log(
+            `[${this.exchangeId}] Found ${localStorageOrders.length} open orders in localStorage`,
+          );
+
+          // Combine orders from both sources, removing duplicates
+          const combinedOrders = [...mockOrders];
+
+          // Add local orders that aren't already in the mock orders
+          localStorageOrders.forEach((localOrder: any) => {
+            if (
+              !combinedOrders.some(
+                (mockOrder) => mockOrder.id === localOrder.id,
+              )
+            ) {
+              combinedOrders.push(localOrder);
+            }
+          });
+
+          console.log(
+            `[${this.exchangeId}] Returning ${combinedOrders.length} combined open orders`,
+          );
+          return combinedOrders;
+        } catch (error) {
+          console.error(
+            `[${this.exchangeId}] Error parsing orders from localStorage:`,
+            error,
+          );
+        }
+      }
+
+      // If localStorage approach failed, just return the mock orders
+      console.log(
+        `[${this.exchangeId}] Returning ${mockOrders.length} open orders from mockDataService`,
+      );
+      return mockOrders;
+    } catch (error) {
+      console.error(`[${this.exchangeId}] Error getting open orders:`, error);
+      return [];
+    }
   }
 
   /**
@@ -1593,16 +1898,108 @@ export class BinanceTestnetAdapter extends BaseExchangeAdapter {
     symbol?: string,
     limit: number = 50,
   ): Promise<Order[]> {
-    // Placeholder implementation
     console.log(
-      `Getting order history for API key: ${apiKeyId}, symbol: ${symbol || 'all'}, limit: ${limit}`,
+      `[${this.exchangeId}] Getting order history for API key: ${apiKeyId}, symbol: ${symbol || 'all'}, limit: ${limit}`,
     );
-    return this.mockDataService.getOrderHistory(
-      'mock_user',
-      this.exchangeId,
-      symbol,
-      limit,
-    );
+
+    try {
+      // First try to get order history from mockDataService
+      const mockOrders = this.mockDataService.getOrderHistory(
+        'mock_user',
+        this.exchangeId,
+        symbol,
+        limit,
+      );
+
+      // Also try to get orders from localStorage
+      const storedOrders = localStorage.getItem('omnitrade_mock_orders');
+      if (storedOrders) {
+        try {
+          const parsedOrders = JSON.parse(storedOrders);
+
+          // Filter orders based on criteria
+          const localStorageOrders = parsedOrders.filter((order: any) => {
+            // Check status - exclude new and partially_filled
+            const statusMatch =
+              order.status !== 'new' && order.status !== 'partially_filled';
+
+            // Check exchange - be more lenient with exchange ID matching
+            const exchangeMatch =
+              !this.exchangeId ||
+              order.exchangeId === this.exchangeId ||
+              (this.exchangeId === 'binance_testnet' &&
+                order.exchangeId === 'binance') ||
+              (this.exchangeId === 'binance' &&
+                order.exchangeId === 'binance_testnet');
+
+            // Check symbol if provided
+            const symbolMatch = !symbol || order.symbol === symbol;
+
+            return statusMatch && exchangeMatch && symbolMatch;
+          });
+
+          console.log(
+            `[${this.exchangeId}] Found ${localStorageOrders.length} orders in order history from localStorage`,
+          );
+
+          // Combine orders from both sources, removing duplicates
+          const combinedOrders = [...mockOrders];
+
+          // Add local orders that aren't already in the mock orders
+          localStorageOrders.forEach((localOrder: any) => {
+            if (
+              !combinedOrders.some(
+                (mockOrder) => mockOrder.id === localOrder.id,
+              )
+            ) {
+              combinedOrders.push(localOrder);
+            }
+          });
+
+          // Sort by timestamp (newest first) and limit the results
+          const sortedOrders = combinedOrders
+            .sort((a, b) => {
+              // Handle different timestamp formats safely
+              const getTimestamp = (order: any): number => {
+                if (order.timestamp) return order.timestamp;
+                if (order.lastUpdated) return order.lastUpdated;
+                // Handle createdAt which might be in localStorage orders but not in Order type
+                if ((order as any).createdAt) {
+                  const createdAt = (order as any).createdAt;
+                  return typeof createdAt === 'string'
+                    ? new Date(createdAt).getTime()
+                    : createdAt instanceof Date
+                      ? createdAt.getTime()
+                      : 0;
+                }
+                return 0;
+              };
+
+              return getTimestamp(b) - getTimestamp(a);
+            })
+            .slice(0, limit);
+
+          console.log(
+            `[${this.exchangeId}] Returning ${sortedOrders.length} combined orders from order history`,
+          );
+          return sortedOrders;
+        } catch (error) {
+          console.error(
+            `[${this.exchangeId}] Error parsing orders from localStorage:`,
+            error,
+          );
+        }
+      }
+
+      // If localStorage approach failed, just return the mock orders
+      console.log(
+        `[${this.exchangeId}] Returning ${mockOrders.length} orders from order history via mockDataService`,
+      );
+      return mockOrders;
+    } catch (error) {
+      console.error(`[${this.exchangeId}] Error getting order history:`, error);
+      return [];
+    }
   }
 
   /**
