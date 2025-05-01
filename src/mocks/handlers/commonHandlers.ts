@@ -3,7 +3,12 @@
  */
 
 import { getFeatureFlags } from '@/config/featureFlags.tsx';
-import { createJsonResponse, createErrorResponse, fetchWithTimeout, parseUrl } from '../utils/apiUtils';
+import {
+  createJsonResponse,
+  createErrorResponse,
+  fetchWithTimeout,
+  parseUrl,
+} from '../utils/apiUtils';
 import { getCachedData, cacheData } from '../utils/cacheUtils';
 
 /**
@@ -20,7 +25,7 @@ export async function handleRequestWithCache(
   cacheKey: string,
   cacheDuration: number,
   fetchRealData: () => Promise<Response>,
-  createMockData: () => any
+  createMockData: () => any,
 ): Promise<Response> {
   // Check for cached data
   const cachedData = getCachedData(cacheKey);
@@ -31,25 +36,27 @@ export async function handleRequestWithCache(
   try {
     // Try to fetch real data
     const response = await fetchRealData();
-    
+
     if (!response.ok) {
-      throw new Error(`API returned ${response.status}: ${response.statusText}`);
+      throw new Error(
+        `API returned ${response.status}: ${response.statusText}`,
+      );
     }
-    
+
     // Get the response data
     const data = await response.text();
-    
+
     // Cache the response
     cacheData(cacheKey, data, cacheDuration);
-    
+
     return createJsonResponse(JSON.parse(data));
   } catch (error) {
     console.error(`Error fetching data: ${error}`);
-    
+
     // Fall back to mock data
     console.warn('Falling back to mock data');
     const mockData = createMockData();
-    
+
     return createJsonResponse(mockData);
   }
 }
@@ -70,19 +77,25 @@ export function isBinanceTestnetEnabled(): boolean {
  */
 export function shouldUseMockData(url: string): boolean {
   const flags = getFeatureFlags();
-  
+
   // If mock data is explicitly enabled, use it
   if (flags.useMockData) {
     console.log(`Using mock data for API request: ${url}`);
     return true;
   }
-  
+
   // Check if this is a Binance Testnet request and if Binance Testnet is disabled
   if (url.includes('/api/mock/binance_testnet') && !flags.useBinanceTestnet) {
     console.log(`Binance Testnet is disabled. Using mock data for: ${url}`);
     return true;
   }
-  
+
+  // Always use mock data for API key requests in development mode
+  if (url.includes('/api/exchange-api-keys') && import.meta.env.DEV) {
+    console.log(`Using mock data for API key request: ${url}`);
+    return true;
+  }
+
   return false;
 }
 

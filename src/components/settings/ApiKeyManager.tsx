@@ -32,8 +32,18 @@ import {
 } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Star, StarOff, Plus, Key, AlertCircle, CheckCircle2 } from 'lucide-react';
+import {
+  Trash2,
+  Star,
+  StarOff,
+  Plus,
+  Key,
+  AlertCircle,
+  CheckCircle2,
+} from 'lucide-react';
 import { ApiKeyPair } from '@/services/apiKeys/apiKeyManager';
+import { MockDataWarning, ApiAuthWarning } from './MockDataWarning';
+import { useFeatureFlagsContext } from '@/config/featureFlags';
 
 interface ApiKeyManagerProps {
   exchangeId: string;
@@ -60,6 +70,9 @@ export function ApiKeyManager({
     loadApiKeys,
     hasKeys,
   } = useApiKeys(exchangeId);
+
+  // Get feature flags to check if we're using mock data
+  const flags = useFeatureFlagsContext();
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newApiKey, setNewApiKey] = useState('');
@@ -101,19 +114,19 @@ export function ApiKeyManager({
         newApiSecret,
         newApiKeyLabel,
         isTestnet,
-        makeDefault || !hasKeys // Make default if it's the first key
+        makeDefault || !hasKeys, // Make default if it's the first key
       );
 
       if (id) {
         setAddSuccess('API key added successfully');
-        
+
         // Reset form
         setNewApiKey('');
         setNewApiSecret('');
         setNewApiKeyLabel('');
         setIsTestnet(true);
         setMakeDefault(false);
-        
+
         // Close dialog after a short delay
         setTimeout(() => {
           setIsAddDialogOpen(false);
@@ -154,6 +167,17 @@ export function ApiKeyManager({
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
+        {/* Show mock data warning if using mock data */}
+        <MockDataWarning
+          className="mb-4"
+          message="Using mock data for API keys. Some features may be limited or simulated."
+        />
+
+        {/* Show API auth warning if we have API keys with "Auth Failed" in the label */}
+        {apiKeys.some((key) => key.label.includes('Auth Failed')) && (
+          <ApiAuthWarning className="mb-4" />
+        )}
+
         {error && (
           <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-4 w-4" />
@@ -246,7 +270,10 @@ export function ApiKeyManager({
             <DialogHeader>
               <DialogTitle>Add API Key</DialogTitle>
               <DialogDescription>
-                Add a new API key for {exchangeId === 'binance_testnet' ? 'Binance Testnet' : exchangeId}
+                Add a new API key for{' '}
+                {exchangeId === 'binance_testnet'
+                  ? 'Binance Testnet'
+                  : exchangeId}
               </DialogDescription>
             </DialogHeader>
 
@@ -314,7 +341,9 @@ export function ApiKeyManager({
                     checked={makeDefault}
                     onCheckedChange={setMakeDefault}
                   />
-                  <Label htmlFor="makeDefault">Make this the default API key</Label>
+                  <Label htmlFor="makeDefault">
+                    Make this the default API key
+                  </Label>
                 </div>
               </div>
 

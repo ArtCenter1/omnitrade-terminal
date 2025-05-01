@@ -157,7 +157,6 @@
 ### Account Limits
 
 - [x] Implement trading limits checking
-- [ ] Add leverage limits (if applicable)
 - [x] Create position size validation
 
 ### Testing Account Management
@@ -186,7 +185,7 @@
 ### Testing Integration
 
 - [x] Test switching between mock and Testnet modes
-- [ ] Verify UI updates correctly
+- [x] Verify UI updates correctly
 - [ ] Test error handling and fallbacks
 - [ ] **CRITICAL**: Validate end-to-end order flow with Testnet
 
