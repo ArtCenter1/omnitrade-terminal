@@ -54,6 +54,60 @@ export function useBalances(assetFilter?: string[]) {
       console.log(
         `[useBalances] Missing required data: exchangeId=${exchangeId}, apiKeyId=${apiKeyId}, isInitialized=${isInitialized}`,
       );
+
+      // Instead of setting empty balances, provide default mock data for Demo account
+      if (
+        exchangeId === 'sandbox' ||
+        (selectedAccount && selectedAccount.name === 'Demo Account')
+      ) {
+        console.log(
+          '[useBalances] Providing default mock balances for Demo account',
+        );
+
+        // Default balances for Demo account
+        const defaultBalances = {
+          BTC: {
+            free: 0.1,
+            locked: 0,
+            total: 0.1,
+            available: 0.1,
+            lastUpdated: Date.now(),
+          },
+          USDT: {
+            free: 50000.0,
+            locked: 0,
+            total: 50000.0,
+            available: 50000.0,
+            lastUpdated: Date.now(),
+          },
+        };
+
+        // If we have assetFilter, only include those assets
+        if (assetFilter && assetFilter.length > 0) {
+          const filteredDefaultBalances: typeof defaultBalances = {};
+          assetFilter.forEach((asset) => {
+            if (defaultBalances[asset]) {
+              filteredDefaultBalances[asset] = defaultBalances[asset];
+            } else {
+              // If the asset is not in our defaults, create a default entry
+              filteredDefaultBalances[asset] = {
+                free: asset === 'USDT' ? 50000.0 : 0.1,
+                locked: 0,
+                total: asset === 'USDT' ? 50000.0 : 0.1,
+                available: asset === 'USDT' ? 50000.0 : 0.1,
+                lastUpdated: Date.now(),
+              };
+            }
+          });
+          setBalances(filteredDefaultBalances);
+        } else {
+          setBalances(defaultBalances);
+        }
+
+        setLastUpdate(new Date());
+        return;
+      }
+
       setBalances({});
       return;
     }
@@ -258,6 +312,60 @@ export function useBalances(assetFilter?: string[]) {
       console.log(
         `[useBalances] Cannot refresh: exchangeId=${exchangeId}, apiKeyId=${apiKeyId}, isRefreshing=${isRefreshing}, isInitialized=${isInitialized}`,
       );
+
+      // For Demo account, provide default mock data even if we're missing some parameters
+      if (
+        exchangeId === 'sandbox' ||
+        (selectedAccount && selectedAccount.name === 'Demo Account')
+      ) {
+        console.log(
+          '[useBalances] Providing default mock balances for Demo account during refresh',
+        );
+
+        // Default balances for Demo account
+        const defaultBalances = {
+          BTC: {
+            free: 0.1,
+            locked: 0,
+            total: 0.1,
+            available: 0.1,
+            lastUpdated: Date.now(),
+          },
+          USDT: {
+            free: 50000.0,
+            locked: 0,
+            total: 50000.0,
+            available: 50000.0,
+            lastUpdated: Date.now(),
+          },
+        };
+
+        // If we have assetFilter, only include those assets
+        if (assetFilter && assetFilter.length > 0) {
+          const filteredDefaultBalances: typeof defaultBalances = {};
+          assetFilter.forEach((asset) => {
+            if (defaultBalances[asset]) {
+              filteredDefaultBalances[asset] = defaultBalances[asset];
+            } else {
+              // If the asset is not in our defaults, create a default entry
+              filteredDefaultBalances[asset] = {
+                free: asset === 'USDT' ? 50000.0 : 0.1,
+                locked: 0,
+                total: asset === 'USDT' ? 50000.0 : 0.1,
+                available: asset === 'USDT' ? 50000.0 : 0.1,
+                lastUpdated: Date.now(),
+              };
+            }
+          });
+          setBalances(filteredDefaultBalances);
+        } else {
+          setBalances(defaultBalances);
+        }
+
+        setLastUpdate(new Date());
+        return;
+      }
+
       return;
     }
 

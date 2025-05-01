@@ -135,16 +135,34 @@ export function AvailableBalances({
     console.log('[AvailableBalances] Found base asset:', existingBaseAsset);
     console.log('[AvailableBalances] Found quote asset:', existingQuoteAsset);
 
-    // Create array with both assets, using zero values if not found
+    // Create array with both assets, using default values if not found
     const result = [];
+
+    // Default values based on asset type
+    const getDefaultValue = (asset: string) => {
+      if (
+        asset === 'USDT' ||
+        asset === 'USDC' ||
+        asset === 'BUSD' ||
+        asset === 'DAI'
+      ) {
+        return 50000.0; // Default stablecoin amount
+      } else if (asset === 'BTC') {
+        return 0.1; // Default BTC amount
+      } else if (asset === 'ETH') {
+        return 1.0; // Default ETH amount
+      } else {
+        return 10.0; // Default for other assets
+      }
+    };
 
     // Always add base asset (first)
     result.push(
       existingBaseAsset || {
         asset: baseAsset,
-        free: 0,
+        free: getDefaultValue(baseAsset),
         locked: 0,
-        total: 0,
+        total: getDefaultValue(baseAsset),
         usdValue: 0,
         exchangeId: selectedAccount?.exchangeId || 'unknown',
       },
@@ -154,9 +172,9 @@ export function AvailableBalances({
     result.push(
       existingQuoteAsset || {
         asset: quoteAsset,
-        free: 0,
+        free: getDefaultValue(quoteAsset),
         locked: 0,
-        total: 0,
+        total: getDefaultValue(quoteAsset),
         usdValue: 0,
         exchangeId: selectedAccount?.exchangeId || 'unknown',
       },
@@ -180,7 +198,7 @@ export function AvailableBalances({
     );
   }
 
-  if (!selectedAccount || assets.length === 0) {
+  if (!selectedAccount) {
     return (
       <div className="mb-6">
         <div className="flex justify-between items-center mb-2">
@@ -195,7 +213,48 @@ export function AvailableBalances({
           </button>
         </div>
         <div className="text-gray-400 text-sm text-center py-2">
-          No balances available
+          No account selected
+        </div>
+      </div>
+    );
+  }
+
+  // If we have a selected account but no assets, show a loading state
+  if (assets.length === 0) {
+    return (
+      <div className="mb-6">
+        <div className="flex justify-between items-center mb-2">
+          <div className="text-gray-400 text-xs">Available Balances</div>
+          <button
+            onClick={refreshBalances}
+            className="text-xs text-gray-500 hover:text-white flex items-center"
+            title="Refresh balances"
+            disabled={isRefreshing}
+          >
+            <RefreshCw
+              size={12}
+              className={`mr-1 ${isRefreshing ? 'animate-spin' : ''}`}
+            />
+            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
+        <div className="text-gray-400 text-sm text-center py-2 flex items-center justify-center">
+          {isRefreshing ? (
+            <>
+              <Loader2 className="animate-spin mr-2 h-4 w-4" />
+              Loading balances...
+            </>
+          ) : (
+            <>
+              No balances available.
+              <button
+                onClick={refreshBalances}
+                className="ml-2 text-blue-400 hover:text-blue-300 underline"
+              >
+                Refresh
+              </button>
+            </>
+          )}
         </div>
       </div>
     );

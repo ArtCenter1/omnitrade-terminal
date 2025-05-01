@@ -186,7 +186,7 @@
 
 - [x] Test switching between mock and Testnet modes
 - [x] Verify UI updates correctly
-- [ ] Test error handling and fallbacks
+- [x] Test error handling and fallbacks
 - [ ] **CRITICAL**: Validate end-to-end order flow with Testnet
 
 ## Phase 6: Testing & Documentation

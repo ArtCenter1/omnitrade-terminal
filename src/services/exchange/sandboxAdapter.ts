@@ -452,33 +452,81 @@ export class SandboxAdapter extends BaseExchangeAdapter {
 
     const portfolio = portfolioData.data;
 
-    // Ensure we have at least some standard assets for testing
+    // Always ensure we have the standard assets for trading, even if they exist in the portfolio
+    console.log(
+      `[SandboxAdapter] Ensuring standard assets are available in the portfolio`,
+    );
+
+    // Define our standard assets that should always be available
+    const standardAssets = [
+      {
+        asset: 'USDT',
+        free: 50000.0,
+        locked: 0,
+        total: 50000.0,
+        usdValue: 50000.0,
+        exchangeId: this.exchangeId,
+      },
+      {
+        asset: 'BTC',
+        free: 0.1,
+        locked: 0,
+        total: 0.1,
+        usdValue: 8305.53,
+        exchangeId: this.exchangeId,
+      },
+      {
+        asset: 'ETH',
+        free: 1.0,
+        locked: 0,
+        total: 1.0,
+        usdValue: 3500.0,
+        exchangeId: this.exchangeId,
+      },
+      {
+        asset: 'BNB',
+        free: 10.0,
+        locked: 0,
+        total: 10.0,
+        usdValue: 3000.0,
+        exchangeId: this.exchangeId,
+      },
+    ];
+
+    // If portfolio has no assets, use our standard assets
     if (!portfolio.assets || portfolio.assets.length === 0) {
       console.warn(
         `[SandboxAdapter] Portfolio has no assets, adding default assets`,
       );
-
-      // Add some default assets
-      portfolio.assets = [
-        {
-          asset: 'USDT',
-          free: 50000.0,
-          locked: 0,
-          total: 50000.0,
-          usdValue: 50000.0,
-          exchangeId: this.exchangeId,
-        },
-        {
-          asset: 'BTC',
-          free: 0.1,
-          locked: 0,
-          total: 0.1,
-          usdValue: 8305.53,
-          exchangeId: this.exchangeId,
-        },
-      ];
-
-      portfolio.totalUsdValue = 58305.53;
+      portfolio.assets = [...standardAssets];
+      portfolio.totalUsdValue = standardAssets.reduce(
+        (sum, asset) => sum + asset.usdValue,
+        0,
+      );
+    } else {
+      // Otherwise, ensure all standard assets exist in the portfolio
+      standardAssets.forEach((standardAsset) => {
+        const existingAsset = portfolio.assets.find(
+          (a) => a.asset === standardAsset.asset,
+        );
+        if (!existingAsset) {
+          // Add the standard asset if it doesn't exist
+          console.log(
+            `[SandboxAdapter] Adding missing standard asset: ${standardAsset.asset}`,
+          );
+          portfolio.assets.push(standardAsset);
+          portfolio.totalUsdValue += standardAsset.usdValue;
+        } else if (existingAsset.free === 0 && existingAsset.total === 0) {
+          // If the asset exists but has zero balance, update it
+          console.log(
+            `[SandboxAdapter] Updating zero-balance asset: ${standardAsset.asset}`,
+          );
+          existingAsset.free = standardAsset.free;
+          existingAsset.total = standardAsset.total;
+          existingAsset.usdValue = standardAsset.usdValue;
+          portfolio.totalUsdValue += standardAsset.usdValue;
+        }
+      });
     }
 
     // Emit balance updates for each asset in the portfolio
@@ -503,8 +551,22 @@ export class SandboxAdapter extends BaseExchangeAdapter {
    * @param portfolio The portfolio data
    */
   private emitBalanceUpdates(apiKeyId: string, portfolio: Portfolio): void {
-    // Emit balance updates for each asset
+    // Define standard assets that should always have balance updates
+    const standardAssets = ['BTC', 'USDT', 'ETH', 'BNB'];
+
+    // Track which assets we've emitted updates for
+    const emittedAssets = new Set<string>();
+
+    // Emit balance updates for each asset in the portfolio
     portfolio.assets.forEach((asset) => {
+      // Skip assets with zero balance
+      if (asset.free === 0 && asset.locked === 0 && asset.total === 0) {
+        console.log(
+          `[SandboxAdapter] Skipping zero-balance asset: ${asset.asset}`,
+        );
+        return;
+      }
+
       const updateData = {
         exchangeId: this.exchangeId,
         apiKeyId: apiKeyId,
@@ -525,10 +587,53 @@ export class SandboxAdapter extends BaseExchangeAdapter {
 
       // Emit the balance update event
       this.eventEmitter.emit('balanceUpdate', updateData);
+
+      // Mark this asset as emitted
+      emittedAssets.add(asset.asset);
+    });
+
+    // Ensure we emit updates for all standard assets, even if they're not in the portfolio
+    standardAssets.forEach((assetSymbol) => {
+      if (!emittedAssets.has(assetSymbol)) {
+        // Create default values based on asset type
+        let defaultFree = 0;
+        if (assetSymbol === 'USDT') {
+          defaultFree = 50000.0;
+        } else if (assetSymbol === 'BTC') {
+          defaultFree = 0.1;
+        } else if (assetSymbol === 'ETH') {
+          defaultFree = 1.0;
+        } else if (assetSymbol === 'BNB') {
+          defaultFree = 10.0;
+        }
+
+        const updateData = {
+          exchangeId: this.exchangeId,
+          apiKeyId: apiKeyId,
+          asset: assetSymbol,
+          balance: {
+            free: defaultFree,
+            locked: 0,
+            total: defaultFree,
+            available: defaultFree,
+          },
+          timestamp: Date.now(),
+        };
+
+        console.log(
+          `[SandboxAdapter] Emitting default balance update for ${assetSymbol}: Free=${defaultFree}`,
+        );
+
+        // Emit the balance update event
+        this.eventEmitter.emit('balanceUpdate', updateData);
+
+        // Mark this asset as emitted
+        emittedAssets.add(assetSymbol);
+      }
     });
 
     console.log(
-      `[SandboxAdapter] Emitted balance updates for ${portfolio.assets.length} assets`,
+      `[SandboxAdapter] Emitted balance updates for ${emittedAssets.size} assets`,
     );
   }
 
