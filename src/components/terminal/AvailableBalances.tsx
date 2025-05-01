@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useState } from 'react';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import { PortfolioAsset } from '@/types/exchange';
 import { TradingPair } from './TradingPairSelector';
@@ -68,8 +68,14 @@ export function AvailableBalances({
   }, [selectedPair]);
 
   // Use our new hook to get real-time balance data
-  const { balancesArray, isRefreshing, refreshBalances, lastUpdate } =
-    useBalances(assetFilter);
+  const {
+    balancesArray,
+    isRefreshing,
+    refreshBalances,
+    lastUpdate,
+    error,
+    clearError,
+  } = useBalances(assetFilter);
 
   // Force a refresh when the component mounts or when the selected pair changes
   useEffect(() => {
@@ -94,7 +100,7 @@ export function AvailableBalances({
     refreshTrigger,
     refreshBalances,
     selectedAccount,
-    balancesArray,
+    // Removed balancesArray from dependencies to prevent infinite loop
   ]);
 
   // Convert balance data to portfolio assets format
@@ -183,6 +189,45 @@ export function AvailableBalances({
     console.log('[AvailableBalances] Filtered assets result:', result);
     return result;
   }, [assets, selectedPair, selectedAccount]);
+
+  // Display error message if there is one
+  if (error) {
+    return (
+      <div className="mb-6">
+        <div className="flex justify-between items-center mb-2">
+          <div className="text-gray-400 text-xs">Available Balances</div>
+          <button
+            onClick={() => {
+              clearError();
+              refreshBalances();
+            }}
+            className="text-xs text-gray-500 hover:text-white flex items-center"
+            title="Retry"
+          >
+            <RefreshCw size={12} className="mr-1" />
+            Retry
+          </button>
+        </div>
+        <div className="bg-red-900/30 border border-red-700 rounded p-2 mb-2">
+          <div className="flex items-start">
+            <AlertTriangle className="text-red-500 w-4 h-4 mr-2 mt-0.5 flex-shrink-0" />
+            <div className="text-xs text-red-300">{error}</div>
+          </div>
+        </div>
+        <div className="space-y-2 max-h-24 overflow-y-auto pr-1">
+          {filteredAssets.map((asset) => (
+            <BalanceItem
+              key={asset.asset}
+              icon={getIconUrl(asset.asset)}
+              name={asset.asset}
+              amount={`${asset.total.toFixed(2)} ${asset.asset}`}
+              usdValue={asset.usdValue}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   if (isRefreshing) {
     return (
