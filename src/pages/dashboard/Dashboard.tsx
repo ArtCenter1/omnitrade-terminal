@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { PerformanceChart } from '@/components/PerformanceChart';
@@ -77,16 +77,11 @@ const mockAssets = [
   },
 ];
 
+// Tab definitions - icons will be added dynamically based on state
 const TABS = [
   { label: 'Balances', color: 'border-purple-500', icon: null },
   { label: 'Open Orders', color: '', icon: null },
-  {
-    label: 'Order History',
-    color: '',
-    icon: (
-      <span className="ml-1 w-2 h-2 bg-purple-500 rounded-full inline-block" />
-    ),
-  },
+  { label: 'Order History', color: '', icon: null },
   { label: 'Transfers', color: '', icon: null },
 ];
 
@@ -106,6 +101,7 @@ const Dashboard: React.FC = () => {
     DEFAULT_MOCK_ACCOUNTS,
   );
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hasOpenOrders, setHasOpenOrders] = useState(false); // Indicator for existence of open orders
 
   // Generate dynamic chart data based on the selected account
   const [performanceData, setPerformanceData] = useState(mockPerformanceData);
@@ -222,6 +218,116 @@ const Dashboard: React.FC = () => {
       }
     }
   }, [selectedAccount]);
+
+  // Track last check time to prevent too frequent checks
+  const lastOpenOrdersCheckRef = useRef<number>(0);
+
+  // Check for open orders periodically - optimized to reduce flickering
+  useEffect(() => {
+    // Function to check for open orders
+    const checkForOpenOrders = async () => {
+      try {
+        // Skip if we've checked recently (within 3 seconds)
+        const now = Date.now();
+        if (now - lastOpenOrdersCheckRef.current < 3000) {
+          return;
+        }
+        lastOpenOrdersCheckRef.current = now;
+
+        if (!selectedAccount) {
+          setHasOpenOrders(false);
+          return;
+        }
+
+        // Get the exchange ID from the selected account
+        const exchangeId =
+          selectedAccount.exchangeId || selectedAccount.exchange || 'binance';
+
+        // Get the orders from localStorage or API
+        const storedOrders = localStorage.getItem('omnitrade_mock_orders');
+        if (!storedOrders) {
+          setHasOpenOrders(false);
+          return;
+        }
+
+        const parsedOrders = JSON.parse(storedOrders);
+
+        // Filter orders for the current exchange
+        const filteredOrders = parsedOrders.filter(
+          (order: any) =>
+            order.exchangeId === exchangeId ||
+            (exchangeId === 'binance' &&
+              order.exchangeId === 'binance_testnet') ||
+            (exchangeId === 'binance_testnet' &&
+              order.exchangeId === 'binance'),
+        );
+
+        // Filter for open orders only (status 'new' or 'partially_filled')
+        const hasOpen = filteredOrders.some(
+          (order: any) =>
+            order.status === 'new' || order.status === 'partially_filled',
+        );
+
+        // Update the indicator based on whether there are any open orders
+        // Only update state if the value has changed to prevent unnecessary re-renders
+        if (hasOpen !== hasOpenOrders) {
+          setHasOpenOrders(hasOpen);
+        }
+      } catch (error) {
+        console.error('Error checking for open orders:', error);
+        setHasOpenOrders(false);
+      }
+    };
+
+    // Check with a slight delay to avoid initial flickering
+    const initialCheckTimeout = setTimeout(checkForOpenOrders, 500);
+
+    // Set up interval to check periodically with reduced frequency
+    const intervalId = setInterval(checkForOpenOrders, 15000); // Check every 15 seconds
+
+    return () => {
+      clearInterval(intervalId);
+      clearTimeout(initialCheckTimeout);
+    };
+  }, [selectedAccount, hasOpenOrders]);
+
+  // Listen for the custom event from DashboardOrdersTable - optimized to reduce flickering
+  useEffect(() => {
+    // Debounced function to reduce state updates
+    let updateTimeout: NodeJS.Timeout | null = null;
+
+    const handleOrderCountChanged = (event: any) => {
+      const { type, count } = event.detail;
+
+      // Only update the indicator for Open Orders tab
+      if (type === 'open') {
+        // Clear any existing timeout
+        if (updateTimeout) {
+          clearTimeout(updateTimeout);
+        }
+
+        // Debounce the update to prevent rapid state changes
+        updateTimeout = setTimeout(() => {
+          // Only update if the value has changed to prevent unnecessary re-renders
+          if (count > 0 !== hasOpenOrders) {
+            // Update the indicator based on whether there are any open orders
+            setHasOpenOrders(count > 0);
+          }
+        }, 300); // Debounce for 300ms
+      }
+    };
+
+    // Add event listener
+    window.addEventListener('orderCountChanged', handleOrderCountChanged);
+
+    // Clean up
+    return () => {
+      window.removeEventListener('orderCountChanged', handleOrderCountChanged);
+      if (updateTimeout) {
+        clearTimeout(updateTimeout);
+      }
+    };
+  }, [hasOpenOrders]);
 
   // Update chart data when selected account or time range changes
   useEffect(() => {
@@ -398,9 +504,11 @@ const Dashboard: React.FC = () => {
               // Convert portfolio assets to allocation data format
               const newAllocationData = combinedPortfolio.assets.map(
                 (asset, index) => {
-                  // Calculate percentage of total portfolio
+                  // Calculate percentage of total portfolio with safety check
+                  const totalValue = combinedPortfolio.totalUsdValue || 1; // Prevent division by zero
                   const percentage =
-                    (asset.usdValue / combinedPortfolio.totalUsdValue) * 100;
+                    totalValue > 0 ? (asset.usdValue / totalValue) * 100 : 0;
+
                   // Format USD value for display
                   const formattedValue = new Intl.NumberFormat('en-US', {
                     style: 'currency',
@@ -418,13 +526,20 @@ const Dashboard: React.FC = () => {
                   ];
                   const color = colors[index % colors.length];
 
+                  // Ensure asset.total is not zero to prevent NaN in price calculation
+                  const assetTotal = asset.total || 0.00001; // Small non-zero value to prevent division by zero
+                  const assetPrice =
+                    assetTotal > 0
+                      ? (asset.usdValue / assetTotal).toFixed(2)
+                      : '0.00';
+
                   return {
                     name: asset.asset,
-                    value: Math.round(percentage),
+                    value: Math.round(percentage) || 0, // Ensure value is a number, default to 0
                     color: color,
                     usdValue: formattedValue,
-                    price: (asset.usdValue / asset.total).toFixed(2),
-                    amount: asset.total.toFixed(8),
+                    price: assetPrice,
+                    amount: assetTotal.toFixed(8),
                     symbol: asset.asset,
                     displayName: asset.asset,
                     // Include exchange info for Portfolio Overview
@@ -433,16 +548,34 @@ const Dashboard: React.FC = () => {
                 },
               );
 
+              // Filter out any items with NaN or invalid values
+              const validAllocationData = newAllocationData.filter(
+                (item) =>
+                  typeof item.value === 'number' &&
+                  !isNaN(item.value) &&
+                  isFinite(item.value),
+              );
+
               // Sort by value (largest first)
-              newAllocationData.sort((a, b) => b.value - a.value);
+              validAllocationData.sort((a, b) => b.value - a.value);
 
               // Add total portfolio value to the first item for display in the center
-              if (newAllocationData.length > 0) {
-                newAllocationData[0].totalPortfolioValue =
-                  combinedPortfolio.totalUsdValue.toFixed(2);
+              if (validAllocationData.length > 0) {
+                // Ensure the total value is valid
+                const totalValue = combinedPortfolio.totalUsdValue;
+                validAllocationData[0].totalPortfolioValue =
+                  typeof totalValue === 'number' &&
+                  !isNaN(totalValue) &&
+                  isFinite(totalValue)
+                    ? totalValue.toFixed(2)
+                    : '0';
               }
 
-              setAllocationData(newAllocationData);
+              // Log the final allocation data for debugging
+              console.log('Final allocation data:', validAllocationData);
+
+              // Use the validated data instead of the original data
+              setAllocationData(validAllocationData);
 
               // For Portfolio Total, we need to combine assets of the same type across exchanges
               // First, group assets by symbol (ignoring exchange)
@@ -550,9 +683,11 @@ const Dashboard: React.FC = () => {
               // Convert portfolio assets to allocation data format
               const newAllocationData = portfolioData.assets.map(
                 (asset, index) => {
-                  // Calculate percentage of total portfolio
+                  // Calculate percentage of total portfolio with safety check
+                  const totalValue = portfolioData.totalUsdValue || 1; // Prevent division by zero
                   const percentage =
-                    (asset.usdValue / portfolioData.totalUsdValue) * 100;
+                    totalValue > 0 ? (asset.usdValue / totalValue) * 100 : 0;
+
                   // Format USD value for display
                   const formattedValue = new Intl.NumberFormat('en-US', {
                     style: 'currency',
@@ -570,40 +705,83 @@ const Dashboard: React.FC = () => {
                   ];
                   const color = colors[index % colors.length];
 
+                  // Ensure asset.total is not zero to prevent NaN in price calculation
+                  const assetTotal = asset.total || 0.00001; // Small non-zero value to prevent division by zero
+                  const assetPrice =
+                    assetTotal > 0
+                      ? (asset.usdValue / assetTotal).toFixed(2)
+                      : '0.00';
+
                   return {
                     name: asset.asset,
-                    value: Math.round(percentage),
+                    value: Math.round(percentage) || 0, // Ensure value is a number, default to 0
                     color: color,
                     usdValue: formattedValue,
-                    price: (asset.usdValue / asset.total).toFixed(2),
-                    amount: asset.total.toFixed(8),
+                    price: assetPrice,
+                    amount: assetTotal.toFixed(8),
                     symbol: asset.asset,
                     displayName: asset.asset,
                   };
                 },
               );
 
+              // Filter out any items with NaN or invalid values
+              const validAllocationData = newAllocationData.filter(
+                (item) =>
+                  typeof item.value === 'number' &&
+                  !isNaN(item.value) &&
+                  isFinite(item.value),
+              );
+
               // Sort by value (largest first)
-              newAllocationData.sort((a, b) => b.value - a.value);
+              validAllocationData.sort((a, b) => b.value - a.value);
 
               // Add total portfolio value to the first item for display in the center
-              if (newAllocationData.length > 0) {
-                newAllocationData[0].totalPortfolioValue =
-                  portfolioData.totalUsdValue.toFixed(2);
+              if (validAllocationData.length > 0) {
+                // Ensure the total value is valid
+                const totalValue = portfolioData.totalUsdValue;
+                validAllocationData[0].totalPortfolioValue =
+                  typeof totalValue === 'number' &&
+                  !isNaN(totalValue) &&
+                  isFinite(totalValue)
+                    ? totalValue.toFixed(2)
+                    : '0';
               }
 
-              setAllocationData(newAllocationData);
+              // Log the final allocation data for debugging
+              console.log(
+                'Final allocation data (regular account):',
+                validAllocationData,
+              );
+
+              // Use the validated data
+              setAllocationData(validAllocationData);
             } else {
               // Use generated allocation data as fallback
               const newAllocationData = generateAllocationData(selectedAccount);
 
               if (newAllocationData && newAllocationData.length > 0) {
-                setAllocationData(newAllocationData);
+                // Filter out any items with NaN or invalid values
+                const validAllocationData = newAllocationData.filter(
+                  (item) =>
+                    typeof item.value === 'number' &&
+                    !isNaN(item.value) &&
+                    isFinite(item.value),
+                );
+
+                console.log('Fallback allocation data:', validAllocationData);
+
+                // Use the validated data
+                setAllocationData(validAllocationData);
               } else {
                 console.warn(
                   'Using default allocation data for account:',
                   selectedAccount.name,
                 );
+                // Set a safe default if nothing else works
+                setAllocationData([
+                  { name: 'Default', value: 100, color: '#8884d8' },
+                ]);
               }
             }
 
@@ -808,7 +986,20 @@ const Dashboard: React.FC = () => {
                 }
               >
                 <div className="w-full h-full">
-                  <AllocationChart data={allocationData} />
+                  {/* Debug allocation data */}
+                  {console.log(
+                    'Allocation data being passed to chart:',
+                    JSON.stringify(allocationData),
+                  )}
+                  <AllocationChart
+                    data={allocationData.map((item) => ({
+                      ...item,
+                      value:
+                        typeof item.value === 'number' && !isNaN(item.value)
+                          ? item.value
+                          : 0,
+                    }))}
+                  />
                 </div>
               </ErrorBoundary>
             </div>
@@ -890,7 +1081,10 @@ const Dashboard: React.FC = () => {
                 onClick={() => setActiveTab(tab.label)}
               >
                 {tab.label}
-                {tab.icon}
+                {/* Show purple dot indicator for Open Orders tab when there are open orders */}
+                {tab.label === 'Open Orders' && hasOpenOrders && (
+                  <span className="ml-1 w-2 h-2 bg-purple-500 rounded-full inline-block" />
+                )}
               </button>
             ))}
           </div>
