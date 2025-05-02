@@ -180,28 +180,86 @@ export function AssetRow({ asset }: AssetRowProps) {
         <div className="font-medium text-gray-300">
           {isNewAssetType
             ? (asset as Asset).amount !== undefined
-              ? (asset as Asset).amount.toFixed(2)
+              ? (asset as Asset).amount.toFixed(8)
               : '0.00'
             : asset.amount || '0.00'}
         </div>
         <div className="text-xs text-gray-400">
           $
-          {isNewAssetType &&
-          (asset as Asset).amount !== undefined &&
-          (asset as Asset).price !== undefined
-            ? ((asset as Asset).amount * (asset as Asset).price).toFixed(2)
-            : '0.00'}
+          {(() => {
+            // Handle different data formats for USD value
+            if (isNewAssetType) {
+              // For new asset type with numeric values
+              return ((asset as Asset).value || 0).toFixed(2);
+            } else {
+              // For legacy asset type
+              if (typeof asset._rawValue === 'number') {
+                // Use _rawValue if available (from TerminalTabs)
+                return asset._rawValue.toFixed(2);
+              } else if (typeof asset.value === 'string') {
+                // Handle string value that might start with $
+                return asset.value.startsWith('$')
+                  ? asset.value.substring(1)
+                  : asset.value;
+              } else if (typeof asset.value === 'number') {
+                // Handle numeric value
+                return asset.value.toFixed(2);
+              }
+              // Fallback
+              return '0.00';
+            }
+          })()}
         </div>
       </td>
       <td className="py-3 px-2 text-gray-300">
-        {isNewAssetType && (asset as Asset).value !== undefined
-          ? `$${(asset as Asset).value.toFixed(2)}`
-          : asset.value || '$0.00'}
+        {(() => {
+          // Handle different data formats for Value (USD) column
+          if (isNewAssetType && (asset as Asset).value !== undefined) {
+            // For new asset type with numeric values
+            return `$${(asset as Asset).value.toFixed(2)}`;
+          } else {
+            // For legacy asset type
+            if (typeof asset._rawValue === 'number') {
+              // Use _rawValue if available (from TerminalTabs)
+              return `$${asset._rawValue.toFixed(2)}`;
+            } else if (typeof asset.value === 'string') {
+              // Handle string value that might already have $ prefix
+              return asset.value.startsWith('$')
+                ? asset.value
+                : `$${asset.value}`;
+            } else if (typeof asset.value === 'number') {
+              // Handle numeric value
+              return `$${asset.value.toFixed(2)}`;
+            }
+            // Fallback
+            return '$0.00';
+          }
+        })()}
       </td>
       <td className="py-3 px-2 text-gray-300">
-        {isNewAssetType && (asset as Asset).price !== undefined
-          ? `$${(asset as Asset).price.toFixed(2)}`
-          : asset.price || '$0.00'}
+        {(() => {
+          // Handle different data formats for Last Price column
+          if (isNewAssetType && (asset as Asset).price !== undefined) {
+            // For new asset type with numeric values
+            return `$${(asset as Asset).price.toFixed(2)}`;
+          } else {
+            // For legacy asset type
+            if (typeof asset._rawPrice === 'number') {
+              // Use _rawPrice if available (from TerminalTabs)
+              return `$${asset._rawPrice.toFixed(2)}`;
+            } else if (typeof asset.price === 'string') {
+              // Handle string value that might already have $ prefix
+              return asset.price.startsWith('$')
+                ? asset.price
+                : `$${asset.price}`;
+            } else if (typeof asset.price === 'number') {
+              // Handle numeric value
+              return `$${asset.price.toFixed(2)}`;
+            }
+            // Fallback
+            return '$0.00';
+          }
+        })()}
       </td>
       <td className="py-3 px-2">
         <span

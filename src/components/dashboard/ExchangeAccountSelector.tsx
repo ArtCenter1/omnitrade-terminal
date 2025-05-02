@@ -90,6 +90,17 @@ export function ExchangeAccountSelector() {
           ? combinePortfolioData(accounts)
           : { totalUsdValue: 0, assets: [] };
 
+      // Log the combined portfolio for debugging
+      console.log(
+        'Combined portfolio total value:',
+        combinedPortfolio.totalUsdValue,
+      );
+      console.log(
+        'Combined portfolio assets count:',
+        combinedPortfolio.assets.length,
+      );
+
+      // Calculate the actual total value by summing all assets
       const totalValue = combinedPortfolio.totalUsdValue;
 
       // Calculate a change percentage (mock data for now)
@@ -118,6 +129,18 @@ export function ExchangeAccountSelector() {
 
       // Create a Portfolio Overview option with the default accounts
       const combinedPortfolio = combinePortfolioData(DEFAULT_MOCK_ACCOUNTS);
+
+      // Log the combined portfolio for debugging
+      console.log(
+        'Combined portfolio total value (fallback):',
+        combinedPortfolio.totalUsdValue,
+      );
+      console.log(
+        'Combined portfolio assets count (fallback):',
+        combinedPortfolio.assets.length,
+      );
+
+      // Calculate the actual total value by summing all assets
       const totalValue = combinedPortfolio.totalUsdValue;
 
       // Calculate a change percentage (mock data for now)

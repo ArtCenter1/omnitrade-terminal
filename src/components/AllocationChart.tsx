@@ -70,7 +70,20 @@ const CustomTooltip = ({ active, payload }: any) => {
             <span style={{ color: '#999' }}>{displayName}</span>
           </div>
           <span style={{ fontWeight: 'bold' }}>
-            {`(${typeof data.value === 'number' ? data.value.toFixed(1) : parseFloat(String(data.value)).toFixed(1)}%)`}
+            {(() => {
+              try {
+                // Handle both number and string values safely
+                const numValue =
+                  typeof data.value === 'number'
+                    ? data.value
+                    : parseFloat(String(data.value || 0));
+
+                // Check for NaN and return a valid percentage
+                return `(${isNaN(numValue) ? '0.0' : numValue.toFixed(1)}%)`;
+              } catch (e) {
+                return '(0.0%)';
+              }
+            })()}
           </span>
         </div>
 
@@ -130,16 +143,34 @@ export function AllocationChart({
     return <div className={className}>No allocation data</div>;
   }
 
-  // Calculate total percentage (should be 100% but let's make sure)
-  // const totalPercentage = data.reduce((sum, item) => sum + item.value, 0);
+  // Clean and validate the data to prevent NaN issues
+  const cleanedData = data
+    .map((item) => ({
+      ...item,
+      // Ensure value is a valid number
+      value:
+        typeof item.value === 'number' &&
+        !isNaN(item.value) &&
+        isFinite(item.value)
+          ? Math.max(0, item.value) // Ensure it's not negative
+          : 0,
+    }))
+    .filter((item) => item.value > 0); // Only include items with positive values
+
+  // If we have no valid data after cleaning, show a message
+  if (cleanedData.length === 0) {
+    console.warn('No valid allocation data after cleaning:', data);
+    return <div className={className}>No valid allocation data</div>;
+  }
+
+  // Log the cleaned data for debugging
+  console.log('Cleaned allocation data:', cleanedData);
 
   // Find the asset with the highest allocation
-  const topAsset =
-    data.length > 0
-      ? data.reduce((prev, current) =>
-          prev.value > current.value ? prev : current,
-        )
-      : null;
+  const topAsset = cleanedData.reduce(
+    (prev, current) => (prev.value > current.value ? prev : current),
+    cleanedData[0],
+  );
 
   // Log the top asset for debugging
   console.log('Top asset in allocation chart:', topAsset);
@@ -158,7 +189,7 @@ export function AllocationChart({
       <ResponsiveContainer width="100%" height="100%">
         <PieChart style={{ outline: 'none' }} onClick={undefined}>
           <Pie
-            data={data}
+            data={cleanedData}
             cx="50%"
             cy="50%"
             innerRadius="35%"
@@ -171,10 +202,10 @@ export function AllocationChart({
             isAnimationActive={false} // Disable animations which can cause flickering
             className="allocation-pie"
           >
-            {data.map((entry, index) => (
+            {cleanedData.map((entry, index) => (
               <Cell
                 key={`cell-${index}`}
-                fill={entry.color}
+                fill={entry.color || '#8884d8'} // Provide fallback color
                 stroke="none" // Remove the white border for each cell
               />
             ))}
@@ -186,7 +217,7 @@ export function AllocationChart({
           />
 
           {/* Center label showing total portfolio value */}
-          {data.length > 0 && data[0].totalPortfolioValue && (
+          {cleanedData.length > 0 && cleanedData[0].totalPortfolioValue && (
             <g>
               {/* Total label */}
               <text
@@ -220,10 +251,28 @@ export function AllocationChart({
                 {(() => {
                   try {
                     // Safely parse the value with error handling
+                    const rawValue = cleanedData[0].totalPortfolioValue;
+
+                    // Handle undefined, null, or empty string
+                    if (
+                      rawValue === undefined ||
+                      rawValue === null ||
+                      rawValue === ''
+                    ) {
+                      return '$0';
+                    }
+
+                    // Try to parse the value
                     const value =
-                      typeof data[0].totalPortfolioValue === 'string'
-                        ? parseFloat(data[0].totalPortfolioValue)
-                        : Number(data[0].totalPortfolioValue);
+                      typeof rawValue === 'string'
+                        ? parseFloat(rawValue)
+                        : Number(rawValue);
+
+                    // Check for NaN or invalid numbers
+                    if (isNaN(value) || !isFinite(value)) {
+                      return '$0';
+                    }
+
                     return `$${value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
                   } catch (error) {
                     console.error(

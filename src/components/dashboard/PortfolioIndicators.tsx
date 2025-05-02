@@ -89,14 +89,33 @@ export function PortfolioIndicators() {
     );
 
     try {
-      // Always use the value from the selected account for consistency
-      // This ensures the value in the header matches the value in the dropdown
-      let formattedValue = selectedAccount.value || '$0.00';
+      // Use portfolio data if available, otherwise fall back to account value
+      let portfolioValue = 0;
+      let formattedValue = '$0.00';
 
-      // Log the values for debugging
-      console.log('Using account value for indicators:', formattedValue);
-      if (portfolioData) {
-        console.log('Portfolio data value:', portfolioData.totalUsdValue);
+      if (portfolioData && portfolioData.totalUsdValue) {
+        // Use the actual portfolio data value
+        portfolioValue = portfolioData.totalUsdValue;
+        formattedValue = new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }).format(portfolioValue);
+        console.log(
+          'Using portfolio data value for indicators:',
+          formattedValue,
+        );
+      } else {
+        // Fall back to account value if no portfolio data
+        formattedValue = selectedAccount.value || '$0.00';
+        portfolioValue = parseFloat(
+          formattedValue.replace(/[^0-9.-]+/g, '') || '0',
+        );
+        console.log(
+          'Using account value for indicators (fallback):',
+          formattedValue,
+        );
       }
 
       // Extract the change percentage from the account
@@ -106,14 +125,10 @@ export function PortfolioIndicators() {
         : '0';
       const changePercent = parseFloat(changePercentStr) || 0;
 
-      // Calculate the change amount based on the account value
-      // Parse the account value to get a number
-      const accountValue = parseFloat(
-        selectedAccount.value?.replace(/[^0-9.-]+/g, '') || '0',
-      );
-      const changeAmount = accountValue * (changePercent / 100);
+      // Calculate the change amount based on the portfolio value
+      const changeAmount = portfolioValue * (changePercent / 100);
 
-      console.log('Account value:', accountValue);
+      console.log('Portfolio value:', portfolioValue);
       console.log('Change percent:', changePercent);
       console.log('Calculated change amount:', changeAmount);
 

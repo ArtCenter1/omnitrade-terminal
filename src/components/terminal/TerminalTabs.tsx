@@ -65,8 +65,8 @@ export function TerminalTabs({
         name: getAssetName(asset.asset),
         symbol: asset.asset,
         amount: asset.total.toFixed(8),
-        value: `$${asset.usdValue.toFixed(2)}`,
-        price: `$${price.toFixed(2)}`,
+        value: asset.usdValue.toFixed(2), // Remove $ prefix to allow proper calculation
+        price: price.toFixed(2), // Remove $ prefix to allow proper calculation
         change: getRandomChange(asset.asset),
         chart: generateChartData(asset.asset),
         // Store raw values for sorting
