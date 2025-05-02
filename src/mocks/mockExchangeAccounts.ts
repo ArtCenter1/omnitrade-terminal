@@ -125,6 +125,16 @@ export function generateMockExchangeAccounts(
   return apiKeyAccounts;
 }
 
+// Import the function to get mock portfolio data
+import { getMockPortfolioData } from './mockPortfolio';
+import { formatUsdValue } from '@/utils/portfolioUtils';
+
+// Generate the demo portfolio value dynamically
+const demoPortfolio = getMockPortfolioData('sandbox-key').data;
+const demoPortfolioValue = demoPortfolio
+  ? formatUsdValue(demoPortfolio.totalUsdValue)
+  : '$50,000.00';
+
 // Default mock accounts to use if no API keys are available
 export const DEFAULT_MOCK_ACCOUNTS: ExchangeAccount[] = [
   {
@@ -172,7 +182,7 @@ export const DEFAULT_MOCK_ACCOUNTS: ExchangeAccount[] = [
     name: '🔰 Demo Account', // Prefixed with a training symbol emoji
     exchange: 'Demo',
     exchangeId: 'sandbox', // Keep the exchangeId as 'sandbox' for compatibility
-    value: '$50,000.00', // Standard starting amount
+    value: demoPortfolioValue, // Use the dynamically calculated value
     change: '+0.00%', // No change initially
     logo: '/exchanges/demo.svg', // Updated to use the demo logo
     apiKeyId: 'sandbox-key', // Keep the same API key ID for compatibility

@@ -272,7 +272,6 @@ export function generateMockPortfolio(
 // Generate a demo portfolio with a standard set of assets
 function generateDemoPortfolio(): Portfolio {
   const assets: PortfolioAsset[] = [];
-  let totalUsdValue = 0;
   const exchangeId = 'sandbox';
 
   // Standard asset prices
@@ -298,7 +297,6 @@ function generateDemoPortfolio(): Portfolio {
     usdValue: 50000.0,
     exchangeId,
   });
-  totalUsdValue += 50000.0;
 
   // Add small amounts of major cryptocurrencies for practice
   const cryptoAssets = [
@@ -324,12 +322,17 @@ function generateDemoPortfolio(): Portfolio {
       usdValue,
       exchangeId,
     });
-
-    totalUsdValue += usdValue;
   });
 
   // Sort assets by USD value (descending)
   assets.sort((a, b) => b.usdValue - a.usdValue);
+
+  // Calculate the total USD value by summing all asset values
+  const totalUsdValue = assets.reduce((sum, asset) => sum + asset.usdValue, 0);
+
+  // Log the total value for debugging
+  console.log(`Demo portfolio total value: $${totalUsdValue.toFixed(2)}`);
+  console.log(`Number of assets in demo portfolio: ${assets.length}`);
 
   return {
     totalUsdValue,
