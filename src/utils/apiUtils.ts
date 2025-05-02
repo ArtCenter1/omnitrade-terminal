@@ -14,6 +14,9 @@ export interface ApiRequestOptions {
   retries?: number;
   retryDelay?: number;
   timeout?: number;
+  forceRest?: boolean;
+  isWebSocketAvailable?: boolean;
+  webSocketFallbackFn?: () => Promise<any>;
 }
 
 /**
@@ -37,10 +40,52 @@ export async function makeApiRequest<T>(
     retries = 3,
     retryDelay = 1000,
     timeout = 30000,
+    forceRest = false,
+    isWebSocketAvailable = false,
+    webSocketFallbackFn = undefined,
   } = options;
 
   const connectionManager = ConnectionManager.getInstance();
   const rateLimitManager = RateLimitManager.getInstance();
+
+  // Check if we should use WebSocket instead of REST API
+  if (
+    !forceRest &&
+    isWebSocketAvailable &&
+    webSocketFallbackFn &&
+    rateLimitManager.getPreferWebSocket()
+  ) {
+    console.log(
+      `[${exchangeId}] Using WebSocket instead of REST API for request to ${url}`,
+    );
+
+    try {
+      // Update connection status to connecting via WebSocket
+      connectionManager.setStatus(exchangeId, {
+        status: 'connecting',
+        message: `Using WebSocket instead of REST API for ${url}`,
+      });
+
+      // Get data from WebSocket
+      const result = await webSocketFallbackFn();
+
+      // Update connection status to connected
+      connectionManager.setStatus(exchangeId, {
+        status: 'connected',
+        message: `Successfully received data from WebSocket for ${url}`,
+        // Include rate limit info in the status
+        rateLimit: rateLimitManager.getRateLimitInfo(exchangeId),
+      });
+
+      return result;
+    } catch (wsError) {
+      console.warn(
+        `[${exchangeId}] WebSocket fallback failed, falling back to REST API:`,
+        wsError,
+      );
+      // Fall through to REST API
+    }
+  }
 
   // Update connection status to connecting
   connectionManager.setStatus(exchangeId, {
@@ -67,7 +112,8 @@ export async function makeApiRequest<T>(
 
       // Add body if provided
       if (body) {
-        requestOptions.body = typeof body === 'string' ? body : JSON.stringify(body);
+        requestOptions.body =
+          typeof body === 'string' ? body : JSON.stringify(body);
       }
 
       // Make the request

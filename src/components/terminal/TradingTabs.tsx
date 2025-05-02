@@ -12,6 +12,7 @@ import logger from '@/utils/logger';
 import { ExchangeFactory } from '@/services/exchange/exchangeFactory';
 import { useFeatureFlags } from '@/config/featureFlags';
 import { useBalances } from '@/hooks/useBalances';
+import { tradingLimitsService } from '@/services/tradingLimits';
 
 interface TradingTabsProps {
   selectedPair?: TradingPair;
@@ -538,6 +539,39 @@ export function TradingTabs({
       return;
     }
 
+    // Determine which exchange adapter to use
+    const exchangeId = selectedAccount.isSandbox
+      ? useBinanceTestnet
+        ? 'binance_testnet'
+        : 'sandbox'
+      : selectedAccount.exchangeId || selectedAccount.exchange;
+
+    // Validate the order against trading limits
+    const orderPrice = orderType === 'market' ? undefined : parseFloat(price);
+    const validationResult = tradingLimitsService.validateOrder(
+      exchangeId,
+      selectedPair.symbol,
+      side,
+      orderType,
+      parseFloat(amount),
+      orderPrice,
+      'default', // Use 'default' as the API key ID for now
+    );
+
+    if (!validationResult.valid) {
+      logger.warn('Order validation failed, showing toast', {
+        component: 'TradingTabs',
+        method: 'handlePlaceOrder',
+        data: { validationResult },
+      });
+      toast({
+        title: 'Order validation failed',
+        description: validationResult.message || 'Unknown validation error',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     logger.info('Processing order, showing toast', {
       component: 'TradingTabs',
@@ -551,12 +585,7 @@ export function TradingTabs({
     });
 
     try {
-      // Determine which exchange adapter to use
-      const exchangeId = selectedAccount.isSandbox
-        ? useBinanceTestnet
-          ? 'binance_testnet'
-          : 'sandbox'
-        : selectedAccount.exchangeId || selectedAccount.exchange;
+      // We already determined the exchangeId for validation
 
       logger.info('Placing order', {
         component: 'TradingTabs',

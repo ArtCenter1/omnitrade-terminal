@@ -37,6 +37,21 @@ export default defineConfig(({ mode }) => ({
                     fallback: true,
                   }),
                 );
+              } else if (req.url?.includes('/proxy/binance-testnet')) {
+                console.warn(
+                  'Returning fallback response for Binance Testnet request',
+                );
+                res.writeHead(503, { 'Content-Type': 'application/json' });
+                res.end(
+                  JSON.stringify({
+                    error: true,
+                    status: 503,
+                    message:
+                      'Backend service unavailable. Please ensure the backend server is running.',
+                    code: err.code || 'ECONNREFUSED',
+                    fallback: true,
+                  }),
+                );
               } else {
                 // Generic error for other API requests
                 res.writeHead(503, { 'Content-Type': 'application/json' });

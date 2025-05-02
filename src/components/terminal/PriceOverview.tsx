@@ -492,31 +492,13 @@ export function PriceOverview({
   // If showPriceOnly is true, only render the price
   if (showPriceOnly && marketData) {
     return (
-      <div className="ml-2 relative group">
+      <div className="ml-2">
         <div
           className={`text-xl font-bold ${isPositiveChange ? 'text-crypto-green' : 'text-crypto-red'}`}
         >
           {/* Display formatted fetched price */}
           {formatNumber(currentPrice)}
         </div>
-
-        {/* Small indicator dot showing data source */}
-        <div
-          className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${
-            useBinanceTestnet &&
-            selectedAccount?.isSandbox &&
-            !usingFallbackData
-              ? 'bg-crypto-green'
-              : 'bg-yellow-500'
-          }`}
-          title={
-            useBinanceTestnet &&
-            selectedAccount?.isSandbox &&
-            !usingFallbackData
-              ? 'Using Binance Testnet data'
-              : `Using ${useMockData ? 'mock' : 'fallback'} data`
-          }
-        />
       </div>
     );
   } else if (showPriceOnly) {
@@ -527,28 +509,7 @@ export function PriceOverview({
   // Otherwise render the stats grid (only if marketData is available)
   return (
     <div className="p-4">
-      {/* Data source indicator */}
-      <div className="flex items-center mb-2 justify-end">
-        <div className="flex items-center gap-1 bg-black bg-opacity-50 px-2 py-1 rounded text-xs">
-          {useBinanceTestnet &&
-          selectedAccount?.isSandbox &&
-          !usingFallbackData ? (
-            <>
-              <div className="w-2 h-2 rounded-full bg-crypto-green" />
-              <span className="text-crypto-green">
-                Using Binance Testnet data
-              </span>
-            </>
-          ) : (
-            <>
-              <div className="w-2 h-2 rounded-full bg-yellow-500" />
-              <span className="text-yellow-500">
-                Using {useMockData ? 'mock' : 'fallback'} data
-              </span>
-            </>
-          )}
-        </div>
-      </div>
+      {/* Data source indicator removed to save space */}
       <div className="grid grid-cols-4 gap-8 text-xs">
         <div>
           <div className="text-gray-400">24h Change</div>

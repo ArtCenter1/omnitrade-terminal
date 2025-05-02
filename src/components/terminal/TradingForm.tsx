@@ -11,6 +11,7 @@ import { ExchangeFactory } from '@/services/exchange/exchangeFactory';
 import { useFeatureFlags } from '@/config/featureFlags';
 import logger from '@/utils/logger';
 import { balanceTrackingService } from '@/services/balanceTracking/balanceTrackingService';
+import { tradingLimitsService } from '@/services/tradingLimits';
 
 interface TradingFormProps {
   selectedPair?: TradingPair;
@@ -173,20 +174,21 @@ export function TradingForm({
         ? parseFloat(selectedPrice)
         : undefined;
 
-    // Check if there's sufficient balance for the order
-    const hasSufficientBalance = balanceTrackingService.hasSufficientBalance(
+    // Validate the order against trading limits
+    const validationResult = tradingLimitsService.validateOrder(
       exchangeId,
-      'default', // Use 'default' as the API key ID for now
       selectedPair.symbol,
       side,
+      orderType,
       parseFloat(amount),
       orderPrice,
+      'default', // Use 'default' as the API key ID for now
     );
 
-    if (!hasSufficientBalance) {
+    if (!validationResult.valid) {
       toast({
-        title: 'Insufficient balance',
-        description: `You don't have enough ${side === 'buy' ? quoteAsset : baseAsset} to place this order.`,
+        title: 'Order validation failed',
+        description: validationResult.message || 'Unknown validation error',
         variant: 'destructive',
       });
       return;
