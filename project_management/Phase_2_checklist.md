@@ -28,7 +28,7 @@ Implement the core user interface components, pages, and navigation for the Open
 
 **Checklist:**
 
-- [ ] **Phase 1: Foundation & Setup**
+- [x] **Phase 1: Foundation & Setup**
   - [x] Review `market_data_api_openapi.yaml` and `market_data_websocket.md` for endpoint/event details, schemas, and authentication.
   - [x] Select and configure state management (e.g., Zustand), data fetching (e.g., React Query), and WebSocket client libraries.
   - [x] Define API base URLs and WebSocket endpoints in environment variables (`.env`).
@@ -40,8 +40,8 @@ Implement the core user interface components, pages, and navigation for the Open
   - [x] Implement `src/services/marketDataSocket.ts` for WebSocket management (connect, disconnect, subscribe, unsubscribe, handle messages, reconnection).
   - [x] Implement `src/store/marketDataStore.ts` (or similar) using Zustand to hold data and handle updates from WebSocket.
   - [x] Implement custom React Hooks (`src/hooks/`) like `useSymbols`, `useTicker`, `useOrderbook`, etc., integrating React Query, Zustand, and WebSocket subscriptions.
-- [ ] **Phase 3: Integration & Refinement**
-  - [ ] Refactor UI components (e.g., `Markets.tsx`, Trading Terminal) to use the new custom hooks.
+- [x] **Phase 3: Integration & Refinement**
+  - [x] Refactor UI components (e.g., `Markets.tsx`, Trading Terminal) to use the new custom hooks.
   - [x] Write unit/integration tests for services, store, and hooks.
   - [x] Add JSDoc comments to new code.
 

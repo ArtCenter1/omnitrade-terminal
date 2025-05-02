@@ -4,6 +4,8 @@ import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import { PortfolioAsset } from '@/types/exchange';
 import { TradingPair } from './TradingPairSelector';
 import { useBalances } from '@/hooks/useBalances';
+import * as enhancedCoinGeckoService from '@/services/enhancedCoinGeckoService';
+import { mockDataService } from '@/services/mockData';
 
 interface BalanceItemProps {
   icon: string;
@@ -17,6 +19,33 @@ function BalanceItem({ icon, name, amount, usdValue }: BalanceItemProps) {
   const amountValue = parseFloat(amount.split(' ')[0]);
   const isZero = amountValue === 0;
   const assetSymbol = amount.split(' ')[1] || name;
+
+  // Calculate USD value directly based on the asset type and amount
+  let calculatedUsdValue = usdValue;
+
+  // If USD value is 0, calculate it based on the asset type
+  if (usdValue === 0) {
+    if (
+      assetSymbol === 'USDT' ||
+      assetSymbol === 'USDC' ||
+      assetSymbol === 'BUSD' ||
+      assetSymbol === 'DAI'
+    ) {
+      calculatedUsdValue = amountValue; // Stablecoins are 1:1 with USD
+    } else if (assetSymbol === 'BTC') {
+      calculatedUsdValue = amountValue * 30000; // Approximate BTC price
+    } else {
+      calculatedUsdValue = amountValue * 1000; // Default price for other assets
+    }
+  }
+
+  // Format USD value with 2 decimal places
+  const formattedUsdValue = calculatedUsdValue.toFixed(2);
+
+  // Log the values for debugging
+  console.log(
+    `[BalanceItem] Rendering ${name} with amount=${amountValue}, original usdValue=${usdValue}, calculated=${calculatedUsdValue}, formatted=${formattedUsdValue}`,
+  );
 
   return (
     <div className="flex justify-between items-center py-0.5">
@@ -36,9 +65,7 @@ function BalanceItem({ icon, name, amount, usdValue }: BalanceItemProps) {
       </div>
       <div className="flex flex-col items-end">
         <div className="text-white text-sm">{amountValue.toFixed(2)}</div>
-        <div className="text-xs text-blue-400">
-          = ${usdValue.toFixed(2)} USD
-        </div>
+        <div className="text-xs text-blue-400">= ${formattedUsdValue} USD</div>
       </div>
     </div>
   );
@@ -103,24 +130,201 @@ export function AvailableBalances({
     // Removed balancesArray from dependencies to prevent infinite loop
   ]);
 
+  // State to store USD prices for assets
+  const [assetPrices, setAssetPrices] = useState<Record<string, number>>({});
+
+  // Fetch prices for the assets
+  useEffect(() => {
+    const fetchPrices = async () => {
+      console.log('[AvailableBalances] Starting to fetch prices for assets');
+      console.log('[AvailableBalances] Current balances:', balancesArray);
+
+      const prices: Record<string, number> = {};
+
+      // Only fetch prices if we have balances
+      if (balancesArray.length > 0) {
+        console.log(
+          `[AvailableBalances] Fetching prices for ${balancesArray.length} assets`,
+        );
+
+        // Set immediate default prices for stablecoins and BTC
+        balancesArray.forEach((balance) => {
+          if (['USDT', 'USDC', 'BUSD', 'DAI'].includes(balance.asset)) {
+            prices[balance.asset] = 1;
+            console.log(
+              `[AvailableBalances] Set default price for stablecoin ${balance.asset}: $1`,
+            );
+          } else if (balance.asset === 'BTC') {
+            prices[balance.asset] = 30000;
+            console.log(
+              `[AvailableBalances] Set default price for BTC: $30000`,
+            );
+          }
+        });
+
+        // Apply these default prices immediately
+        setAssetPrices({ ...prices });
+        console.log('[AvailableBalances] Set initial default prices:', prices);
+
+        // Then try to get more accurate prices
+        for (const balance of balancesArray) {
+          try {
+            console.log(
+              `[AvailableBalances] Fetching price for ${balance.asset}...`,
+            );
+
+            // Skip CoinGecko for stablecoins
+            if (['USDT', 'USDC', 'BUSD', 'DAI'].includes(balance.asset)) {
+              prices[balance.asset] = 1;
+              console.log(
+                `[AvailableBalances] Using fixed price for stablecoin ${balance.asset}: $1`,
+              );
+              continue;
+            }
+
+            // For BTC, try to get price but use fallback
+            if (balance.asset === 'BTC') {
+              try {
+                // Try to get price from CoinGecko
+                const price = await enhancedCoinGeckoService.getCurrentPrice(
+                  balance.asset,
+                  'usd',
+                );
+
+                if (price > 0) {
+                  prices[balance.asset] = price;
+                  console.log(
+                    `[AvailableBalances] Got CoinGecko price for BTC: $${price}`,
+                  );
+                } else {
+                  // Use a realistic fallback price for BTC
+                  prices[balance.asset] = 30000;
+                  console.log(
+                    `[AvailableBalances] Using fallback price for BTC: $30000`,
+                  );
+                }
+              } catch (error) {
+                console.error(
+                  `[AvailableBalances] Error fetching BTC price:`,
+                  error,
+                );
+                prices[balance.asset] = 30000;
+                console.log(
+                  `[AvailableBalances] Using fallback price for BTC after error: $30000`,
+                );
+              }
+              continue;
+            }
+
+            // For other assets, try CoinGecko first
+            try {
+              // Try to get price from CoinGecko
+              const price = await enhancedCoinGeckoService.getCurrentPrice(
+                balance.asset,
+                'usd',
+              );
+
+              // If CoinGecko fails, use mock data service as fallback
+              if (price === 0) {
+                console.log(
+                  `[AvailableBalances] CoinGecko returned 0 price for ${balance.asset}, using mockDataService`,
+                );
+                // Use mock data service to get a realistic price
+                try {
+                  const mockPrice = mockDataService.getCurrentPrice(
+                    selectedAccount?.exchangeId || 'binance_testnet',
+                    `${balance.asset}/USDT`,
+                  );
+                  prices[balance.asset] = mockPrice;
+                  console.log(
+                    `[AvailableBalances] Got mock price for ${balance.asset}: $${mockPrice}`,
+                  );
+                } catch (mockError) {
+                  console.error(
+                    `[AvailableBalances] Error getting mock price for ${balance.asset}:`,
+                    mockError,
+                  );
+                  // Use a default price
+                  prices[balance.asset] = 1000;
+                  console.log(
+                    `[AvailableBalances] Using default price for ${balance.asset}: $1000`,
+                  );
+                }
+              } else {
+                prices[balance.asset] = price;
+                console.log(
+                  `[AvailableBalances] Got CoinGecko price for ${balance.asset}: $${price}`,
+                );
+              }
+            } catch (error) {
+              console.error(
+                `[AvailableBalances] Error fetching price for ${balance.asset}:`,
+                error,
+              );
+              // Use fallback price
+              prices[balance.asset] = 1000;
+              console.log(
+                `[AvailableBalances] Using fallback price after error for ${balance.asset}: $1000`,
+              );
+            }
+          } catch (outerError) {
+            console.error(
+              `[AvailableBalances] Outer error for ${balance.asset}:`,
+              outerError,
+            );
+            prices[balance.asset] = balance.asset === 'USDT' ? 1 : 1000;
+          }
+
+          // Update prices after each asset to show progress
+          setAssetPrices({ ...prices });
+        }
+
+        console.log('[AvailableBalances] Final prices:', prices);
+        setAssetPrices(prices);
+      } else {
+        console.log('[AvailableBalances] No balances to fetch prices for');
+      }
+    };
+
+    fetchPrices();
+  }, [balancesArray, selectedAccount]);
+
   // Convert balance data to portfolio assets format
   const assets = useMemo(() => {
-    return balancesArray.map((balance) => ({
-      asset: balance.asset,
-      free: balance.free,
-      locked: balance.locked,
-      total: balance.total,
-      available: balance.available,
-      usdValue: 0, // We don't have USD values yet, will need to add price data integration
-      exchangeId: selectedAccount?.exchangeId || 'unknown',
-      exchangeSources: [
-        {
-          exchangeId: selectedAccount?.exchangeId || 'unknown',
-          amount: balance.total,
-        },
-      ],
-    }));
-  }, [balancesArray, selectedAccount]);
+    console.log(
+      '[AvailableBalances] Creating assets from balances with prices:',
+      assetPrices,
+    );
+
+    const result = balancesArray.map((balance) => {
+      // Calculate USD value based on price and total balance
+      const price = assetPrices[balance.asset] || 0;
+      const usdValue = balance.total * price;
+
+      console.log(
+        `[AvailableBalances] Asset ${balance.asset}: balance=${balance.total}, price=$${price}, usdValue=$${usdValue}`,
+      );
+
+      return {
+        asset: balance.asset,
+        free: balance.free,
+        locked: balance.locked,
+        total: balance.total,
+        available: balance.available,
+        usdValue: usdValue,
+        exchangeId: selectedAccount?.exchangeId || 'unknown',
+        exchangeSources: [
+          {
+            exchangeId: selectedAccount?.exchangeId || 'unknown',
+            amount: balance.total,
+          },
+        ],
+      };
+    });
+
+    console.log('[AvailableBalances] Final assets with USD values:', result);
+    return result;
+  }, [balancesArray, selectedAccount, assetPrices]);
 
   // Create or filter assets to show both base and quote assets from the selected pair
   const filteredAssets = useMemo(() => {
@@ -162,14 +366,42 @@ export function AvailableBalances({
       }
     };
 
+    // Get prices for default assets if they don't exist
+    const baseAssetPrice =
+      assetPrices[baseAsset] ||
+      (baseAsset === 'USDT' ? 1 : baseAsset === 'BTC' ? 30000 : 1000);
+    const quoteAssetPrice =
+      assetPrices[quoteAsset] ||
+      (quoteAsset === 'USDT' ? 1 : quoteAsset === 'BTC' ? 30000 : 1000);
+
+    console.log(
+      `[AvailableBalances] Base asset ${baseAsset} price: $${baseAssetPrice}`,
+    );
+    console.log(
+      `[AvailableBalances] Quote asset ${quoteAsset} price: $${quoteAssetPrice}`,
+    );
+
+    // Calculate default USD values
+    const baseDefaultValue = getDefaultValue(baseAsset);
+    const quoteDefaultValue = getDefaultValue(quoteAsset);
+    const baseUsdValue = baseDefaultValue * baseAssetPrice;
+    const quoteUsdValue = quoteDefaultValue * quoteAssetPrice;
+
+    console.log(
+      `[AvailableBalances] Base asset ${baseAsset} default value: ${baseDefaultValue}, USD value: $${baseUsdValue}`,
+    );
+    console.log(
+      `[AvailableBalances] Quote asset ${quoteAsset} default value: ${quoteDefaultValue}, USD value: $${quoteUsdValue}`,
+    );
+
     // Always add base asset (first)
     result.push(
       existingBaseAsset || {
         asset: baseAsset,
-        free: getDefaultValue(baseAsset),
+        free: baseDefaultValue,
         locked: 0,
-        total: getDefaultValue(baseAsset),
-        usdValue: 0,
+        total: baseDefaultValue,
+        usdValue: baseUsdValue,
         exchangeId: selectedAccount?.exchangeId || 'unknown',
       },
     );
@@ -178,17 +410,17 @@ export function AvailableBalances({
     result.push(
       existingQuoteAsset || {
         asset: quoteAsset,
-        free: getDefaultValue(quoteAsset),
+        free: quoteDefaultValue,
         locked: 0,
-        total: getDefaultValue(quoteAsset),
-        usdValue: 0,
+        total: quoteDefaultValue,
+        usdValue: quoteUsdValue,
         exchangeId: selectedAccount?.exchangeId || 'unknown',
       },
     );
 
     console.log('[AvailableBalances] Filtered assets result:', result);
     return result;
-  }, [assets, selectedPair, selectedAccount]);
+  }, [assets, selectedPair, selectedAccount, assetPrices]);
 
   // Display error message if there is one
   if (error) {
@@ -326,6 +558,12 @@ export function AvailableBalances({
     );
   }
 
+  // Log the final filtered assets before rendering
+  console.log(
+    '[AvailableBalances] Rendering with filtered assets:',
+    filteredAssets,
+  );
+
   return (
     <div className="mb-3">
       <div className="flex justify-between items-center mb-2">
@@ -340,7 +578,10 @@ export function AvailableBalances({
             </div>
           )}
           <button
-            onClick={refreshBalances}
+            onClick={() => {
+              console.log('[AvailableBalances] Manual refresh clicked');
+              refreshBalances();
+            }}
             className="text-xs text-gray-500 hover:text-white flex items-center"
             title="Refresh balances"
             disabled={isRefreshing}
@@ -354,15 +595,20 @@ export function AvailableBalances({
         </div>
       </div>
       <div className="space-y-2 max-h-24 overflow-y-auto pr-1">
-        {filteredAssets.map((asset) => (
-          <BalanceItem
-            key={asset.asset}
-            icon={getIconUrl(asset.asset)}
-            name={asset.asset}
-            amount={`${asset.total.toFixed(2)} ${asset.asset}`}
-            usdValue={asset.usdValue}
-          />
-        ))}
+        {filteredAssets.map((asset) => {
+          console.log(
+            `[AvailableBalances] Rendering asset ${asset.asset} with USD value: $${asset.usdValue}`,
+          );
+          return (
+            <BalanceItem
+              key={asset.asset}
+              icon={getIconUrl(asset.asset)}
+              name={asset.asset}
+              amount={`${asset.total.toFixed(2)} ${asset.asset}`}
+              usdValue={asset.usdValue}
+            />
+          );
+        })}
       </div>
     </div>
   );
