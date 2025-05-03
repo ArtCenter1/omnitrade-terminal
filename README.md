@@ -1,6 +1,6 @@
-# OmniTrade Platform
+# OmniTrade Terminal
 
-A revolutionary, enterprise-grade AI-powered Crypto trading platform featuring cutting-edge LLM model customization. The platform seamlessly integrates blockchain technology to create a thriving ecosystem where community members earn tokens through referrals and valuable code contributions.
+A specialized terminal interface for the OmniTrade platform, providing advanced trading capabilities, real-time market data visualization, and AI-powered trading assistance. This terminal serves as the primary interface for traders to interact with the OmniTrade ecosystem.
 
 ## Key Features
 
@@ -52,8 +52,8 @@ A revolutionary, enterprise-grade AI-powered Crypto trading platform featuring c
 1.  **Clone the repository:**
 
     ```bash
-    git clone <YOUR_REPOSITORY_URL>
-    cd omnitrade
+    git clone https://github.com/ArtCenter1/omnitrade-terminal.git
+    cd omnitrade-terminal
     ```
 
 2.  **Install dependencies:**
@@ -142,18 +142,28 @@ Essential documentation is available in the `/docs` directory:
 
 ### Comprehensive Documentation
 
-For more detailed documentation, please visit our [GitHub Wiki](https://github.com/yourusername/omnitrade/wiki).
+For more detailed documentation, please visit our [GitHub Wiki](https://github.com/ArtCenter1/omnitrade-terminal/wiki).
 
 ### Project Management
 
-For roadmap, sprint planning, and task tracking, please visit our [GitHub Projects](https://github.com/yourusername/omnitrade/projects).
+For roadmap, sprint planning, and task tracking, please visit our [GitHub Projects](https://github.com/ArtCenter1/omnitrade-terminal/projects).
 
 Legacy planning documents and design decisions are located in the `/project_management` directory.
 
 ## Contributing
 
-(Contribution guidelines TBD)
+We welcome contributions to the OmniTrade Terminal! Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## Relationship to OmniTrade Platform
+
+The OmniTrade Terminal is a specialized component of the broader OmniTrade ecosystem. While it's maintained as a separate repository for focused development, it integrates with the core OmniTrade platform for authentication, data storage, and other shared services.
 
 ## License
 
-(License TBD)
+This project is licensed under the MIT License - see the LICENSE file for details.
