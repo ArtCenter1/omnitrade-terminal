@@ -1,32 +1,38 @@
-# Project Brief: OmniTrade
+# Project Brief: OmniTrade Terminal
 
-## Project Overview
+## Overview
+The OmniTrade Terminal is a comprehensive trading platform designed to integrate multiple cryptocurrency exchanges, provide advanced trading features, and offer a user-friendly interface for traders of all levels.
 
-OmniTrade is a comprehensive trading platform designed to integrate multiple exchange APIs, provide advanced trading features, and offer a user-friendly interface for traders.
+## Core Objectives
+1. Multi-exchange integration for unified trading experience
+2. Advanced market data analysis and visualization
+3. Robust trading bot functionality
+4. User-centric design with customizable interfaces
+5. Secure and scalable architecture
 
-## Core Requirements
+## Key Features
+- Multi-exchange support (initially focusing on Binance Testnet)
+- Real-time market data aggregation
+- Advanced charting and technical analysis tools
+- Customizable trading bots with strategy editor
+- Portfolio management and performance tracking
+- User authentication and authorization system
+- Responsive design for various screen sizes
 
-1. Multi-exchange support
-2. Advanced trading features (e.g., stop-loss, take-profit)
-3. Real-time market data integration
-4. User-friendly interface
-5. Secure authentication and authorization
+## Technical Requirements
+- Frontend: Modern web technologies (React, TypeScript, Vite)
+- Backend: Node.js with NestJS framework
+- Database: PostgreSQL with Prisma ORM
+- Real-time data: WebSockets for market data streaming
+- Authentication: JWT-based authentication system
 
-## Goals
+## Development Status
+The project is currently in active development with a focus on core features and exchange integrations.
 
-- Provide a unified trading experience across multiple exchanges
-- Offer advanced trading tools for experienced traders
-- Ensure high security and reliability
+## Next Steps
+1. Complete Binance Testnet integration
+2. Implement core trading bot functionality
+3. Develop user interface components
+4. Establish secure authentication and authorization system
 
-## Key Stakeholders
-
-- Traders (various experience levels)
-- Exchange API providers
-- Development team
-
-## Success Metrics
-
-- User adoption rate
-- Trading volume
-- User satisfaction ratings
-- System uptime and reliability
+This project brief serves as the foundation for all subsequent documentation and development decisions.
