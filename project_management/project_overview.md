@@ -1,57 +1,55 @@
-# OminiTrade Trading Platform - Project Overview
+# OmniTrade Terminal - Project Overview
 
 ## Vision
 
-A revolutionary, enterprise-grade AI-powered Crypto trading platform featuring cutting-edge LLM model customization. The platform seamlessly integrates blockchain technology to create a thriving ecosystem where community members earn tokens through referrals and valuable code contributions.
+A powerful, standalone trading terminal with a modular plugin architecture that enables traders to customize their workspace and extend functionality through plugins. The OmniTrade Terminal provides professional-grade trading tools with a focus on performance, extensibility, and user experience.
 
 ## Key Features
 
-1. **LLM Model Integration**
+1. **Modular Plugin Architecture**
 
-   - Customizable language models for trading insights
-   - Natural language interface for bot configuration
-   - Market sentiment analysis from social media and news sources
-   - Trading strategy recommendations
-   - Personalized risk assessment reports
-   - Real-time market narrative summaries
+   - Component registry system
+   - Extension point interfaces
+   - Plugin lifecycle management
+   - Plugin marketplace for distribution
 
-2. **Trading Bot Functionality**
+2. **Workspace Management**
 
-   - Automated trading strategies
-   - Real-time market data integration
-   - Customizable trading parameters
-   - Performance tracking and analytics
+   - Drag-and-drop layout customization
+   - Component slot system
+   - Workspace persistence
+   - Multiple workspace configurations
 
-3. **Blockchain Integration**
+3. **Essential Trading Components**
 
-   - Platform token implementation
-   - Reward system for referrals
-   - Reward system for code contributions
-   - Smart contract implementation for transparent reward distribution
+   - TradingView chart integration
+   - Order book visualization
+   - Order entry forms
+   - Market depth display
+   - Trade history
+   - Position management
 
-4. **User Interface**
+4. **Exchange Connectivity**
 
-   - Dashboard with key metrics and portfolio overview
-   - Terminal for manual trading and market analysis
-   - Bot configuration and management interfaces
-   - Market data visualization
-   - Earn/Rewards section
+   - Exchange adapter interface
+   - API key management
+   - Order execution service
+   - Portfolio tracking
 
-5. **Backend Infrastructure**
-   - User authentication and authorization
-   - Market data APIs
-   - Bot execution engine
-   - Database for user data and trading history
-   - Blockchain interaction layer
+5. **Data Services**
+   - Market data service
+   - Trading service
+   - WebSocket connection management
+   - Data normalization layer
 
 ## Technology Stack
 
 - **Frontend**: React, TypeScript, Tailwind CSS, shadcn/ui
-- **Backend**: Node.js/Express (or Firebase Functions - TBD based on specific needs)
-- **Database**: Firebase (Firestore/Realtime Database)
-- **Blockchain**: To be determined (Ethereum/Solana/others based on requirement analysis)
-- **LLM Integration**: To be determined (potentially OpenAI API, Anthropic, or other providers)
+- **State Management**: Zustand/Redux
+- **Charting**: TradingView integration
+- **Data Handling**: WebSocket, REST APIs
+- **Build Tools**: Vite, Bun
 
 ## Project Approach
 
-This project follows a phased development approach with clear milestones and deliverables. We maintain reference files for each feature to ensure continuity between development sessions, allowing for efficient progress tracking and knowledge transfer.
+This project follows a phased development approach with clear milestones and deliverables. The roadmap is divided into 5 phases with a 16-week timeline to reach the initial release. We prioritize building a solid foundation with the core terminal and plugin system before expanding to additional features.
