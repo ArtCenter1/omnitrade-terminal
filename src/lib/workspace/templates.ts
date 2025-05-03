@@ -10,6 +10,11 @@ import {
   WorkspaceTemplate
 } from './types';
 
+import { tabTraderTemplate } from './tabtrader-template';
+import { flexibleTabTemplate } from './flexible-tab-layout';
+import { demoTabLayout } from './demo-tab-layout';
+import { demoWorkspace } from './demo-workspace';
+
 /**
  * Default trading workspace template
  */
@@ -157,6 +162,10 @@ export const defaultAnalysisTemplate: WorkspaceTemplate = {
  */
 export function getDefaultTemplates(): WorkspaceTemplate[] {
   return [
+    demoWorkspace,
+    demoTabLayout,
+    flexibleTabTemplate,
+    tabTraderTemplate,
     defaultTradingTemplate,
     defaultAnalysisTemplate
   ];

@@ -6,6 +6,10 @@
 
 import { componentRegistry } from './index';
 import { ChartComponent } from '@/components/terminal/core/ChartComponent';
+import { DemoComponent } from '@/components/terminal/core/DemoComponent';
+import { OrdersComponent } from '@/components/terminal/core/OrdersComponent';
+import { OrderBookComponent as OrderBookComponentCore } from '@/components/terminal/core/OrderBookComponent';
+import { TradingFormComponent } from '@/components/terminal/core/TradingFormComponent';
 
 // Import wrapper components
 import { ChartSectionComponent } from '@/components/terminal/core/wrappers/ChartSectionWrapper';
@@ -21,6 +25,14 @@ export function initializeComponentRegistry(): void {
 
   // Register the sample chart component
   componentRegistry.register(ChartComponent);
+
+  // Register the demo component
+  componentRegistry.register(DemoComponent);
+
+  // Register core trading components
+  componentRegistry.register(OrdersComponent);
+  componentRegistry.register(OrderBookComponentCore);
+  componentRegistry.register(TradingFormComponent);
 
   // Register wrapper components for existing terminal components
   componentRegistry.register(ChartSectionComponent);

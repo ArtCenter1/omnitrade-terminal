@@ -1,0 +1,158 @@
+/**
+ * Draggable Tabs Styles
+ */
+
+/* Tab list styles */
+.tabs-list {
+  display: flex;
+  flex-wrap: wrap;
+  background-color: #1a1a1a;
+  border-bottom: 1px solid #333;
+  padding: 0 0.25rem;
+}
+
+/* Tab trigger styles */
+.tab-trigger {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  color: #a0a0a0;
+  background-color: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: move;
+  transition: all 0.2s ease;
+  user-select: none;
+  margin-right: 0.25rem;
+}
+
+.tab-trigger:hover {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.tab-trigger[data-state="active"] {
+  color: #fff;
+  border-bottom-color: #6366f1;
+  background-color: rgba(99, 102, 241, 0.1);
+}
+
+.tab-trigger.dragging {
+  opacity: 0.5;
+}
+
+/* Tab content styles */
+.tab-content {
+  display: none;
+  flex: 1;
+  padding: 0;
+  margin: 0;
+}
+
+.tab-content[data-state="active"] {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Drop indicator styles */
+.drop-indicator {
+  position: absolute;
+  height: 2px;
+  background-color: #6366f1;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.drop-indicator.vertical {
+  width: 2px;
+  height: 100%;
+}
+
+/* Stack styles */
+.stack-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border: 1px solid #333;
+  border-radius: 0.25rem;
+  overflow: hidden;
+}
+
+.stack-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem;
+  background-color: #1a1a1a;
+  border-bottom: 1px solid #333;
+}
+
+.stack-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #fff;
+}
+
+.stack-content {
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Drag handle styles */
+.drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  color: #a0a0a0;
+  cursor: move;
+}
+
+.drag-handle:hover {
+  color: #fff;
+}
+
+/* Close button styles */
+.close-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  color: #a0a0a0;
+  background-color: transparent;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  margin-left: 0.25rem;
+}
+
+.close-button:hover {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Resize handle styles */
+.resize-handle {
+  position: absolute;
+  background-color: transparent;
+  transition: background-color 0.2s ease;
+}
+
+.resize-handle:hover {
+  background-color: rgba(99, 102, 241, 0.3);
+}
+
+.resize-handle.horizontal {
+  height: 5px;
+  width: 100%;
+  cursor: ns-resize;
+}
+
+.resize-handle.vertical {
+  width: 5px;
+  height: 100%;
+  cursor: ew-resize;
+}

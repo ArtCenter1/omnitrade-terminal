@@ -75,6 +75,8 @@
 }
 
 /* Chart container styles moved to asset-chart.css */
+/* Draggable tabs styles */
+@import './styles/draggable-tabs.css';
 
 .pie-chart-container {
   height: 200px;

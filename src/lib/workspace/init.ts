@@ -25,13 +25,37 @@ export function initializeWorkspaceManager(): void {
   // Create default workspaces from templates if none exist
   const state = workspaceManager.getState();
   if (state.workspaces.length <= 1) { // Only the default empty workspace exists
+    // Create a workspace from the Demo Workspace template
+    const demoWorkspace = workspaceManager.createFromTemplate('demo-workspace', 'Demo Workspace');
+    if (demoWorkspace) {
+      console.log(`Created Demo workspace: ${demoWorkspace.name}`);
+
+      // Set as current workspace
+      workspaceManager.setCurrentWorkspace(demoWorkspace.id);
+    }
+
+    // Create a workspace from the Demo Tab Layout template
+    const demoTabWorkspace = workspaceManager.createFromTemplate('demo-tab-layout', 'Demo Tab Workspace');
+    if (demoTabWorkspace) {
+      console.log(`Created Demo Tab workspace: ${demoTabWorkspace.name}`);
+    }
+
+    // Create a workspace from the Flexible Tab Layout template
+    const flexibleTabWorkspace = workspaceManager.createFromTemplate('flexible-tab-layout', 'Flexible Tab Workspace');
+    if (flexibleTabWorkspace) {
+      console.log(`Created Flexible Tab workspace: ${flexibleTabWorkspace.name}`);
+    }
+
+    // Create a workspace from the TabTrader template
+    const tabTraderWorkspace = workspaceManager.createFromTemplate('tabtrader-inspired', 'TabTrader-Style Workspace');
+    if (tabTraderWorkspace) {
+      console.log(`Created TabTrader-style workspace: ${tabTraderWorkspace.name}`);
+    }
+
     // Create a workspace from the default trading template
     const tradingWorkspace = workspaceManager.createFromTemplate('default-trading', 'Trading Workspace');
     if (tradingWorkspace) {
       console.log(`Created default trading workspace: ${tradingWorkspace.name}`);
-
-      // Set as current workspace
-      workspaceManager.setCurrentWorkspace(tradingWorkspace.id);
     }
 
     // Create a custom workspace
