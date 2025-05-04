@@ -2,7 +2,8 @@ import axios from 'axios';
 import { TradingPair } from '@/types/trading';
 
 // Define the base URL for CoinGecko API
-const COINGECKO_API_URL = 'https://api.coingecko.com/api/v3';
+// Use our backend proxy to avoid CORS issues and benefit from caching and rate limit handling
+const COINGECKO_API_URL = '/api/proxy/coingecko';
 
 // Interface for CoinGecko coin data
 export interface CoinGeckoData {
@@ -24,7 +25,48 @@ const coinDataCache: Record<string, CoinGeckoData> = {};
 const symbolToIdCache: Record<string, string> = {};
 let allCoinsCache: CoinGeckoData[] = [];
 let lastCacheUpdate = 0;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes (increased from 5)
+
+/**
+ * Helper function to retry API calls with exponential backoff
+ */
+async function retryApiCall<T>(
+  apiCall: () => Promise<T>,
+  maxRetries: number = 3,
+  initialBackoff: number = 1000
+): Promise<T> {
+  let retryCount = 0;
+
+  while (true) {
+    try {
+      return await apiCall();
+    } catch (error) {
+      retryCount++;
+
+      // If we've reached max retries or it's not a retryable error, throw
+      if (
+        retryCount >= maxRetries ||
+        !(axios.isAxiosError(error) &&
+          (error.response?.status === 429 || // Rate limit
+           error.response?.status === 500 || // Server error
+           error.response?.status === 502 || // Bad gateway
+           error.response?.status === 503 || // Service unavailable
+           error.response?.status === 504 || // Gateway timeout
+           !error.response)) // Network error
+      ) {
+        throw error;
+      }
+
+      // Calculate backoff time with jitter
+      const backoffTime = initialBackoff * Math.pow(2, retryCount - 1);
+      const jitter = backoffTime * 0.2 * (Math.random() * 2 - 1);
+      const waitTime = Math.max(1, Math.floor(backoffTime + jitter));
+
+      console.warn(`API call failed, retrying in ${waitTime}ms (${retryCount}/${maxRetries})`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+  }
+}
 
 /**
  * Fetch top cryptocurrencies from CoinGecko
@@ -37,17 +79,20 @@ export async function getTopCoins(limit = 100): Promise<CoinGeckoData[]> {
       return allCoinsCache.slice(0, limit);
     }
 
-    // Fetch data from CoinGecko
-    const response = await axios.get(`${COINGECKO_API_URL}/coins/markets`, {
-      params: {
-        vs_currency: 'usd',
-        order: 'market_cap_desc',
-        per_page: limit,
-        page: 1,
-        sparkline: true,
-        price_change_percentage: '24h',
-      },
-    });
+    // Fetch data from CoinGecko with retry
+    const response = await retryApiCall(() =>
+      axios.get(`${COINGECKO_API_URL}/coins/markets`, {
+        params: {
+          vs_currency: 'usd',
+          order: 'market_cap_desc',
+          per_page: limit,
+          page: 1,
+          sparkline: true,
+          price_change_percentage: '24h',
+        },
+        timeout: 15000, // 15 second timeout
+      })
+    );
 
     // Update cache
     allCoinsCache = response.data;
@@ -63,8 +108,20 @@ export async function getTopCoins(limit = 100): Promise<CoinGeckoData[]> {
     return response.data;
   } catch (error) {
     console.error('Error fetching data from CoinGecko:', error);
+
+    // Check if it's a rate limit error
+    if (axios.isAxiosError(error) && error.response?.status === 429) {
+      console.warn('CoinGecko rate limit reached. Using cached data.');
+    }
+
     // Return cached data if available, otherwise empty array
-    return allCoinsCache.length > 0 ? allCoinsCache.slice(0, limit) : [];
+    if (allCoinsCache.length > 0) {
+      console.log(`Using cached data (${allCoinsCache.length} coins)`);
+      return allCoinsCache.slice(0, limit);
+    }
+
+    console.warn('No cached data available. Returning empty array.');
+    return [];
   }
 }
 
@@ -98,16 +155,19 @@ export async function getCoinBySymbol(
       return coinDataCache[coinId];
     }
 
-    // Fetch specific coin data
-    const response = await axios.get(`${COINGECKO_API_URL}/coins/${coinId}`, {
-      params: {
-        localization: false,
-        tickers: false,
-        market_data: true,
-        community_data: false,
-        developer_data: false,
-      },
-    });
+    // Fetch specific coin data with retry
+    const response = await retryApiCall(() =>
+      axios.get(`${COINGECKO_API_URL}/coins/${coinId}`, {
+        params: {
+          localization: false,
+          tickers: false,
+          market_data: true,
+          community_data: false,
+          developer_data: false,
+        },
+        timeout: 15000, // 15 second timeout
+      })
+    );
 
     // Format the response to match our interface
     const coinData: CoinGeckoData = {
@@ -234,15 +294,18 @@ export async function getHistoricalPriceData(
   interval: string = 'daily',
 ): Promise<{ prices: [number, number][] }> {
   try {
-    const response = await axios.get(
-      `${COINGECKO_API_URL}/coins/${coinId}/market_chart`,
-      {
-        params: {
-          vs_currency: 'usd',
-          days: days,
-          interval: interval,
+    const response = await retryApiCall(() =>
+      axios.get(
+        `${COINGECKO_API_URL}/coins/${coinId}/market_chart`,
+        {
+          params: {
+            vs_currency: 'usd',
+            days: days,
+            interval: interval,
+          },
+          timeout: 15000, // 15 second timeout
         },
-      },
+      )
     );
 
     return response.data;

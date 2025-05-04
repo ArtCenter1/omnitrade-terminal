@@ -41,12 +41,40 @@ jobs:
         run: npm run build
         env:
           # Set base path for GitHub Pages
-          VITE_BASE_PATH: '/omnitrade-terminal'
+          VITE_BASE_PATH: '/omnitrade-terminal/'
           VITE_USE_MOCK_API: 'true'
+          NODE_ENV: 'production'
 
       # Create a .nojekyll file to prevent GitHub Pages from ignoring files that begin with an underscore
       - name: Add .nojekyll file
         run: touch ./dist/.nojekyll
+
+      # Copy essential files to the root of the dist directory
+      - name: Copy essential files to root
+        run: |
+          cp ./public/placeholder.svg ./dist/
+          cp ./public/404.html ./dist/
+
+      # Update the index.html to use the correct script path for production
+      - name: Update index.html for production
+        run: |
+          # Fix the script and CSS paths to use relative paths instead of absolute
+          sed -i 's|src="/omnitrade-terminal/assets/|src="./assets/|g' ./dist/index.html
+          sed -i 's|href="/omnitrade-terminal/assets/|href="./assets/|g' ./dist/index.html
+
+      # Create a simple fallback script just in case
+      - name: Create fallback script
+        run: |
+          echo "console.log('Fallback script loaded');" > ./dist/main.js
+          echo "document.addEventListener('DOMContentLoaded', function() { console.log('DOM loaded'); });" >> ./dist/main.js
+
+      # Verify the build output
+      - name: Verify build output
+        run: |
+          echo "Checking index.html content:"
+          cat ./dist/index.html
+          echo "Checking for asset files:"
+          ls -la ./dist/assets/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

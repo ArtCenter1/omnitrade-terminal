@@ -9,12 +9,26 @@ import path from 'path';
 export default defineConfig(({ mode }) => ({
   // Base path for GitHub Pages deployment
   base: process.env.VITE_BASE_PATH || '/',
+
+  // Force base path for GitHub Pages in production build
+  ...(process.env.NODE_ENV === 'production' && {
+    base: '/omnitrade-terminal/'
+  }),
+  // Ensure assets are properly handled
+  build: {
+    assetsInlineLimit: 0, // Don't inline any assets as data URLs
+    rollupOptions: {
+      output: {
+        manualChunks: undefined, // Don't split chunks for GitHub Pages
+      },
+    },
+  },
   server: {
     host: '::',
     port: 8080,
     proxy: {
       '/api': {
-        target: 'http://localhost:3000', // Your backend server (default port)
+        target: 'http://localhost:8888', // Your backend server (updated port)
         changeOrigin: true,
         // Add error handling for proxy
         configure: (proxy, _options) => {
