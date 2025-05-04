@@ -1,0 +1,20 @@
+# Proper MIME type for JavaScript modules
+<IfModule mod_mime.c>
+  AddType text/javascript .js
+  AddType text/javascript .mjs
+</IfModule>
+
+# Proper MIME type for SVG files
+<IfModule mod_mime.c>
+  AddType image/svg+xml .svg
+</IfModule>
+
+# Handle SPA routing
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /omnitrade-terminal/
+  RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule . /omnitrade-terminal/index.html [L]
+</IfModule>
