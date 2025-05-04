@@ -9,6 +9,11 @@ import path from 'path';
 export default defineConfig(({ mode }) => ({
   // Base path for GitHub Pages deployment
   base: process.env.VITE_BASE_PATH || '/',
+
+  // Force base path for GitHub Pages in production build
+  ...(process.env.NODE_ENV === 'production' && {
+    base: '/omnitrade-terminal/'
+  }),
   // Ensure assets are properly handled
   build: {
     assetsInlineLimit: 0, // Don't inline any assets as data URLs
