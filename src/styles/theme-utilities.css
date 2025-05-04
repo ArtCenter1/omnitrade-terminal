@@ -1,4 +1,12 @@
-/* Theme Utility Classes */
+/*
+ * OmniTrade Terminal Theme Utility Classes
+ *
+ * This file provides utility classes that make it easy to apply theme variables
+ * consistently throughout the application. These classes should be used when
+ * Tailwind's built-in classes are not sufficient.
+ *
+ * All variables referenced here are defined in theme-variables.css
+ */
 
 /* Background Colors */
 .bg-theme-primary {
@@ -126,19 +134,19 @@
 
 /* Status Colors */
 .text-theme-success {
-  color: var(--success-color);
+  color: var(--button-success);
 }
 
 .text-theme-error {
-  color: var(--error-color);
+  color: var(--button-danger);
 }
 
 .text-theme-warning {
-  color: var(--warning-color);
+  color: var(--crypto-yellow, #f3ba2f);
 }
 
 .text-theme-info {
-  color: var(--info-color);
+  color: var(--text-link);
 }
 
 /* Shadow Utilities */
@@ -237,6 +245,43 @@
 /* Transition Utilities */
 .theme-transition {
   transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
+  transition-timing-function: var(--easing-standard);
+  transition-duration: var(--transition-normal);
+}
+
+.theme-transition-fast {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: var(--easing-standard);
+  transition-duration: var(--transition-fast);
+}
+
+.theme-transition-slow {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: var(--easing-standard);
+  transition-duration: var(--transition-slow);
+}
+
+/* Crypto-specific utilities */
+.text-crypto-up {
+  color: var(--crypto-green);
+}
+
+.text-crypto-down {
+  color: var(--crypto-red);
+}
+
+.text-crypto-neutral {
+  color: var(--crypto-purple);
+}
+
+.bg-crypto-up {
+  background-color: var(--crypto-green);
+}
+
+.bg-crypto-down {
+  background-color: var(--crypto-red);
+}
+
+.bg-crypto-neutral {
+  background-color: var(--crypto-purple);
 }

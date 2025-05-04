@@ -1,0 +1,160 @@
+/* 
+ * OmniTrade Terminal Theme Variables
+ * 
+ * This file serves as the single source of truth for all theme variables
+ * used throughout the application. All other theme files should reference
+ * these variables rather than defining their own.
+ */
+
+:root {
+  /* Base colors - used by Tailwind through CSS variables */
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 267 100% 81%;
+  --primary-foreground: 240 5.9% 10%;
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --accent: 240 3.7% 15.9%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --ring: 240 4.9% 83.9%;
+  --radius: 0.5rem;
+
+  /* Background colors */
+  --bg-primary: #0f0f11; /* Main background */
+  --bg-secondary: #1a1a1c; /* Card background */
+  --bg-tertiary: #2a2a2c; /* Secondary elements */
+  --bg-card: #1a1a1c; /* Dashboard cards */
+  --bg-chart: #1a1a1c; /* Chart background */
+  --bg-popup: #252527; /* Popup/modal background */
+  --bg-sidebar: #0f0f11; /* Sidebar background */
+  --bg-navbar: #131722; /* Navigation bar */
+  --bg-dropdown: #252527; /* Dropdown menus */
+  --bg-hover: rgba(255, 255, 255, 0.05);
+  --bg-active: rgba(255, 255, 255, 0.1);
+  --bg-selected: rgba(103, 58, 183, 0.3); /* Selected tab highlight */
+  --bg-tab-active: #673ab7; /* Active tab indicator */
+
+  /* Text colors */
+  --text-primary: #ffffff;
+  --text-secondary: #a0a0a6;
+  --text-tertiary: #6c6c74;
+  --text-disabled: #4a4a4a;
+  --text-link: #9575cd;
+  --text-link-hover: #b39ddb;
+
+  /* Border colors */
+  --border-primary: #2a2a2c;
+  --border-secondary: #3a3a3c;
+  --border-tertiary: #4a4a4c;
+  --border-focus: #673ab7;
+
+  /* Button colors */
+  --button-primary: #673ab7;
+  --button-primary-hover: #7e57c2;
+  --button-secondary: #2a2a2c;
+  --button-secondary-hover: #3a3a3c;
+  --button-danger: #e53935;
+  --button-danger-hover: #f44336;
+  --button-success: #43a047;
+  --button-success-hover: #4caf50;
+
+  /* Crypto-specific colors */
+  --crypto-green: #00c853;
+  --crypto-red: #ff3d71;
+  --crypto-purple: #673ab7;
+  --crypto-green-hover: rgba(0, 200, 83, 0.9);
+  --crypto-red-hover: rgba(255, 61, 113, 0.9);
+  --crypto-purple-hover: rgba(103, 58, 183, 0.9);
+
+  /* Shadow */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+
+  /* Animation */
+  --transition-fast: 150ms;
+  --transition-normal: 300ms;
+  --transition-slow: 500ms;
+  --easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Light theme overrides */
+.light {
+  /* Base colors - used by Tailwind through CSS variables */
+  --background: 0 0% 100%;
+  --foreground: 240 10% 3.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 3.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 3.9%;
+  --primary: 267 100% 81%;
+  --primary-foreground: 240 5.9% 10%;
+  --secondary: 240 4.8% 95.9%;
+  --secondary-foreground: 240 5.9% 10%;
+  --muted: 240 4.8% 95.9%;
+  --muted-foreground: 240 3.8% 46.1%;
+  --accent: 240 4.8% 95.9%;
+  --accent-foreground: 240 5.9% 10%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 5.9% 90%;
+  --input: 240 5.9% 90%;
+  --ring: 240 5.9% 10%;
+
+  /* Background colors */
+  --bg-primary: #f5f5fa; /* Main background - light gray */
+  --bg-secondary: #ffffff; /* Card background - white */
+  --bg-tertiary: #e8e8f0; /* Secondary elements */
+  --bg-card: #ffffff; /* Dashboard cards - white */
+  --bg-chart: #ffffff; /* Chart background - white */
+  --bg-popup: #ffffff; /* Popup/modal background */
+  --bg-sidebar: #f5f5fa; /* Sidebar background */
+  --bg-navbar: #f5f5fa; /* Navigation bar - light theme */
+  --bg-dropdown: #ffffff; /* Dropdown menus */
+  --bg-hover: rgba(0, 0, 0, 0.05);
+  --bg-active: rgba(0, 0, 0, 0.1);
+  --bg-selected: rgba(103, 58, 183, 0.1); /* Selected tab highlight */
+  --bg-tab-active: #673ab7; /* Active tab indicator */
+
+  /* Text colors */
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --text-tertiary: #888888;
+  --text-disabled: #bbbbbb;
+  --text-link: #673ab7;
+  --text-link-hover: #9575cd;
+
+  /* Border colors */
+  --border-primary: #e8e8f0;
+  --border-secondary: #d8d8e0;
+  --border-tertiary: #c8c8d0;
+  --border-focus: #673ab7;
+
+  /* Button colors */
+  --button-primary: #673ab7;
+  --button-primary-hover: #7e57c2;
+  --button-secondary: #f0f0f5;
+  --button-secondary-hover: #e0e0e5;
+  --button-danger: #f44336;
+  --button-danger-hover: #e53935;
+  --button-success: #4caf50;
+  --button-success-hover: #43a047;
+
+  /* Crypto-specific colors - adjusted for light theme */
+  --crypto-green: #00a844;
+  --crypto-red: #e82d61;
+  --crypto-purple: #673ab7;
+  --crypto-green-hover: rgba(0, 168, 68, 0.9);
+  --crypto-red-hover: rgba(232, 45, 97, 0.9);
+  --crypto-purple-hover: rgba(103, 58, 183, 0.9);
+}

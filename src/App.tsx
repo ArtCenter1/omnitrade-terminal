@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Route, Routes, useLocation, Navigate } from 'react-router-dom';
-import '@/styles/themes.css';
 import '@/styles/components.css';
 import { Toaster } from '@/components/ui/sonner';
 import GitHubPagesBanner from '@/components/ui/github-pages-banner';
@@ -37,6 +36,7 @@ import Security from './pages/profile/Security';
 import ChangePassword from './pages/profile/ChangePassword';
 import Preferences from './pages/profile/Preferences';
 import PlanSubscription from './pages/profile/PlanSubscription';
+import StyleGuidePage from './pages/StyleGuidePage';
 // Exchange Demo page removed
 import { useAuth } from './hooks/useAuth';
 
@@ -174,6 +174,9 @@ function App() {
             }
           />
           <Route path="/ai-driven" element={<AIDrivenPage />} />
+
+          {/* Style Guide route - accessible to everyone for development */}
+          <Route path="/style-guide" element={<StyleGuidePage />} />
 
           {/* Demo routes removed */}
 

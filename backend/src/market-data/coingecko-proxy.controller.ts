@@ -26,61 +26,62 @@ export class CoinGeckoProxyController {
 
   // Request throttling
   private requestTimestamps: number[] = [];
-  private readonly MAX_REQUESTS_PER_MINUTE = 15; // Extremely conservative limit for free tier (reduced from 30)
+  private readonly MAX_REQUESTS_PER_MINUTE = 10; // Ultra conservative limit for free tier (reduced from 15)
   private readonly REQUEST_WINDOW_MS = 60000; // 1 minute window
+  private readonly RATE_LIMIT_COOLDOWN_MS = 300000; // 5 minute cooldown after hitting rate limit
 
   // Cache TTLs for different endpoint types (in seconds)
   private readonly cacheTtls: Record<string, number> = {
     // Market data endpoints
-    'coins/markets': 3600, // 60 minutes (increased from 30)
-    'coins/list': 28800, // 8 hours (increased from 4)
-    'coins/categories/list': 28800, // 8 hours (increased from 4)
-    'coins/categories': 28800, // 8 hours (increased from 4)
+    'coins/markets': 7200, // 120 minutes (increased from 60)
+    'coins/list': 86400, // 24 hours (increased from 8)
+    'coins/categories/list': 86400, // 24 hours (increased from 8)
+    'coins/categories': 86400, // 24 hours (increased from 8)
 
     // Static data that rarely changes
-    'coins/*/contract/*': 14400, // 4 hours (increased from 2)
-    'coins/*/history': 259200, // 72 hours for historical data (increased from 48)
-    'asset_platforms': 259200, // 72 hours (increased from 48)
-    'exchanges/list': 259200, // 72 hours (increased from 48)
+    'coins/*/contract/*': 28800, // 8 hours (increased from 4)
+    'coins/*/history': 604800, // 7 days for historical data (increased from 72 hours)
+    'asset_platforms': 604800, // 7 days (increased from 72 hours)
+    'exchanges/list': 604800, // 7 days (increased from 72 hours)
 
     // Price data endpoints (more frequent updates needed)
-    'simple/price': 600, // 10 minutes (increased from 5)
-    'simple/token_price': 600, // 10 minutes (increased from 5)
-    'coins/*/tickers': 600, // 10 minutes (increased from 3)
+    'simple/price': 900, // 15 minutes (increased from 10)
+    'simple/token_price': 900, // 15 minutes (increased from 10)
+    'coins/*/tickers': 900, // 15 minutes (increased from 10)
 
     // OHLC and chart data
-    'coins/*/market_chart': 3600, // 60 minutes (increased from 30)
-    'coins/*/ohlc': 3600, // 60 minutes (increased from 30)
+    'coins/*/market_chart': 7200, // 120 minutes (increased from 60)
+    'coins/*/ohlc': 7200, // 120 minutes (increased from 60)
 
     // Default for other endpoints
-    default: 600, // 10 minutes (increased from 5)
+    default: 1800, // 30 minutes (increased from 10)
   };
 
   // Stale TTLs - how long to consider data usable after expiration (in seconds)
   private readonly staleTtls: Record<string, number> = {
     // Market data endpoints can be stale for longer
-    'coins/markets': 14400, // 4 hours stale data is acceptable (increased from 2 hours)
-    'coins/list': 259200, // 72 hours (increased from 48)
-    'coins/categories/list': 259200, // 72 hours (increased from 48)
-    'coins/categories': 259200, // 72 hours (increased from 48)
+    'coins/markets': 86400, // 24 hours stale data is acceptable (increased from 4 hours)
+    'coins/list': 604800, // 7 days (increased from 72 hours)
+    'coins/categories/list': 604800, // 7 days (increased from 72 hours)
+    'coins/categories': 604800, // 7 days (increased from 72 hours)
 
     // Static data can be stale for very long
-    'coins/*/contract/*': 259200, // 72 hours (increased from 48)
-    'coins/*/history': 2592000, // 30 days (increased from 14)
-    'asset_platforms': 2592000, // 30 days (increased from 14)
-    'exchanges/list': 2592000, // 30 days (increased from 14)
+    'coins/*/contract/*': 604800, // 7 days (increased from 72 hours)
+    'coins/*/history': 5184000, // 60 days (increased from 30 days)
+    'asset_platforms': 5184000, // 60 days (increased from 30 days)
+    'exchanges/list': 5184000, // 60 days (increased from 30 days)
 
     // Price data should not be stale for too long, but we can still increase a bit
-    'simple/price': 1800, // 30 minutes (increased from 10)
-    'simple/token_price': 1800, // 30 minutes (increased from 10)
-    'coins/*/tickers': 1800, // 30 minutes (increased from 10)
+    'simple/price': 3600, // 60 minutes (increased from 30)
+    'simple/token_price': 3600, // 60 minutes (increased from 30)
+    'coins/*/tickers': 3600, // 60 minutes (increased from 30)
 
     // OHLC and chart data
-    'coins/*/market_chart': 14400, // 4 hours (increased from 2)
-    'coins/*/ohlc': 14400, // 4 hours (increased from 2)
+    'coins/*/market_chart': 86400, // 24 hours (increased from 4)
+    'coins/*/ohlc': 86400, // 24 hours (increased from 4)
 
     // Default for other endpoints
-    default: 3600, // 60 minutes (increased from 30)
+    default: 7200, // 120 minutes (increased from 60)
   };
 
   // Endpoint priority levels (higher number = higher priority)
@@ -128,8 +129,8 @@ export class CoinGeckoProxyController {
   ) {
     // Register the CoinGecko circuit breaker with custom config
     this.circuitBreakerService.registerCircuit(this.CIRCUIT_NAME, {
-      failureThreshold: 2, // Reduced from 3 to be even more sensitive to rate limiting
-      resetTimeout: 300 * 1000, // 5 minutes (increased from 2 minutes)
+      failureThreshold: 1, // Reduced from 2 to be immediately sensitive to rate limiting
+      resetTimeout: 600 * 1000, // 10 minutes (increased from 5 minutes)
       halfOpenMaxRequests: 1, // Keep at 1 to be cautious when testing if service is back
     });
 
@@ -150,7 +151,19 @@ export class CoinGeckoProxyController {
     );
 
     // Check if we've made too many requests
-    return this.requestTimestamps.length < this.MAX_REQUESTS_PER_MINUTE;
+    const underRateLimit = this.requestTimestamps.length < this.MAX_REQUESTS_PER_MINUTE;
+
+    // Check if we've had a recent rate limit error
+    const lastRateLimitError = this.circuitBreakerService.getLastFailureTime(this.CIRCUIT_NAME);
+    const inCooldownPeriod = lastRateLimitError && (now - lastRateLimitError < this.RATE_LIMIT_COOLDOWN_MS);
+
+    if (inCooldownPeriod) {
+      this.logger.warn(`In rate limit cooldown period (${Math.round((now - lastRateLimitError) / 1000)}s elapsed of ${this.RATE_LIMIT_COOLDOWN_MS / 1000}s cooldown)`);
+      // If we're in cooldown, only allow 1 request per minute (ultra conservative)
+      return this.requestTimestamps.length === 0;
+    }
+
+    return underRateLimit;
   }
 
   /**
@@ -343,7 +356,7 @@ export class CoinGeckoProxyController {
       // Check circuit breaker state
       const circuitClosed = this.circuitBreakerService.isAllowed(this.CIRCUIT_NAME);
 
-      // If circuit is open and this is not a critical endpoint, return stale data or error
+      // If circuit is open and this is not a critical endpoint, return stale data, mock data, or error
       if (!circuitClosed && !isCritical) {
         this.logger.warn(`Circuit breaker open, blocking non-critical request to ${endpoint}`);
 
@@ -354,7 +367,14 @@ export class CoinGeckoProxyController {
           return JSON.parse(staleData) as CoinGeckoResponse;
         }
 
-        // No stale data available, return error
+        // Try to get mock data
+        const mockData = await this.getMockDataForEndpoint(endpoint, params);
+        if (mockData) {
+          this.logger.warn(`Using mock data for ${targetUrl} due to open circuit breaker`);
+          return mockData;
+        }
+
+        // No stale or mock data available, return error
         throw new HttpException(
           'Service temporarily unavailable due to rate limiting. Please try again later.',
           503
@@ -407,6 +427,11 @@ export class CoinGeckoProxyController {
         const mockData = await this.getMockDataForEndpoint(endpoint, params);
         if (mockData) {
           this.logger.log(`Using mock data for ${targetUrl} due to rate limiting`);
+
+          // Cache the mock data as real data with a short TTL
+          // This helps prevent repeated mock data generation
+          await this.redisService.set(cacheKey, JSON.stringify(mockData), 300); // 5 minutes
+
           return mockData;
         }
 
@@ -485,7 +510,23 @@ export class CoinGeckoProxyController {
     const cachedMock = await this.redisService.get(mockCacheKey);
 
     if (cachedMock) {
+      this.logger.log(`Using cached mock data for ${endpoint}`);
       return JSON.parse(cachedMock) as CoinGeckoResponse;
+    }
+
+    // Try to get the most recent real data from cache, even if expired
+    // This is better than generating mock data if we have real data
+    const realCacheKey = `coingecko:${endpoint}:${JSON.stringify(params)}`;
+    const staleRealData = await this.redisService.getWithoutExpiry(realCacheKey);
+
+    if (staleRealData) {
+      this.logger.log(`Using stale real data as mock for ${endpoint}`);
+      const realData = JSON.parse(staleRealData) as CoinGeckoResponse;
+
+      // Cache this as mock data for future use
+      await this.redisService.set(mockCacheKey, staleRealData, 86400 * 30); // Cache for 30 days
+
+      return realData;
     }
 
     // Generate mock data based on endpoint
@@ -500,14 +541,28 @@ export class CoinGeckoProxyController {
     } else if (endpoint.includes('coins/') && endpoint.includes('/market_chart')) {
       // Mock data for market chart
       mockData = this.generateMockMarketChart(params);
-    } else if (endpoint === 'coins/bitcoin' || endpoint.includes('coins/bitcoin?')) {
-      // Mock data for Bitcoin
-      mockData = this.generateMockBitcoinData(params);
+    } else if (endpoint.match(/coins\/[^\/]+$/)) {
+      // Mock data for any coin details, not just bitcoin
+      const coinId = endpoint.split('/').pop() || 'bitcoin';
+      mockData = this.generateMockCoinData(coinId, params);
+    } else if (endpoint.includes('/tickers')) {
+      // Mock data for tickers
+      mockData = this.generateMockTickers(params);
+    } else if (endpoint.includes('coins/list')) {
+      // Mock data for coins list
+      mockData = this.generateMockCoinsList();
+    } else if (endpoint.includes('search')) {
+      // Mock data for search
+      mockData = this.generateMockSearch(params);
+    } else {
+      // For any other endpoint, generate a generic response
+      mockData = { mock: true, endpoint, timestamp: new Date().toISOString() };
     }
 
     // Cache the mock data if generated
     if (mockData) {
-      await this.redisService.set(mockCacheKey, JSON.stringify(mockData), 86400 * 7); // Cache for 7 days (increased from 24 hours)
+      this.logger.log(`Generated and cached mock data for ${endpoint}`);
+      await this.redisService.set(mockCacheKey, JSON.stringify(mockData), 86400 * 30); // Cache for 30 days
     }
 
     return mockData;
@@ -673,166 +728,325 @@ export class CoinGeckoProxyController {
   }
 
   /**
-   * Generate mock data for Bitcoin
+   * Generate mock data for any coin
    */
-  private generateMockBitcoinData(params: Record<string, any>): CoinGeckoResponse {
-    this.logger.log('Generating mock Bitcoin data');
+  private generateMockCoinData(coinId: string, params: Record<string, any>): CoinGeckoResponse {
+    this.logger.log(`Generating mock data for coin: ${coinId}`);
+
+    // Get coin info from our base coins list
+    const baseCoins = [
+      { id: 'bitcoin', symbol: 'btc', name: 'Bitcoin', algorithm: 'SHA-256', category: 'Layer 1' },
+      { id: 'ethereum', symbol: 'eth', name: 'Ethereum', algorithm: 'Ethash', category: 'Layer 1' },
+      { id: 'binancecoin', symbol: 'bnb', name: 'Binance Coin', algorithm: 'BEP-2', category: 'Exchange Token' },
+      { id: 'ripple', symbol: 'xrp', name: 'XRP', algorithm: 'RPCA', category: 'Payment' },
+      { id: 'cardano', symbol: 'ada', name: 'Cardano', algorithm: 'Ouroboros', category: 'Layer 1' },
+      { id: 'solana', symbol: 'sol', name: 'Solana', algorithm: 'Proof of History', category: 'Layer 1' },
+      { id: 'polkadot', symbol: 'dot', name: 'Polkadot', algorithm: 'NPoS', category: 'Layer 0' },
+      { id: 'dogecoin', symbol: 'doge', name: 'Dogecoin', algorithm: 'Scrypt', category: 'Meme' },
+      { id: 'avalanche-2', symbol: 'avax', name: 'Avalanche', algorithm: 'Avalanche', category: 'Layer 1' },
+      { id: 'chainlink', symbol: 'link', name: 'Chainlink', algorithm: 'n/a', category: 'Oracle' },
+    ];
+
+    // Find the coin or use bitcoin as default
+    const coinInfo = baseCoins.find(c => c.id === coinId) ||
+                    { id: coinId, symbol: coinId.substring(0, 4), name: coinId.charAt(0).toUpperCase() + coinId.slice(1), algorithm: 'Unknown', category: 'Other' };
+
+    // Generate price based on the coin
+    const price = this.getRandomPrice(coinInfo.id);
 
     return {
-      id: 'bitcoin',
-      symbol: 'btc',
-      name: 'Bitcoin',
+      id: coinInfo.id,
+      symbol: coinInfo.symbol,
+      name: coinInfo.name,
       asset_platform_id: null,
       platforms: {
         '': '',
       },
       block_time_in_minutes: 10,
-      hashing_algorithm: 'SHA-256',
-      categories: ['Cryptocurrency', 'Layer 1'],
+      hashing_algorithm: coinInfo.algorithm,
+      categories: [coinInfo.category, 'Cryptocurrency'],
       public_notice: null,
       additional_notices: [],
       localization: {
-        en: 'Bitcoin',
-        de: 'Bitcoin',
-        es: 'Bitcoin',
-        fr: 'Bitcoin',
-        it: 'Bitcoin',
-        pl: 'Bitcoin',
-        ro: 'Bitcoin',
-        hu: 'Bitcoin',
-        nl: 'Bitcoin',
-        pt: 'Bitcoin',
-        sv: 'Bitcoin',
-        vi: 'Bitcoin',
-        tr: 'Bitcoin',
-        ru: 'Биткоин',
-        ja: 'ビットコイン',
-        zh: '比特币',
-        'zh-tw': '比特幣',
-        ko: '비트코인',
-        ar: 'بيتكوين',
-        th: 'บิตคอยน์',
-        id: 'Bitcoin',
-        cs: 'Bitcoin',
-        da: 'Bitcoin',
-        el: 'Bitcoin',
-        hi: 'Bitcoin',
-        no: 'Bitcoin',
-        sk: 'Bitcoin',
-        uk: 'Bitcoin',
-        he: 'Bitcoin',
-        fi: 'Bitcoin',
-        bg: 'Bitcoin',
-        hr: 'Bitcoin',
-        lt: 'Bitcoin',
-        sl: 'Bitcoin',
+        en: coinInfo.name,
+        de: coinInfo.name,
+        es: coinInfo.name,
+        fr: coinInfo.name,
+        it: coinInfo.name,
+        pl: coinInfo.name,
+        ro: coinInfo.name,
+        hu: coinInfo.name,
+        nl: coinInfo.name,
+        pt: coinInfo.name,
+        sv: coinInfo.name,
+        vi: coinInfo.name,
+        tr: coinInfo.name,
+        ru: coinInfo.name,
+        ja: coinInfo.name,
+        zh: coinInfo.name,
+        'zh-tw': coinInfo.name,
+        ko: coinInfo.name,
+        ar: coinInfo.name,
+        th: coinInfo.name,
+        id: coinInfo.name,
       },
       description: {
-        en: 'Bitcoin is the first successful internet money based on peer-to-peer technology; whereby no central bank or authority is involved in the transaction and production of the Bitcoin currency. It was created by an anonymous individual/group under the name, Satoshi Nakamoto. The source code is available publicly as an open source project, anybody can look at it and be part of the developmental process.',
+        en: `${coinInfo.name} is a cryptocurrency that aims to provide a decentralized solution for digital transactions.`,
       },
       image: {
-        thumb: 'https://assets.coingecko.com/coins/images/1/thumb/bitcoin.png?1547033579',
-        small: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png?1547033579',
-        large: 'https://assets.coingecko.com/coins/images/1/large/bitcoin.png?1547033579',
+        thumb: `https://assets.coingecko.com/coins/images/1/thumb/${coinInfo.id}.png?1547033579`,
+        small: `https://assets.coingecko.com/coins/images/1/small/${coinInfo.id}.png?1547033579`,
+        large: `https://assets.coingecko.com/coins/images/1/large/${coinInfo.id}.png?1547033579`,
       },
       market_data: {
         current_price: {
-          usd: 62500.0,
-          eur: 58000.0,
-          jpy: 9500000.0,
-          gbp: 49000.0,
-          btc: 1.0,
-          eth: 16.5,
+          usd: price,
+          eur: price * 0.93,
+          jpy: price * 150,
+          gbp: price * 0.78,
+          btc: price / this.getRandomPrice('bitcoin'),
+          eth: price / this.getRandomPrice('ethereum'),
         },
         market_cap: {
-          usd: 1230000000000,
-          eur: 1140000000000,
-          jpy: 186000000000000,
-          gbp: 960000000000,
+          usd: price * 20000000,
+          eur: price * 18600000,
+          jpy: price * 3000000000,
+          gbp: price * 15600000,
         },
         total_volume: {
-          usd: 25000000000,
-          eur: 23000000000,
-          jpy: 3800000000000,
-          gbp: 19500000000,
+          usd: price * 500000,
+          eur: price * 465000,
+          jpy: price * 75000000,
+          gbp: price * 390000,
         },
         high_24h: {
-          usd: 63500.0,
-          eur: 59000.0,
+          usd: price * 1.05,
+          eur: price * 0.93 * 1.05,
         },
         low_24h: {
-          usd: 61500.0,
-          eur: 57000.0,
+          usd: price * 0.95,
+          eur: price * 0.93 * 0.95,
         },
-        price_change_24h: 1000.0,
-        price_change_percentage_24h: 1.62,
-        price_change_percentage_7d: 5.25,
-        price_change_percentage_14d: 8.75,
-        price_change_percentage_30d: 12.5,
-        price_change_percentage_60d: 15.0,
-        price_change_percentage_200d: 35.0,
-        price_change_percentage_1y: 45.0,
-        market_cap_change_24h: 20000000000,
-        market_cap_change_percentage_24h: 1.65,
+        price_change_24h: (Math.random() * 2 - 1) * price * 0.05,
+        price_change_percentage_24h: (Math.random() * 2 - 1) * 5,
+        price_change_percentage_7d: (Math.random() * 2 - 1) * 10,
+        price_change_percentage_14d: (Math.random() * 2 - 1) * 15,
+        price_change_percentage_30d: (Math.random() * 2 - 1) * 20,
+        price_change_percentage_60d: (Math.random() * 2 - 1) * 25,
+        price_change_percentage_200d: (Math.random() * 2 - 1) * 40,
+        price_change_percentage_1y: (Math.random() * 2 - 1) * 60,
+        market_cap_change_24h: (Math.random() * 2 - 1) * price * 1000000,
+        market_cap_change_percentage_24h: (Math.random() * 2 - 1) * 5,
         price_change_24h_in_currency: {
-          usd: 1000.0,
-          eur: 950.0,
+          usd: (Math.random() * 2 - 1) * price * 0.05,
+          eur: (Math.random() * 2 - 1) * price * 0.05 * 0.93,
         },
         price_change_percentage_1h_in_currency: {
-          usd: 0.25,
-          eur: 0.23,
+          usd: (Math.random() * 2 - 1) * 1,
+          eur: (Math.random() * 2 - 1) * 1,
         },
         price_change_percentage_24h_in_currency: {
-          usd: 1.62,
-          eur: 1.58,
+          usd: (Math.random() * 2 - 1) * 5,
+          eur: (Math.random() * 2 - 1) * 5,
         },
         price_change_percentage_7d_in_currency: {
-          usd: 5.25,
-          eur: 5.1,
+          usd: (Math.random() * 2 - 1) * 10,
+          eur: (Math.random() * 2 - 1) * 10,
         },
         market_cap_change_24h_in_currency: {
-          usd: 20000000000,
-          eur: 19000000000,
+          usd: (Math.random() * 2 - 1) * price * 1000000,
+          eur: (Math.random() * 2 - 1) * price * 1000000 * 0.93,
         },
         market_cap_change_percentage_24h_in_currency: {
-          usd: 1.65,
-          eur: 1.6,
+          usd: (Math.random() * 2 - 1) * 5,
+          eur: (Math.random() * 2 - 1) * 5,
         },
-        total_supply: 21000000,
-        max_supply: 21000000,
-        circulating_supply: 19700000,
+        total_supply: 100000000,
+        max_supply: coinInfo.id === 'bitcoin' ? 21000000 : 100000000,
+        circulating_supply: 50000000,
         last_updated: new Date().toISOString(),
       },
       community_data: {
         facebook_likes: null,
-        twitter_followers: 5500000,
-        reddit_average_posts_48h: 25.0,
-        reddit_average_comments_48h: 350.0,
-        reddit_subscribers: 4800000,
-        reddit_accounts_active_48h: 15000,
+        twitter_followers: Math.floor(Math.random() * 1000000),
+        reddit_average_posts_48h: Math.floor(Math.random() * 50),
+        reddit_average_comments_48h: Math.floor(Math.random() * 500),
+        reddit_subscribers: Math.floor(Math.random() * 1000000),
+        reddit_accounts_active_48h: Math.floor(Math.random() * 20000),
         telegram_channel_user_count: null,
       },
       developer_data: {
-        forks: 35000,
-        stars: 65000,
-        subscribers: 4200,
-        total_issues: 7500,
-        closed_issues: 6800,
-        pull_requests_merged: 9500,
-        pull_request_contributors: 850,
+        forks: Math.floor(Math.random() * 10000),
+        stars: Math.floor(Math.random() * 20000),
+        subscribers: Math.floor(Math.random() * 5000),
+        total_issues: Math.floor(Math.random() * 2000),
+        closed_issues: Math.floor(Math.random() * 1800),
+        pull_requests_merged: Math.floor(Math.random() * 3000),
+        pull_request_contributors: Math.floor(Math.random() * 500),
         code_additions_deletions_4_weeks: {
-          additions: 3500,
-          deletions: 1800,
+          additions: Math.floor(Math.random() * 5000),
+          deletions: Math.floor(Math.random() * 3000),
         },
-        commit_count_4_weeks: 120,
+        commit_count_4_weeks: Math.floor(Math.random() * 200),
       },
       public_interest_stats: {
-        alexa_rank: 9440,
+        alexa_rank: Math.floor(Math.random() * 20000),
         bing_matches: null,
       },
       status_updates: [],
       last_updated: new Date().toISOString(),
-      tickers: [],
+      tickers: this.generateMockTickers({ coin: coinInfo.id }).tickers || [],
+    };
+  }
+
+  /**
+   * Generate mock data for Bitcoin (for backward compatibility)
+   */
+  private generateMockBitcoinData(params: Record<string, any>): CoinGeckoResponse {
+    return this.generateMockCoinData('bitcoin', params);
+  }
+
+  /**
+   * Generate mock data for tickers endpoint
+   */
+  private generateMockTickers(params: Record<string, any>): CoinGeckoResponse {
+    const coinId = params.coin || 'bitcoin';
+    const basePrice = this.getRandomPrice(coinId);
+
+    const exchanges = [
+      { name: 'Binance', identifier: 'binance', url: 'https://binance.com' },
+      { name: 'Coinbase Exchange', identifier: 'coinbase', url: 'https://exchange.coinbase.com' },
+      { name: 'Kraken', identifier: 'kraken', url: 'https://kraken.com' },
+      { name: 'KuCoin', identifier: 'kucoin', url: 'https://kucoin.com' },
+      { name: 'Huobi', identifier: 'huobi', url: 'https://huobi.com' },
+      { name: 'Bitfinex', identifier: 'bitfinex', url: 'https://bitfinex.com' },
+      { name: 'OKX', identifier: 'okx', url: 'https://okx.com' },
+      { name: 'Bybit', identifier: 'bybit', url: 'https://bybit.com' },
+      { name: 'Gate.io', identifier: 'gate', url: 'https://gate.io' },
+      { name: 'Gemini', identifier: 'gemini', url: 'https://gemini.com' },
+    ];
+
+    const pairs = [
+      { base: coinId, target: 'USD', market_type: 'spot' },
+      { base: coinId, target: 'USDT', market_type: 'spot' },
+      { base: coinId, target: 'BTC', market_type: 'spot' },
+      { base: coinId, target: 'ETH', market_type: 'spot' },
+      { base: coinId, target: 'EUR', market_type: 'spot' },
+      { base: coinId, target: 'USDT', market_type: 'futures' },
+      { base: coinId, target: 'USDT', market_type: 'perpetual' },
+    ];
+
+    const tickers = [];
+
+    for (const exchange of exchanges) {
+      // Each exchange has a random subset of pairs
+      const exchangePairs = pairs.filter(() => Math.random() > 0.3);
+
+      for (const pair of exchangePairs) {
+        // Add some randomness to the price
+        const tickerPrice = basePrice * (0.95 + Math.random() * 0.1);
+        const volume = Math.random() * 10000 * basePrice;
+
+        tickers.push({
+          base: pair.base,
+          target: pair.target,
+          market: {
+            name: exchange.name,
+            identifier: exchange.identifier,
+            has_trading_incentive: false,
+          },
+          last: tickerPrice,
+          volume: volume,
+          converted_last: {
+            btc: tickerPrice / this.getRandomPrice('bitcoin'),
+            eth: tickerPrice / this.getRandomPrice('ethereum'),
+            usd: tickerPrice,
+          },
+          converted_volume: {
+            btc: volume / this.getRandomPrice('bitcoin'),
+            eth: volume / this.getRandomPrice('ethereum'),
+            usd: volume,
+          },
+          trust_score: ['green', 'yellow', 'red'][Math.floor(Math.random() * 3)],
+          bid_ask_spread_percentage: Math.random() * 2,
+          timestamp: new Date().toISOString(),
+          last_traded_at: new Date().toISOString(),
+          last_fetch_at: new Date().toISOString(),
+          is_anomaly: false,
+          is_stale: false,
+          trade_url: `${exchange.url}/trade/${pair.base}_${pair.target}`,
+          token_info_url: null,
+          coin_id: coinId,
+          target_coin_id: pair.target.toLowerCase(),
+        });
+      }
+    }
+
+    return {
+      name: coinId,
+      tickers,
+    };
+  }
+
+  /**
+   * Generate mock data for coins/list endpoint
+   */
+  private generateMockCoinsList(): CoinGeckoResponse {
+    const coins = [
+      { id: 'bitcoin', symbol: 'btc', name: 'Bitcoin' },
+      { id: 'ethereum', symbol: 'eth', name: 'Ethereum' },
+      { id: 'binancecoin', symbol: 'bnb', name: 'Binance Coin' },
+      { id: 'ripple', symbol: 'xrp', name: 'XRP' },
+      { id: 'cardano', symbol: 'ada', name: 'Cardano' },
+      { id: 'solana', symbol: 'sol', name: 'Solana' },
+      { id: 'polkadot', symbol: 'dot', name: 'Polkadot' },
+      { id: 'dogecoin', symbol: 'doge', name: 'Dogecoin' },
+      { id: 'avalanche-2', symbol: 'avax', name: 'Avalanche' },
+      { id: 'chainlink', symbol: 'link', name: 'Chainlink' },
+      { id: 'polygon', symbol: 'matic', name: 'Polygon' },
+      { id: 'litecoin', symbol: 'ltc', name: 'Litecoin' },
+      { id: 'uniswap', symbol: 'uni', name: 'Uniswap' },
+      { id: 'stellar', symbol: 'xlm', name: 'Stellar' },
+      { id: 'cosmos', symbol: 'atom', name: 'Cosmos' },
+      { id: 'tron', symbol: 'trx', name: 'TRON' },
+      { id: 'monero', symbol: 'xmr', name: 'Monero' },
+      { id: 'ethereum-classic', symbol: 'etc', name: 'Ethereum Classic' },
+      { id: 'filecoin', symbol: 'fil', name: 'Filecoin' },
+      { id: 'hedera-hashgraph', symbol: 'hbar', name: 'Hedera' },
+    ];
+
+    // Generate 100 more random coins
+    for (let i = 0; i < 100; i++) {
+      const id = `mock-coin-${i}`;
+      const symbol = `mc${i}`;
+      const name = `MockCoin ${i}`;
+
+      coins.push({ id, symbol, name });
+    }
+
+    return coins;
+  }
+
+  /**
+   * Generate mock data for search endpoint
+   */
+  private generateMockSearch(params: Record<string, any>): CoinGeckoResponse {
+    const query = (params.query as string || '').toLowerCase();
+    const coins = this.generateMockCoinsList() as any[];
+
+    // Filter coins based on query
+    const filteredCoins = coins.filter(coin =>
+      coin.id.includes(query) ||
+      coin.symbol.includes(query) ||
+      coin.name.toLowerCase().includes(query)
+    ).slice(0, 10);
+
+    return {
+      coins: filteredCoins,
+      exchanges: [],
+      icos: [],
+      categories: [],
+      nfts: [],
     };
   }
 
@@ -975,8 +1189,8 @@ export class CoinGeckoProxyController {
           // Add jitter to avoid thundering herd problem, but only if not using retry-after header
           let waitTime = retryAfter ? baseWaitTime : this.addJitter(baseWaitTime);
 
-          // Cap the wait time at 120 seconds (increased from 60)
-          waitTime = Math.min(waitTime, 120000);
+          // Cap the wait time at 300 seconds (increased from 120)
+          waitTime = Math.min(waitTime, 300000);
 
           this.logger.warn(
             `Rate limited by CoinGecko. Retrying after ${waitTime}ms. Retry ${retryCount + 1}/${maxRetries}`,

@@ -1,15 +1,18 @@
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+// Import our consolidated theme styles
+import './styles/theme-variables.css';
+import './styles/theme-utilities.css';
+import './styles/theme-transitions.css';
 import './styles/crypto-colors.css';
 import './styles/protected-theme-override.css';
-import './styles/theme-transitions.css';
-import './styles/theme-utilities.css';
 import { AuthProvider } from './contexts/AuthContext';
 import { ConditionalAuthProvider } from './contexts/GitHubPagesAuthContext';
 import { FeatureFlagsProvider } from './config/featureFlags.tsx';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ThemeProvider } from '@/components/ThemeProvider';
+// Import our new unified theme provider
+import { UnifiedThemeProvider } from '@/components/theme/UnifiedThemeProvider';
 
 // Debug panel toggle function removed
 
@@ -85,14 +88,14 @@ createRoot(document.getElementById('root')!).render(
       <FeatureFlagsProvider>
         <ConditionalAuthProvider>
           <AuthProvider>
-            <ThemeProvider
+            <UnifiedThemeProvider
               attribute="class"
               defaultTheme="dark"
               storageKey="omnitrade-theme"
               enableSystem={false}
             >
               <App />
-            </ThemeProvider>
+            </UnifiedThemeProvider>
           </AuthProvider>
         </ConditionalAuthProvider>
       </FeatureFlagsProvider>
