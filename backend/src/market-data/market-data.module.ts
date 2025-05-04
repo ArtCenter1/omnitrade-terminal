@@ -6,6 +6,7 @@ import { MarketDataGateway } from './market-data.gateway';
 import { RateLimitMiddleware } from './rate-limit.middleware';
 import { CoinGeckoProxyController } from './coingecko-proxy.controller';
 import { BinanceTestnetProxyController } from './binance-testnet-proxy.controller';
+import { CircuitBreakerService } from './circuit-breaker.service';
 
 @Module({
   imports: [ConfigModule.forRoot()], // Add ConfigModule here
@@ -14,7 +15,7 @@ import { BinanceTestnetProxyController } from './binance-testnet-proxy.controlle
     CoinGeckoProxyController,
     BinanceTestnetProxyController,
   ],
-  providers: [MarketDataService, MarketDataGateway],
+  providers: [MarketDataService, MarketDataGateway, CircuitBreakerService],
 })
 export class MarketDataModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
