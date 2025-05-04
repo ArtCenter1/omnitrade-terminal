@@ -9,6 +9,15 @@ import path from 'path';
 export default defineConfig(({ mode }) => ({
   // Base path for GitHub Pages deployment
   base: process.env.VITE_BASE_PATH || '/',
+  // Ensure assets are properly handled
+  build: {
+    assetsInlineLimit: 0, // Don't inline any assets as data URLs
+    rollupOptions: {
+      output: {
+        manualChunks: undefined, // Don't split chunks for GitHub Pages
+      },
+    },
+  },
   server: {
     host: '::',
     port: 8080,

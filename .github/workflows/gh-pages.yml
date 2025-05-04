@@ -48,6 +48,18 @@ jobs:
       - name: Add .nojekyll file
         run: touch ./dist/.nojekyll
 
+      # Copy essential files to the root of the dist directory
+      - name: Copy essential files to root
+        run: |
+          cp ./public/placeholder.svg ./dist/
+          cp ./public/404.html ./dist/
+
+      # Create a simple index.js file to avoid module script errors
+      - name: Create fallback script
+        run: |
+          echo "console.log('Fallback script loaded');" > ./dist/main.js
+          echo "document.addEventListener('DOMContentLoaded', function() { console.log('DOM loaded'); });" >> ./dist/main.js
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
