@@ -69,18 +69,18 @@ export default function Navbar() {
   };
 
   return (
-    <div className="bg-[#131722] sticky top-0 z-50 theme-transition">
+    <div className="bg-[var(--bg-navbar)] sticky top-0 z-50 theme-transition">
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center">
           <Link to="/" className="flex items-center cursor-pointer">
-            <div className="bg-[#1A1A1A] p-2 flex items-center justify-center rounded">
+            <div className="bg-[var(--bg-tertiary)] p-2 flex items-center justify-center rounded">
               <img
                 src="/placeholder.svg"
                 alt="OmniTrade Logo"
                 className="h-6 w-6"
               />
             </div>
-            <span className="font-bold text-xl ml-2 text-white">OMNITRADE</span>
+            <span className="font-bold text-xl ml-2 text-[var(--text-primary)]">OMNITRADE</span>
           </Link>
         </div>
 
@@ -91,7 +91,7 @@ export default function Navbar() {
                 <NavigationMenuLink asChild>
                   <Link
                     to="/dashboard"
-                    className={`${navigationMenuTriggerStyle()} text-white hover:text-white ${location.startsWith('/dashboard') ? 'bg-[#1e2230] font-bold border-b-2 border-blue-500' : ''}`}
+                    className={`${navigationMenuTriggerStyle()} text-[var(--text-primary)] hover:text-[var(--text-primary)] ${location.startsWith('/dashboard') ? 'bg-[var(--bg-active)] font-bold border-b-2 border-blue-500' : ''}`}
                   >
                     Dashboard
                   </Link>
@@ -101,9 +101,19 @@ export default function Navbar() {
                 <NavigationMenuLink asChild>
                   <Link
                     to="/terminal"
-                    className={`${navigationMenuTriggerStyle()} text-white hover:text-white ${location.startsWith('/terminal') && !location.includes('workspace') ? 'bg-[#1e2230] font-bold border-b-2 border-blue-500' : ''}`}
+                    className={`${navigationMenuTriggerStyle()} text-[var(--text-primary)] hover:text-[var(--text-primary)] ${location.startsWith('/terminal') && !location.includes('workspace') ? 'bg-[var(--bg-active)] font-bold border-b-2 border-blue-500' : ''}`}
                   >
                     Terminal
+                  </Link>
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <NavigationMenuLink asChild>
+                  <Link
+                    to="/workspace"
+                    className={`${navigationMenuTriggerStyle()} text-[var(--text-primary)] hover:text-[var(--text-primary)] ${location.startsWith('/workspace') ? 'bg-[var(--bg-active)] font-bold border-b-2 border-blue-500' : ''}`}
+                  >
+                    Workspace
                   </Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>

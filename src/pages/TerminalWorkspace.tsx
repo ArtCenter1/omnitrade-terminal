@@ -23,6 +23,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { TerminalThemeToggle } from '@/components/terminal/ThemeToggle';
 
 /**
  * Workspace Controls Component
@@ -57,7 +58,7 @@ const WorkspaceControls: React.FC = () => {
   };
 
   return (
-    <div className="flex items-center space-x-2 p-2 bg-gray-900 border-b border-gray-800">
+    <div className="flex items-center space-x-2 p-2 bg-theme-tertiary border-b border-theme-border theme-transition">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="sm" className="h-8">
@@ -116,14 +117,17 @@ const WorkspaceControls: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      <Button variant="outline" size="sm" className="h-8 ml-auto">
-        <Save className="h-4 w-4 mr-2" />
-        Save Layout
-      </Button>
-      <Button variant="outline" size="sm" className="h-8">
-        <Settings className="h-4 w-4 mr-2" />
-        Settings
-      </Button>
+      <div className="ml-auto flex items-center space-x-2">
+        <TerminalThemeToggle />
+        <Button variant="outline" size="sm" className="h-8">
+          <Save className="h-4 w-4 mr-2" />
+          Save Layout
+        </Button>
+        <Button variant="outline" size="sm" className="h-8">
+          <Settings className="h-4 w-4 mr-2" />
+          Settings
+        </Button>
+      </div>
     </div>
   );
 };
@@ -133,18 +137,18 @@ const WorkspaceControls: React.FC = () => {
  */
 export default function TerminalWorkspace() {
   return (
-    <div className="bg-black min-h-screen">
+    <div className="bg-theme-primary min-h-screen theme-transition">
       <ErrorBoundary
         fallback={
-          <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-white">
-            <AlertTriangle className="w-16 h-16 text-yellow-500 mb-4" />
+          <div className="flex flex-col items-center justify-center h-screen bg-theme-secondary text-theme-primary theme-transition">
+            <AlertTriangle className="w-16 h-16 text-warning-color mb-4" />
             <h2 className="text-2xl font-bold mb-2">Something went wrong</h2>
-            <p className="text-gray-400 mb-4">
+            <p className="text-theme-secondary mb-4">
               There was an error loading the terminal
             </p>
             <Button
               onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="px-4 py-2 bg-button-primary text-white rounded hover:bg-button-primary-hover"
             >
               Reload page
             </Button>

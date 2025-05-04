@@ -500,11 +500,14 @@ export class CoinGeckoProxyController {
     } else if (endpoint.includes('coins/') && endpoint.includes('/market_chart')) {
       // Mock data for market chart
       mockData = this.generateMockMarketChart(params);
+    } else if (endpoint === 'coins/bitcoin' || endpoint.includes('coins/bitcoin?')) {
+      // Mock data for Bitcoin
+      mockData = this.generateMockBitcoinData(params);
     }
 
     // Cache the mock data if generated
     if (mockData) {
-      await this.redisService.set(mockCacheKey, JSON.stringify(mockData), 86400); // Cache for 24 hours
+      await this.redisService.set(mockCacheKey, JSON.stringify(mockData), 86400 * 7); // Cache for 7 days (increased from 24 hours)
     }
 
     return mockData;
@@ -667,6 +670,170 @@ export class CoinGeckoProxyController {
     }
 
     return data;
+  }
+
+  /**
+   * Generate mock data for Bitcoin
+   */
+  private generateMockBitcoinData(params: Record<string, any>): CoinGeckoResponse {
+    this.logger.log('Generating mock Bitcoin data');
+
+    return {
+      id: 'bitcoin',
+      symbol: 'btc',
+      name: 'Bitcoin',
+      asset_platform_id: null,
+      platforms: {
+        '': '',
+      },
+      block_time_in_minutes: 10,
+      hashing_algorithm: 'SHA-256',
+      categories: ['Cryptocurrency', 'Layer 1'],
+      public_notice: null,
+      additional_notices: [],
+      localization: {
+        en: 'Bitcoin',
+        de: 'Bitcoin',
+        es: 'Bitcoin',
+        fr: 'Bitcoin',
+        it: 'Bitcoin',
+        pl: 'Bitcoin',
+        ro: 'Bitcoin',
+        hu: 'Bitcoin',
+        nl: 'Bitcoin',
+        pt: 'Bitcoin',
+        sv: 'Bitcoin',
+        vi: 'Bitcoin',
+        tr: 'Bitcoin',
+        ru: 'Биткоин',
+        ja: 'ビットコイン',
+        zh: '比特币',
+        'zh-tw': '比特幣',
+        ko: '비트코인',
+        ar: 'بيتكوين',
+        th: 'บิตคอยน์',
+        id: 'Bitcoin',
+        cs: 'Bitcoin',
+        da: 'Bitcoin',
+        el: 'Bitcoin',
+        hi: 'Bitcoin',
+        no: 'Bitcoin',
+        sk: 'Bitcoin',
+        uk: 'Bitcoin',
+        he: 'Bitcoin',
+        fi: 'Bitcoin',
+        bg: 'Bitcoin',
+        hr: 'Bitcoin',
+        lt: 'Bitcoin',
+        sl: 'Bitcoin',
+      },
+      description: {
+        en: 'Bitcoin is the first successful internet money based on peer-to-peer technology; whereby no central bank or authority is involved in the transaction and production of the Bitcoin currency. It was created by an anonymous individual/group under the name, Satoshi Nakamoto. The source code is available publicly as an open source project, anybody can look at it and be part of the developmental process.',
+      },
+      image: {
+        thumb: 'https://assets.coingecko.com/coins/images/1/thumb/bitcoin.png?1547033579',
+        small: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png?1547033579',
+        large: 'https://assets.coingecko.com/coins/images/1/large/bitcoin.png?1547033579',
+      },
+      market_data: {
+        current_price: {
+          usd: 62500.0,
+          eur: 58000.0,
+          jpy: 9500000.0,
+          gbp: 49000.0,
+          btc: 1.0,
+          eth: 16.5,
+        },
+        market_cap: {
+          usd: 1230000000000,
+          eur: 1140000000000,
+          jpy: 186000000000000,
+          gbp: 960000000000,
+        },
+        total_volume: {
+          usd: 25000000000,
+          eur: 23000000000,
+          jpy: 3800000000000,
+          gbp: 19500000000,
+        },
+        high_24h: {
+          usd: 63500.0,
+          eur: 59000.0,
+        },
+        low_24h: {
+          usd: 61500.0,
+          eur: 57000.0,
+        },
+        price_change_24h: 1000.0,
+        price_change_percentage_24h: 1.62,
+        price_change_percentage_7d: 5.25,
+        price_change_percentage_14d: 8.75,
+        price_change_percentage_30d: 12.5,
+        price_change_percentage_60d: 15.0,
+        price_change_percentage_200d: 35.0,
+        price_change_percentage_1y: 45.0,
+        market_cap_change_24h: 20000000000,
+        market_cap_change_percentage_24h: 1.65,
+        price_change_24h_in_currency: {
+          usd: 1000.0,
+          eur: 950.0,
+        },
+        price_change_percentage_1h_in_currency: {
+          usd: 0.25,
+          eur: 0.23,
+        },
+        price_change_percentage_24h_in_currency: {
+          usd: 1.62,
+          eur: 1.58,
+        },
+        price_change_percentage_7d_in_currency: {
+          usd: 5.25,
+          eur: 5.1,
+        },
+        market_cap_change_24h_in_currency: {
+          usd: 20000000000,
+          eur: 19000000000,
+        },
+        market_cap_change_percentage_24h_in_currency: {
+          usd: 1.65,
+          eur: 1.6,
+        },
+        total_supply: 21000000,
+        max_supply: 21000000,
+        circulating_supply: 19700000,
+        last_updated: new Date().toISOString(),
+      },
+      community_data: {
+        facebook_likes: null,
+        twitter_followers: 5500000,
+        reddit_average_posts_48h: 25.0,
+        reddit_average_comments_48h: 350.0,
+        reddit_subscribers: 4800000,
+        reddit_accounts_active_48h: 15000,
+        telegram_channel_user_count: null,
+      },
+      developer_data: {
+        forks: 35000,
+        stars: 65000,
+        subscribers: 4200,
+        total_issues: 7500,
+        closed_issues: 6800,
+        pull_requests_merged: 9500,
+        pull_request_contributors: 850,
+        code_additions_deletions_4_weeks: {
+          additions: 3500,
+          deletions: 1800,
+        },
+        commit_count_4_weeks: 120,
+      },
+      public_interest_stats: {
+        alexa_rank: 9440,
+        bing_matches: null,
+      },
+      status_updates: [],
+      last_updated: new Date().toISOString(),
+      tickers: [],
+    };
   }
 
   private async makeRequestWithRetry(

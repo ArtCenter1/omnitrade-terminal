@@ -2,6 +2,16 @@
 :root {
   --crypto-green: #00c853;
   --crypto-red: #ff3d71;
+  --crypto-green-hover: rgba(0, 200, 83, 0.9);
+  --crypto-red-hover: rgba(255, 61, 113, 0.9);
+}
+
+/* Light theme adjustments for better contrast */
+:root:not(.dark) {
+  --crypto-green: #00a844;
+  --crypto-red: #e82d61;
+  --crypto-green-hover: rgba(0, 168, 68, 0.9);
+  --crypto-red-hover: rgba(232, 45, 97, 0.9);
 }
 
 .text-crypto-green {
@@ -18,4 +28,13 @@
 
 .bg-crypto-red {
   background-color: var(--crypto-red);
+}
+
+/* Hover variants */
+.hover\:bg-crypto-green\/90:hover {
+  background-color: var(--crypto-green-hover);
+}
+
+.hover\:bg-crypto-red\/90:hover {
+  background-color: var(--crypto-red-hover);
 }

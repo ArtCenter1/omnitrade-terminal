@@ -318,27 +318,27 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
   return (
     <div className={`${className || ''} w-full h-full`}>
       {/* Order Book Header */}
-      <div className="p-3 border-b border-gray-800 flex justify-between items-center">
+      <div className="p-3 border-b border-[var(--border-primary)] flex justify-between items-center">
         <div>
-          <h3 className="text-white font-medium">
+          <h3 className="text-[var(--text-primary)] font-medium">
             Order Book{' '}
-            <span className="text-xs text-gray-400">({exchangeName})</span>
+            <span className="text-xs text-[var(--text-secondary)]">({exchangeName})</span>
           </h3>
           {/* Data source indicator removed to save space */}
         </div>
         <div className="flex items-center space-x-2">
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-[var(--text-secondary)]">
             {lastUpdated.toLocaleTimeString()}
           </span>
           <button
             onClick={handleRefresh}
-            className="p-1 rounded hover:bg-gray-700 transition-colors"
+            className="p-1 rounded hover:bg-[var(--bg-hover)] transition-colors"
             title="Refresh order book"
             disabled={isLoading}
           >
             <RefreshCw
               size={14}
-              className={`text-gray-400 ${isLoading ? 'animate-spin' : ''}`}
+              className={`text-[var(--text-secondary)] ${isLoading ? 'animate-spin' : ''}`}
             />
           </button>
         </div>
@@ -347,21 +347,21 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
       {/* Loading State */}
       {showLoading && (
         <div className="flex flex-col justify-center items-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-purple-500 mb-2" />
-          <div className="text-gray-400 text-sm">Loading order book...</div>
+          <Loader2 className="h-8 w-8 animate-spin text-[var(--button-primary)] mb-2" />
+          <div className="text-[var(--text-secondary)] text-sm">Loading order book...</div>
         </div>
       )}
 
       {/* Error State */}
       {showError && (
         <div className="flex flex-col justify-center items-center py-12">
-          <AlertTriangle className="h-8 w-8 text-yellow-500 mb-2" />
-          <div className="text-red-500 mb-2">
+          <AlertTriangle className="h-8 w-8 text-[var(--warning-color)] mb-2" />
+          <div className="text-[var(--error-color)] mb-2">
             {errorMessage || 'Error loading order book'}
           </div>
           <button
             onClick={handleRefresh}
-            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 flex items-center justify-center gap-2 mt-2"
+            className="px-4 py-2 bg-[var(--button-primary)] text-[var(--text-primary)] rounded hover:bg-[var(--button-primary-hover)] flex items-center justify-center gap-2 mt-2"
           >
             <RefreshCw className="w-4 h-4" /> Try Again
           </button>
@@ -372,7 +372,7 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
       {!showLoading && !showError && (
         <div className="flex flex-col h-full">
           {/* Order Book Column Headers */}
-          <div className="px-2 py-2 grid grid-cols-3 gap-x-0 text-xs text-gray-400">
+          <div className="px-2 py-2 grid grid-cols-3 gap-x-0 text-xs text-[var(--text-secondary)]">
             <div>Amount ({baseAsset})</div>
             <div className="text-center">Price ({quoteAsset})</div>
             <div className="text-right">Total</div>
@@ -406,7 +406,7 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
                               }}
                             />
                             {/* Content - positioned on top of the volume bar */}
-                            <div className="text-white relative z-10">
+                            <div className="text-[var(--text-primary)] relative z-10">
                               {formatQuantity(ask[1])}
                             </div>
                             <div
@@ -418,7 +418,7 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
                             >
                               {formatPrice(ask[0])}
                             </div>
-                            <div className="text-white text-right relative z-10">
+                            <div className="text-[var(--text-primary)] text-right relative z-10">
                               {calculateTotal(ask[0], ask[1])}
                             </div>
                           </div>
@@ -429,7 +429,7 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
             </div>
 
             {/* Current Price */}
-            <div className="py-2 border-y border-gray-800">
+            <div className="py-2 border-y border-[var(--border-primary)]">
               <div className="grid grid-cols-2 gap-x-0 text-sm">
                 <div
                   className={`font-medium ${isPriceUp ? 'text-crypto-green' : 'text-crypto-red'}`}
@@ -467,7 +467,7 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
                             }}
                           />
                           {/* Content - positioned on top of the volume bar */}
-                          <div className="text-white relative z-10">
+                          <div className="text-[var(--text-primary)] relative z-10">
                             {formatQuantity(bid[1])}
                           </div>
                           <div
@@ -479,7 +479,7 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
                           >
                             {formatPrice(bid[0])}
                           </div>
-                          <div className="text-white text-right relative z-10">
+                          <div className="text-[var(--text-primary)] text-right relative z-10">
                             {calculateTotal(bid[0], bid[1])}
                           </div>
                         </div>
@@ -491,13 +491,13 @@ export function OrderBook({ selectedPair, className }: OrderBookProps = {}) {
           </div>
 
           {/* Recent Trades Section */}
-          <div className="p-2 border-t border-gray-800 h-[35%] overflow-hidden flex flex-col">
+          <div className="p-2 border-t border-[var(--border-primary)] h-[35%] overflow-hidden flex flex-col">
             <div className="flex justify-between items-center mb-2">
               <div>
-                <h3 className="text-white font-medium">Recent Trades</h3>
+                <h3 className="text-[var(--text-primary)] font-medium">Recent Trades</h3>
                 {/* Data source indicator removed to save space */}
               </div>
-              <div className="text-xs text-gray-400">
+              <div className="text-xs text-[var(--text-secondary)]">
                 Last updated: {lastUpdated.toLocaleTimeString()}
               </div>
             </div>

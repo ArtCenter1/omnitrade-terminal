@@ -72,7 +72,7 @@ export function TradingViewContainer({
 
         {/* Show error message as an overlay if there was an actual error */}
         {error && (
-          <div className="absolute top-2 left-2 right-2 bg-red-900 bg-opacity-90 text-white p-2 rounded text-sm z-20">
+          <div className="absolute top-2 left-2 right-2 bg-error-color bg-opacity-90 text-white p-2 rounded text-sm z-20 theme-transition">
             <div className="flex items-center">
               <AlertTriangle className="w-4 h-4 mr-2 flex-shrink-0" />
               <span>TradingView chart unavailable: {error}</span>
@@ -92,7 +92,7 @@ export function TradingViewContainer({
               // Force reload the page to get a fresh start
               window.location.reload();
             }}
-            className="p-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white"
+            className="p-1 rounded bg-theme-tertiary hover:bg-theme-hover text-theme-secondary hover:text-theme-primary theme-transition"
             title="Try TradingView chart"
           >
             <RefreshCw size={16} />
@@ -106,12 +106,11 @@ export function TradingViewContainer({
   if (isLoading) {
     return (
       <div
-        className="w-full h-full flex items-center justify-center"
-        style={{ backgroundColor: '#131722' }}
+        className="w-full h-full flex items-center justify-center bg-theme-tertiary theme-transition"
       >
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading chart...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-button-primary mx-auto mb-4"></div>
+          <p className="text-theme-secondary">Loading chart...</p>
         </div>
       </div>
     );

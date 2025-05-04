@@ -165,16 +165,16 @@ export function ExchangeSelector() {
   // Render loading state
   const renderLoading = () => (
     <div className="mb-6">
-      <div className="text-xs text-gray-400 mb-2">Exchange</div>
+      <div className="text-xs text-[var(--text-secondary)] mb-2">Exchange</div>
       <Button
         variant="outline"
-        className="w-full bg-gray-900 border-gray-800 hover:bg-gray-800 justify-between"
+        className="w-full bg-[var(--bg-secondary)] border-[var(--border-primary)] hover:bg-[var(--bg-hover)] justify-between"
         disabled
       >
         <div className="flex items-center">
-          <Loader2 className="w-5 h-5 mr-2 animate-spin text-gray-400" />
+          <Loader2 className="w-5 h-5 mr-2 animate-spin text-[var(--text-secondary)]" />
           <div className="flex flex-col items-start">
-            <span className="text-white text-sm">Loading exchanges...</span>
+            <span className="text-[var(--text-primary)] text-sm">Loading exchanges...</span>
           </div>
         </div>
       </Button>
@@ -184,22 +184,22 @@ export function ExchangeSelector() {
   // Render empty state
   const renderEmptyState = () => (
     <div className="mb-6">
-      <div className="text-xs text-gray-400 mb-2">Exchange</div>
+      <div className="text-xs text-[var(--text-secondary)] mb-2">Exchange</div>
       <Button
         variant="outline"
-        className="w-full bg-gray-900 border-gray-800 hover:bg-gray-800 justify-between"
+        className="w-full bg-[var(--bg-secondary)] border-[var(--border-primary)] hover:bg-[var(--bg-hover)] justify-between"
         onClick={() => navigate('/profile/accounts')}
       >
         <div className="flex items-center">
-          <Plus className="w-5 h-5 mr-2 text-gray-400" />
+          <Plus className="w-5 h-5 mr-2 text-[var(--text-secondary)]" />
           <div className="flex flex-col items-start">
-            <span className="text-white text-sm">Add Exchange</span>
-            <span className="text-xs text-gray-400">
+            <span className="text-[var(--text-primary)] text-sm">Add Exchange</span>
+            <span className="text-xs text-[var(--text-secondary)]">
               Connect to start trading
             </span>
           </div>
         </div>
-        <ChevronDown size={16} className="ml-2 text-gray-400" />
+        <ChevronDown size={16} className="ml-2 text-[var(--text-secondary)]" />
       </Button>
     </div>
   );
@@ -236,13 +236,13 @@ export function ExchangeSelector() {
 
     return (
       <div className="mb-6">
-        <div className="text-xs text-gray-400 mb-2">Exchange</div>
+        <div className="text-xs text-[var(--text-secondary)] mb-2">Exchange</div>
         <ErrorBoundary>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className="w-full bg-gray-900 border-gray-800 hover:bg-gray-800 justify-between"
+                className="w-full bg-[var(--bg-secondary)] border-[var(--border-primary)] hover:bg-[var(--bg-hover)] justify-between"
               >
                 <div className="flex items-center">
                   <div className="w-5 h-5 rounded-full overflow-hidden mr-2">
@@ -256,14 +256,14 @@ export function ExchangeSelector() {
                       }}
                     />
                   </div>
-                  <span className="text-white">{currentExchange.name}</span>
+                  <span className="text-[var(--text-primary)]">{currentExchange.name}</span>
                 </div>
-                <ChevronDown size={16} className="text-gray-500" />
+                <ChevronDown size={16} className="text-[var(--text-secondary)]" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuPortal>
               <DropdownMenuContent
-                className="w-[250px] bg-[#1a1a1c]"
+                className="w-[250px] bg-[var(--bg-dropdown)]"
                 sideOffset={5}
               >
                 {/* Show all supported exchanges */}
@@ -352,7 +352,7 @@ export function ExchangeSelector() {
                           navigate('/profile/accounts');
                         }
                       }}
-                      className="py-2 cursor-pointer hover:bg-gray-800"
+                      className="py-2 cursor-pointer hover:bg-[var(--bg-hover)]"
                     >
                       <div className="flex items-center w-full justify-between">
                         <div className="flex items-center">
@@ -367,12 +367,12 @@ export function ExchangeSelector() {
                               }}
                             />
                           </div>
-                          <span className="text-white text-sm">
+                          <span className="text-[var(--text-primary)] text-sm">
                             {exchange.name}
                           </span>
                         </div>
                         {!hasAccounts && (
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-[var(--text-secondary)]">
                             Not connected
                           </span>
                         )}
@@ -380,9 +380,9 @@ export function ExchangeSelector() {
                     </DropdownMenuItem>
                   );
                 })}
-                <DropdownMenuSeparator className="bg-gray-800" />
+                <DropdownMenuSeparator className="bg-[var(--border-primary)]" />
                 <DropdownMenuItem
-                  className="cursor-pointer hover:bg-gray-800"
+                  className="cursor-pointer hover:bg-[var(--bg-hover)]"
                   onClick={() => {
                     navigate('/profile/accounts');
                   }}

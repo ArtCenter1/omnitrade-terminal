@@ -20,6 +20,7 @@ import { componentRegistry } from '@/lib/component-registry';
 import { ResizableSplitter } from '@/components/ui/resizable-splitter';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { useTheme } from 'next-themes';
 
 /**
  * Terminal Container Props
@@ -524,6 +525,7 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component }) => {
   const { componentId, componentState, title } = component;
   const [error, setError] = useState<Error | null>(null);
   const componentContainerRef = useRef<HTMLDivElement>(null);
+  const { theme } = useTheme();
 
   useEffect(() => {
     let instance: any = null;
@@ -544,6 +546,11 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component }) => {
         instance = componentRegistry.createInstance(componentId);
         if (!instance) {
           throw new Error(`Failed to create instance of component ${componentId}`);
+        }
+
+        // Notify component of current theme
+        if (instance.onThemeChanged && theme) {
+          instance.onThemeChanged(theme);
         }
 
         // Render component
@@ -581,21 +588,21 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component }) => {
         }
       }
     };
-  }, [componentId, componentState]);
+  }, [componentId, componentState, theme]);
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-full border border-red-700 rounded-md p-4">
-        <p className="text-red-500 font-semibold">Error loading component</p>
-        <p className="text-gray-400 text-sm mt-2">{error.message}</p>
+      <div className="flex flex-col items-center justify-center h-full border border-error-color rounded-md p-4 bg-theme-tertiary">
+        <p className="text-theme-error font-semibold">Error loading component</p>
+        <p className="text-theme-secondary text-sm mt-2">{error.message}</p>
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-theme-secondary theme-transition">
       {title && (
-        <div className="bg-gray-800 px-3 py-1 text-sm font-medium border-b border-gray-700">
+        <div className="bg-theme-tertiary px-3 py-1 text-sm font-medium border-b border-theme-border theme-transition">
           {title}
         </div>
       )}
@@ -625,8 +632,8 @@ const StackRenderer: React.FC<StackRendererProps> = ({ stack }) => {
 
   if (children.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full border border-dashed border-gray-700 rounded-md">
-        <p className="text-gray-400">Empty stack</p>
+      <div className="flex items-center justify-center h-full border border-dashed border-theme-border rounded-md bg-theme-secondary theme-transition">
+        <p className="text-theme-secondary">Empty stack</p>
       </div>
     );
   }
@@ -831,9 +838,9 @@ const StackRenderer: React.FC<StackRendererProps> = ({ stack }) => {
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-theme-secondary theme-transition">
       {title && (
-        <div className="bg-gray-800 px-3 py-1 text-sm font-medium border-b border-gray-700">
+        <div className="bg-theme-tertiary px-3 py-1 text-sm font-medium border-b border-theme-border theme-transition">
           {title}
         </div>
       )}
@@ -843,7 +850,7 @@ const StackRenderer: React.FC<StackRendererProps> = ({ stack }) => {
         className="flex-1 flex flex-col"
       >
         <TabsList
-          className="bg-gray-900 border-b border-gray-800 flex-wrap"
+          className="bg-theme-tertiary border-b border-theme-border flex-wrap theme-transition"
           onDragOver={handleDragOver}
           onDrop={handleDrop}
         >

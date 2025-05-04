@@ -3,10 +3,13 @@ import App from './App.tsx';
 import './index.css';
 import './styles/crypto-colors.css';
 import './styles/protected-theme-override.css';
+import './styles/theme-transitions.css';
+import './styles/theme-utilities.css';
 import { AuthProvider } from './contexts/AuthContext';
 import { ConditionalAuthProvider } from './contexts/GitHubPagesAuthContext';
 import { FeatureFlagsProvider } from './config/featureFlags.tsx';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeProvider } from '@/components/ThemeProvider';
 
 // Debug panel toggle function removed
 
@@ -82,7 +85,14 @@ createRoot(document.getElementById('root')!).render(
       <FeatureFlagsProvider>
         <ConditionalAuthProvider>
           <AuthProvider>
-            <App />
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="dark"
+              storageKey="omnitrade-theme"
+              enableSystem={false}
+            >
+              <App />
+            </ThemeProvider>
           </AuthProvider>
         </ConditionalAuthProvider>
       </FeatureFlagsProvider>

@@ -1080,13 +1080,13 @@ export function TradingTabs({
 
       <div className="grid grid-cols-2 gap-1 mb-2">
         <Button
-          className={`${side === 'buy' ? 'bg-crypto-green' : 'bg-gray-800'} text-white h-8 px-2 py-0`}
+          className={`${side === 'buy' ? 'bg-crypto-green' : 'bg-[var(--bg-tertiary)]'} text-[var(--text-primary)] h-8 px-2 py-0`}
           onClick={() => setSide('buy')}
         >
           Buy
         </Button>
         <Button
-          className={`${side === 'sell' ? 'bg-crypto-red' : 'bg-gray-800'} text-white h-8 px-2 py-0`}
+          className={`${side === 'sell' ? 'bg-crypto-red' : 'bg-[var(--bg-tertiary)]'} text-[var(--text-primary)] h-8 px-2 py-0`}
           onClick={() => setSide('sell')}
         >
           Sell
@@ -1095,13 +1095,13 @@ export function TradingTabs({
 
       <div className="mb-2">
         <div className="flex justify-between mb-0.5">
-          <span className="text-xs text-gray-400">Amount</span>
-          <span className="text-xs text-gray-400">{baseAsset}</span>
+          <span className="text-xs text-[var(--text-secondary)]">Amount</span>
+          <span className="text-xs text-[var(--text-secondary)]">{baseAsset}</span>
         </div>
         <Input
           value={amount}
           onChange={handleAmountChange}
-          className="bg-gray-900 border-gray-800 h-7 text-sm py-0"
+          className="bg-[var(--bg-secondary)] border-[var(--border-primary)] h-7 text-sm py-0 text-[var(--text-primary)]"
           placeholder="0.001"
         />
       </div>
@@ -1109,13 +1109,13 @@ export function TradingTabs({
       {(orderType === 'limit' || orderType === 'stop') && (
         <div className="mb-2">
           <div className="flex justify-between mb-0.5">
-            <span className="text-xs text-gray-400">Price</span>
-            <span className="text-xs text-gray-400">{quoteAsset}</span>
+            <span className="text-xs text-[var(--text-secondary)]">Price</span>
+            <span className="text-xs text-[var(--text-secondary)]">{quoteAsset}</span>
           </div>
           <Input
             value={price}
             onChange={handlePriceChange}
-            className="bg-gray-900 border-gray-800 h-7 text-sm py-0"
+            className="bg-[var(--bg-secondary)] border-[var(--border-primary)] h-7 text-sm py-0 text-[var(--text-primary)]"
             placeholder={selectedPair?.price || '0.00'}
           />
         </div>
@@ -1123,8 +1123,8 @@ export function TradingTabs({
 
       <div className="mb-2">
         <div className="flex justify-between mb-0.5">
-          <span className="text-xs text-gray-400">Total</span>
-          <span className="text-xs text-gray-400">{quoteAsset}</span>
+          <span className="text-xs text-[var(--text-secondary)]">Total</span>
+          <span className="text-xs text-[var(--text-secondary)]">{quoteAsset}</span>
         </div>
         <Input
           value={total}
@@ -1138,7 +1138,7 @@ export function TradingTabs({
           }}
           type="text"
           inputMode="decimal"
-          className="bg-gray-900 border-gray-800 h-7 text-sm py-0"
+          className="bg-[var(--bg-secondary)] border-[var(--border-primary)] h-7 text-sm py-0 text-[var(--text-primary)]"
           placeholder="0.00"
         />
       </div>
@@ -1146,28 +1146,28 @@ export function TradingTabs({
       <div className="grid grid-cols-4 gap-1 mb-2">
         <Button
           variant="outline"
-          className="text-xs py-0 h-6 min-w-0 px-1"
+          className="percentage-button text-xs py-0 h-6 min-w-0 px-1"
           onClick={() => handlePercentageClick(25)}
         >
           25%
         </Button>
         <Button
           variant="outline"
-          className="text-xs py-0 h-6 min-w-0 px-1"
+          className="percentage-button text-xs py-0 h-6 min-w-0 px-1"
           onClick={() => handlePercentageClick(50)}
         >
           50%
         </Button>
         <Button
           variant="outline"
-          className="text-xs py-0 h-6 min-w-0 px-1"
+          className="percentage-button text-xs py-0 h-6 min-w-0 px-1"
           onClick={() => handlePercentageClick(75)}
         >
           75%
         </Button>
         <Button
           variant="outline"
-          className="text-xs py-0 h-6 min-w-0 px-1"
+          className="percentage-button text-xs py-0 h-6 min-w-0 px-1"
           onClick={() => handlePercentageClick(100)}
         >
           100%
@@ -1176,15 +1176,15 @@ export function TradingTabs({
 
       <div className="mb-2">
         <div className="flex justify-between mb-0.5">
-          <span className="text-xs text-gray-400">Total</span>
-          <span className="text-xs text-white">
+          <span className="text-xs text-[var(--text-secondary)]">Total</span>
+          <span className="text-xs text-[var(--text-primary)]">
             ≈ {total || '0.00'} {quoteAsset}
           </span>
         </div>
       </div>
 
       <Button
-        className={`w-full ${side === 'buy' ? 'bg-crypto-green hover:bg-crypto-green/90' : 'bg-crypto-red hover:bg-crypto-red/90'} h-8 py-0`}
+        className={`w-full ${side === 'buy' ? 'bg-crypto-green hover:bg-crypto-green/90' : 'bg-crypto-red hover:bg-crypto-red/90'} h-8 py-0 text-[var(--text-primary)]`}
         onClick={(e) => {
           e.preventDefault();
           logger.info('Buy/Sell button clicked', {

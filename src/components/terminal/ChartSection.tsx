@@ -15,7 +15,7 @@ export function ChartSection({
   return (
     <div className="flex flex-col h-full">
       {/* Header Section */}
-      <div className="flex items-center justify-between px-4 py-1 border-b border-gray-800">
+      <div className="flex items-center justify-between px-4 py-1 border-b border-theme-border bg-theme-tertiary theme-transition">
         {/* Left Side: Pair Selector and Minimal Price */}
         <div className="flex items-center">
           {/* Pass props directly to TradingPairSelector */}

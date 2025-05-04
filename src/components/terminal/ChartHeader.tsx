@@ -12,32 +12,32 @@ import { MarketSelector } from "./MarketSelector";
 
 export function ChartHeader() {
   return (
-    <div className="flex justify-between items-center border-b border-gray-800 p-3">
+    <div className="flex justify-between items-center border-b border-[var(--border-primary)] p-3 bg-[var(--bg-secondary)] theme-transition">
       <div className="flex items-center space-x-2">
         <MarketSelector image="/placeholder.svg" name="BTC/USDT" />
 
-        <div className="text-xs text-gray-400">1h</div>
+        <div className="text-xs text-[var(--text-secondary)]">1h</div>
 
-        <Button variant="ghost" size="sm" className="p-1 h-7 text-gray-400">
+        <Button variant="ghost" size="sm" className="p-1 h-7 text-[var(--text-secondary)]">
           <BarChart3 size={16} />
         </Button>
-        <Button variant="ghost" size="sm" className="p-1 h-7 text-gray-400">
+        <Button variant="ghost" size="sm" className="p-1 h-7 text-[var(--text-secondary)]">
           <BarChart size={16} />
         </Button>
 
-        <Button variant="ghost" size="sm" className="h-7 text-gray-400 text-xs">
+        <Button variant="ghost" size="sm" className="h-7 text-[var(--text-secondary)] text-xs">
           Indicators
         </Button>
       </div>
 
       <div className="flex items-center space-x-2">
-        <Button variant="ghost" size="sm" className="p-1 h-7 text-gray-400">
+        <Button variant="ghost" size="sm" className="p-1 h-7 text-[var(--text-secondary)]">
           <Save size={16} />
         </Button>
-        <Button variant="ghost" size="sm" className="p-1 h-7 text-gray-400">
+        <Button variant="ghost" size="sm" className="p-1 h-7 text-[var(--text-secondary)]">
           <Settings size={16} />
         </Button>
-        <Button variant="ghost" size="sm" className="p-1 h-7 text-gray-400">
+        <Button variant="ghost" size="sm" className="p-1 h-7 text-[var(--text-secondary)]">
           <Maximize size={16} />
         </Button>
       </div>

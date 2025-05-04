@@ -1,15 +1,15 @@
 /**
  * Trading Form Component
- * 
+ *
  * A simple component for trading form.
  */
 
 import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { 
-  ComponentLifecycleState, 
-  ComponentMetadata, 
-  IComponent 
+import {
+  ComponentLifecycleState,
+  ComponentMetadata,
+  IComponent
 } from '@/lib/component-registry';
 import { BaseTerminalComponent, BaseTerminalComponentProps } from './BaseTerminalComponent';
 
@@ -46,8 +46,8 @@ const TradingFormComponentReact: React.FC<TradingFormComponentProps & {
   onAmountChange: (amount: string) => void;
   onPriceChange: (price: string) => void;
   onSubmit: () => void;
-}> = ({ 
-  id, 
+}> = ({
+  id,
   symbol = 'BTC/USDT',
   orderType,
   side,
@@ -60,67 +60,67 @@ const TradingFormComponentReact: React.FC<TradingFormComponentProps & {
   onSubmit
 }) => {
   return (
-    <div className="h-full flex flex-col bg-gray-900 p-4">
-      <h3 className="text-lg font-medium mb-4 text-white">Trade {symbol}</h3>
-      
+    <div className="h-full flex flex-col bg-[var(--bg-secondary)] p-4">
+      <h3 className="text-lg font-medium mb-4 text-[var(--text-primary)]">Trade {symbol}</h3>
+
       <div className="mb-4">
         <div className="flex mb-2">
-          <button 
-            className={`flex-1 py-2 rounded-l ${side === 'buy' ? 'bg-green-600 text-white' : 'bg-gray-700 text-gray-300'}`}
+          <button
+            className={`flex-1 py-2 rounded-l ${side === 'buy' ? 'bg-crypto-green text-[var(--text-primary)]' : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'}`}
             onClick={() => onSideChange('buy')}
           >
             Buy
           </button>
-          <button 
-            className={`flex-1 py-2 rounded-r ${side === 'sell' ? 'bg-red-600 text-white' : 'bg-gray-700 text-gray-300'}`}
+          <button
+            className={`flex-1 py-2 rounded-r ${side === 'sell' ? 'bg-crypto-red text-[var(--text-primary)]' : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'}`}
             onClick={() => onSideChange('sell')}
           >
             Sell
           </button>
         </div>
-        
+
         <div className="flex mb-4">
-          <button 
-            className={`flex-1 py-2 rounded-l ${orderType === 'limit' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}
+          <button
+            className={`flex-1 py-2 rounded-l ${orderType === 'limit' ? 'bg-[var(--button-primary)] text-[var(--text-primary)]' : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'}`}
             onClick={() => onOrderTypeChange('limit')}
           >
             Limit
           </button>
-          <button 
-            className={`flex-1 py-2 rounded-r ${orderType === 'market' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}
+          <button
+            className={`flex-1 py-2 rounded-r ${orderType === 'market' ? 'bg-[var(--button-primary)] text-[var(--text-primary)]' : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'}`}
             onClick={() => onOrderTypeChange('market')}
           >
             Market
           </button>
         </div>
       </div>
-      
+
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-400 mb-1">Amount</label>
-        <input 
-          type="text" 
+        <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Amount</label>
+        <input
+          type="text"
           value={amount}
           onChange={(e) => onAmountChange(e.target.value)}
-          className="w-full bg-gray-800 border border-gray-700 rounded py-2 px-3 text-white"
+          className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded py-2 px-3 text-[var(--text-primary)]"
           placeholder="0.00"
         />
       </div>
-      
+
       {orderType === 'limit' && (
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-400 mb-1">Price</label>
-          <input 
-            type="text" 
+          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Price</label>
+          <input
+            type="text"
             value={price}
             onChange={(e) => onPriceChange(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-700 rounded py-2 px-3 text-white"
+            className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded py-2 px-3 text-[var(--text-primary)]"
             placeholder="0.00"
           />
         </div>
       )}
-      
+
       <button
-        className={`py-3 rounded font-medium ${side === 'buy' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'} text-white mt-auto`}
+        className={`py-3 rounded font-medium ${side === 'buy' ? 'bg-crypto-green hover:bg-crypto-green/90' : 'bg-crypto-red hover:bg-crypto-red/90'} text-[var(--text-primary)] mt-auto`}
         onClick={onSubmit}
       >
         {side === 'buy' ? 'Buy' : 'Sell'} {symbol.split('/')[0]}
@@ -134,7 +134,7 @@ const TradingFormComponentReact: React.FC<TradingFormComponentProps & {
  */
 export class TradingFormComponent extends BaseTerminalComponent<TradingFormComponentProps, TradingFormComponentState> implements IComponent {
   private root: any = null;
-  
+
   constructor(props: TradingFormComponentProps = { id: 'trading-form' }) {
     super(
       {
@@ -156,7 +156,7 @@ export class TradingFormComponent extends BaseTerminalComponent<TradingFormCompo
       },
       props
     );
-    
+
     this.componentState = {
       isLoading: true,
       error: null,
@@ -167,7 +167,7 @@ export class TradingFormComponent extends BaseTerminalComponent<TradingFormCompo
       price: ''
     };
   }
-  
+
   /**
    * Initialize the component
    */
@@ -176,30 +176,30 @@ export class TradingFormComponent extends BaseTerminalComponent<TradingFormCompo
     await new Promise(resolve => setTimeout(resolve, 300));
     this.componentState.isLoading = false;
   }
-  
+
   /**
    * Render the component
    */
   protected onRender(): void {
     if (!this.container) return;
-    
+
     // Create a root for React rendering
     this.root = createRoot(this.container);
-    
+
     // Render the React component
     this.renderComponent();
   }
-  
+
   /**
    * Update the component
    */
   protected onUpdate(): void {
     if (!this.root || !this.container) return;
-    
+
     // Update the React component
     this.renderComponent();
   }
-  
+
   /**
    * Render the React component
    */
@@ -220,7 +220,7 @@ export class TradingFormComponent extends BaseTerminalComponent<TradingFormCompo
       />
     );
   }
-  
+
   /**
    * Handle order type change
    */
@@ -228,7 +228,7 @@ export class TradingFormComponent extends BaseTerminalComponent<TradingFormCompo
     this.componentState.orderType = type;
     this.onUpdate();
   };
-  
+
   /**
    * Handle side change
    */
@@ -236,7 +236,7 @@ export class TradingFormComponent extends BaseTerminalComponent<TradingFormCompo
     this.componentState.side = side;
     this.onUpdate();
   };
-  
+
   /**
    * Handle amount change
    */
@@ -244,7 +244,7 @@ export class TradingFormComponent extends BaseTerminalComponent<TradingFormCompo
     this.componentState.amount = amount;
     this.onUpdate();
   };
-  
+
   /**
    * Handle price change
    */
@@ -252,7 +252,7 @@ export class TradingFormComponent extends BaseTerminalComponent<TradingFormCompo
     this.componentState.price = price;
     this.onUpdate();
   };
-  
+
   /**
    * Handle form submission
    */
@@ -264,13 +264,13 @@ export class TradingFormComponent extends BaseTerminalComponent<TradingFormCompo
       amount: this.componentState.amount,
       price: this.componentState.price
     });
-    
+
     // Reset form
     this.componentState.amount = '';
     this.componentState.price = '';
     this.onUpdate();
   };
-  
+
   /**
    * Dispose the component
    */
@@ -280,7 +280,7 @@ export class TradingFormComponent extends BaseTerminalComponent<TradingFormCompo
       this.root = null;
     }
   }
-  
+
   /**
    * Handle settings changes
    */
@@ -290,7 +290,7 @@ export class TradingFormComponent extends BaseTerminalComponent<TradingFormCompo
       this.onUpdate();
     }
   }
-  
+
   /**
    * Get the React component
    */

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Route, Routes, useLocation, Navigate } from 'react-router-dom';
-import { ThemeProvider as ShadcnThemeProvider } from '@/components/ThemeProvider';
 import '@/styles/themes.css';
 import '@/styles/components.css';
 import { Toaster } from '@/components/ui/sonner';
@@ -99,17 +98,11 @@ function App() {
   // Debug panel functions and variables removed
 
   return (
-    <ShadcnThemeProvider
-      attribute="class"
-      defaultTheme="dark"
-      storageKey="omnitrade-theme"
-      enableSystem={false}
-    >
-      <ConnectionStatusProvider>
-        <Toaster />
-        <GitHubPagesBanner />
-        <ScrollToTop />
-        <Routes>
+    <ConnectionStatusProvider>
+      <Toaster />
+      <GitHubPagesBanner />
+      <ScrollToTop />
+      <Routes>
           {/* Public routes */}
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<AuthPage />} />
@@ -314,7 +307,6 @@ function App() {
           />
         </Routes>
       </ConnectionStatusProvider>
-    </ShadcnThemeProvider>
   );
 }
 
