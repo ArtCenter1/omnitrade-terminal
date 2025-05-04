@@ -1,0 +1,7 @@
+# Set correct MIME types
+/*.js
+  Content-Type: text/javascript
+/*.mjs
+  Content-Type: text/javascript
+/*.svg
+  Content-Type: image/svg+xml
