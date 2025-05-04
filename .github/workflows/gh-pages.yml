@@ -57,6 +57,13 @@ jobs:
           cp ./public/.htaccess ./dist/
           cp ./public/web.config ./dist/
           cp ./public/_headers ./dist/
+          cp ./public/test.html ./dist/
+
+      # Create a backup of the original index.html
+      - name: Backup original index.html
+        run: |
+          cp ./dist/index.html ./dist/index.original.html
+          cp ./public/index-simple.html ./dist/index.html
 
       # Update the index.html to use the correct script path for production
       - name: Update index.html for production
