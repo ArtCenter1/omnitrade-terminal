@@ -54,7 +54,12 @@ jobs:
           cp ./public/placeholder.svg ./dist/
           cp ./public/404.html ./dist/
 
-      # Create a simple index.js file to avoid module script errors
+      # Update the index.html to use the correct script path for production
+      - name: Update index.html for production
+        run: |
+          sed -i 's|src="/src/main.tsx"|src="./assets/index-*.js"|g' ./dist/index.html
+
+      # Create a simple fallback script just in case
       - name: Create fallback script
         run: |
           echo "console.log('Fallback script loaded');" > ./dist/main.js
