@@ -1,6 +1,15 @@
-# OmniTrade Documentation
+# OmniTrade Documentation & GitHub Pages
 
-This directory contains essential documentation for the OmniTrade project. For more comprehensive documentation, please visit our [GitHub Wiki](https://github.com/ArtCenter1/omnitrade/wiki).
+This directory contains essential documentation for the OmniTrade project and serves as the GitHub Pages site. For more comprehensive documentation, please visit our [GitHub Wiki](https://github.com/ArtCenter1/omnitrade/wiki).
+
+## GitHub Pages
+
+This folder now also hosts the GitHub Pages site for the OmniTrade Terminal. The following files are part of the GitHub Pages deployment:
+
+- `index.html` - The main landing page
+- `test.html` - A test page to verify GitHub Pages is working
+- `404.html` - Custom 404 error page
+- `.nojekyll` - Tells GitHub Pages not to process this site with Jekyll
 
 ## In-Project Documentation
 
