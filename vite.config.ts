@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     proxy: {
       '/api': {
-        target: 'http://localhost:3000', // Your backend server (default port)
+        target: 'http://localhost:8888', // Your backend server (updated port)
         changeOrigin: true,
         // Add error handling for proxy
         configure: (proxy, _options) => {

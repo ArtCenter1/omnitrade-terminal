@@ -23,7 +23,7 @@ async function bootstrap() {
   // Set global API prefix
   app.setGlobalPrefix('api');
 
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(process.env.PORT ?? 8888);
 }
 bootstrap().catch((err) => {
   console.error('Error during bootstrap:', err);
