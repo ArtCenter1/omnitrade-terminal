@@ -6,8 +6,8 @@
 .tabs-list {
   display: flex;
   flex-wrap: wrap;
-  background-color: #1a1a1a;
-  border-bottom: 1px solid #333;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-primary);
   padding: 0 0.25rem;
 }
 
@@ -17,7 +17,7 @@
   align-items: center;
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
-  color: #a0a0a0;
+  color: var(--text-secondary);
   background-color: transparent;
   border: none;
   border-bottom: 2px solid transparent;
@@ -28,14 +28,14 @@
 }
 
 .tab-trigger:hover {
-  color: #fff;
-  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
 }
 
 .tab-trigger[data-state="active"] {
-  color: #fff;
-  border-bottom-color: #6366f1;
-  background-color: rgba(99, 102, 241, 0.1);
+  color: var(--text-primary);
+  border-bottom-color: var(--bg-tab-active);
+  background-color: var(--bg-selected);
 }
 
 .tab-trigger.dragging {
@@ -59,7 +59,7 @@
 .drop-indicator {
   position: absolute;
   height: 2px;
-  background-color: #6366f1;
+  background-color: var(--crypto-purple);
   transition: all 0.2s ease;
   z-index: 10;
 }
@@ -74,7 +74,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  border: 1px solid #333;
+  border: 1px solid var(--border-primary);
   border-radius: 0.25rem;
   overflow: hidden;
 }
@@ -84,14 +84,14 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.5rem;
-  background-color: #1a1a1a;
-  border-bottom: 1px solid #333;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-primary);
 }
 
 .stack-title {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .stack-content {
@@ -106,12 +106,12 @@
   justify-content: center;
   width: 1rem;
   height: 1rem;
-  color: #a0a0a0;
+  color: var(--text-secondary);
   cursor: move;
 }
 
 .drag-handle:hover {
-  color: #fff;
+  color: var(--text-primary);
 }
 
 /* Close button styles */
@@ -121,7 +121,7 @@
   justify-content: center;
   width: 1rem;
   height: 1rem;
-  color: #a0a0a0;
+  color: var(--text-secondary);
   background-color: transparent;
   border: none;
   border-radius: 0.25rem;
@@ -130,8 +130,8 @@
 }
 
 .close-button:hover {
-  color: #fff;
-  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
 }
 
 /* Resize handle styles */
@@ -142,7 +142,7 @@
 }
 
 .resize-handle:hover {
-  background-color: rgba(99, 102, 241, 0.3);
+  background-color: var(--bg-selected);
 }
 
 .resize-handle.horizontal {

@@ -1,9 +1,9 @@
 // src/pages/admin/BinanceTestnetBenchmarkPage.tsx
 import React from 'react';
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, BarChart3 } from 'lucide-react';
+import { BarChart3 } from 'lucide-react';
 import BinanceTestnetBenchmark from '@/components/admin/BinanceTestnetBenchmark';
+import { BackButton } from '@/components/ui/back-button';
 
 export default function BinanceTestnetBenchmarkPage() {
   return (
@@ -16,13 +16,7 @@ export default function BinanceTestnetBenchmarkPage() {
               Measure performance and latency of Binance Testnet API endpoints
             </p>
           </div>
-          <Link
-            to="/admin/analytics"
-            className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm flex items-center"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Analytics Dashboard
-          </Link>
+          <BackButton to="/admin/analytics" label="Back to Analytics Dashboard" />
         </div>
 
         <BinanceTestnetBenchmark />

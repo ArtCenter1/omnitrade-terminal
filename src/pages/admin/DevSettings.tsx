@@ -2,8 +2,7 @@
 import React from 'react';
 import { DevTools } from '@/components/dev/DevTools';
 import { useFeatureFlagsContext } from '@/config/featureFlags.tsx';
-import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { BackButton } from '@/components/ui/back-button';
 
 /**
  * Developer settings page
@@ -18,13 +17,7 @@ export default function DevSettings() {
       <div className="container mx-auto p-4">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold">Developer Settings</h1>
-          <Link
-            to="/admin"
-            className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm flex items-center"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Admin Dashboard
-          </Link>
+          <BackButton to="/admin" label="Back to Admin Dashboard" />
         </div>
         <p>
           Developer settings are only available in development mode or when
@@ -43,13 +36,7 @@ export default function DevSettings() {
             Configure feature flags and development tools
           </p>
         </div>
-        <Link
-          to="/admin"
-          className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm flex items-center"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Admin Dashboard
-        </Link>
+        <BackButton to="/admin" label="Back to Admin Dashboard" />
       </div>
       <DevTools />
     </div>

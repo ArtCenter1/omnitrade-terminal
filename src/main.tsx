@@ -48,6 +48,7 @@ import { setupApiMiddleware } from './mocks/apiMiddleware';
 import './utils/devHelpers';
 import { migrateSandboxToDemoAccount } from './utils/demoAccountMigration';
 import { initializeTerminal } from './lib/terminal-init';
+import { addResetWorkspaceButton } from './utils/resetWorkspace';
 
 // Migrate Sandbox Account to Demo Account in localStorage
 migrateSandboxToDemoAccount();
@@ -80,6 +81,12 @@ if (import.meta.env.DEV) {
   if (localStorage.getItem('useMockUser') === 'true') {
     console.log('Found existing mock user setting, keeping it enabled');
   }
+
+  // Add reset workspace button for development
+  // This helps with troubleshooting workspace issues across different ports
+  setTimeout(() => {
+    addResetWorkspaceButton();
+  }, 1000); // Delay to ensure DOM is ready
 }
 
 createRoot(document.getElementById('root')!).render(
