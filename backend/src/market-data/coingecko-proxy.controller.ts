@@ -26,21 +26,55 @@ export class CoinGeckoProxyController {
   // Cache TTLs for different endpoint types (in seconds)
   private readonly cacheTtls: Record<string, number> = {
     // Market data endpoints
-    'coins/markets': 300, // 5 minutes
-    'coins/list': 3600, // 1 hour
-    'coins/categories/list': 3600, // 1 hour
+    'coins/markets': 600, // 10 minutes (increased from 5)
+    'coins/list': 7200, // 2 hours (increased from 1)
+    'coins/categories/list': 7200, // 2 hours (increased from 1)
+    'coins/categories': 7200, // 2 hours
 
-    // Price data endpoints
-    'simple/price': 60, // 1 minute
-    'simple/token_price': 60, // 1 minute
-    'coins/*/tickers': 30, // 30 seconds
+    // Static data that rarely changes
+    'coins/*/contract/*': 3600, // 1 hour
+    'coins/*/history': 86400, // 24 hours for historical data
+    'asset_platforms': 86400, // 24 hours
+    'exchanges/list': 86400, // 24 hours
+
+    // Price data endpoints (more frequent updates needed)
+    'simple/price': 120, // 2 minutes (increased from 1)
+    'simple/token_price': 120, // 2 minutes (increased from 1)
+    'coins/*/tickers': 60, // 1 minute (increased from 30 seconds)
 
     // OHLC and chart data
-    'coins/*/market_chart': 300, // 5 minutes
-    'coins/*/ohlc': 300, // 5 minutes
+    'coins/*/market_chart': 600, // 10 minutes (increased from 5)
+    'coins/*/ohlc': 600, // 10 minutes (increased from 5)
 
     // Default for other endpoints
-    default: 60, // 1 minute
+    default: 120, // 2 minutes (increased from 1)
+  };
+
+  // Stale TTLs - how long to consider data usable after expiration (in seconds)
+  private readonly staleTtls: Record<string, number> = {
+    // Market data endpoints can be stale for longer
+    'coins/markets': 3600, // 1 hour stale data is acceptable
+    'coins/list': 86400, // 24 hours
+    'coins/categories/list': 86400, // 24 hours
+    'coins/categories': 86400, // 24 hours
+
+    // Static data can be stale for very long
+    'coins/*/contract/*': 86400, // 24 hours
+    'coins/*/history': 604800, // 7 days
+    'asset_platforms': 604800, // 7 days
+    'exchanges/list': 604800, // 7 days
+
+    // Price data should not be stale for too long
+    'simple/price': 300, // 5 minutes
+    'simple/token_price': 300, // 5 minutes
+    'coins/*/tickers': 300, // 5 minutes
+
+    // OHLC and chart data
+    'coins/*/market_chart': 3600, // 1 hour
+    'coins/*/ohlc': 3600, // 1 hour
+
+    // Default for other endpoints
+    default: 600, // 10 minutes
   };
 
   constructor(private readonly redisService: RedisService) {}

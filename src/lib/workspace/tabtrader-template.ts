@@ -1,22 +1,50 @@
 /**
  * TabTrader-inspired Workspace Template
- * 
+ *
  * This template creates a layout similar to TabTrader's trading interface.
+ * Based on the actual TabTrader layout (https://app.tabtrader.com/trading).
  */
 
-import { 
-  LayoutItemType, 
-  SplitDirection, 
-  WorkspaceTemplate 
+import {
+  LayoutItemType,
+  SplitDirection,
+  WorkspaceTemplate,
+  StackLayoutItem,
+  ComponentLayoutItem
 } from './types';
 
 /**
+ * Helper function to create a tab stack
+ */
+function createTabStack(
+  id: string,
+  title: string,
+  tabs: Array<{id: string, componentId: string, title: string, componentState: any}>,
+  activeItemIndex: number = 0
+): StackLayoutItem {
+  return {
+    id,
+    type: LayoutItemType.STACK,
+    title,
+    children: tabs.map(tab => ({
+      id: tab.id,
+      type: LayoutItemType.COMPONENT,
+      componentId: tab.componentId,
+      componentState: tab.componentState || {},
+      title: tab.title
+    })),
+    activeItemIndex
+  };
+}
+
+/**
  * TabTrader-inspired trading workspace template
+ * Based on the actual TabTrader layout
  */
 export const tabTraderTemplate: WorkspaceTemplate = {
   id: 'tabtrader-inspired',
-  name: 'TabTrader-Inspired Layout',
-  description: 'Trading layout inspired by TabTrader with chart, order book, and trading panel',
+  name: 'TabTrader Layout',
+  description: 'Trading layout matching TabTrader with watchlist, chart, order book, and trading panel',
   category: 'trading',
   tags: ['trading', 'tabtrader'],
   root: {
@@ -25,58 +53,111 @@ export const tabTraderTemplate: WorkspaceTemplate = {
     direction: SplitDirection.HORIZONTAL,
     children: [
       {
-        id: 'main-content',
+        id: 'left-panel',
         type: LayoutItemType.CONTAINER,
         direction: SplitDirection.VERTICAL,
         children: [
-          {
-            id: 'chart-area',
-            type: LayoutItemType.COMPONENT,
-            componentId: 'chart-section',
-            componentState: {
-              symbol: 'BTC/USDT'
-            },
-            title: 'BTC/USDT Chart'
-          },
-          {
-            id: 'bottom-tabs',
-            type: LayoutItemType.COMPONENT,
-            componentId: 'terminal-tabs',
-            componentState: {
-              symbol: 'BTC/USDT'
-            },
-            title: 'Orders & Trades'
-          }
+          createTabStack(
+            'watchlist-tabs',
+            'Watchlist',
+            [
+              {
+                id: 'watchlist',
+                componentId: 'market-watchlist',
+                title: 'Watchlist',
+                componentState: {
+                  favorites: true
+                }
+              }
+            ]
+          ),
+          createTabStack(
+            'alerts-tabs',
+            'Alerts',
+            [
+              {
+                id: 'alerts',
+                componentId: 'alerts-panel',
+                title: 'Alerts',
+                componentState: {}
+              }
+            ]
+          )
         ],
-        sizes: [75, 25]
+        sizes: [70, 30]
+      },
+      {
+        id: 'center-panel',
+        type: LayoutItemType.CONTAINER,
+        direction: SplitDirection.VERTICAL,
+        children: [
+          createTabStack(
+            'chart-tabs',
+            'Chart',
+            [
+              {
+                id: 'chart-btc',
+                componentId: 'chart-section',
+                title: 'BTC/USDT Chart',
+                componentState: {
+                  symbol: 'BTC/USDT'
+                }
+              }
+            ]
+          )
+        ]
       },
       {
         id: 'right-panel',
         type: LayoutItemType.CONTAINER,
         direction: SplitDirection.VERTICAL,
         children: [
-          {
-            id: 'order-book',
-            type: LayoutItemType.COMPONENT,
-            componentId: 'order-book',
-            componentState: {
-              symbol: 'BTC/USDT'
-            },
-            title: 'Order Book'
-          },
-          {
-            id: 'trading-form',
-            type: LayoutItemType.COMPONENT,
-            componentId: 'trading-sidebar',
-            componentState: {
-              symbol: 'BTC/USDT'
-            },
-            title: 'Place Order'
-          }
+          createTabStack(
+            'order-book-tabs',
+            'Order Book',
+            [
+              {
+                id: 'order-book',
+                componentId: 'order-book',
+                title: 'Order Book',
+                componentState: {
+                  symbol: 'BTC/USDT'
+                }
+              }
+            ]
+          ),
+          createTabStack(
+            'new-order-tabs',
+            'New Order',
+            [
+              {
+                id: 'new-order',
+                componentId: 'trading-sidebar',
+                title: 'New Order',
+                componentState: {
+                  symbol: 'BTC/USDT'
+                }
+              }
+            ]
+          ),
+          createTabStack(
+            'trades-tabs',
+            'Last Trades',
+            [
+              {
+                id: 'last-trades',
+                componentId: 'recent-trades',
+                title: 'Last Trades',
+                componentState: {
+                  symbol: 'BTC/USDT'
+                }
+              }
+            ]
+          )
         ],
-        sizes: [60, 40]
+        sizes: [40, 30, 30]
       }
     ],
-    sizes: [75, 25]
+    sizes: [20, 50, 30]
   }
 };

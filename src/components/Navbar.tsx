@@ -101,9 +101,19 @@ export default function Navbar() {
                 <NavigationMenuLink asChild>
                   <Link
                     to="/terminal"
-                    className={`${navigationMenuTriggerStyle()} text-white hover:text-white ${location.startsWith('/terminal') ? 'bg-[#1e2230] font-bold border-b-2 border-blue-500' : ''}`}
+                    className={`${navigationMenuTriggerStyle()} text-white hover:text-white ${location.startsWith('/terminal') && !location.includes('workspace') ? 'bg-[#1e2230] font-bold border-b-2 border-blue-500' : ''}`}
                   >
                     Terminal
+                  </Link>
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <NavigationMenuLink asChild>
+                  <Link
+                    to="/terminal-workspace"
+                    className={`${navigationMenuTriggerStyle()} text-white hover:text-white ${location.includes('terminal-workspace') ? 'bg-[#1e2230] font-bold border-b-2 border-blue-500' : ''}`}
+                  >
+                    Workspace
                   </Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>

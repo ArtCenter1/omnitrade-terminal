@@ -1,11 +1,11 @@
 /**
  * Terminal Workspace Page
- * 
+ *
  * This is the new terminal page that uses the workspace management system.
  * It will eventually replace the current Terminal.tsx page.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AlertTriangle, LayoutGrid, Save, Settings } from 'lucide-react';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { WorkspaceProvider } from '@/contexts/WorkspaceContext';
@@ -33,9 +33,22 @@ const WorkspaceControls: React.FC = () => {
   const [newWorkspaceDescription, setNewWorkspaceDescription] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
+  // Set TabTrader workspace as default when component mounts
+  useEffect(() => {
+    // Find the TabTrader workspace if it exists
+    const tabTraderWorkspace = state.workspaces.find(workspace =>
+      workspace.name.includes('TabTrader') || workspace.id.includes('tabtrader'));
+
+    if (tabTraderWorkspace && (!currentWorkspace || currentWorkspace.name === 'Default Workspace')) {
+      // Set it as the current workspace
+      setCurrentWorkspace(tabTraderWorkspace.id);
+      console.log(`Set current workspace to TabTrader: ${tabTraderWorkspace.name}`);
+    }
+  }, [state.workspaces, currentWorkspace, setCurrentWorkspace]);
+
   const handleCreateWorkspace = () => {
     if (!newWorkspaceName) return;
-    
+
     const workspace = createWorkspace(newWorkspaceName, newWorkspaceDescription);
     setCurrentWorkspace(workspace.id);
     setNewWorkspaceName('');

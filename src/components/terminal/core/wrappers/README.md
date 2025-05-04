@@ -68,6 +68,38 @@ componentRegistry.register(TerminalTabsComponent);
 const terminalTabs = componentRegistry.createInstance('terminal-tabs');
 ```
 
+### TradesWrapper
+
+Wraps the `RecentTradesTable` component, which displays recent trades for a trading pair.
+
+```typescript
+// Example usage
+import { componentRegistry } from '@/lib/component-registry';
+import { TradesComponent } from './TradesWrapper';
+
+// Register the component
+componentRegistry.register(TradesComponent);
+
+// Create an instance
+const trades = componentRegistry.createInstance('trades-component');
+```
+
+### PositionsWrapper
+
+Wraps the `PositionsList` component, which displays and manages trading positions.
+
+```typescript
+// Example usage
+import { componentRegistry } from '@/lib/component-registry';
+import { PositionsComponent } from './PositionsWrapper';
+
+// Register the component
+componentRegistry.register(PositionsComponent);
+
+// Create an instance
+const positions = componentRegistry.createInstance('positions-component');
+```
+
 ## How the Wrappers Work
 
 Each wrapper follows the same pattern:

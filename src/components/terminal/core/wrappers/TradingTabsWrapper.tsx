@@ -1,56 +1,48 @@
 /**
- * Trading Sidebar Wrapper
- *
- * A wrapper for the existing TradingSidebar component that implements the IComponent interface.
- * This version uses a modified ExchangeSelector that doesn't depend on react-router-dom.
+ * Trading Tabs Wrapper
+ * 
+ * A wrapper for the TradingTabs component that implements the IComponent interface.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import {
-  ComponentLifecycleState,
-  ComponentMetadata,
-  IComponent
+import { 
+  ComponentLifecycleState, 
+  ComponentMetadata, 
+  IComponent 
 } from '@/lib/component-registry';
 import { BaseTerminalComponent, BaseTerminalComponentProps } from '../BaseTerminalComponent';
+import { TradingTabs } from '@/components/terminal/TradingTabs';
 import { TradingPair } from '@/components/terminal/TradingPairSelector';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 /**
- * Trading Sidebar Component Props
+ * Trading Tabs Component Props
  */
-interface TradingSidebarComponentProps extends BaseTerminalComponentProps {
+interface TradingTabsComponentProps extends BaseTerminalComponentProps {
   selectedPair?: TradingPair;
   onOrderPlaced?: () => void;
 }
 
 /**
- * Trading Sidebar Component State
+ * Trading Tabs Component State
  */
-interface TradingSidebarComponentState {
+interface TradingTabsComponentState {
   isLoading: boolean;
   error: Error | null;
   selectedPair?: TradingPair;
   refreshTrigger: number;
 }
 
-// Import the components we need for our custom implementation
-import { ExchangeSelectorWrapper } from './ExchangeSelectorWrapper';
-import { AccountSelector } from '@/components/terminal/AccountSelector';
-import { AvailableBalances } from '@/components/terminal/AvailableBalances';
-import { TradingTabs } from '@/components/terminal/TradingTabs';
-import { ErrorBoundary } from '@/components/ui/error-boundary';
-
 /**
- * Trading Sidebar Component React Implementation
- * This is a custom implementation that doesn't use the original TradingSidebar
- * to avoid the useNavigate() error
+ * Trading Tabs Component React Implementation
  */
-const TradingSidebarComponentReact: React.FC<TradingSidebarComponentProps> = ({
-  id,
+const TradingTabsComponentReact: React.FC<TradingTabsComponentProps> = ({ 
+  id, 
   selectedPair,
   onOrderPlaced
 }) => {
-  const [refreshTrigger, setRefreshTrigger] = React.useState(0);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const handleOrderPlaced = () => {
     setRefreshTrigger(prev => prev + 1);
@@ -60,24 +52,9 @@ const TradingSidebarComponentReact: React.FC<TradingSidebarComponentProps> = ({
   };
 
   return (
-    <div className="h-full flex flex-col px-1 overflow-y-auto">
+    <div className="h-full flex flex-col">
       <ErrorBoundary>
-        <ExchangeSelectorWrapper />
-      </ErrorBoundary>
-
-      <ErrorBoundary>
-        <AccountSelector />
-      </ErrorBoundary>
-
-      <ErrorBoundary>
-        <AvailableBalances
-          selectedPair={selectedPair}
-          refreshTrigger={refreshTrigger}
-        />
-      </ErrorBoundary>
-
-      <ErrorBoundary>
-        <TradingTabs
+        <TradingTabs 
           selectedPair={selectedPair}
           onOrderPlaced={handleOrderPlaced}
           refreshTrigger={refreshTrigger}
@@ -88,20 +65,20 @@ const TradingSidebarComponentReact: React.FC<TradingSidebarComponentProps> = ({
 };
 
 /**
- * Trading Sidebar Component Class
+ * Trading Tabs Component Class
  */
-export class TradingSidebarComponent extends BaseTerminalComponent<TradingSidebarComponentProps, TradingSidebarComponentState> implements IComponent {
+export class TradingTabsComponent extends BaseTerminalComponent<TradingTabsComponentProps, TradingTabsComponentState> implements IComponent {
   private root: any = null;
-
-  constructor(props: TradingSidebarComponentProps = { id: 'trading-sidebar' }) {
+  
+  constructor(props: TradingTabsComponentProps = { id: 'terminal-tabs' }) {
     super(
       {
-        id: 'trading-sidebar',
-        name: 'Trading Sidebar',
-        description: 'Provides trading functionality and account information',
+        id: 'terminal-tabs',
+        name: 'Trading Tabs',
+        description: 'Provides trading form and order management',
         version: '1.0.0',
         category: 'trading',
-        tags: ['trading', 'orders', 'account'],
+        tags: ['trading', 'orders', 'form'],
         settings: [
           {
             key: 'symbol',
@@ -114,7 +91,7 @@ export class TradingSidebarComponent extends BaseTerminalComponent<TradingSideba
       },
       props
     );
-
+    
     this.componentState = {
       isLoading: true,
       error: null,
@@ -122,7 +99,7 @@ export class TradingSidebarComponent extends BaseTerminalComponent<TradingSideba
       refreshTrigger: 0
     };
   }
-
+  
   /**
    * Initialize the component
    */
@@ -131,42 +108,42 @@ export class TradingSidebarComponent extends BaseTerminalComponent<TradingSideba
     await new Promise(resolve => setTimeout(resolve, 300));
     this.componentState.isLoading = false;
   }
-
+  
   /**
    * Render the component
    */
   protected onRender(): void {
     if (!this.container) return;
-
+    
     // Create a root for React rendering
     this.root = createRoot(this.container);
-
+    
     // Render the React component
     this.root.render(
-      <TradingSidebarComponentReact
+      <TradingTabsComponentReact
         id={this.props.id}
         selectedPair={this.componentState.selectedPair}
         onOrderPlaced={this.handleOrderPlaced}
       />
     );
   }
-
+  
   /**
    * Update the component
    */
   protected onUpdate(): void {
     if (!this.root || !this.container) return;
-
+    
     // Update the React component
     this.root.render(
-      <TradingSidebarComponentReact
+      <TradingTabsComponentReact
         id={this.props.id}
         selectedPair={this.componentState.selectedPair}
         onOrderPlaced={this.handleOrderPlaced}
       />
     );
   }
-
+  
   /**
    * Dispose the component
    */
@@ -176,20 +153,20 @@ export class TradingSidebarComponent extends BaseTerminalComponent<TradingSideba
       this.root = null;
     }
   }
-
+  
   /**
    * Handle order placed event
    */
   private handleOrderPlaced = (): void => {
     // Increment the refresh trigger to cause a refresh
     this.componentState.refreshTrigger += 1;
-
+    
     // Call the onOrderPlaced prop if provided
     if (this.props.onOrderPlaced) {
       this.props.onOrderPlaced();
     }
   };
-
+  
   /**
    * Handle settings changes
    */
@@ -208,11 +185,11 @@ export class TradingSidebarComponent extends BaseTerminalComponent<TradingSideba
       }
     }
   }
-
+  
   /**
    * Get the React component
    */
   protected getReactComponent(): React.ComponentType<any> {
-    return TradingSidebarComponentReact;
+    return TradingTabsComponentReact;
   }
 }

@@ -16,6 +16,12 @@ import { ChartSectionComponent } from '@/components/terminal/core/wrappers/Chart
 import { OrderBookComponent } from '@/components/terminal/core/wrappers/OrderBookWrapper';
 import { TradingSidebarComponent } from '@/components/terminal/core/wrappers/TradingSidebarWrapper';
 import { TerminalTabsComponent } from '@/components/terminal/core/wrappers/TerminalTabsWrapper';
+import { TradesComponent } from '@/components/terminal/core/wrappers/TradesWrapper';
+import { PositionsComponent } from '@/components/terminal/core/wrappers/PositionsWrapper';
+import { TradingTabsComponent } from '@/components/terminal/core/wrappers/TradingTabsWrapper';
+import { MarketWatchlistComponent } from '@/components/terminal/core/wrappers/MarketWatchlistWrapper';
+import { AlertsPanelComponent } from '@/components/terminal/core/wrappers/AlertsPanelWrapper';
+import { RecentTradesComponent } from '@/components/terminal/core/wrappers/RecentTradesWrapper';
 
 /**
  * Initialize the component registry with default components
@@ -39,6 +45,12 @@ export function initializeComponentRegistry(): void {
   componentRegistry.register(OrderBookComponent);
   componentRegistry.register(TradingSidebarComponent);
   componentRegistry.register(TerminalTabsComponent);
+  componentRegistry.register(TradesComponent);
+  componentRegistry.register(PositionsComponent);
+  componentRegistry.register(TradingTabsComponent);
+  componentRegistry.register(MarketWatchlistComponent);
+  componentRegistry.register(AlertsPanelComponent);
+  componentRegistry.register(RecentTradesComponent);
 
   // Log the registered components
   const components = componentRegistry.getComponents();

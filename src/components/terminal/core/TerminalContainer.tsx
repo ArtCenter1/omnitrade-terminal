@@ -19,6 +19,7 @@ import {
 import { componentRegistry } from '@/lib/component-registry';
 import { ResizableSplitter } from '@/components/ui/resizable-splitter';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 /**
  * Terminal Container Props
@@ -44,7 +45,9 @@ export const TerminalContainer: React.FC<TerminalContainerProps> = ({ className 
 
   return (
     <div ref={containerRef} className={`h-full w-full ${className || ''}`}>
-      <LayoutRenderer layout={currentWorkspace.root} />
+      <ErrorBoundary>
+        <LayoutRenderer layout={currentWorkspace.root} />
+      </ErrorBoundary>
     </div>
   );
 };
@@ -116,7 +119,9 @@ const ContainerRenderer: React.FC<ContainerRendererProps> = ({ container }) => {
           setDropPosition(null);
         }}
       >
-        <LayoutRenderer layout={children[0]} />
+        <ErrorBoundary>
+          <LayoutRenderer layout={children[0]} />
+        </ErrorBoundary>
         {renderDropIndicators(container.id)}
       </div>
     );
@@ -494,7 +499,9 @@ const ContainerRenderer: React.FC<ContainerRendererProps> = ({ container }) => {
       >
         {children.map((child, index) => (
           <div key={child.id} className="h-full">
-            <LayoutRenderer layout={child} />
+            <ErrorBoundary>
+              <LayoutRenderer layout={child} />
+            </ErrorBoundary>
           </div>
         ))}
       </ResizableSplitter>
@@ -519,33 +526,61 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component }) => {
   const componentContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!componentContainerRef.current) {
-      return;
-    }
+    let instance: any = null;
+    let isMounted = true;
 
-    try {
-      // Check if component is registered
-      if (!componentRegistry.hasComponent(componentId)) {
-        throw new Error(`Component ${componentId} is not registered`);
+    const renderComponent = async () => {
+      if (!componentContainerRef.current || !isMounted) {
+        return;
       }
 
-      // Create component instance
-      const instance = componentRegistry.createInstance(componentId);
-      if (!instance) {
-        throw new Error(`Failed to create instance of component ${componentId}`);
+      try {
+        // Check if component is registered
+        if (!componentRegistry.hasComponent(componentId)) {
+          throw new Error(`Component ${componentId} is not registered`);
+        }
+
+        // Create component instance
+        instance = componentRegistry.createInstance(componentId);
+        if (!instance) {
+          throw new Error(`Failed to create instance of component ${componentId}`);
+        }
+
+        // Render component
+        if (isMounted && componentContainerRef.current) {
+          instance.render(componentContainerRef.current);
+        }
+      } catch (err) {
+        if (isMounted) {
+          console.error(`Error rendering component ${componentId}:`, err);
+          setError(err as Error);
+        }
       }
+    };
 
-      // Render component
-      instance.render(componentContainerRef.current);
+    // Start rendering
+    renderComponent();
 
-      // Clean up on unmount
-      return () => {
-        instance.dispose();
-      };
-    } catch (err) {
-      console.error(`Error rendering component ${componentId}:`, err);
-      setError(err as Error);
-    }
+    // Clean up on unmount
+    return () => {
+      isMounted = false;
+
+      // Use setTimeout to delay the disposal until after the current render cycle
+      if (instance) {
+        try {
+          // Schedule disposal for the next tick to avoid React rendering conflicts
+          setTimeout(() => {
+            try {
+              instance.dispose();
+            } catch (err) {
+              console.warn(`Error disposing component ${componentId}:`, err);
+            }
+          }, 0);
+        } catch (err) {
+          console.warn(`Error scheduling disposal for component ${componentId}:`, err);
+        }
+      }
+    };
   }, [componentId, componentState]);
 
   if (error) {
@@ -831,7 +866,9 @@ const StackRenderer: React.FC<StackRendererProps> = ({ stack }) => {
             value={child.id}
             className="flex-1 p-0 m-0 data-[state=active]:flex data-[state=active]:flex-col"
           >
-            <ComponentRenderer component={child} />
+            <ErrorBoundary>
+              <ComponentRenderer component={child} />
+            </ErrorBoundary>
           </TabsContent>
         ))}
       </Tabs>
