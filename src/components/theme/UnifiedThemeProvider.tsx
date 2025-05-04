@@ -51,22 +51,13 @@ function UnifiedThemeProviderInner({ children }: { children: React.ReactNode }) 
     setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
   };
 
-  // Apply additional theme-related classes or logic when theme changes
+  // We no longer need to apply theme classes here as ThemeClassApplier handles this
+  // This prevents duplicate class application and potential race conditions
   useEffect(() => {
-    // Apply any additional theme-related logic here
-    // This could include setting CSS variables, updating localStorage, etc.
+    // We still want to log theme changes for debugging
+    console.log(`Theme changed to: ${resolvedTheme || theme || 'dark'}`);
 
-    // For example, we could add a data attribute to the body for CSS targeting
-    document.body.setAttribute('data-theme', resolvedTheme || theme || 'dark');
-
-    // Or add a class to the body for legacy theme support
-    if (resolvedTheme === 'dark' || theme === 'dark') {
-      document.body.classList.add('dark-theme');
-      document.body.classList.remove('light-theme');
-    } else {
-      document.body.classList.add('light-theme');
-      document.body.classList.remove('dark-theme');
-    }
+    // Any theme-specific logic that isn't related to DOM classes can go here
   }, [theme, resolvedTheme]);
 
   // Provide the unified theme context

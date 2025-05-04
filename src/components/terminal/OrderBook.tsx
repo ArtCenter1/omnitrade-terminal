@@ -5,7 +5,7 @@ import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import { usePrice } from '@/contexts/PriceContext';
 import { useFeatureFlags } from '@/config/featureFlags';
 import { useState, useEffect, useCallback } from 'react';
-import * as enhancedCoinGeckoService from '@/services/enhancedCoinGeckoService';
+import * as optimizedCoinGeckoService from '@/services/optimizedCoinGeckoService';
 import { mockExchangeService } from '@/services/mockExchangeService';
 import { ExchangeFactory } from '@/services/exchange/exchangeFactory';
 

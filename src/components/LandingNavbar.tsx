@@ -3,6 +3,7 @@ import { ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { usePageType } from '@/hooks/usePageType';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,13 +15,9 @@ export function LandingNavbar() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  // Add landing-page class to the body when LandingNavbar is mounted
-  React.useEffect(() => {
-    document.body.classList.add('landing-page');
-    return () => {
-      document.body.classList.remove('landing-page');
-    };
-  }, []);
+  // Use the usePageType hook to automatically apply the landing-page class
+  // This replaces the manual class addition/removal
+  const { isLandingPage } = usePageType();
 
   return (
     <div className="flex items-center justify-between p-4 bg-black text-white sticky top-0 z-50">

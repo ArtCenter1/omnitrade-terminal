@@ -158,6 +158,81 @@ export const defaultAnalysisTemplate: WorkspaceTemplate = {
 };
 
 /**
+ * TradingView Chart workspace template
+ */
+export const tradingViewChartTemplate: WorkspaceTemplate = {
+  id: 'tradingview-chart',
+  name: 'TradingView Chart Layout',
+  description: 'Layout focused on TradingView charts with multiple timeframes',
+  category: 'analysis',
+  tags: ['analysis', 'tradingview', 'chart'],
+  root: {
+    id: 'root',
+    type: LayoutItemType.CONTAINER,
+    direction: SplitDirection.VERTICAL,
+    children: [
+      {
+        id: 'top-charts',
+        type: LayoutItemType.CONTAINER,
+        direction: SplitDirection.HORIZONTAL,
+        children: [
+          {
+            id: 'chart-daily',
+            type: LayoutItemType.COMPONENT,
+            componentId: 'tradingview-chart',
+            componentState: {
+              symbol: 'BTC/USDT',
+              interval: 'D'
+            },
+            title: 'BTC/USDT Daily'
+          },
+          {
+            id: 'chart-hourly',
+            type: LayoutItemType.COMPONENT,
+            componentId: 'tradingview-chart',
+            componentState: {
+              symbol: 'BTC/USDT',
+              interval: '1h'
+            },
+            title: 'BTC/USDT Hourly'
+          }
+        ],
+        sizes: [50, 50]
+      },
+      {
+        id: 'bottom-charts',
+        type: LayoutItemType.CONTAINER,
+        direction: SplitDirection.HORIZONTAL,
+        children: [
+          {
+            id: 'chart-eth',
+            type: LayoutItemType.COMPONENT,
+            componentId: 'tradingview-chart',
+            componentState: {
+              symbol: 'ETH/USDT',
+              interval: 'D'
+            },
+            title: 'ETH/USDT Daily'
+          },
+          {
+            id: 'chart-sol',
+            type: LayoutItemType.COMPONENT,
+            componentId: 'tradingview-chart',
+            componentState: {
+              symbol: 'SOL/USDT',
+              interval: 'D'
+            },
+            title: 'SOL/USDT Daily'
+          }
+        ],
+        sizes: [50, 50]
+      }
+    ],
+    sizes: [50, 50]
+  }
+};
+
+/**
  * Get all default workspace templates
  */
 export function getDefaultTemplates(): WorkspaceTemplate[] {
@@ -167,6 +242,7 @@ export function getDefaultTemplates(): WorkspaceTemplate[] {
     flexibleTabTemplate,
     tabTraderTemplate,
     defaultTradingTemplate,
-    defaultAnalysisTemplate
+    defaultAnalysisTemplate,
+    tradingViewChartTemplate
   ];
 }

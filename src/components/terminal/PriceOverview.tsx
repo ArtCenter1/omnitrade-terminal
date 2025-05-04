@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { TradingPair } from '@/types/trading'; // Corrected import path
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import {
-  CoinGeckoTicker,
-  getCoinTickers,
-} from '@/services/enhancedCoinGeckoService';
+  CoinGeckoData,
+  getCurrentPrice,
+} from '@/services/optimizedCoinGeckoService';
 import { formatCurrency, formatNumber } from '../../utils/formatUtils'; // Assuming you have formatting utils
 import { useFeatureFlags } from '@/config/featureFlags';
 import { ExchangeFactory } from '@/services/exchange/exchangeFactory';

@@ -109,18 +109,8 @@ export default function Navbar() {
               <NavigationMenuItem>
                 <NavigationMenuLink asChild>
                   <Link
-                    to="/workspace"
-                    className={`${navigationMenuTriggerStyle()} text-[var(--text-primary)] hover:text-[var(--text-primary)] ${location.startsWith('/workspace') ? 'bg-[var(--bg-active)] font-bold border-b-2 border-blue-500' : ''}`}
-                  >
-                    Workspace
-                  </Link>
-                </NavigationMenuLink>
-              </NavigationMenuItem>
-              <NavigationMenuItem>
-                <NavigationMenuLink asChild>
-                  <Link
                     to="/terminal-workspace"
-                    className={`${navigationMenuTriggerStyle()} text-white hover:text-white ${location.includes('terminal-workspace') ? 'bg-[#1e2230] font-bold border-b-2 border-blue-500' : ''}`}
+                    className={`${navigationMenuTriggerStyle()} text-[var(--text-primary)] hover:text-[var(--text-primary)] ${location.includes('workspace') ? 'bg-[var(--bg-active)] font-bold border-b-2 border-blue-500' : ''}`}
                   >
                     Workspace
                   </Link>
@@ -130,7 +120,7 @@ export default function Navbar() {
                 <NavigationMenuLink asChild>
                   <Link
                     to="/bots"
-                    className={`${navigationMenuTriggerStyle()} text-white hover:text-white ${location.startsWith('/bots') ? 'bg-[#1e2230] font-bold border-b-2 border-blue-500' : ''}`}
+                    className={`${navigationMenuTriggerStyle()} text-[var(--text-primary)] hover:text-[var(--text-primary)] ${location.startsWith('/bots') ? 'bg-[var(--bg-active)] font-bold border-b-2 border-blue-500' : ''}`}
                   >
                     Bots
                   </Link>
@@ -140,7 +130,7 @@ export default function Navbar() {
                 <NavigationMenuLink asChild>
                   <Link
                     to="/markets"
-                    className={`${navigationMenuTriggerStyle()} text-white hover:text-white ${location.startsWith('/markets') ? 'bg-[#1e2230] font-bold border-b-2 border-blue-500' : ''}`}
+                    className={`${navigationMenuTriggerStyle()} text-[var(--text-primary)] hover:text-[var(--text-primary)] ${location.startsWith('/markets') ? 'bg-[var(--bg-active)] font-bold border-b-2 border-blue-500' : ''}`}
                   >
                     Markets
                   </Link>
@@ -150,7 +140,7 @@ export default function Navbar() {
                 <NavigationMenuLink asChild>
                   <Link
                     to="/earn"
-                    className={`${navigationMenuTriggerStyle()} text-white hover:text-white ${location.startsWith('/earn') ? 'bg-[#1e2230] font-bold border-b-2 border-blue-500' : ''}`}
+                    className={`${navigationMenuTriggerStyle()} text-[var(--text-primary)] hover:text-[var(--text-primary)] ${location.startsWith('/earn') ? 'bg-[var(--bg-active)] font-bold border-b-2 border-blue-500' : ''}`}
                   >
                     Earn
                   </Link>
@@ -160,7 +150,7 @@ export default function Navbar() {
                 <NavigationMenuLink asChild>
                   <Link
                     to="/community"
-                    className={`${navigationMenuTriggerStyle()} text-white hover:text-white ${location.startsWith('/community') ? 'bg-[#1e2230] font-bold border-b-2 border-blue-500' : ''}`}
+                    className={`${navigationMenuTriggerStyle()} text-[var(--text-primary)] hover:text-[var(--text-primary)] ${location.startsWith('/community') ? 'bg-[var(--bg-active)] font-bold border-b-2 border-blue-500' : ''}`}
                   >
                     Community
                   </Link>
@@ -175,7 +165,7 @@ export default function Navbar() {
                   <NavigationMenuLink asChild>
                     <Link
                       to="/admin"
-                      className={`${navigationMenuTriggerStyle()} ${location.startsWith('/admin') ? 'bg-[#1e2230] font-bold border-b-2 border-red-500' : ''}`}
+                      className={`${navigationMenuTriggerStyle()} ${location.startsWith('/admin') ? 'bg-[var(--bg-active)] font-bold border-b-2 border-red-500' : ''}`}
                     >
                       <span className="flex items-center text-red-400">
                         <LayoutDashboard className="h-4 w-4 mr-1" />

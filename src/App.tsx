@@ -3,6 +3,7 @@ import { Route, Routes, useLocation, Navigate } from 'react-router-dom';
 import '@/styles/components.css';
 import { Toaster } from '@/components/ui/sonner';
 import GitHubPagesBanner from '@/components/ui/github-pages-banner';
+import { TooltipProvider } from '@/components/ui/tooltip';
 // Debug panel imports removed
 // Debug panel removed
 import UserRoleManagement from './pages/admin/UserRoleManagement';
@@ -11,6 +12,7 @@ import DevSettings from './pages/admin/DevSettings';
 import BinanceTestnetBenchmarkPage from './pages/admin/BinanceTestnetBenchmarkPage';
 import AnalyticsDashboard from './pages/admin/AnalyticsDashboard';
 import { ScrollToTop } from './components/ScrollToTop';
+import { ThemeClassApplier } from './components/theme/ThemeClassApplier';
 import Index from './pages/Index';
 import AuthPage from './pages/auth/AuthPage';
 import LoginPage from './pages/auth/LoginPage';
@@ -99,10 +101,12 @@ function App() {
 
   return (
     <ConnectionStatusProvider>
-      <Toaster />
-      <GitHubPagesBanner />
-      <ScrollToTop />
-      <Routes>
+      <TooltipProvider>
+        <Toaster />
+        <GitHubPagesBanner />
+        <ScrollToTop />
+        <ThemeClassApplier />
+        <Routes>
           {/* Public routes */}
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<AuthPage />} />
@@ -114,6 +118,8 @@ function App() {
           <Route path="/omni-token" element={<OmniToken />} />
           <Route path="/trading-bots" element={<TradingBotsLanding />} />
           <Route path="/blog" element={<Blog />} />
+          {/* Redirect /workspace to /terminal-workspace for backward compatibility */}
+          <Route path="/workspace" element={<Navigate to="/terminal-workspace" replace />} />
           <Route path="*" element={<NotFound />} />
 
           {/* Protected routes (reverted to individual wrappers) */}
@@ -309,6 +315,7 @@ function App() {
             }
           />
         </Routes>
+      </TooltipProvider>
       </ConnectionStatusProvider>
   );
 }

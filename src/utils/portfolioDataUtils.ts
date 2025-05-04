@@ -5,8 +5,9 @@ import {
   getMockPortfolioData,
 } from '@/mocks/mockPortfolio';
 import { ExchangeAccount } from '@/mocks/mockExchangeAccounts';
-
 import { ExchangeSource } from '@/types/exchange';
+// Import the optimized CoinGecko service
+import { getCoinBySymbol, getTopCoins } from '@/services/optimizedCoinGeckoService';
 
 // Define the asset type for the portfolio table
 export type PortfolioTableAsset = {
@@ -499,9 +500,6 @@ export function generateAllocationData(
     return [];
   }
 }
-
-// Import the CoinGecko service
-import { getCoinsBySymbols, getTopCoins } from '@/services/coinGeckoService';
 
 // Generate chart data for an asset
 function generateAssetChartData(isPositive: boolean): Array<{ value: number }> {

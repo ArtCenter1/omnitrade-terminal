@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/tooltip';
 import { HelpCircle, RefreshCw } from 'lucide-react';
 import { FeatureFlagsPanel } from './FeatureFlagsPanel';
-import { useFeatureFlagsContext } from '@/config/featureFlags.tsx';
+import { useFeatureFlagsContext, setFeatureFlag } from '@/config/featureFlags.tsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Card,
@@ -18,7 +18,9 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import * as enhancedCoinGeckoService from '@/services/enhancedCoinGeckoService';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import * as optimizedCoinGeckoService from '@/services/optimizedCoinGeckoService';
 import { BinanceTestnetSettings } from '@/components/settings/BinanceTestnetSettings';
 import { useConnectionStatus } from '@/contexts/connectionStatusContext';
 
@@ -431,6 +433,7 @@ function CoinGeckoStatus() {
   >('checking');
   const [apiKey, setApiKey] = React.useState<string>('');
   const [isRefreshing, setIsRefreshing] = React.useState<boolean>(false);
+  const flags = useFeatureFlagsContext();
 
   // Check if CoinGecko API key is set
   React.useEffect(() => {
@@ -445,11 +448,11 @@ function CoinGeckoStatus() {
       setCoinGeckoStatus('checking');
 
       // Test the API by fetching top coins
-      await enhancedCoinGeckoService.getTopCoins(5);
+      await optimizedCoinGeckoService.getTopCoins(5);
       setCoinGeckoStatus('connected');
 
       // Get cache statistics
-      const stats = enhancedCoinGeckoService.getCacheStats();
+      const stats = optimizedCoinGeckoService.getCacheStats();
       setCacheStats(stats);
     } catch (error) {
       console.error('Error checking CoinGecko API status:', error);
@@ -466,7 +469,7 @@ function CoinGeckoStatus() {
 
   // Reset cache handler
   const handleResetCache = () => {
-    enhancedCoinGeckoService.resetCache();
+    optimizedCoinGeckoService.resetCache();
     checkCoinGeckoStatus();
   };
 
@@ -495,6 +498,32 @@ function CoinGeckoStatus() {
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground text-sm">CoinGecko API</span>
             <StatusIndicator status={coinGeckoStatus} />
+          </div>
+
+          {/* Kill Switch for CoinGecko API */}
+          <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-700">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-1 cursor-help">
+                  <Label htmlFor="disable-coingecko-api" className="text-red-500 font-semibold text-sm">
+                    Emergency Kill Switch
+                  </Label>
+                  <HelpCircle className="h-3 w-3 text-red-500" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="max-w-xs">
+                  Disable all CoinGecko API calls. Use this when experiencing rate limiting or API issues.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+            <Switch
+              id="disable-coingecko-api"
+              checked={flags.disableCoinGeckoApi}
+              onCheckedChange={(checked) =>
+                setFeatureFlag('disableCoinGeckoApi', checked)
+              }
+            />
           </div>
 
           <div className="flex items-center justify-between">

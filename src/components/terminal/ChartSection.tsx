@@ -1,9 +1,8 @@
 import { PriceOverview } from './PriceOverview';
 import { TradingPairSelector } from './TradingPairSelector';
 import { TradingPair } from '@/types/trading';
-import { TradingViewContainer } from './TradingViewContainer';
-import { useTheme } from 'next-themes';
-import { Moon, Sun, Bell } from 'lucide-react';
+import { TradingViewContainer } from '@/components/shared/TradingViewContainer';
+import { Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface ChartSectionProps {
@@ -15,7 +14,6 @@ export function ChartSection({
   selectedPair,
   onPairSelect,
 }: ChartSectionProps) {
-  const { theme, setTheme } = useTheme();
   return (
     <div className="flex flex-col h-full">
       {/* Header Section */}
@@ -44,16 +42,6 @@ export function ChartSection({
             className="p-1 h-7 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           >
             <Bell size={16} />
-          </Button>
-
-          {/* Theme Toggle */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="p-1 h-7 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          >
-            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
           </Button>
         </div>
       </div>

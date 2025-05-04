@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import * as enhancedCoinGeckoService from '@/services/enhancedCoinGeckoService';
+import * as optimizedCoinGeckoService from '@/services/optimizedCoinGeckoService';
 
 export interface Market {
   name: string;
@@ -55,13 +55,13 @@ export function useCoingeckoMarkets(
     setLoading(true);
     setError(null);
     try {
-      // First try using the enhanced CoinGecko service which handles both public and pro API
-      console.log('Fetching market data using enhanced CoinGecko service');
-      const coinData = await enhancedCoinGeckoService.getTopCoins(100);
+      // First try using the optimized CoinGecko service which handles both public and pro API
+      console.log('Fetching market data using optimized CoinGecko service');
+      const coinData = await optimizedCoinGeckoService.getTopCoins(100);
 
       if (coinData && coinData.length > 0) {
         console.log(
-          `Successfully fetched ${coinData.length} coins from enhanced CoinGecko service`,
+          `Successfully fetched ${coinData.length} coins from optimized CoinGecko service`,
         );
         const mapped: Market[] = coinData.map((item) => ({
           name: item.name,

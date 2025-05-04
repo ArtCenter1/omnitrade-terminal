@@ -6,8 +6,8 @@ import { useFeatureFlags } from '../config/featureFlags';
 // Import the shared API instance from lib/api
 import { api } from '../lib/api';
 
-// Import enhanced CoinGecko service
-import * as enhancedCoinGeckoService from './enhancedCoinGeckoService';
+// Import optimized CoinGecko service
+import * as optimizedCoinGeckoService from './optimizedCoinGeckoService';
 
 // Import the TradingPair interface from shared types
 import { TradingPair } from '../types/trading';
@@ -144,7 +144,7 @@ export const getTradingPairs = async (
     try {
       console.log(`Fetching trading pairs from CoinGecko for ${exchangeId}`);
       const coinGeckoPairs =
-        await enhancedCoinGeckoService.getTradingPairs(exchangeId);
+        await optimizedCoinGeckoService.getTradingPairs(exchangeId);
 
       if (coinGeckoPairs.length > 0) {
         console.log(
@@ -292,7 +292,7 @@ export const getTradingPair = async (
       if (symbol.includes('/')) {
         const [baseAsset, quoteAsset] = symbol.split('/');
         try {
-          const price = await enhancedCoinGeckoService.getCurrentPrice(
+          const price = await optimizedCoinGeckoService.getCurrentPrice(
             baseAsset,
             quoteAsset,
           );

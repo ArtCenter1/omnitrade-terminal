@@ -23,7 +23,6 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { TerminalThemeToggle } from '@/components/terminal/ThemeToggle';
 
 /**
  * Workspace Controls Component
@@ -118,7 +117,6 @@ const WorkspaceControls: React.FC = () => {
       </Dialog>
 
       <div className="ml-auto flex items-center space-x-2">
-        <TerminalThemeToggle />
         <Button variant="outline" size="sm" className="h-8">
           <Save className="h-4 w-4 mr-2" />
           Save Layout
