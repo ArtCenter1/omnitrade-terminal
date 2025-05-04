@@ -19,20 +19,37 @@ console.log(`- Pro API URL: ${PRO_API_URL}`);
 console.log(`- API Key available: ${API_KEY ? 'Yes' : 'No'}`);
 
 // Rate limiting configuration
-const PUBLIC_RATE_LIMIT = 10; // requests per minute (reduced for safety)
-const PRO_RATE_LIMIT = 30; // requests per minute (reduced for safety)
+const PUBLIC_RATE_LIMIT = 8; // requests per minute (reduced further for safety)
+const PRO_RATE_LIMIT = 25; // requests per minute (reduced further for safety)
 
 // Throttling configuration
-const THROTTLE_DELAY = 500; // ms between requests
+const THROTTLE_DELAY = 1000; // ms between requests (increased from 500ms)
 let lastRequestTime = 0;
+
+// Circuit breaker configuration
+const CIRCUIT_BREAKER = {
+  FAILURE_THRESHOLD: 5, // Number of failures before opening circuit
+  RESET_TIMEOUT: 60 * 1000, // 1 minute timeout before trying again
+  state: 'CLOSED', // CLOSED, OPEN, HALF_OPEN
+  failures: 0,
+  lastFailure: 0,
+  lastReset: 0,
+};
 
 // Cache durations (in milliseconds)
 const CACHE_DURATIONS = {
-  COINS: 5 * 60 * 1000, // 5 minutes
-  MARKETS: 1 * 60 * 1000, // 1 minute
-  TICKERS: 10 * 1000, // 10 seconds
-  ORDERBOOK: 5 * 1000, // 5 seconds
-  PRICE: 10 * 1000, // 10 seconds
+  COINS: 10 * 60 * 1000, // 10 minutes (increased from 5)
+  MARKETS: 2 * 60 * 1000, // 2 minutes (increased from 1)
+  TICKERS: 30 * 1000, // 30 seconds (increased from 10)
+  ORDERBOOK: 15 * 1000, // 15 seconds (increased from 5)
+  PRICE: 30 * 1000, // 30 seconds (increased from 10)
+
+  // Add stale durations - how long to use expired cache data
+  STALE_COINS: 60 * 60 * 1000, // 1 hour
+  STALE_MARKETS: 10 * 60 * 1000, // 10 minutes
+  STALE_TICKERS: 2 * 60 * 1000, // 2 minutes
+  STALE_ORDERBOOK: 1 * 60 * 1000, // 1 minute
+  STALE_PRICE: 2 * 60 * 1000, // 2 minutes
 };
 
 // Interface for CoinGecko coin data
@@ -241,7 +258,64 @@ function canUseProApi(): boolean {
 }
 
 /**
- * Make an API request with rate limiting and caching
+ * Check circuit breaker state
+ * @returns true if the circuit is closed (requests allowed), false if open (requests blocked)
+ */
+function checkCircuitBreaker(): boolean {
+  const now = Date.now();
+
+  // If circuit is OPEN, check if we should try half-open
+  if (CIRCUIT_BREAKER.state === 'OPEN') {
+    if (now - CIRCUIT_BREAKER.lastFailure > CIRCUIT_BREAKER.RESET_TIMEOUT) {
+      console.log('Circuit breaker transitioning from OPEN to HALF_OPEN');
+      CIRCUIT_BREAKER.state = 'HALF_OPEN';
+      return true; // Allow one test request
+    }
+    return false; // Circuit still open, block requests
+  }
+
+  // If circuit is HALF_OPEN, we're testing with one request
+  // The result of that request will determine if we close or re-open the circuit
+  return true; // Allow requests in CLOSED or HALF_OPEN state
+}
+
+/**
+ * Record a successful API call for circuit breaker
+ */
+function recordSuccess(): void {
+  if (CIRCUIT_BREAKER.state === 'HALF_OPEN') {
+    console.log('Circuit breaker test request succeeded, closing circuit');
+    CIRCUIT_BREAKER.state = 'CLOSED';
+    CIRCUIT_BREAKER.failures = 0;
+    CIRCUIT_BREAKER.lastReset = Date.now();
+  }
+}
+
+/**
+ * Record a failed API call for circuit breaker
+ */
+function recordFailure(): void {
+  const now = Date.now();
+  CIRCUIT_BREAKER.failures++;
+  CIRCUIT_BREAKER.lastFailure = now;
+
+  // If we're in HALF_OPEN state, any failure reopens the circuit
+  if (CIRCUIT_BREAKER.state === 'HALF_OPEN') {
+    console.warn('Circuit breaker test request failed, reopening circuit');
+    CIRCUIT_BREAKER.state = 'OPEN';
+    return;
+  }
+
+  // If we've reached the failure threshold, open the circuit
+  if (CIRCUIT_BREAKER.state === 'CLOSED' &&
+      CIRCUIT_BREAKER.failures >= CIRCUIT_BREAKER.FAILURE_THRESHOLD) {
+    console.warn(`Circuit breaker threshold reached (${CIRCUIT_BREAKER.failures} failures), opening circuit`);
+    CIRCUIT_BREAKER.state = 'OPEN';
+  }
+}
+
+/**
+ * Make an API request with rate limiting, caching, and circuit breaker
  */
 async function makeApiRequest<T>(
   endpoint: string,
@@ -250,11 +324,32 @@ async function makeApiRequest<T>(
   cacheKey: string,
   cacheMap: Map<string, { data: T; timestamp: number }>,
   preferPro: boolean = false,
+  isEssential: boolean = false, // Flag for critical requests that should bypass circuit breaker
 ): Promise<T> {
-  // Check cache first
+  // Check cache first (including stale cache)
   const cachedData = cacheMap.get(cacheKey);
-  if (cachedData && Date.now() - cachedData.timestamp < cacheDuration) {
+  const now = Date.now();
+
+  // If we have fresh cache data, return it
+  if (cachedData && now - cachedData.timestamp < cacheDuration) {
     return cachedData.data;
+  }
+
+  // Check circuit breaker (unless this is an essential request)
+  if (!isEssential && !checkCircuitBreaker()) {
+    console.warn(`Circuit breaker open, blocking request to ${endpoint}`);
+
+    // If we have stale cache data, return it
+    if (cachedData) {
+      const staleDuration = getStaleDuration(endpoint);
+      if (now - cachedData.timestamp < staleDuration) {
+        console.log(`Using stale cache for ${endpoint} due to open circuit breaker`);
+        return cachedData.data;
+      }
+    }
+
+    // No usable cache, throw error
+    throw new Error('Service temporarily unavailable (circuit breaker open)');
   }
 
   // Determine which API to use
@@ -280,6 +375,26 @@ async function makeApiRequest<T>(
     // Remove adding the key as a header, query parameter is standard
     // config.headers = { 'x-cg-pro-api-key': API_KEY };
   }
+
+/**
+ * Get the appropriate stale duration for an endpoint
+ */
+function getStaleDuration(endpoint: string): number {
+  if (endpoint.includes('coins/markets')) {
+    return CACHE_DURATIONS.STALE_MARKETS;
+  } else if (endpoint.includes('tickers')) {
+    return CACHE_DURATIONS.STALE_TICKERS;
+  } else if (endpoint.includes('orderbook')) {
+    return CACHE_DURATIONS.STALE_ORDERBOOK;
+  } else if (endpoint.includes('price')) {
+    return CACHE_DURATIONS.STALE_PRICE;
+  } else if (endpoint.includes('coins')) {
+    return CACHE_DURATIONS.STALE_COINS;
+  }
+
+  // Default stale duration
+  return CACHE_DURATIONS.STALE_MARKETS;
+}
 
   try {
     // Apply throttling to avoid rapid requests
@@ -308,11 +423,13 @@ async function makeApiRequest<T>(
 
     const response = await axios.get<T>(`${baseUrl}${endpoint}`, {
       ...config,
-      timeout: 10000, // 10 second timeout
+      timeout: 15000, // 15 second timeout (increased from 10s)
     });
 
     console.log(`Request successful: ${baseUrl}${endpoint}`);
-    console.log(`Response data:`, response.data);
+
+    // Record success for circuit breaker
+    recordSuccess();
 
     // Cache the response
     cacheMap.set(cacheKey, {
@@ -322,6 +439,11 @@ async function makeApiRequest<T>(
 
     return response.data;
   } catch (error) {
+    // Record failure for circuit breaker (unless it's a 404, which is a valid response)
+    if (axios.isAxiosError(error) && error.response?.status !== 404) {
+      recordFailure();
+    }
+
     // Log detailed error information
     console.error(`Error making request to ${baseUrl}${endpoint}:`, error);
     if (axios.isAxiosError(error)) {
@@ -337,8 +459,14 @@ async function makeApiRequest<T>(
     // Check if we have cached data we can return instead
     const cachedData = cacheMap.get(cacheKey);
     if (cachedData) {
-      console.warn(`Using stale cached data for ${endpoint} due to API error`);
-      return cachedData.data;
+      // Check if the cache is still within stale window
+      const staleDuration = getStaleDuration(endpoint);
+      if (Date.now() - cachedData.timestamp < staleDuration) {
+        console.warn(`Using stale cached data for ${endpoint} due to API error`);
+        return cachedData.data;
+      } else {
+        console.warn(`Stale cache for ${endpoint} is too old to use`);
+      }
     }
 
     // If we get a rate limit error and we were using the public API, try the pro API
@@ -704,8 +832,124 @@ export async function resolveSymbolToId(input: string): Promise<string | null> {
   return null;
 }
 
+// Request batching for coins
+const coinBatchQueue: Map<string, {
+  resolve: (data: CoinGeckoData | null) => void;
+  reject: (error: Error) => void;
+}> = new Map();
+
+let batchTimeout: NodeJS.Timeout | null = null;
+const BATCH_DELAY = 100; // ms to wait before processing batch
+
 /**
- * Get coin data by symbol or ID
+ * Process the batch of coin requests
+ */
+async function processCoinBatch() {
+  if (coinBatchQueue.size === 0) return;
+
+  console.log(`Processing batch of ${coinBatchQueue.size} coin requests`);
+
+  // Get all coin IDs from the queue
+  const coinIds = Array.from(coinBatchQueue.keys());
+
+  // Create a map to store results
+  const results = new Map<string, CoinGeckoData | null>();
+
+  try {
+    // If we have only one coin, use the single coin endpoint
+    if (coinIds.length === 1) {
+      const coinId = coinIds[0];
+      const result = await fetchSingleCoin(coinId);
+      results.set(coinId, result);
+    }
+    // If we have multiple coins, use the markets endpoint with the ids parameter
+    else {
+      const marketData = await makeApiRequest<CoinGeckoData[]>(
+        '/coins/markets',
+        {
+          vs_currency: 'usd',
+          ids: coinIds.join(','),
+          per_page: coinIds.length,
+          page: 1,
+          sparkline: true,
+          price_change_percentage: '24h',
+        },
+        CACHE_DURATIONS.MARKETS,
+        `batch_coins_${coinIds.join('_')}`,
+        cache.markets as Map<string, { data: CoinGeckoData[]; timestamp: number }>,
+        true, // Prefer pro API for batched requests
+        true, // Mark as essential
+      );
+
+      // Map results by coin ID
+      marketData.forEach(coin => {
+        results.set(coin.id, coin);
+
+        // Also cache individual coins
+        cache.coins.set(`coin_${coin.id}`, {
+          data: coin,
+          timestamp: Date.now()
+        });
+      });
+
+      // For any coins not found in the market data, set null
+      coinIds.forEach(id => {
+        if (!results.has(id)) {
+          results.set(id, null);
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error processing coin batch:', error);
+    // Reject all promises with the error
+    coinBatchQueue.forEach(({ reject }) => {
+      reject(error as Error);
+    });
+    coinBatchQueue.clear();
+    return;
+  }
+
+  // Resolve all promises with their respective results
+  coinBatchQueue.forEach(({ resolve }, coinId) => {
+    resolve(results.get(coinId) || null);
+  });
+
+  // Clear the queue
+  coinBatchQueue.clear();
+}
+
+/**
+ * Fetch a single coin directly (not batched)
+ */
+async function fetchSingleCoin(coinId: string): Promise<CoinGeckoData | null> {
+  const cacheKey = `coin_${coinId}`;
+
+  try {
+    const data = await makeApiRequest<CoinGeckoData>(
+      `/coins/${coinId}`,
+      {
+        localization: false,
+        tickers: false,
+        market_data: true,
+        community_data: false,
+        developer_data: false,
+      },
+      CACHE_DURATIONS.COINS,
+      cacheKey,
+      cache.coins as Map<string, { data: CoinGeckoData; timestamp: number }>,
+      false,
+      true, // Mark as essential
+    );
+
+    return data;
+  } catch (error) {
+    console.error(`Error fetching coin data for ${coinId}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Get coin data by symbol or ID (with batching)
  *
  * @param symbolOrId The symbol or ID of the coin (e.g., "BTC", "bitcoin")
  * @returns The coin data or null if not found
@@ -731,33 +975,35 @@ export async function getCoinBySymbol(
     `getCoinBySymbol: Using resolved ID "${coinId}" for "${symbolOrId}"`,
   );
 
-  try {
-    return await makeApiRequest<CoinGeckoData>(
-      `/coins/${coinId}`,
-      {
-        localization: false,
-        tickers: false,
-        market_data: true,
-        community_data: false,
-        developer_data: false,
-      },
-      CACHE_DURATIONS.COINS,
-      cacheKey,
-      cache.coins as Map<string, { data: CoinGeckoData; timestamp: number }>,
-      false, // Use public API first for this endpoint
-    );
-  } catch (error) {
-    console.error(
-      `Error fetching coin data for ${symbolOrId} (ID: ${coinId}):`,
-      error,
-    );
-    return null;
+  // Check cache first
+  const cachedData = cache.coins.get(cacheKey);
+  if (cachedData && Date.now() - cachedData.timestamp < CACHE_DURATIONS.COINS) {
+    console.log(`Using cached data for ${coinId}`);
+    return cachedData.data;
   }
+
+  // If circuit breaker is open, check for stale data
+  if (CIRCUIT_BREAKER.state === 'OPEN') {
+    if (cachedData && Date.now() - cachedData.timestamp < CACHE_DURATIONS.STALE_COINS) {
+      console.log(`Using stale cache for ${coinId} due to open circuit breaker`);
+      return cachedData.data;
+    }
+  }
+
+  // Add to batch queue
+  return new Promise<CoinGeckoData | null>((resolve, reject) => {
+    coinBatchQueue.set(coinId, { resolve, reject });
+
+    // Set timeout to process batch if not already set
+    if (!batchTimeout) {
+      batchTimeout = setTimeout(() => {
+        batchTimeout = null;
+        processCoinBatch();
+      }, BATCH_DELAY);
+    }
+  });
 }
 
-/**
- * Get current price for a trading pair
- */
 /**
  * Get current price for a trading pair
  *
@@ -774,27 +1020,39 @@ export async function getCurrentPrice(
       `getCurrentPrice: Getting price for ${baseAsset}/${quoteAsset}`,
     );
 
-    // Get the base coin data
-    const coin = await getCoinBySymbol(baseAsset);
-    if (!coin) {
-      console.error(
-        `getCurrentPrice: Could not get data for base asset "${baseAsset}"`,
-      );
-      return 0;
-    }
-
-    // For USD or USDT, return the price directly
+    // For USD or USDT quote assets, we only need the base coin
     if (
       quoteAsset.toLowerCase() === 'usd' ||
       quoteAsset.toLowerCase() === 'usdt'
     ) {
+      // Get the base coin data
+      const coin = await getCoinBySymbol(baseAsset);
+      if (!coin) {
+        console.error(
+          `getCurrentPrice: Could not get data for base asset "${baseAsset}"`,
+        );
+        return 0;
+      }
+
       console.log(
         `getCurrentPrice: ${baseAsset}/${quoteAsset} price is ${coin.current_price}`,
       );
       return coin.current_price;
     } else {
-      // For other quote assets, calculate the relative price
-      const quoteCoin = await getCoinBySymbol(quoteAsset);
+      // For other quote assets, we need both coins - fetch them in parallel
+      const [baseCoin, quoteCoin] = await Promise.all([
+        getCoinBySymbol(baseAsset),
+        getCoinBySymbol(quoteAsset)
+      ]);
+
+      // Check if we got both coins
+      if (!baseCoin) {
+        console.error(
+          `getCurrentPrice: Could not get data for base asset "${baseAsset}"`,
+        );
+        return 0;
+      }
+
       if (!quoteCoin || quoteCoin.current_price === 0) {
         console.error(
           `getCurrentPrice: Could not get data for quote asset "${quoteAsset}"`,
@@ -802,7 +1060,7 @@ export async function getCurrentPrice(
         return 0;
       }
 
-      const relativePrice = coin.current_price / quoteCoin.current_price;
+      const relativePrice = baseCoin.current_price / quoteCoin.current_price;
       console.log(
         `getCurrentPrice: ${baseAsset}/${quoteAsset} price is ${relativePrice}`,
       );

@@ -1,7 +1,8 @@
-import { Controller, Param, All, Req, Logger } from '@nestjs/common';
+import { Controller, Param, All, Req, Logger, HttpException } from '@nestjs/common';
 import axios from 'axios';
 import { Request } from 'express';
 import { RedisService } from '../redis/redis.service';
+import { CircuitBreakerService, CircuitBreakerState } from './circuit-breaker.service';
 
 // Define response types
 interface CoinGeckoResponse {
@@ -77,7 +78,44 @@ export class CoinGeckoProxyController {
     default: 600, // 10 minutes
   };
 
-  constructor(private readonly redisService: RedisService) {}
+  // Endpoint priority levels (higher number = higher priority)
+  private readonly endpointPriorities: Record<string, number> = {
+    // Critical endpoints
+    'simple/price': 10, // Price data is critical
+    'coins/*/tickers': 9, // Tickers are important for trading
+
+    // Important but not critical
+    'coins/markets': 7,
+    'coins/*/market_chart': 6,
+    'coins/*/ohlc': 6,
+
+    // Less important
+    'coins/list': 4,
+    'coins/categories/list': 3,
+    'coins/categories': 3,
+
+    // Lowest priority
+    'exchanges/list': 1,
+    'asset_platforms': 1,
+
+    // Default priority
+    default: 5,
+  };
+
+  // Circuit breaker name
+  private readonly CIRCUIT_NAME = 'coingecko';
+
+  constructor(
+    private readonly redisService: RedisService,
+    private readonly circuitBreakerService: CircuitBreakerService
+  ) {
+    // Register the CoinGecko circuit breaker with custom config
+    this.circuitBreakerService.registerCircuit(this.CIRCUIT_NAME, {
+      failureThreshold: 5,
+      resetTimeout: 60 * 1000, // 1 minute
+      halfOpenMaxRequests: 3,
+    });
+  }
 
   /**
    * Determine the appropriate cache TTL for a given endpoint
@@ -91,7 +129,7 @@ export class CoinGeckoProxyController {
     // Check for pattern matches
     for (const pattern of Object.keys(this.cacheTtls)) {
       if (pattern.includes('*')) {
-        const regex = new RegExp(pattern.replace('*', '.*'));
+        const regex = new RegExp(pattern.replace(/\*/g, '.*'));
         if (regex.test(endpoint)) {
           return this.cacheTtls[pattern];
         }
@@ -100,6 +138,60 @@ export class CoinGeckoProxyController {
 
     // Return default TTL if no match found
     return this.cacheTtls.default;
+  }
+
+  /**
+   * Determine the appropriate stale TTL for a given endpoint
+   */
+  private getStaleTtl(endpoint: string): number {
+    // Check for exact matches first
+    if (endpoint in this.staleTtls) {
+      return this.staleTtls[endpoint];
+    }
+
+    // Check for pattern matches
+    for (const pattern of Object.keys(this.staleTtls)) {
+      if (pattern.includes('*')) {
+        const regex = new RegExp(pattern.replace(/\*/g, '.*'));
+        if (regex.test(endpoint)) {
+          return this.staleTtls[pattern];
+        }
+      }
+    }
+
+    // Return default TTL if no match found
+    return this.staleTtls.default;
+  }
+
+  /**
+   * Determine the priority level for a given endpoint
+   */
+  private getEndpointPriority(endpoint: string): number {
+    // Check for exact matches first
+    if (endpoint in this.endpointPriorities) {
+      return this.endpointPriorities[endpoint];
+    }
+
+    // Check for pattern matches
+    for (const pattern of Object.keys(this.endpointPriorities)) {
+      if (pattern.includes('*')) {
+        const regex = new RegExp(pattern.replace(/\*/g, '.*'));
+        if (regex.test(endpoint)) {
+          return this.endpointPriorities[pattern];
+        }
+      }
+    }
+
+    // Return default priority if no match found
+    return this.endpointPriorities.default;
+  }
+
+  /**
+   * Check if an endpoint is critical (high priority)
+   */
+  private isEndpointCritical(endpoint: string): boolean {
+    const priority = this.getEndpointPriority(endpoint);
+    return priority >= 8; // Priority 8 and above are considered critical
   }
 
   /**
@@ -136,27 +228,94 @@ export class CoinGeckoProxyController {
       // Create a cache key from the URL and parameters
       const cacheKey = `coingecko:${endpoint}:${JSON.stringify(params)}`;
 
-      // Try to get from cache first
-      const cachedData = await this.redisService.get(cacheKey);
+      // Determine the appropriate cache TTL and stale TTL
+      const cacheTtl = this.getCacheTtl(endpoint);
+      const staleTtl = this.getStaleTtl(endpoint);
+      const isCritical = this.isEndpointCritical(endpoint);
+
+      // Check circuit breaker state
+      const circuitClosed = this.circuitBreakerService.isAllowed(this.CIRCUIT_NAME);
+
+      // If circuit is open and this is not a critical endpoint, return stale data or error
+      if (!circuitClosed && !isCritical) {
+        this.logger.warn(`Circuit breaker open, blocking non-critical request to ${endpoint}`);
+
+        // Try to get stale data from cache
+        const staleData = await this.redisService.getWithoutExpiry(cacheKey);
+        if (staleData) {
+          this.logger.warn(`Using stale cache data for ${targetUrl} due to open circuit breaker`);
+          return JSON.parse(staleData) as CoinGeckoResponse;
+        }
+
+        // No stale data available, return error
+        throw new HttpException(
+          'Service temporarily unavailable due to rate limiting. Please try again later.',
+          503
+        );
+      }
+
+      // Use stale-while-revalidate pattern
+      const fetchFn = async () => {
+        this.logger.log(`Fetching fresh data for ${targetUrl}`);
+        try {
+          const result = await this.makeRequestWithRetry(
+            req.method,
+            targetUrl,
+            params,
+            cacheKey,
+            cacheTtl,
+          );
+
+          // Record success for circuit breaker
+          this.circuitBreakerService.recordSuccess(this.CIRCUIT_NAME);
+
+          return JSON.stringify(result);
+        } catch (error) {
+          // Record failure for circuit breaker
+          if (axios.isAxiosError(error) && error.response?.status === 429) {
+            this.circuitBreakerService.recordFailure(this.CIRCUIT_NAME);
+          }
+          throw error;
+        }
+      };
+
+      // Try to get from cache with revalidation
+      const cachedData = await this.redisService.getWithRevalidate(
+        cacheKey,
+        cacheTtl,
+        fetchFn,
+        staleTtl
+      );
+
       if (cachedData) {
-        this.logger.debug(`Cache hit for ${targetUrl}`);
         return JSON.parse(cachedData) as CoinGeckoResponse;
       }
 
-      this.logger.log(`Proxying request to: ${targetUrl}`);
-      this.logger.debug(`Query params: ${JSON.stringify(params)}`);
+      // If we get here, it means getWithRevalidate couldn't get data
+      // This is a fallback path that should rarely be hit
+      this.logger.warn(`Cache miss and revalidation failed for ${targetUrl}, fetching directly`);
 
-      // Determine the appropriate cache TTL
-      const cacheTtl = this.getCacheTtl(endpoint);
+      try {
+        // Make the request to CoinGecko with retry logic as a last resort
+        const result = await this.makeRequestWithRetry(
+          req.method,
+          targetUrl,
+          params,
+          cacheKey,
+          cacheTtl,
+        );
 
-      // Make the request to CoinGecko with retry logic
-      return await this.makeRequestWithRetry(
-        req.method,
-        targetUrl,
-        params,
-        cacheKey,
-        cacheTtl,
-      );
+        // Record success for circuit breaker
+        this.circuitBreakerService.recordSuccess(this.CIRCUIT_NAME);
+
+        return result;
+      } catch (error) {
+        // Record failure for circuit breaker if it's a rate limit error
+        if (axios.isAxiosError(error) && error.response?.status === 429) {
+          this.circuitBreakerService.recordFailure(this.CIRCUIT_NAME);
+        }
+        throw error;
+      }
     } catch (error: unknown) {
       const err = error as Error;
       this.logger.error(
