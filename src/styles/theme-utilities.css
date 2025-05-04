@@ -205,6 +205,22 @@
   transition: all 0.3s ease;
 }
 
+/* Resizable Splitter Styles */
+.resizable-splitter-handle {
+  background-color: var(--bg-tertiary);
+  transition: background-color 0.3s ease;
+}
+
+.resizable-splitter-handle:hover,
+.resizable-splitter-handle.active {
+  background-color: var(--crypto-purple);
+}
+
+.resizable-splitter-indicator {
+  background-color: var(--crypto-purple);
+  transition: background-color 0.3s ease, opacity 0.3s ease;
+}
+
 .button-theme-primary:hover {
   background-color: var(--button-primary-hover);
 }

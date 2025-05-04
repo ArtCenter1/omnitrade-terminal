@@ -102,7 +102,7 @@
   --border-focus: #673ab7;
 
   /* Button colors */
-  --button-primary: #673ab7;
+  --button-primary: #673ab7; /* Keep the same purple in both themes */
   --button-primary-hover: #7e57c2;
   --button-secondary: #e8e8f0;
   --button-secondary-hover: #d8d8e0;

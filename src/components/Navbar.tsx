@@ -44,7 +44,6 @@ export default function Navbar() {
   const { isAdmin, userRole } = useRoleBasedAccess();
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   // Get current location to determine active page
   const location = window.location.pathname;
@@ -194,84 +193,20 @@ export default function Navbar() {
           {/* Warning Indicator */}
           <TopNavWarningIndicator className="mr-1" />
 
-          {/* Settings Gear */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="text-theme-secondary hover:text-theme-primary theme-transition">
-                <Settings size={20} />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="w-56 shadow-theme-md theme-transition bg-[#1a1a1c]"
-            >
-              <div className="p-2">
-                <h3 className="font-medium text-sm mb-2 text-theme-secondary">
-                  Settings
-                </h3>
-                <div className="space-y-3">
-                  {/* Theme Toggle */}
-                  <div className="settings-menu-item">
-                    <div className="flex items-center space-x-2">
-                      {theme === 'dark' ? (
-                        <Moon size={16} className="text-theme-link" />
-                      ) : (
-                        <Sun size={16} className="text-warning-color" />
-                      )}
-                      <span className="settings-menu-item-label">
-                        Dark Mode
-                      </span>
-                    </div>
-                    <label className="toggle-switch">
-                      <input
-                        type="checkbox"
-                        checked={theme === 'dark'}
-                        onChange={() => {
-                          setTheme(theme === 'dark' ? 'light' : 'dark');
-                        }}
-                      />
-                      <span className="toggle-slider"></span>
-                    </label>
-                  </div>
-
-                  {/* Notifications Toggle */}
-                  <div className="settings-menu-item">
-                    <div className="flex items-center space-x-2">
-                      {notificationsEnabled ? (
-                        <Bell size={16} className="text-success-color" />
-                      ) : (
-                        <BellOff size={16} className="text-theme-tertiary" />
-                      )}
-                      <span className="settings-menu-item-label">
-                        Order Notifications
-                      </span>
-                    </div>
-                    <label className="toggle-switch">
-                      <input
-                        type="checkbox"
-                        checked={notificationsEnabled}
-                        onChange={() =>
-                          setNotificationsEnabled(!notificationsEnabled)
-                        }
-                      />
-                      <span className="toggle-slider"></span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Theme Toggle */}
+          <button
+            className="text-theme-secondary hover:text-theme-primary theme-transition"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          >
+            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
 
           {/* Notification Bell */}
           <button
             className="text-theme-secondary hover:text-theme-primary theme-transition"
-            title={
-              notificationsEnabled
-                ? 'Notifications enabled'
-                : 'Notifications disabled'
-            }
+            title="Notifications"
           >
-            {notificationsEnabled ? <Bell size={20} /> : <BellOff size={20} />}
+            <Bell size={20} />
           </button>
 
           {user ? (
