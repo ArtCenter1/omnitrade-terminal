@@ -19,17 +19,17 @@ console.log(`- Pro API URL: ${PRO_API_URL}`);
 console.log(`- API Key available: ${API_KEY ? 'Yes' : 'No'}`);
 
 // Rate limiting configuration
-const PUBLIC_RATE_LIMIT = 8; // requests per minute (reduced further for safety)
-const PRO_RATE_LIMIT = 25; // requests per minute (reduced further for safety)
+const PUBLIC_RATE_LIMIT = 5; // requests per minute (reduced from 8 for extreme safety)
+const PRO_RATE_LIMIT = 15; // requests per minute (reduced from 25 for extreme safety)
 
 // Throttling configuration
-const THROTTLE_DELAY = 1000; // ms between requests (increased from 500ms)
+const THROTTLE_DELAY = 2000; // ms between requests (increased from 1000ms)
 let lastRequestTime = 0;
 
 // Circuit breaker configuration
 const CIRCUIT_BREAKER = {
-  FAILURE_THRESHOLD: 5, // Number of failures before opening circuit
-  RESET_TIMEOUT: 60 * 1000, // 1 minute timeout before trying again
+  FAILURE_THRESHOLD: 3, // Number of failures before opening circuit (reduced from 5)
+  RESET_TIMEOUT: 300 * 1000, // 5 minutes timeout before trying again (increased from 1 minute)
   state: 'CLOSED', // CLOSED, OPEN, HALF_OPEN
   failures: 0,
   lastFailure: 0,
@@ -38,18 +38,18 @@ const CIRCUIT_BREAKER = {
 
 // Cache durations (in milliseconds)
 const CACHE_DURATIONS = {
-  COINS: 10 * 60 * 1000, // 10 minutes (increased from 5)
-  MARKETS: 2 * 60 * 1000, // 2 minutes (increased from 1)
-  TICKERS: 30 * 1000, // 30 seconds (increased from 10)
-  ORDERBOOK: 15 * 1000, // 15 seconds (increased from 5)
-  PRICE: 30 * 1000, // 30 seconds (increased from 10)
+  COINS: 30 * 60 * 1000, // 30 minutes (increased from 10)
+  MARKETS: 10 * 60 * 1000, // 10 minutes (increased from 2)
+  TICKERS: 5 * 60 * 1000, // 5 minutes (increased from 30 seconds)
+  ORDERBOOK: 60 * 1000, // 1 minute (increased from 15 seconds)
+  PRICE: 5 * 60 * 1000, // 5 minutes (increased from 30 seconds)
 
   // Add stale durations - how long to use expired cache data
-  STALE_COINS: 60 * 60 * 1000, // 1 hour
-  STALE_MARKETS: 10 * 60 * 1000, // 10 minutes
-  STALE_TICKERS: 2 * 60 * 1000, // 2 minutes
-  STALE_ORDERBOOK: 1 * 60 * 1000, // 1 minute
-  STALE_PRICE: 2 * 60 * 1000, // 2 minutes
+  STALE_COINS: 4 * 60 * 60 * 1000, // 4 hours (increased from 1 hour)
+  STALE_MARKETS: 60 * 60 * 1000, // 1 hour (increased from 10 minutes)
+  STALE_TICKERS: 30 * 60 * 1000, // 30 minutes (increased from 2 minutes)
+  STALE_ORDERBOOK: 10 * 60 * 1000, // 10 minutes (increased from 1 minute)
+  STALE_PRICE: 30 * 60 * 1000, // 30 minutes (increased from 2 minutes)
 };
 
 // Interface for CoinGecko coin data
@@ -127,7 +127,7 @@ const cache = {
 // Constants for persistent cache
 const SYMBOL_CACHE_KEY = 'coingecko_symbol_to_id_cache';
 const SYMBOL_CACHE_TIMESTAMP_KEY = 'coingecko_symbol_to_id_cache_timestamp';
-const SYMBOL_CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+const SYMBOL_CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days (increased from 24 hours)
 
 // Initialize symbol to ID cache from localStorage if available
 function initializeSymbolCache() {

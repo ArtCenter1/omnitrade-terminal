@@ -26,61 +26,61 @@ export class CoinGeckoProxyController {
 
   // Request throttling
   private requestTimestamps: number[] = [];
-  private readonly MAX_REQUESTS_PER_MINUTE = 30; // Very conservative limit for free tier
+  private readonly MAX_REQUESTS_PER_MINUTE = 15; // Extremely conservative limit for free tier (reduced from 30)
   private readonly REQUEST_WINDOW_MS = 60000; // 1 minute window
 
   // Cache TTLs for different endpoint types (in seconds)
   private readonly cacheTtls: Record<string, number> = {
     // Market data endpoints
-    'coins/markets': 1800, // 30 minutes (increased from 10)
-    'coins/list': 14400, // 4 hours (increased from 2)
-    'coins/categories/list': 14400, // 4 hours (increased from 2)
-    'coins/categories': 14400, // 4 hours (increased from 2)
+    'coins/markets': 3600, // 60 minutes (increased from 30)
+    'coins/list': 28800, // 8 hours (increased from 4)
+    'coins/categories/list': 28800, // 8 hours (increased from 4)
+    'coins/categories': 28800, // 8 hours (increased from 4)
 
     // Static data that rarely changes
-    'coins/*/contract/*': 7200, // 2 hours (increased from 1)
-    'coins/*/history': 172800, // 48 hours for historical data (increased from 24)
-    'asset_platforms': 172800, // 48 hours (increased from 24)
-    'exchanges/list': 172800, // 48 hours (increased from 24)
+    'coins/*/contract/*': 14400, // 4 hours (increased from 2)
+    'coins/*/history': 259200, // 72 hours for historical data (increased from 48)
+    'asset_platforms': 259200, // 72 hours (increased from 48)
+    'exchanges/list': 259200, // 72 hours (increased from 48)
 
     // Price data endpoints (more frequent updates needed)
-    'simple/price': 300, // 5 minutes (increased from 2)
-    'simple/token_price': 300, // 5 minutes (increased from 2)
-    'coins/*/tickers': 180, // 3 minutes (increased from 1)
+    'simple/price': 600, // 10 minutes (increased from 5)
+    'simple/token_price': 600, // 10 minutes (increased from 5)
+    'coins/*/tickers': 600, // 10 minutes (increased from 3)
 
     // OHLC and chart data
-    'coins/*/market_chart': 1800, // 30 minutes (increased from 10)
-    'coins/*/ohlc': 1800, // 30 minutes (increased from 10)
+    'coins/*/market_chart': 3600, // 60 minutes (increased from 30)
+    'coins/*/ohlc': 3600, // 60 minutes (increased from 30)
 
     // Default for other endpoints
-    default: 300, // 5 minutes (increased from 2)
+    default: 600, // 10 minutes (increased from 5)
   };
 
   // Stale TTLs - how long to consider data usable after expiration (in seconds)
   private readonly staleTtls: Record<string, number> = {
     // Market data endpoints can be stale for longer
-    'coins/markets': 7200, // 2 hours stale data is acceptable (increased from 1 hour)
-    'coins/list': 172800, // 48 hours (increased from 24)
-    'coins/categories/list': 172800, // 48 hours (increased from 24)
-    'coins/categories': 172800, // 48 hours (increased from 24)
+    'coins/markets': 14400, // 4 hours stale data is acceptable (increased from 2 hours)
+    'coins/list': 259200, // 72 hours (increased from 48)
+    'coins/categories/list': 259200, // 72 hours (increased from 48)
+    'coins/categories': 259200, // 72 hours (increased from 48)
 
     // Static data can be stale for very long
-    'coins/*/contract/*': 172800, // 48 hours (increased from 24)
-    'coins/*/history': 1209600, // 14 days (increased from 7)
-    'asset_platforms': 1209600, // 14 days (increased from 7)
-    'exchanges/list': 1209600, // 14 days (increased from 7)
+    'coins/*/contract/*': 259200, // 72 hours (increased from 48)
+    'coins/*/history': 2592000, // 30 days (increased from 14)
+    'asset_platforms': 2592000, // 30 days (increased from 14)
+    'exchanges/list': 2592000, // 30 days (increased from 14)
 
     // Price data should not be stale for too long, but we can still increase a bit
-    'simple/price': 600, // 10 minutes (increased from 5)
-    'simple/token_price': 600, // 10 minutes (increased from 5)
-    'coins/*/tickers': 600, // 10 minutes (increased from 5)
+    'simple/price': 1800, // 30 minutes (increased from 10)
+    'simple/token_price': 1800, // 30 minutes (increased from 10)
+    'coins/*/tickers': 1800, // 30 minutes (increased from 10)
 
     // OHLC and chart data
-    'coins/*/market_chart': 7200, // 2 hours (increased from 1)
-    'coins/*/ohlc': 7200, // 2 hours (increased from 1)
+    'coins/*/market_chart': 14400, // 4 hours (increased from 2)
+    'coins/*/ohlc': 14400, // 4 hours (increased from 2)
 
     // Default for other endpoints
-    default: 1800, // 30 minutes (increased from 10)
+    default: 3600, // 60 minutes (increased from 30)
   };
 
   // Endpoint priority levels (higher number = higher priority)
@@ -128,9 +128,9 @@ export class CoinGeckoProxyController {
   ) {
     // Register the CoinGecko circuit breaker with custom config
     this.circuitBreakerService.registerCircuit(this.CIRCUIT_NAME, {
-      failureThreshold: 3, // Reduced from 5 to be more sensitive to rate limiting
-      resetTimeout: 120 * 1000, // 2 minutes (increased from 1 minute)
-      halfOpenMaxRequests: 1, // Reduced from 3 to be more cautious when testing if service is back
+      failureThreshold: 2, // Reduced from 3 to be even more sensitive to rate limiting
+      resetTimeout: 300 * 1000, // 5 minutes (increased from 2 minutes)
+      halfOpenMaxRequests: 1, // Keep at 1 to be cautious when testing if service is back
     });
 
     // Start processing the queue
