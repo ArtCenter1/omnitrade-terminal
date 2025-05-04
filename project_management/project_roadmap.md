@@ -1,157 +1,127 @@
-# Project Roadmap
+# OmniTrade Terminal Roadmap
 
-## Phase 1: Project Setup and Planning
+This roadmap outlines the development plan for the OmniTrade Terminal, a standalone trading terminal with a modular plugin architecture.
 
-- Create project management structure
-- Define project requirements and scope
-- Set up development environment
-- Design system architecture
-- Create UI wireframes and mockups
-- Define data models
-- Set up version control and CI/CD pipeline
+## Phase 1: Core Terminal Foundation (4-6 weeks)
 
-## Phase 2: Frontend Core Development
+### Terminal Architecture Design
+- Define component registry system
+- Design workspace layout management
+- Create extension point interfaces
+- Design plugin system architecture
 
-- Implement UI components library
-- Develop responsive layout
-- Create authentication UI
-- Build Dashboard page
-- Build Terminal page
-- Build Bots management page
-- Build Markets page
-- Build Earn/Rewards page
-- Build Community page UI (Leaderboards, Filters)
-- Implement Landing Page Leaderboard Preview section
-- Implement navigation and routing
-- Implement Landing Page AI Introduction section
+### Core Terminal UI Development
+- Implement responsive terminal container
+- Create drag-and-drop workspace management
+- Develop component slot system
+- Build workspace persistence
 
-### Frontend Market Data Integration
+### Essential Terminal Components
+- Chart component with TradingView integration
+- Order book visualization
+- Order entry forms
+- Market depth visualization
+- Trade history display
+- Position management panel
 
-- Develop dedicated frontend integration for Market Data API (REST and WebSocket)
-- Implement state management, data fetching, and real-time updates for market data
+### Data Service Layer
+- Market data service interface
+- Trading service interface
+- WebSocket connection management
+- Data normalization layer
 
-## Phase 3: Backend Infrastructure
+## Phase 2: Plugin System Implementation (3-4 weeks)
 
-- Set up database schema
-- Implement authentication and authorization
-- Create market data APIs
-- Develop bot execution engine
-- Implement user management services
-- Set up data persistence and caching
-- Implement backend performance tracking for shared bots (backtest & live)
-- Create API endpoints for leaderboards (full & preview) and bot sharing
-- Implement logging and monitoring
+### Plugin Architecture
+- Implement plugin registry
+- Create plugin lifecycle management
+- Design plugin manifest system
+- Develop plugin loading/unloading
 
-## Phase 4: Trading Bot Development
+### Extension Points
+- Define standard extension interfaces
+- Implement terminal component extension point
+- Create data provider extension point
+- Build UI extension points
 
-- Implement basic trading strategies
-- Create bot configuration interface
-- Develop execution algorithms
-- Implement backtesting functionality
-- Add performance metrics
-- Build alert system
-- Create bot marketplace
+### Plugin SDK
+- Create developer documentation
+- Build plugin templates
+- Implement plugin testing utilities
+- Create example plugins
 
-## Phase 5: AI / LLM Integration
+## Phase 3: Core Services Integration (3-4 weeks)
 
-- Research and select LLM providers
-- Implement Backend API for Custom AI Signals (BYOAI)
-- Develop BYOAI signal validation and execution logic
-- Build Frontend UI for BYOAI configuration and API key management
-- Implement LLM API integration (for potential Platform AI Bots / features)
-- Develop prompting strategies (for LLM features)
-- Research/Develop Platform AI trading strategies (including LLM-based)
-- Build natural language interface for bot configuration (LLM feature)
-- Implement sentiment analysis (LLM feature)
-- Test and optimize AI/LLM performance
+### Exchange Connectivity
+- Implement exchange adapter interface
+- Create exchange API key management
+- Build order execution service
+- Develop portfolio tracking
 
-## Redis Cloud Setup
+### Market Data Integration
+- Implement real-time price updates
+- Create historical data service
+- Build WebSocket data streams
+- Develop market data caching
 
-Before proceeding to Phase 6, the platform needs a proper Redis cloud setup for production and live testing environments. Currently, Redis runs locally and requires manual startup after system restart, which is not suitable for production use.
+### Authentication & User Management
+- Implement user authentication
+- Create user preferences storage
+- Build workspace saving/loading
+- Develop user settings management
 
-Refer to [Redis Cloud Roadmap](redis_cloud_roadmap.md) for detailed implementation steps, timeline, and cost considerations. This setup is critical for ensuring reliable:
+## Phase 4: Performance Optimization (2-3 weeks)
 
-- Market data caching
-- API rate limiting
-- Job queuing for trading bots
+### UI Performance
+- Implement virtualization for large datasets
+- Optimize rendering performance
+- Reduce unnecessary re-renders
+- Implement efficient state management
 
-## Comprehensive Onboarding Experience
+### Data Handling
+- Optimize WebSocket data processing
+- Implement efficient data structures
+- Create data transformation utilities
+- Build data caching layer
 
-To improve user retention and provide a better first-time experience, we will implement a comprehensive onboarding solution that combines three key features:
+### Testing & Quality Assurance
+- Implement comprehensive test suite
+- Create performance benchmarks
+- Build automated testing pipeline
+- Develop load testing scenarios
 
-1. **Sandbox/Demo Environment**: A risk-free environment for new users to explore the platform, test trading strategies, and practice bot building without real funds
-2. **Guided Tutorial System**: Step-by-step walkthroughs using react-joyride to help users learn platform features
-3. **AI Assistant Guide**: An animated AI assistant with voice capabilities to provide contextual help and answer user questions
+## Phase 5: Plugin Development (Ongoing)
 
-This solution will serve multiple purposes:
+### Example Plugins
+- Create basic indicator plugin
+- Develop news feed plugin
+- Build portfolio analysis plugin
+- Implement market scanner plugin
 
-- Onboarding new users with an engaging, interactive experience
-- Supporting the bot building and competition features with a sandbox for testing
-- Providing a backtesting environment using historical data
-- Creating a pathway for users to transition from sandbox to real trading
+### Plugin Marketplace Foundation
+- Design plugin distribution system
+- Create plugin verification process
+- Implement plugin installation/updates
+- Build plugin discovery interface
 
-Refer to [Onboarding Experience](onboarding_experience.md) for detailed implementation plan, architecture, and user flows.
+## Key Milestones
 
-## Phase 6: Blockchain Integration
+### Milestone 1: Core Terminal MVP (Week 6)
+- Basic workspace management
+- Essential terminal components
+- Market data integration
 
-- Design tokenomics
-- Deploy smart contracts
-- Implement wallet integration
-- Develop reward distribution system
-- Create referral tracking system
-- Build code contribution tracking
-- Implement token utility features
+### Milestone 2: Plugin System (Week 10)
+- Plugin registry implementation
+- Extension point interfaces
+- Plugin lifecycle management
 
-## Phase 7: Testing and Optimization
+### Milestone 3: Performance Optimization (Week 13)
+- UI performance improvements
+- Data handling optimization
+- Comprehensive testing
 
-- Implement unit tests
-- Conduct integration testing
-- Perform security audits
-- Optimize performance
-- Conduct user acceptance testing
-- Fix bugs and issues
-- Optimize for different devices and browsers
-
-## Phase 8: Deployment and Launch
-
-- Deploy to production environment
-- Set up monitoring and alerts
-- Create user documentation
-- Implement analytics
-- Develop marketing website
-- Create onboarding materials
-- **Rotate all sensitive API keys and credentials** (Firebase, CoinGecko, etc.)
-- Launch beta version
-
-## Phase 9: Post-Launch Improvements
-
-- Collect and analyze user feedback
-- Implement high-priority improvements
-- Fix production issues
-- Add additional features based on user requests
-- Scale infrastructure as needed
-- Optimize user experience
-
-## Post-MVP Scaling Considerations
-
-As user adoption grows beyond the initial MVP/Alpha release, several critical infrastructure improvements will be needed:
-
-### Comprehensive API Performance Benchmarking
-
-- **Performance Visualization**: Implement the Analytics Admin page with specialized API metrics visualizations
-- **Advanced Benchmarking**: Conduct comprehensive benchmarking across all endpoints and WebSocket streams
-- **Optimization Implementation**: Apply performance optimizations based on benchmarking insights
-- **Multi-User Testing**: Test performance under simulated multi-user conditions
-- **Documentation**: Create detailed performance reports and optimization recommendations
-
-This work builds upon the basic benchmarking completed during initial development and provides the data needed to make informed scaling decisions.
-
-### Binance Testnet Integration Scaling
-
-- **Multiple Testnet Accounts**: Implement a load balancing system to distribute users across multiple Binance Testnet accounts
-- **User-Specific Rate Limits**: Develop a fair usage policy with allocated rate limits per user
-- **Enhanced Caching Strategy**: Implement shared caching for common market data to reduce API calls
-- **WebSocket Optimization**: Maximize WebSocket usage to minimize REST API calls
-- **Request Prioritization**: Implement a system to prioritize critical operations (order placement) over data requests
-
-This scaling work is critical to maintain a quality user experience as our user base grows, since the current implementation uses a single shared Testnet account with limited rate capacity (1200 weight/minute, 10 orders/second).
+### Milestone 4: Terminal Release (Week 16)
+- Final testing and bug fixes
+- Documentation completion
+- Initial release with example plugins

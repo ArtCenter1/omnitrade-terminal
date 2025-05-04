@@ -14,26 +14,27 @@
 
 # Current Project Phase
 
-The project is now in the "Frontend-Backend Integration" phase. The primary focus is connecting the core frontend components—User Profile/Settings, Dashboard, and Terminal—to the backend services. This phase aims to enable seamless data flow and user interaction across the application.
+The project is now in "Phase 1: Core Terminal Foundation" of our new roadmap. We are focusing on building the foundational architecture for the OmniTrade Terminal as a standalone application with a modular plugin system.
 
-Detailed tasks and progress for this phase are tracked in [`frontend_backend_integration_checklist.md`](./frontend_backend_integration_checklist.md).
+## Current Focus Areas
 
-## Binance Testnet Integration
+### Terminal Architecture Design
+We are currently designing the component registry system and workspace layout management that will form the foundation of our plugin-based architecture.
 
-The Binance Testnet integration with our existing Sandbox mode is progressing well. Phase 1 (Setup & Authentication) is nearly complete, with successful connection to the Binance Testnet API and implementation of rate limit handling. This integration provides a real matching engine for testing without having to implement a custom solution. The next phase will focus on order placement testing.
+### Core Terminal UI Development
+Work has begun on implementing the responsive terminal container and designing the drag-and-drop workspace management system.
 
-Detailed plan and progress for this initiative are tracked in:
+### Essential Terminal Components
+Planning and initial implementation of core trading components including chart integration, order book visualization, and order entry forms.
 
-- [`binance-testnet-integration-master-plan.md`](./binance-testnet-integration-master-plan.md)
+## Next Steps
 
----
+1. Complete the terminal architecture design
+2. Implement the core UI framework with component slots
+3. Develop essential terminal components
+4. Build the data service layer interfaces
 
-## Next Step
-
-Bot Execution Engine Implementation
-The Bot Execution Engine is the next phase in our project. The primary focus is on developing a robust system for executing and managing bots.
-1.Design bot execution architecture
-**For Binance Testnet Integration**: We have successfully completed REST API Market Data Integration (Phase 2) including exchange information, trading pairs, order book, recent trades, and candlestick data endpoints. The next step is to implement WebSocket connections for real-time market data as outlined in the Next Steps section of the master plan.
+Our goal is to reach Milestone 1 (Core Terminal MVP) by week 6, which includes basic workspace management, essential terminal components, and market data integration.
 
 ---
 

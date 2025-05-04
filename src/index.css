@@ -1,3 +1,6 @@
+/* Draggable tabs styles */
+@import './styles/draggable-tabs.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

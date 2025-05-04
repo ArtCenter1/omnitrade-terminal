@@ -1,68 +1,182 @@
-# Phase 1 Checklist: Project Setup and Planning
+# Phase 1: Core Terminal Foundation Checklist
 
-**Workflow Note:** Please complete the tasks in this checklist sequentially, one by one. Reordering is permissible only if it demonstrably leads to a more efficient or effective outcome.
+This checklist tracks the progress of Phase 1 development tasks for the OmniTrade Terminal. The Core Terminal Foundation phase focuses on establishing the architecture, UI framework, essential components, and data service layer.
 
-## Phase Objective
+## Terminal Architecture Design
 
-Set up the project structure, define requirements, and create the foundation for development.
+### Component Registry System
+- [x] Define component interface and lifecycle methods
+- [x] Implement component registration mechanism
+- [x] Create component discovery and lookup functionality
+- [x] Design component metadata schema
+- [x] Implement component instantiation system
+- [x] Add component dependency resolution
 
-## Tasks
+### Workspace Layout Management
+- [x] Design workspace layout data structure
+- [x] Implement layout serialization/deserialization
+- [x] Create layout persistence mechanism (local storage)
+- [x] Design layout template system
+- [x] Implement layout state management
+- [x] Add support for multiple workspaces
 
-### Project Management Setup
+### Extension Point Interfaces
+- [x] Define core extension point interface
+- [x] Design component extension point
+- [ ] Design data provider extension point
+- [ ] Create command extension point
+- [ ] Implement menu extension point
+- [ ] Design settings extension point
 
-- [x] Create project management folder
-- [x] Create project overview document
-- [x] Create project roadmap
-- [x] Create 000_start_here.txt file
-- [x] Create reference file index
-- [x] Create current phase tracking document
-- [x] Define project coding standards and best practices
+### Plugin System Architecture
+- [ ] Design plugin manifest schema
+- [ ] Create plugin loading mechanism
+- [ ] Implement plugin sandbox concept
+- [ ] Design plugin lifecycle hooks
+- [ ] Define plugin API surface
+- [ ] Create plugin error handling system
 
-### Environment Setup
+## Core Terminal UI Development
 
-- [x] Initialize React/TypeScript project
-- [x] Set up Tailwind CSS
-- [x] Configure shadcn/ui components
-- [x] Set up linting and formatting
-- [x] Configure testing framework
-- [x] Set up CI/CD pipeline
+### Responsive Terminal Container
+- [x] Create base terminal container component
+- [x] Implement responsive layout system
+- [ ] Add theme support (light/dark)
+- [ ] Create global styling system
+- [ ] Implement terminal header and footer
+- [ ] Add terminal status indicators
 
-### Requirements Definition
+### Drag-and-Drop Workspace Management
+- [x] Implement drag-and-drop library integration
+- [x] Create draggable panel components
+- [ ] Add drop zone indicators
+- [x] Implement panel resizing functionality
+- [ ] Create panel maximization/minimization
+- [ ] Add panel removal and addition UI
 
-- [x] Define detailed user stories
-- [x] Create feature specifications
-- [x] Define technical requirements
-- [x] Create acceptance criteria for each feature
-- [x] Define non-functional requirements
+### Component Slot System
+- [x] Design slot interface
+- [x] Implement slot registration system
+- [x] Create slot rendering mechanism
+- [ ] Add slot constraint validation
+- [ ] Implement dynamic slot creation
+- [ ] Create empty slot placeholders
 
-### Architecture and Design
+### Workspace Persistence
+- [x] Design workspace state schema
+- [x] Implement workspace save functionality
+- [x] Create workspace load mechanism
+- [x] Add workspace export/import
+- [x] Implement auto-save functionality
+- [x] Create default workspace templates
 
-- [x] Create system architecture diagram
-- [x] Define component structure
-- [x] Design database schema
-- [x] Plan API structure
-- [x] Design authentication flow
-- [x] Plan blockchain integration
+## Essential Terminal Components
 
-### UI/UX Design
+### Chart Component with TradingView Integration
+- [ ] Research TradingView integration options
+- [ ] Implement TradingView chart wrapper
+- [ ] Create chart configuration UI
+- [ ] Add symbol selection functionality
+- [ ] Implement timeframe selection
+- [ ] Create chart type switching (candle, line, etc.)
 
-- [x] Create wireframes for all pages
-- [x] Design UI component library
-- [x] Define color scheme and typography
-- [x] Create responsive design specifications
-- [x] Design user flows
+### Order Book Visualization
+- [ ] Design order book component
+- [ ] Implement bid/ask display
+- [ ] Add price aggregation options
+- [ ] Create depth visualization
+- [ ] Implement real-time updates
+- [ ] Add order book interactions (click to set price)
 
-### Data Modeling
+### Order Entry Forms
+- [ ] Design order entry component
+- [ ] Implement market order form
+- [ ] Create limit order form
+- [ ] Add stop order functionality
+- [ ] Implement order preview
+- [ ] Create order confirmation dialog
 
-- [x] Define user data model
-- [x] Define trading bot data model
-- [x] Define market data model
-- [x] Define rewards and token data model
-- [x] Plan data relationships
+### Market Depth Visualization
+- [ ] Design market depth component
+- [ ] Implement depth chart visualization
+- [ ] Add interactive features
+- [ ] Create zoom functionality
+- [ ] Implement real-time updates
+- [ ] Add customization options
+
+### Trade History Display
+- [ ] Design trade history component
+- [ ] Implement trade list with virtualization
+- [ ] Add filtering options
+- [ ] Create trade details view
+- [ ] Implement real-time updates
+- [ ] Add export functionality
+
+### Position Management Panel
+- [ ] Design position management component
+- [ ] Implement position list view
+- [ ] Create position details display
+- [ ] Add position modification UI
+- [ ] Implement position close functionality
+- [ ] Create P&L visualization
+
+## Data Service Layer
+
+### Market Data Service Interface
+- [ ] Define market data service interface
+- [ ] Implement symbol discovery
+- [ ] Create order book data structures
+- [ ] Add trade data handling
+- [ ] Implement candle data service
+- [ ] Create market data caching
+
+### Trading Service Interface
+- [ ] Define trading service interface
+- [ ] Implement order submission
+- [ ] Create order cancellation
+- [ ] Add order modification
+- [ ] Implement position management
+- [ ] Create trading history service
+
+### WebSocket Connection Management
+- [ ] Design WebSocket connection manager
+- [ ] Implement connection establishment
+- [ ] Create reconnection logic
+- [ ] Add message handling system
+- [ ] Implement subscription management
+- [ ] Create connection status monitoring
+
+### Data Normalization Layer
+- [ ] Define normalized data models
+- [ ] Implement adapter pattern for data sources
+- [ ] Create data transformation utilities
+- [ ] Add validation for incoming data
+- [ ] Implement error handling for malformed data
+- [ ] Create data logging for debugging
+
+## Testing and Documentation
+
+### Unit Testing
+- [ ] Set up testing framework
+- [ ] Create tests for component registry
+- [ ] Implement tests for workspace management
+- [ ] Add tests for data services
+- [ ] Create tests for UI components
+- [ ] Implement mock data providers for testing
 
 ### Documentation
+- [x] Create architecture documentation
+- [x] Document component interfaces
+- [x] Create extension point documentation
+- [ ] Add data service API documentation
+- [ ] Create developer setup guide
+- [x] Implement code comments and JSDoc
 
-- [x] Create README.md with project setup instructions
-- [x] Document architecture decisions
-- [x] Create API documentation plan
-- [x] Define documentation standards
+## Milestone 1 Deliverables (Week 6)
+
+- [x] Working terminal container with responsive layout
+- [x] Basic workspace management with drag-and-drop
+- [x] Functional component registry system
+- [ ] Essential trading components (chart, order book, order entry)
+- [ ] Basic market data integration
+- [x] Initial documentation for architecture and components

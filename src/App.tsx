@@ -25,6 +25,7 @@ import Blog from './pages/Blog';
 import NotFound from './pages/NotFound';
 import Dashboard from './pages/dashboard/Dashboard';
 import Terminal from './pages/Terminal';
+import TerminalWorkspace from './pages/TerminalWorkspace';
 import Bots from './pages/Bots';
 import Markets from './pages/Markets';
 import Earn from './pages/Earn';
@@ -134,6 +135,14 @@ function App() {
             element={
               <ProtectedRouteWrapper>
                 <Terminal />
+              </ProtectedRouteWrapper>
+            }
+          />
+          <Route
+            path="/terminal-workspace"
+            element={
+              <ProtectedRouteWrapper>
+                <TerminalWorkspace />
               </ProtectedRouteWrapper>
             }
           />
