@@ -25,7 +25,7 @@ const coinDataCache: Record<string, CoinGeckoData> = {};
 const symbolToIdCache: Record<string, string> = {};
 let allCoinsCache: CoinGeckoData[] = [];
 let lastCacheUpdate = 0;
-const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes (increased from 5)
+const CACHE_DURATION = 60 * 60 * 1000; // 60 minutes (increased from 15)
 
 /**
  * Helper function to retry API calls with exponential backoff
