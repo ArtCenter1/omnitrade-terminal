@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OmniTrade Terminal</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: #131722;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        p {
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            color: #aaa;
+            max-width: 600px;
+        }
+        .logo {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 2rem;
+            background-color: #1A1A1A;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .logo svg {
+            width: 80px;
+            height: 80px;
+        }
+        .button {
+            background-color: #6366F1;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+        .button:hover {
+            background-color: #4F46E5;
+        }
+        .button-group {
+            display: flex;
+            margin-top: 20px;
+        }
+        .status {
+            margin-top: 40px;
+            padding: 15px;
+            background-color: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            max-width: 600px;
+        }
+        .status h2 {
+            margin-top: 0;
+        }
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #333;
+        }
+        .status-label {
+            font-weight: bold;
+        }
+        .status-value {
+            color: #aaa;
+        }
+        .status-success {
+            color: #10B981;
+        }
+        .status-error {
+            color: #EF4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="logo">
+        <!-- Use both SVG and img to ensure at least one works -->
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="24" height="24" fill="#2A2A2A" rx="4"/>
+            <circle cx="12" cy="12" r="8" fill="none" stroke="#888"/>
+            <path d="M12 8v8M8 12h8" stroke="#888"/>
+        </svg>
+    </div>
+    <!-- Also include the placeholder.svg as an image -->
+    <img src="placeholder.svg" alt="Placeholder" width="50" height="50" style="margin-bottom: 20px;" />
+    <h1>OmniTrade Terminal</h1>
+    <p>Welcome to the OmniTrade Terminal GitHub Pages demo. This is a simplified version of the application.</p>
+
+    <div class="button-group">
+        <a href="https://github.com/ArtCenter1/omnitrade-terminal" class="button">View on GitHub</a>
+        <a href="test.html" class="button">Test Page</a>
+    </div>
+
+    <div class="status">
+        <h2>Deployment Status</h2>
+        <div class="status-item">
+            <span class="status-label">GitHub Pages:</span>
+            <span class="status-value status-success">Active</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Current Page:</span>
+            <span class="status-value">Simple Index (Docs Folder)</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Last Updated:</span>
+            <span class="status-value" id="last-updated"></span>
+        </div>
+    </div>
+
+    <script>
+        // Set the last updated time
+        document.getElementById('last-updated').textContent = new Date().toLocaleString();
+    </script>
+    <!-- Include the main.tsx script to prevent 404 errors -->
+    <script src="main.tsx" type="text/javascript"></script>
+</body>
+</html>
