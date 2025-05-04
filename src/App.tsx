@@ -4,6 +4,7 @@ import { ThemeProvider as ShadcnThemeProvider } from '@/components/ThemeProvider
 import '@/styles/themes.css';
 import '@/styles/components.css';
 import { Toaster } from '@/components/ui/sonner';
+import GitHubPagesBanner from '@/components/ui/github-pages-banner';
 // Debug panel imports removed
 // Debug panel removed
 import UserRoleManagement from './pages/admin/UserRoleManagement';
@@ -106,6 +107,7 @@ function App() {
     >
       <ConnectionStatusProvider>
         <Toaster />
+        <GitHubPagesBanner />
         <ScrollToTop />
         <Routes>
           {/* Public routes */}

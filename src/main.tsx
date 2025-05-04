@@ -4,6 +4,7 @@ import './index.css';
 import './styles/crypto-colors.css';
 import './styles/protected-theme-override.css';
 import { AuthProvider } from './contexts/AuthContext';
+import { ConditionalAuthProvider } from './contexts/GitHubPagesAuthContext';
 import { FeatureFlagsProvider } from './config/featureFlags.tsx';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -79,9 +80,11 @@ createRoot(document.getElementById('root')!).render(
   <QueryClientProvider client={queryClient}>
     <BrowserRouter>
       <FeatureFlagsProvider>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
+        <ConditionalAuthProvider>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </ConditionalAuthProvider>
       </FeatureFlagsProvider>
     </BrowserRouter>
   </QueryClientProvider>,
