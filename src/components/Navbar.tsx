@@ -106,16 +106,7 @@ export default function Navbar() {
                   </Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
-              <NavigationMenuItem>
-                <NavigationMenuLink asChild>
-                  <Link
-                    to="/terminal-workspace"
-                    className={`${navigationMenuTriggerStyle()} text-[var(--text-primary)] hover:text-[var(--text-primary)] ${location.includes('workspace') ? 'bg-[var(--bg-active)] font-bold border-b-2 border-blue-500' : ''}`}
-                  >
-                    Workspace
-                  </Link>
-                </NavigationMenuLink>
-              </NavigationMenuItem>
+
               <NavigationMenuItem>
                 <NavigationMenuLink asChild>
                   <Link

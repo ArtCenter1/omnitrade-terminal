@@ -25,13 +25,7 @@ export function Footer() {
             >
               Terminal
             </Button>
-            <Button
-              variant="link"
-              className="text-gray-400 text-sm justify-start p-0 h-auto hover:text-white"
-              onClick={() => navigate("/terminal-workspace")}
-            >
-              Workspace
-            </Button>
+
             <Button
               variant="link"
               className="text-gray-400 text-sm justify-start p-0 h-auto hover:text-white"
