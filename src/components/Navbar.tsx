@@ -74,7 +74,7 @@ export default function Navbar() {
           <Link to="/" className="flex items-center cursor-pointer">
             <div className="bg-[var(--bg-tertiary)] p-2 flex items-center justify-center rounded">
               <img
-                src="/placeholder.svg"
+                src="./placeholder.svg"
                 alt="OmniTrade Logo"
                 className="h-6 w-6"
               />

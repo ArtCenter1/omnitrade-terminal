@@ -9,7 +9,7 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "build:gh-pages": "vite build && node scripts/fix-gh-pages.js",
-    "build:showcase": "node scripts/build-showcase.js",
+    "build:showcase": "node scripts/build-showcase.js && node scripts/fix-asset-paths.js",
     "deploy:showcase": "node scripts/push-showcase.js",
     "deploy:gh-pages-simple": "node scripts/direct-gh-pages-deploy.js",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
