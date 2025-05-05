@@ -94,6 +94,19 @@ if (import.meta.env.DEV || isShowcase) {
   // Add reset workspace button for development
   // This helps with troubleshooting workspace issues across different ports
   setTimeout(() => {
+    // Remove any existing reset workspace buttons first
+    const existingButtons = document.querySelectorAll('button');
+    existingButtons.forEach(button => {
+      if (button.textContent === 'Reset Workspace') {
+        const container = button.parentElement;
+        if (container) {
+          container.remove();
+          console.log('Removed existing Reset Workspace button');
+        }
+      }
+    });
+
+    // Add the reset workspace button (it will be skipped on admin pages)
     addResetWorkspaceButton();
   }, 1000); // Delay to ensure DOM is ready
 }

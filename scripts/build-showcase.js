@@ -38,6 +38,17 @@ try {
 fs.writeFileSync(path.join(distDir, '.nojekyll'), '');
 console.log('✅ Created .nojekyll file');
 
+// Copy fix-mock-mode.js to the dist directory
+try {
+  fs.copyFileSync(
+    path.join(rootDir, 'public', 'fix-mock-mode.js'),
+    path.join(distDir, 'fix-mock-mode.js')
+  );
+  console.log('✅ Copied fix-mock-mode.js to dist directory');
+} catch (error) {
+  console.error('❌ Error copying fix-mock-mode.js:', error);
+}
+
 // Fix asset paths in index.html
 try {
   const indexPath = path.join(distDir, 'index.html');

@@ -34,6 +34,12 @@ export function resetWorkspace(): void {
  */
 export function addResetWorkspaceButton(): void {
   if (import.meta.env.DEV) {
+    // Don't add the button on admin pages
+    if (window.location.pathname.includes('/admin')) {
+      console.log('Skipping reset workspace button on admin page');
+      return;
+    }
+
     // Create a container for the button
     const container = document.createElement('div');
     container.style.position = 'fixed';

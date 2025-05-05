@@ -58,6 +58,7 @@ jobs:
           cp ./public/web.config ./dist/
           cp ./public/_headers ./dist/
           cp ./public/test.html ./dist/
+          cp ./public/fix-mock-mode.js ./dist/
 
       # Create a backup of the original index.html
       - name: Backup original index.html

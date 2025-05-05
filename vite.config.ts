@@ -36,10 +36,18 @@ export default defineConfig(({ mode }) => ({
         // Add error handling for proxy
         configure: (proxy, _options) => {
           proxy.on('error', (err, req, res) => {
-            console.error('Proxy error:', err);
-
             // Check if mock data is enabled
             const useMockData = process.env.VITE_USE_MOCK_API === 'true';
+
+            // Log error with more context
+            console.warn(
+              `Proxy error for ${req.url}: ${err.message}. Mock data is ${useMockData ? 'enabled' : 'disabled'}.`
+            );
+
+            // Only log full error details in development
+            if (process.env.NODE_ENV !== 'production') {
+              console.error('Full proxy error:', err);
+            }
 
             // Only handle API requests that haven't sent headers yet
             if (!res.headersSent) {
@@ -55,7 +63,7 @@ export default defineConfig(({ mode }) => ({
                     status: 503,
                     message: useMockData
                       ? 'Using mock data. Backend connection not required.'
-                      : 'Backend service unavailable. Please ensure the backend server is running or enable mock data.',
+                      : 'Backend service unavailable. Please ensure the backend server is running or enable mock data in the admin UI.',
                     code: err.code || 'ECONNREFUSED',
                     fallback: true,
                     useMockData: useMockData,
@@ -72,7 +80,7 @@ export default defineConfig(({ mode }) => ({
                     status: 503,
                     message: useMockData
                       ? 'Using mock data. Backend connection not required.'
-                      : 'Backend service unavailable. Please ensure the backend server is running or enable mock data.',
+                      : 'Backend service unavailable. Please ensure the backend server is running or enable mock data in the admin UI.',
                     code: err.code || 'ECONNREFUSED',
                     fallback: true,
                     useMockData: useMockData,
@@ -86,9 +94,9 @@ export default defineConfig(({ mode }) => ({
                     error: true,
                     message: useMockData
                       ? 'Using mock data. Backend connection not required.'
-                      : 'Backend service unavailable. Please ensure the backend server is running or enable mock data.',
+                      : 'Backend service unavailable. Please ensure the backend server is running or enable mock data in the admin UI.',
                     useMockData: useMockData,
-                    suggestion: 'Visit /mock-data-control.html to enable mock data mode',
+                    suggestion: 'Visit /admin/dev-settings to enable mock data mode',
                   }),
                 );
               }

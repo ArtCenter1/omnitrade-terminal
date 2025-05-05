@@ -114,5 +114,19 @@
         }
       }(window.location))
     </script>
+
+    <!-- Fix mock mode to prevent backend connection errors -->
+    <script>
+      // Check if we're on GitHub Pages or if mock mode is enabled
+      const isGitHubPages = window.location.hostname.includes('github.io');
+      const isMockModeEnabled = localStorage.getItem('VITE_USE_MOCK_API') === 'true';
+
+      // Load the fix-mock-mode.js script if needed
+      if (isGitHubPages || isMockModeEnabled) {
+        const script = document.createElement('script');
+        script.src = './fix-mock-mode.js';
+        document.head.appendChild(script);
+      }
+    </script>
   </body>
 </html>

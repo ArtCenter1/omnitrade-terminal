@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
 import { useRoleBasedAccess } from '@/hooks/useRoleBasedAccess';
 import { useAuth } from '@/hooks/useAuth';
@@ -19,6 +19,20 @@ export default function AdminDashboard() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
+
+  // Remove any Reset Workspace button that might be on the page
+  React.useEffect(() => {
+    const existingButtons = document.querySelectorAll('button');
+    existingButtons.forEach(button => {
+      if (button.textContent === 'Reset Workspace') {
+        const container = button.parentElement;
+        if (container) {
+          container.remove();
+          console.log('Removed Reset Workspace button from admin page');
+        }
+      }
+    });
+  }, []);
 
   return (
     <ProtectedLayout>
