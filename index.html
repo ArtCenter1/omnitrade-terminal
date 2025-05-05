@@ -45,15 +45,32 @@
         const script = document.createElement('script');
         script.type = 'module';
 
-        // Try to load the built JS file
-        script.src = './assets/main.js';
+        // In development mode, Vite serves the entry point at /src/main.tsx
+        // In production, it's at /assets/main.js
+        const isDev = window.location.hostname === 'localhost' ||
+                      window.location.hostname === '127.0.0.1';
+
+        if (isDev) {
+          // Development mode - let Vite handle the imports
+          script.src = '/src/main.tsx';
+        } else {
+          // Production mode - use built assets
+          script.src = './assets/main.js';
+        }
 
         // Add error handling
         script.onerror = function() {
-          console.warn('Failed to load main.js, trying index.js...');
+          console.warn('Failed to load main script, trying fallback...');
+
+          // Try alternative paths
           const fallbackScript = document.createElement('script');
           fallbackScript.type = 'module';
-          fallbackScript.src = './assets/index.js';
+
+          if (isDev) {
+            fallbackScript.src = '/main.tsx';
+          } else {
+            fallbackScript.src = './assets/index.js';
+          }
 
           fallbackScript.onerror = function() {
             console.error('Failed to load any script. Showing error message.');

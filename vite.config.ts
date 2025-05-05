@@ -38,6 +38,9 @@ export default defineConfig(({ mode }) => ({
           proxy.on('error', (err, req, res) => {
             console.error('Proxy error:', err);
 
+            // Check if mock data is enabled
+            const useMockData = process.env.VITE_USE_MOCK_API === 'true';
+
             // Only handle API requests that haven't sent headers yet
             if (!res.headersSent) {
               // Check if this is a CoinGecko proxy request
@@ -50,10 +53,12 @@ export default defineConfig(({ mode }) => ({
                   JSON.stringify({
                     error: true,
                     status: 503,
-                    message:
-                      'Backend service unavailable. Please ensure the backend server is running.',
+                    message: useMockData
+                      ? 'Using mock data. Backend connection not required.'
+                      : 'Backend service unavailable. Please ensure the backend server is running or enable mock data.',
                     code: err.code || 'ECONNREFUSED',
                     fallback: true,
+                    useMockData: useMockData,
                   }),
                 );
               } else if (req.url?.includes('/proxy/binance-testnet')) {
@@ -65,10 +70,12 @@ export default defineConfig(({ mode }) => ({
                   JSON.stringify({
                     error: true,
                     status: 503,
-                    message:
-                      'Backend service unavailable. Please ensure the backend server is running.',
+                    message: useMockData
+                      ? 'Using mock data. Backend connection not required.'
+                      : 'Backend service unavailable. Please ensure the backend server is running or enable mock data.',
                     code: err.code || 'ECONNREFUSED',
                     fallback: true,
+                    useMockData: useMockData,
                   }),
                 );
               } else {
@@ -77,8 +84,11 @@ export default defineConfig(({ mode }) => ({
                 res.end(
                   JSON.stringify({
                     error: true,
-                    message:
-                      'Backend service unavailable. Please ensure the backend server is running.',
+                    message: useMockData
+                      ? 'Using mock data. Backend connection not required.'
+                      : 'Backend service unavailable. Please ensure the backend server is running or enable mock data.',
+                    useMockData: useMockData,
+                    suggestion: 'Visit /mock-data-control.html to enable mock data mode',
                   }),
                 );
               }

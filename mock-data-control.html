@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OmniTrade Mock Data Control</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+    h1 {
+      color: #6366F1;
+      border-bottom: 2px solid #6366F1;
+      padding-bottom: 10px;
+    }
+    .card {
+      background-color: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    button {
+      background-color: #6366F1;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    button:hover {
+      background-color: #4F46E5;
+    }
+    .danger {
+      background-color: #EF4444;
+    }
+    .danger:hover {
+      background-color: #DC2626;
+    }
+    .success {
+      background-color: #10B981;
+    }
+    .success:hover {
+      background-color: #059669;
+    }
+    .warning {
+      background-color: #F59E0B;
+    }
+    .warning:hover {
+      background-color: #D97706;
+    }
+    .info {
+      background-color: #3B82F6;
+    }
+    .info:hover {
+      background-color: #2563EB;
+    }
+    pre {
+      background-color: #f0f0f0;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    .status {
+      margin-top: 20px;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <h1>OmniTrade Mock Data Control</h1>
+  
+  <div class="card">
+    <h2>Mock Data Controls</h2>
+    <p>Use these buttons to control mock data settings for development:</p>
+    
+    <button id="enableMock" class="success">Enable Mock Data</button>
+    <button id="disableMock" class="warning">Disable Mock Data</button>
+    <button id="resetMock" class="info">Reset Mock Data</button>
+    <button id="clearStorage" class="danger">Clear All Storage</button>
+    
+    <div class="status" id="status"></div>
+  </div>
+  
+  <div class="card">
+    <h2>Current Settings</h2>
+    <pre id="currentSettings">Loading...</pre>
+  </div>
+  
+  <div class="card">
+    <h2>Instructions</h2>
+    <ul>
+      <li><strong>Enable Mock Data</strong>: Use mock data instead of real API calls</li>
+      <li><strong>Disable Mock Data</strong>: Use real API calls (requires backend server)</li>
+      <li><strong>Reset Mock Data</strong>: Reset mock data to default values</li>
+      <li><strong>Clear All Storage</strong>: Clear all localStorage data (use with caution)</li>
+    </ul>
+    <p>After changing settings, you'll need to refresh the main application page.</p>
+    <p><a href="/" id="backLink">Return to Application</a></p>
+  </div>
+
+  <script>
+    // Function to update status
+    function updateStatus(message) {
+      document.getElementById('status').textContent = message;
+      setTimeout(() => {
+        document.getElementById('status').textContent = '';
+      }, 3000);
+    }
+    
+    // Function to display current settings
+    function displaySettings() {
+      const settings = {
+        featureFlags: JSON.parse(localStorage.getItem('omnitrade_feature_flags') || '{}'),
+        useMockUser: localStorage.getItem('useMockUser'),
+        envVars: {
+          VITE_USE_MOCK_API: localStorage.getItem('VITE_USE_MOCK_API'),
+          VITE_DISABLE_BACKEND_FEATURES: localStorage.getItem('VITE_DISABLE_BACKEND_FEATURES')
+        }
+      };
+      
+      document.getElementById('currentSettings').textContent = JSON.stringify(settings, null, 2);
+    }
+    
+    // Enable mock data
+    document.getElementById('enableMock').addEventListener('click', () => {
+      // Set environment variables in localStorage
+      localStorage.setItem('VITE_USE_MOCK_API', 'true');
+      localStorage.setItem('VITE_DISABLE_BACKEND_FEATURES', 'true');
+      
+      // Enable mock user
+      localStorage.setItem('useMockUser', 'true');
+      
+      // Set feature flags
+      const FEATURE_FLAGS_STORAGE_KEY = 'omnitrade_feature_flags';
+      const featureFlags = {
+        useMockData: true,
+        useRealMarketData: false,
+        connectionMode: 'mock',
+        enableDemoAccount: true,
+        enableDebugTools: true,
+        showPerformanceMetrics: false,
+      };
+      
+      localStorage.setItem(FEATURE_FLAGS_STORAGE_KEY, JSON.stringify(featureFlags));
+      
+      updateStatus('Mock data enabled');
+      displaySettings();
+    });
+    
+    // Disable mock data
+    document.getElementById('disableMock').addEventListener('click', () => {
+      // Set environment variables in localStorage
+      localStorage.setItem('VITE_USE_MOCK_API', 'false');
+      localStorage.setItem('VITE_DISABLE_BACKEND_FEATURES', 'false');
+      
+      // Disable mock user
+      localStorage.setItem('useMockUser', 'false');
+      
+      // Set feature flags
+      const FEATURE_FLAGS_STORAGE_KEY = 'omnitrade_feature_flags';
+      const featureFlags = {
+        useMockData: false,
+        useRealMarketData: true,
+        connectionMode: 'live',
+        enableDemoAccount: true,
+        enableDebugTools: true,
+        showPerformanceMetrics: false,
+      };
+      
+      localStorage.setItem(FEATURE_FLAGS_STORAGE_KEY, JSON.stringify(featureFlags));
+      
+      updateStatus('Mock data disabled');
+      displaySettings();
+    });
+    
+    // Reset mock data
+    document.getElementById('resetMock').addEventListener('click', () => {
+      // Reset feature flags
+      const FEATURE_FLAGS_STORAGE_KEY = 'omnitrade_feature_flags';
+      localStorage.removeItem(FEATURE_FLAGS_STORAGE_KEY);
+      
+      // Reset mock admin data
+      localStorage.removeItem('mockAdminData');
+      
+      // Reset exchange API keys
+      localStorage.removeItem('exchange_api_keys');
+      
+      // Enable mock user
+      localStorage.setItem('useMockUser', 'true');
+      
+      // Set feature flags
+      const defaultFeatureFlags = {
+        useMockData: true,
+        useRealMarketData: false,
+        connectionMode: 'mock',
+        enableDemoAccount: true,
+        enableDebugTools: true,
+        showPerformanceMetrics: false,
+      };
+      
+      localStorage.setItem(
+        FEATURE_FLAGS_STORAGE_KEY,
+        JSON.stringify(defaultFeatureFlags),
+      );
+      
+      updateStatus('Mock data reset to defaults');
+      displaySettings();
+    });
+    
+    // Clear all storage
+    document.getElementById('clearStorage').addEventListener('click', () => {
+      if (confirm('Are you sure you want to clear all localStorage data? This will reset all settings.')) {
+        localStorage.clear();
+        updateStatus('All localStorage data cleared');
+        displaySettings();
+      }
+    });
+    
+    // Display initial settings
+    displaySettings();
+    
+    // Update back link to current origin
+    document.getElementById('backLink').href = window.location.origin;
+  </script>
+</body>
+</html>
