@@ -143,11 +143,20 @@ export class WorkspaceManager {
   }
 
   /**
+   * Generate a unique workspace ID
+   * @private
+   */
+  private generateUniqueId(): string {
+    // Combine timestamp with a random string to ensure uniqueness
+    return `workspace-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+  }
+
+  /**
    * Create a new workspace
    */
   public createWorkspace(name: string, description?: string): WorkspaceLayout {
     const now = new Date().toISOString();
-    const id = `workspace-${Date.now()}`;
+    const id = this.generateUniqueId();
 
     const newWorkspace: WorkspaceLayout = {
       id,
@@ -280,7 +289,7 @@ export class WorkspaceManager {
       // Check if a workspace with this ID already exists
       if (this.getWorkspaceById(workspace.id)) {
         // Generate a new ID
-        workspace.id = `workspace-${Date.now()}`;
+        workspace.id = this.generateUniqueId();
       }
 
       // Update timestamps
@@ -310,7 +319,7 @@ export class WorkspaceManager {
     }
 
     const now = new Date().toISOString();
-    const id = `workspace-${Date.now()}`;
+    const id = this.generateUniqueId();
 
     const newWorkspace: WorkspaceLayout = {
       id,

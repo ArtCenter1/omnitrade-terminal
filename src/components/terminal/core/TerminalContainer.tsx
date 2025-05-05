@@ -91,7 +91,7 @@ const ContainerRenderer: React.FC<ContainerRendererProps> = ({ container }) => {
   const { children, direction, sizes } = container;
   const { currentWorkspace, updateWorkspace } = useWorkspace();
   const [dropTarget, setDropTarget] = useState<string | null>(null);
-  const [dropPosition, setDropPosition] = useState<'left' | 'right' | 'top' | 'bottom' | null>(null);
+  const [dropPosition, setDropPosition] = useState<'left' | 'right' | 'top' | 'bottom' | 'center' | null>(null);
 
   if (children.length === 0) {
     return (
@@ -136,6 +136,22 @@ const ContainerRenderer: React.FC<ContainerRendererProps> = ({ container }) => {
     e.preventDefault();
     e.stopPropagation();
 
+    // Note: In Chrome and most browsers, you cannot access the drag data during dragover
+    // due to security restrictions. We'll have to infer the type from other properties.
+    let dragType = 'unknown';
+
+    // Check for our custom module format
+    const isModuleDrag = e.dataTransfer.types.includes('application/omnitrade-module');
+
+    // Check if this is a module drag or a tab drag
+    if (isModuleDrag) {
+      dragType = 'module';
+      console.log('Module drag detected');
+    } else if (e.dataTransfer.effectAllowed === 'move') {
+      // This is likely a tab drag
+      dragType = 'tab';
+    }
+
     // Get container dimensions
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -143,10 +159,13 @@ const ContainerRenderer: React.FC<ContainerRendererProps> = ({ container }) => {
     const width = rect.width;
     const height = rect.height;
 
-    // Determine drop position (left, right, top, bottom)
+    // Determine drop position (left, right, top, bottom, center)
     // Create drop zones of 20% of the container size on each edge
     const edgeSize = 0.2;
-    let position: 'left' | 'right' | 'top' | 'bottom' | null = null;
+    let position: 'left' | 'right' | 'top' | 'bottom' | 'center' | null = null;
+
+    // For empty containers or module drops, allow center drops
+    const allowCenterDrop = children.length === 0 || dragType === 'module';
 
     if (x < width * edgeSize) {
       position = 'left';
@@ -156,11 +175,14 @@ const ContainerRenderer: React.FC<ContainerRendererProps> = ({ container }) => {
       position = 'top';
     } else if (y > height * (1 - edgeSize)) {
       position = 'bottom';
+    } else if (allowCenterDrop) {
+      position = 'center';
     }
 
     setDropTarget(container.id);
     setDropPosition(position);
 
+    // Set appropriate drop effect based on drag type
     e.dataTransfer.dropEffect = 'move';
   }
 
@@ -169,11 +191,103 @@ const ContainerRenderer: React.FC<ContainerRendererProps> = ({ container }) => {
     e.preventDefault();
     e.stopPropagation();
 
-    try {
-      // Get the drag data
-      const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+    console.log('Container drop event:', e);
+    console.log('Drop position:', dropPosition);
 
-      if (data.type === 'tab' && currentWorkspace && dropPosition) {
+    try {
+      // Check if this is a module drop
+      const isModuleDrop = e.dataTransfer.types.includes('application/omnitrade-module');
+
+      if (isModuleDrop && currentWorkspace) {
+        // Get the module ID from our custom format
+        const moduleId = e.dataTransfer.getData('application/omnitrade-module');
+        console.log('Module drop detected, module ID:', moduleId);
+
+        if (moduleId) {
+          // Try to get the module name from the text/plain data
+          let moduleName = 'New Module';
+          try {
+            const dataText = e.dataTransfer.getData('text/plain');
+            if (dataText) {
+              const data = JSON.parse(dataText);
+              moduleName = data.moduleName || moduleName;
+            }
+          } catch (error) {
+            console.warn('Could not parse module name from text/plain data');
+          }
+
+          console.log('Creating component for module:', moduleId, 'with name:', moduleName);
+
+          // Create a new component item
+          const newComponent: ComponentLayoutItem = {
+            id: `component-${Date.now()}`,
+            type: LayoutItemType.COMPONENT,
+            componentId: moduleId,
+            title: moduleName,
+            componentState: {}
+          };
+
+          // Create a new stack for the component
+          const newStack: StackLayoutItem = {
+            id: `stack-${Date.now()}`,
+            type: LayoutItemType.STACK,
+            children: [newComponent],
+            activeItemIndex: 0
+          };
+
+          console.log('Adding component to container:', newComponent);
+
+          // Add the component to the container
+          addItemToContainer(container, newStack, dropPosition);
+          return;
+        }
+      }
+
+      // Handle tab drops (fallback to the original implementation)
+      const dataText = e.dataTransfer.getData('text/plain');
+      console.log('Raw drag data:', dataText);
+
+      if (!dataText) {
+        console.error('No drag data found');
+        return;
+      }
+
+      const data = JSON.parse(dataText);
+      console.log('Parsed drag data:', data);
+
+      // Handle module drops from the module selector (fallback)
+      if (data.type === 'module' && currentWorkspace) {
+        console.log('Handling module drop (fallback):', data);
+
+        if (data.moduleId) {
+          console.log('Creating component for module:', data.moduleId);
+
+          // Create a new component item
+          const newComponent: ComponentLayoutItem = {
+            id: `component-${Date.now()}`,
+            type: LayoutItemType.COMPONENT,
+            componentId: data.moduleId,
+            title: data.moduleName || 'New Module',
+            componentState: {}
+          };
+
+          // Create a new stack for the component
+          const newStack: StackLayoutItem = {
+            id: `stack-${Date.now()}`,
+            type: LayoutItemType.STACK,
+            children: [newComponent],
+            activeItemIndex: 0
+          };
+
+          console.log('Adding component to container:', newComponent);
+
+          // Add the component to the container
+          addItemToContainer(container, newStack, dropPosition);
+          return;
+        }
+      }
+      // Handle tab drops
+      else if (data.type === 'tab' && currentWorkspace && dropPosition) {
         // If we have all component data, we can create a new tab directly
         if (data.componentId && data.title) {
           // Create a new component item
@@ -272,33 +386,100 @@ const ContainerRenderer: React.FC<ContainerRendererProps> = ({ container }) => {
     setDropPosition(null);
   }
 
-  // Handle the drop logic for creating/updating containers
-  function handleDropLogic(
-    newStack: StackLayoutItem,
-    updatedSourceStack?: StackLayoutItem,
-    sourceStackId?: string
+  // Function to add an item to a container based on drop position
+  function addItemToContainer(
+    targetContainer: ContainerLayoutItem,
+    item: LayoutItem,
+    position: 'left' | 'right' | 'top' | 'bottom' | 'center' | null
   ) {
-    if (!currentWorkspace || !dropPosition) return;
+    if (!currentWorkspace) return;
 
-    // Determine the new container direction based on drop position
-    const newDirection =
-      dropPosition === 'left' || dropPosition === 'right'
+    // If no position or center position on an empty container, just add the item
+    if (!position || (position === 'center' && targetContainer.children.length === 0)) {
+      const updatedContainer: ContainerLayoutItem = {
+        ...targetContainer,
+        children: [...targetContainer.children, item]
+      };
+
+      const updatedWorkspace = updateContainerInWorkspace(
+        currentWorkspace,
+        targetContainer.id,
+        updatedContainer
+      );
+
+      updateWorkspace(updatedWorkspace);
+      return;
+    }
+
+    // Determine the split direction based on drop position
+    const splitDirection =
+      position === 'left' || position === 'right'
         ? SplitDirection.HORIZONTAL
         : SplitDirection.VERTICAL;
 
-    // Create a new container or update the existing one
-    let updatedContainer: ContainerLayoutItem;
+    // If dropping in the center of a container with children, create a new stack
+    if (position === 'center' && targetContainer.children.length > 0) {
+      // Find the active child (if it's a stack)
+      let activeChild = targetContainer.children[0];
+      if (activeChild.type === LayoutItemType.STACK) {
+        // Add the item to the active stack
+        const stack = activeChild as StackLayoutItem;
+        const updatedStack: StackLayoutItem = {
+          ...stack,
+          children: [...stack.children, item as ComponentLayoutItem],
+          activeItemIndex: stack.children.length // Set the new item as active
+        };
 
-    if (container.direction === newDirection) {
-      // If the container already has the right direction, just add the new stack
-      const newChildren = [...container.children];
-      const insertIndex = dropPosition === 'left' || dropPosition === 'top' ? 0 : newChildren.length;
-      newChildren.splice(insertIndex, 0, newStack);
+        const updatedWorkspace = updateStackInWorkspace(
+          currentWorkspace,
+          stack.id,
+          updatedStack
+        );
+
+        updateWorkspace(updatedWorkspace);
+        return;
+      }
+
+      // If the active child is not a stack, create a new container with both items
+      const newContainer: ContainerLayoutItem = {
+        id: `container-${Date.now()}`,
+        type: LayoutItemType.CONTAINER,
+        direction: SplitDirection.HORIZONTAL,
+        children: [activeChild, item],
+        sizes: [50, 50]
+      };
+
+      // Replace the active child with the new container
+      const updatedChildren = [...targetContainer.children];
+      const activeChildIndex = targetContainer.children.indexOf(activeChild);
+      updatedChildren[activeChildIndex] = newContainer;
+
+      const updatedContainer: ContainerLayoutItem = {
+        ...targetContainer,
+        children: updatedChildren
+      };
+
+      const updatedWorkspace = updateContainerInWorkspace(
+        currentWorkspace,
+        targetContainer.id,
+        updatedContainer
+      );
+
+      updateWorkspace(updatedWorkspace);
+      return;
+    }
+
+    // Handle edge drops (left, right, top, bottom)
+    if (targetContainer.direction === splitDirection) {
+      // If the container already has the right direction, just add the new item
+      const newChildren = [...targetContainer.children];
+      const insertIndex = position === 'left' || position === 'top' ? 0 : newChildren.length;
+      newChildren.splice(insertIndex, 0, item);
 
       // Calculate new sizes
-      const newSizes = container.sizes
-        ? [...container.sizes]
-        : container.children.map(() => 100 / container.children.length);
+      const newSizes = targetContainer.sizes
+        ? [...targetContainer.sizes]
+        : targetContainer.children.map(() => 100 / targetContainer.children.length);
 
       // Add size for the new child
       const newChildSize = 30; // 30% of the container
@@ -307,33 +488,56 @@ const ContainerRenderer: React.FC<ContainerRendererProps> = ({ container }) => {
 
       // Adjust existing sizes and add new size
       const adjustedSizes = newSizes.map(size => size * sizeFactor);
-      if (dropPosition === 'left' || dropPosition === 'top') {
+      if (position === 'left' || position === 'top') {
         adjustedSizes.unshift(newChildSize);
       } else {
         adjustedSizes.push(newChildSize);
       }
 
-      updatedContainer = {
-        ...container,
+      const updatedContainer: ContainerLayoutItem = {
+        ...targetContainer,
         children: newChildren,
         sizes: adjustedSizes
       };
+
+      const updatedWorkspace = updateContainerInWorkspace(
+        currentWorkspace,
+        targetContainer.id,
+        updatedContainer
+      );
+
+      updateWorkspace(updatedWorkspace);
     } else {
       // If the container has a different direction, create a new nested container
       const newNestedContainer: ContainerLayoutItem = {
         id: `container-${Date.now()}`,
         type: LayoutItemType.CONTAINER,
-        direction: newDirection,
-        children: dropPosition === 'left' || dropPosition === 'top'
-          ? [newStack, ...container.children]
-          : [...container.children, newStack],
-        sizes: dropPosition === 'left' || dropPosition === 'top'
-          ? [30, 70] // 30% for new stack, 70% for existing content
-          : [70, 30] // 70% for existing content, 30% for new stack
+        direction: splitDirection,
+        children: position === 'left' || position === 'top'
+          ? [item, ...targetContainer.children]
+          : [...targetContainer.children, item],
+        sizes: position === 'left' || position === 'top'
+          ? [30, 70] // 30% for new item, 70% for existing content
+          : [70, 30] // 70% for existing content, 30% for new item
       };
 
-      updatedContainer = newNestedContainer;
+      const updatedWorkspace = updateContainerInWorkspace(
+        currentWorkspace,
+        targetContainer.id,
+        newNestedContainer
+      );
+
+      updateWorkspace(updatedWorkspace);
     }
+  }
+
+  // Handle the drop logic for creating/updating containers
+  function handleDropLogic(
+    newStack: StackLayoutItem,
+    updatedSourceStack?: StackLayoutItem,
+    sourceStackId?: string
+  ) {
+    if (!currentWorkspace || !dropPosition) return;
 
     // Start with the current workspace
     let updatedWorkspace = currentWorkspace;
@@ -345,17 +549,13 @@ const ContainerRenderer: React.FC<ContainerRendererProps> = ({ container }) => {
         sourceStackId,
         updatedSourceStack
       );
+
+      // Update the workspace with the source stack changes
+      updateWorkspace(updatedWorkspace);
     }
 
-    // Update the container
-    updatedWorkspace = updateContainerInWorkspace(
-      updatedWorkspace,
-      container.id,
-      updatedContainer
-    );
-
-    // Update the workspace
-    updateWorkspace(updatedWorkspace);
+    // Add the new stack to the container
+    addItemToContainer(container, newStack, dropPosition);
   }
 
   // Render drop indicators
@@ -416,6 +616,19 @@ const ContainerRenderer: React.FC<ContainerRendererProps> = ({ container }) => {
               bottom: 0,
               width: '100%',
               height: '20%'
+            }}
+          />
+        );
+      case 'center':
+        return (
+          <div
+            style={{
+              ...indicatorStyle,
+              left: '20%',
+              top: '20%',
+              width: '60%',
+              height: '60%',
+              borderRadius: '8px'
             }}
           />
         );
@@ -672,12 +885,65 @@ const StackRenderer: React.FC<StackRendererProps> = ({ stack }) => {
   // Handle tab drag over
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+    e.stopPropagation();
+
+    // Try to parse the drag data to determine the type
+    let dragType = 'unknown';
+    try {
+      const dataText = e.dataTransfer.getData('text/plain');
+      if (dataText) {
+        const data = JSON.parse(dataText);
+        dragType = data.type || 'unknown';
+      }
+    } catch (error) {
+      // Ignore parsing errors, we'll handle unknown types gracefully
+    }
+
+    // Only show move effect for tab drags
+    if (dragType === 'tab') {
+      e.dataTransfer.dropEffect = 'move';
+
+      // Highlight the tab that's being dragged over
+      const tabsList = e.currentTarget;
+      const tabs = Array.from(tabsList.children);
+
+      // Find the tab being dragged over
+      const targetTab = tabs.find(tab => {
+        const rect = tab.getBoundingClientRect();
+        return e.clientX >= rect.left && e.clientX <= rect.right;
+      });
+
+      // Reset all tab styles
+      tabs.forEach(tab => {
+        (tab as HTMLElement).style.boxShadow = '';
+      });
+
+      // Highlight the target tab
+      if (targetTab) {
+        const rect = targetTab.getBoundingClientRect();
+        const isLeftHalf = e.clientX < rect.left + rect.width / 2;
+
+        if (isLeftHalf) {
+          (targetTab as HTMLElement).style.boxShadow = 'inset 3px 0 0 var(--accent-color, #6366f1)';
+        } else {
+          (targetTab as HTMLElement).style.boxShadow = 'inset -3px 0 0 var(--accent-color, #6366f1)';
+        }
+      }
+    } else {
+      e.dataTransfer.dropEffect = 'none';
+    }
   };
 
   // Handle tab drop
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+    e.stopPropagation();
+
+    // Reset all tab styles
+    const tabs = Array.from(e.currentTarget.children);
+    tabs.forEach(tab => {
+      (tab as HTMLElement).style.boxShadow = '';
+    });
 
     try {
       // Get the drag data
@@ -694,39 +960,68 @@ const StackRenderer: React.FC<StackRendererProps> = ({ stack }) => {
           // Get the tab
           const tab = sourceStack.children[tabIndex];
 
+          // Find the target tab and determine if we're dropping on the left or right side
+          const tabsList = e.currentTarget;
+          const targetTab = tabs.find(tab => {
+            const rect = tab.getBoundingClientRect();
+            return e.clientX >= rect.left && e.clientX <= rect.right;
+          });
+
+          let targetIndex = -1;
+          let dropPosition: 'left' | 'right' = 'right';
+
+          if (targetTab) {
+            targetIndex = tabs.indexOf(targetTab);
+            const rect = targetTab.getBoundingClientRect();
+            dropPosition = e.clientX < rect.left + rect.width / 2 ? 'left' : 'right';
+
+            // Adjust target index based on drop position
+            if (dropPosition === 'right') {
+              targetIndex++;
+            }
+          } else {
+            // If no target tab found, append to the end
+            targetIndex = tabs.length;
+          }
+
           // If dropping on the same stack, reorder the tabs
           if (data.stackId === stack.id) {
-            // Get the target index
-            const targetIndex = Array.from(e.currentTarget.children).findIndex(
-              child => child.contains(e.target as Node)
+            // Adjust target index if we're moving a tab from before the target to after it
+            if (tabIndex < targetIndex) {
+              targetIndex--;
+            }
+
+            // Don't do anything if the tab is dropped at its original position
+            if (targetIndex === tabIndex || targetIndex === tabIndex + 1) {
+              setIsDragging(false);
+              setDraggedTab(null);
+              return;
+            }
+
+            // Create a new array of children with the tab moved to the new position
+            const newChildren = [...sourceStack.children];
+            newChildren.splice(tabIndex, 1);
+            newChildren.splice(targetIndex, 0, tab);
+
+            // Update the source stack
+            const updatedSourceStack = {
+              ...sourceStack,
+              children: newChildren,
+              activeItemIndex: targetIndex
+            };
+
+            // Update the workspace
+            const updatedWorkspace = updateStackInWorkspace(
+              currentWorkspace,
+              data.stackId,
+              updatedSourceStack
             );
 
-            if (targetIndex !== -1 && targetIndex !== tabIndex) {
-              // Create a new array of children with the tab moved to the new position
-              const newChildren = [...sourceStack.children];
-              newChildren.splice(tabIndex, 1);
-              newChildren.splice(targetIndex, 0, tab);
+            // Update the workspace
+            updateWorkspace(updatedWorkspace);
 
-              // Update the source stack
-              const updatedSourceStack = {
-                ...sourceStack,
-                children: newChildren,
-                activeItemIndex: targetIndex
-              };
-
-              // Update the workspace
-              const updatedWorkspace = updateStackInWorkspace(
-                currentWorkspace,
-                data.stackId,
-                updatedSourceStack
-              );
-
-              // Update the workspace
-              updateWorkspace(updatedWorkspace);
-
-              // Set the active tab
-              setActiveTab(tab.id);
-            }
+            // Set the active tab
+            setActiveTab(tab.id);
           } else {
             // If dropping on a different stack, move the tab to the new stack
             // Remove the tab from the source stack
@@ -740,14 +1035,18 @@ const StackRenderer: React.FC<StackRendererProps> = ({ stack }) => {
               activeItemIndex: Math.min(sourceStack.activeItemIndex, newSourceChildren.length - 1)
             };
 
-            // Add the tab to the target stack
-            const newTargetChildren = [...stack.children, tab];
+            // Add the tab to the target stack at the specific position
+            const newTargetChildren = [...stack.children];
+
+            // Ensure targetIndex is within bounds
+            targetIndex = Math.max(0, Math.min(targetIndex, newTargetChildren.length));
+            newTargetChildren.splice(targetIndex, 0, tab);
 
             // Update the target stack
             const updatedTargetStack = {
               ...stack,
               children: newTargetChildren,
-              activeItemIndex: newTargetChildren.length - 1
+              activeItemIndex: targetIndex
             };
 
             // Update the workspace
@@ -780,9 +1079,26 @@ const StackRenderer: React.FC<StackRendererProps> = ({ stack }) => {
   };
 
   // Handle tab drag end
-  const handleDragEnd = () => {
+  const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
+    // Reset all tab styles
+    const tabs = Array.from(e.currentTarget.parentElement?.querySelectorAll('.tabs-list [draggable]') || []);
+    tabs.forEach(tab => {
+      (tab as HTMLElement).style.boxShadow = '';
+    });
+
     setIsDragging(false);
     setDraggedTab(null);
+  };
+
+  // Handle tab drag leave
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    // Only reset styles if we're leaving the tabs list
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      const tabs = Array.from(e.currentTarget.children);
+      tabs.forEach(tab => {
+        (tab as HTMLElement).style.boxShadow = '';
+      });
+    }
   };
 
   // Find a stack by ID in the workspace
@@ -850,9 +1166,10 @@ const StackRenderer: React.FC<StackRendererProps> = ({ stack }) => {
         className="flex-1 flex flex-col"
       >
         <TabsList
-          className="bg-theme-tertiary border-b border-theme-border flex-wrap theme-transition"
+          className="bg-theme-tertiary border-b border-theme-border flex-wrap theme-transition tabs-list"
           onDragOver={handleDragOver}
           onDrop={handleDrop}
+          onDragLeave={handleDragLeave}
         >
           {children.map(child => (
             <TabsTrigger

@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { AlertTriangle, LayoutGrid, Save, Settings } from 'lucide-react';
+import { AlertTriangle, LayoutGrid, Save, Settings, Plus } from 'lucide-react';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { WorkspaceProvider } from '@/contexts/WorkspaceContext';
 import { TerminalContainer } from '@/components/terminal/core/TerminalContainer';
@@ -23,11 +23,14 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ModuleSelector } from '@/components/workspace/ModuleSelector';
 
 /**
  * Workspace Controls Component
  */
-const WorkspaceControls: React.FC = () => {
+const WorkspaceControls: React.FC<{
+  onOpenModuleSelector: (e: React.MouseEvent<HTMLButtonElement>) => void;
+}> = ({ onOpenModuleSelector }) => {
   const { state, currentWorkspace, createWorkspace, setCurrentWorkspace } = useWorkspace();
   const [newWorkspaceName, setNewWorkspaceName] = useState('');
   const [newWorkspaceDescription, setNewWorkspaceDescription] = useState('');
@@ -116,6 +119,17 @@ const WorkspaceControls: React.FC = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Add Module button */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-8"
+        onClick={(e) => onOpenModuleSelector(e)}
+      >
+        <Plus className="h-4 w-4 mr-2" />
+        Add Module
+      </Button>
+
       <div className="ml-auto flex items-center space-x-2">
         <Button variant="outline" size="sm" className="h-8">
           <Save className="h-4 w-4 mr-2" />
@@ -134,6 +148,24 @@ const WorkspaceControls: React.FC = () => {
  * Terminal Workspace Page Component
  */
 export default function TerminalWorkspace() {
+  const [isModuleSelectorOpen, setIsModuleSelectorOpen] = useState(false);
+  const [moduleSelectorPosition, setModuleSelectorPosition] = useState<{ top: number; left: number } | undefined>();
+
+  // Function to open the module selector with position
+  const handleOpenModuleSelector = (e: React.MouseEvent<HTMLButtonElement>) => {
+    // Get the button's position
+    const buttonRect = e.currentTarget.getBoundingClientRect();
+
+    // Set the position for the module selector
+    setModuleSelectorPosition({
+      top: buttonRect.bottom + window.scrollY + 5, // 5px below the button
+      left: buttonRect.left + window.scrollX
+    });
+
+    // Open the module selector
+    setIsModuleSelectorOpen(true);
+  };
+
   return (
     <div className="bg-theme-primary min-h-screen theme-transition">
       <ErrorBoundary
@@ -155,10 +187,26 @@ export default function TerminalWorkspace() {
       >
         <WorkspaceProvider>
           <div className="flex flex-col h-screen overflow-hidden">
-            <WorkspaceControls />
-            <div className="flex-1">
+            <WorkspaceControls onOpenModuleSelector={handleOpenModuleSelector} />
+            <div className="flex-1 relative">
               <TerminalContainer className="h-full" />
             </div>
+
+            {/* Module Selector - positioned as a floating window */}
+            {isModuleSelectorOpen && (
+              <>
+                {/* Semi-transparent backdrop */}
+                <div
+                  className="fixed inset-0 bg-black/20 z-[9998] pointer-events-auto"
+                  onClick={() => setIsModuleSelectorOpen(false)}
+                />
+
+                <ModuleSelector
+                  onClose={() => setIsModuleSelectorOpen(false)}
+                  anchorPosition={moduleSelectorPosition}
+                />
+              </>
+            )}
           </div>
         </WorkspaceProvider>
       </ErrorBoundary>

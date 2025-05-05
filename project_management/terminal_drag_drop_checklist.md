@@ -4,62 +4,62 @@ This checklist tracks the progress of implementing the TabTrader-like drag and d
 
 ## Phase 1: Module Selector Component
 
-- [ ] Create `src/components/workspace/ModuleSelector.tsx`
-  - [ ] Implement basic component structure
-  - [ ] Add header with title and close button
-  - [ ] Create module item layout with title, description, and preview
-  - [ ] Add usage count indicator
-  - [ ] Implement drag start functionality
-  - [ ] Style the component to match TabTrader's design
-  
-- [ ] Update `src/pages/TerminalWorkspace.tsx`
-  - [ ] Add state for showing/hiding module selector
-  - [ ] Add button to open module selector
-  - [ ] Integrate module selector component
+- [x] Create `src/components/workspace/ModuleSelector.tsx`
+  - [x] Implement basic component structure
+  - [x] Add header with title and close button
+  - [x] Create module item layout with title, description, and preview
+  - [x] Add usage count indicator
+  - [x] Implement drag start functionality
+  - [x] Style the component to match TabTrader's design
+
+- [x] Update `src/pages/TerminalWorkspace.tsx`
+  - [x] Add state for showing/hiding module selector
+  - [x] Add button to open module selector
+  - [x] Integrate module selector component
 
 ## Phase 2: Enhanced Container Drop Handling
 
-- [ ] Update `src/components/terminal/core/TerminalContainer.tsx`
-  - [ ] Enhance `handleContainerDragOver` function
-  - [ ] Improve drop position detection (left, right, top, bottom, center)
-  - [ ] Update `handleContainerDrop` function to handle module drops
-  - [ ] Create function to add items to containers based on drop position
-  - [ ] Test drop handling with different container configurations
+- [x] Update `src/components/terminal/core/TerminalContainer.tsx`
+  - [x] Enhance `handleContainerDragOver` function
+  - [x] Improve drop position detection (left, right, top, bottom, center)
+  - [x] Update `handleContainerDrop` function to handle module drops
+  - [x] Create function to add items to containers based on drop position
+  - [x] Test drop handling with different container configurations
 
 ## Phase 3: Visual Drop Indicators
 
-- [ ] Create `src/components/workspace/DropIndicator.tsx`
-  - [ ] Implement indicator component for different positions
-  - [ ] Add styling for indicators
+- [x] ~~Create `src/components/workspace/DropIndicator.tsx`~~ (Implemented directly in TerminalContainer.tsx)
+  - [x] Implement indicator component for different positions
+  - [x] Add styling for indicators
   - [ ] Add animations for smooth transitions
 
-- [ ] Update `src/components/terminal/core/TerminalContainer.tsx`
-  - [ ] Add drop indicator rendering logic
-  - [ ] Integrate indicators with drag over events
-  - [ ] Test visual feedback during drag operations
+- [x] Update `src/components/terminal/core/TerminalContainer.tsx`
+  - [x] Add drop indicator rendering logic
+  - [x] Integrate indicators with drag over events
+  - [x] Test visual feedback during drag operations
 
 ## Phase 4: Enhanced Tab Drag and Drop
 
-- [ ] Update `src/components/terminal/core/TerminalContainer.tsx`
-  - [ ] Enhance tab `handleDragOver` function
-  - [ ] Improve tab drop position detection (left, right)
-  - [ ] Update tab `handleDrop` function for better placement
-  - [ ] Implement tab reordering within stacks
-  - [ ] Add support for moving tabs between stacks
-  - [ ] Test tab drag and drop with different configurations
+- [x] Update `src/components/terminal/core/TerminalContainer.tsx`
+  - [x] Enhance tab `handleDragOver` function
+  - [x] Improve tab drop position detection (left, right)
+  - [x] Update tab `handleDrop` function for better placement
+  - [x] Implement tab reordering within stacks
+  - [x] Add support for moving tabs between stacks
+  - [x] Test tab drag and drop with different configurations
 
 ## Phase 5: Container Splitting Logic
 
-- [ ] Update `src/components/terminal/core/TerminalContainer.tsx`
-  - [ ] Implement `addItemToContainer` function
-  - [ ] Add logic for determining split direction
-  - [ ] Handle nested container creation
-  - [ ] Implement proper sizing of containers after splitting
-  - [ ] Test container splitting with different drop positions
+- [x] Update `src/components/terminal/core/TerminalContainer.tsx`
+  - [x] Implement `addItemToContainer` function
+  - [x] Add logic for determining split direction
+  - [x] Handle nested container creation
+  - [x] Implement proper sizing of containers after splitting
+  - [x] Test container splitting with different drop positions
 
-- [ ] Update `src/lib/workspace/workspace-manager.ts` (if needed)
-  - [ ] Add helper functions for container manipulation
-  - [ ] Ensure workspace state is properly updated after changes
+- [x] Update `src/lib/workspace/workspace-manager.ts` (if needed)
+  - [x] Add helper functions for container manipulation (implemented directly in TerminalContainer.tsx)
+  - [x] Ensure workspace state is properly updated after changes
 
 ## Phase 6: Default Layout Template
 

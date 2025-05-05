@@ -1,28 +1,28 @@
 /**
  * Workspace Layout Examples
- * 
+ *
  * This module provides example workspace layouts that demonstrate how to use
  * the component registry and workspace layout system.
  */
 
-import { 
-  LayoutItemType, 
-  SplitDirection, 
-  WorkspaceLayout 
+import {
+  LayoutItemType,
+  SplitDirection,
+  WorkspaceLayout
 } from './types';
 
 /**
  * Create a custom workspace layout
- * 
+ *
  * @param name The name of the workspace
  * @param description The description of the workspace
  * @returns A new workspace layout
  */
 export function createCustomWorkspace(name: string, description?: string): WorkspaceLayout {
   const now = new Date().toISOString();
-  
+
   return {
-    id: `custom-${Date.now()}`,
+    id: `custom-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`,
     name,
     description,
     createdAt: now,
@@ -92,16 +92,16 @@ export function createCustomWorkspace(name: string, description?: string): Works
 
 /**
  * Create a multi-chart workspace layout
- * 
+ *
  * @param name The name of the workspace
  * @param description The description of the workspace
  * @returns A new workspace layout
  */
 export function createMultiChartWorkspace(name: string, description?: string): WorkspaceLayout {
   const now = new Date().toISOString();
-  
+
   return {
-    id: `multi-chart-${Date.now()}`,
+    id: `multi-chart-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`,
     name,
     description,
     createdAt: now,
