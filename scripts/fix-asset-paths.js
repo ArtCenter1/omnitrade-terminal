@@ -26,32 +26,54 @@ try {
   console.error('❌ Error copying placeholder.svg:', error);
 }
 
-// Fix asset paths in index.html
+// Use a simplified index.html for GitHub Pages
 try {
+  // Copy the GitHub Pages specific index.html
+  const githubPagesIndexPath = path.join(rootDir, 'public', 'index-github-pages.html');
   const indexPath = path.join(distDir, 'index.html');
-  let indexContent = fs.readFileSync(indexPath, 'utf8');
 
-  // Fix asset paths
-  let fixedContent = indexContent
-    .replace(/src="\/assets\//g, 'src="./assets/')
-    .replace(/href="\/assets\//g, 'href="./assets/')
-    .replace(/src="\/omnitrade-terminal\/assets\//g, 'src="./assets/')
-    .replace(/href="\/omnitrade-terminal\/assets\//g, 'href="./assets/')
-    .replace(/src="\/src\//g, 'src="./src/')
-    .replace(/href="\/src\//g, 'href="./src/');
+  if (fs.existsSync(githubPagesIndexPath)) {
+    // Read the GitHub Pages index file
+    let indexContent = fs.readFileSync(githubPagesIndexPath, 'utf8');
 
-  // Replace any remaining references to main.tsx with the built JS file
-  fixedContent = fixedContent
-    .replace(/src="\.\/src\/main\.tsx"/g, 'src="./assets/index.js"')
-    .replace(/src="\/src\/main\.tsx"/g, 'src="./assets/index.js"')
-    .replace(/src="\.\/main\.tsx"/g, 'src="./assets/index.js"');
+    // Make a backup of the original index.html
+    if (fs.existsSync(indexPath)) {
+      fs.copyFileSync(indexPath, path.join(distDir, 'index.original.html'));
+      console.log('✅ Created backup of original index.html');
+    }
 
-  if (fixedContent !== indexContent) {
-    fs.writeFileSync(indexPath, fixedContent);
-    console.log('✅ Fixed asset paths in index.html');
+    // Write the GitHub Pages index file
+    fs.writeFileSync(indexPath, indexContent);
+    console.log('✅ Replaced index.html with GitHub Pages version');
+  } else {
+    // If the GitHub Pages index file doesn't exist, fix the paths in the original
+    console.log('⚠️ GitHub Pages index file not found, fixing paths in original index.html');
+
+    const indexPath = path.join(distDir, 'index.html');
+    let indexContent = fs.readFileSync(indexPath, 'utf8');
+
+    // Fix asset paths
+    let fixedContent = indexContent
+      .replace(/src="\/assets\//g, 'src="./assets/')
+      .replace(/href="\/assets\//g, 'href="./assets/')
+      .replace(/src="\/omnitrade-terminal\/assets\//g, 'src="./assets/')
+      .replace(/href="\/omnitrade-terminal\/assets\//g, 'href="./assets/')
+      .replace(/src="\/src\//g, 'src="./src/')
+      .replace(/href="\/src\//g, 'href="./src/');
+
+    // Replace any remaining references to main.tsx with the built JS file
+    fixedContent = fixedContent
+      .replace(/src="\.\/src\/main\.tsx"/g, 'src="./assets/index.js"')
+      .replace(/src="\/src\/main\.tsx"/g, 'src="./assets/index.js"')
+      .replace(/src="\.\/main\.tsx"/g, 'src="./assets/index.js"');
+
+    if (fixedContent !== indexContent) {
+      fs.writeFileSync(indexPath, fixedContent);
+      console.log('✅ Fixed asset paths in index.html');
+    }
   }
 } catch (error) {
-  console.error('❌ Error fixing asset paths in index.html:', error);
+  console.error('❌ Error handling index.html:', error);
 }
 
 // Create fallback scripts to prevent 404 errors

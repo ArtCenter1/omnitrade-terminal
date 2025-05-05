@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <title>OmniTrade - Crypto Trading Platform</title>
+  <meta name="description" content="OmniTrade - Advanced Crypto Trading Platform" />
+  <meta name="author" content="OmniTrade" />
+  
+  <!-- Use absolute paths for assets with the correct base path -->
+  <link rel="icon" href="/omnitrade-terminal/placeholder.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/omnitrade-terminal/placeholder.svg" />
+
+  <meta property="og:title" content="OmniTrade - Crypto Trading Platform" />
+  <meta property="og:description" content="Advanced crypto trading platform with portfolio management and exchange integration" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@lovable_dev" />
+  <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+  
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      background-color: #131722;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+    .logo {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 2rem;
+      background-color: #1A1A1A;
+      border-radius: 8px;
+      padding: 10px;
+    }
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+    p {
+      font-size: 1.1rem;
+      margin-bottom: 2rem;
+      color: #aaa;
+      max-width: 600px;
+    }
+    .button {
+      background-color: #6366F1;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      text-decoration: none;
+      margin: 0 10px 10px 0;
+      display: inline-block;
+    }
+    .button:hover {
+      background-color: #4F46E5;
+    }
+    .button.secondary {
+      background-color: transparent;
+      border: 1px solid #6366F1;
+    }
+    .button.secondary:hover {
+      background-color: rgba(99, 102, 241, 0.1);
+    }
+    .loading {
+      margin-top: 2rem;
+      font-size: 0.9rem;
+      color: #888;
+    }
+    .features {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 40px;
+      max-width: 900px;
+    }
+    .feature {
+      background-color: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 20px;
+      width: 250px;
+      text-align: left;
+    }
+    .feature h3 {
+      color: #6366F1;
+      margin-top: 0;
+    }
+    .feature p {
+      font-size: 0.9rem;
+      margin-bottom: 0;
+    }
+  </style>
+</head>
+<body>
+  <img src="/omnitrade-terminal/placeholder.svg" alt="OmniTrade Logo" class="logo">
+  <h1>OmniTrade Terminal</h1>
+  <p>Welcome to the OmniTrade Terminal showcase. This is a demonstration of our UI and functionality using mock data.</p>
+  
+  <div>
+    <a href="/omnitrade-terminal/assets/index.html" class="button">Launch Terminal</a>
+    <a href="https://github.com/ArtCenter1/omnitrade-terminal" class="button secondary">View on GitHub</a>
+  </div>
+  
+  <div class="features">
+    <div class="feature">
+      <h3>Interactive UI</h3>
+      <p>Experience our intuitive trading interface with draggable and resizable panels.</p>
+    </div>
+    <div class="feature">
+      <h3>Mock Data</h3>
+      <p>Explore the platform with realistic mock market data that simulates real trading conditions.</p>
+    </div>
+    <div class="feature">
+      <h3>TabTrader-Inspired</h3>
+      <p>Our layout is inspired by TabTrader, providing a familiar experience for traders.</p>
+    </div>
+  </div>
+  
+  <p class="loading">Loading the terminal may take a moment. If it doesn't load, please check the browser console for any errors.</p>
+  
+  <script>
+    // Redirect to the actual app after a short delay
+    setTimeout(function() {
+      window.location.href = "/omnitrade-terminal/assets/index.html";
+    }, 5000);
+  </script>
+</body>
+</html>

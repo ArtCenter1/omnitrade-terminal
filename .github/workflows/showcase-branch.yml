@@ -51,6 +51,13 @@ jobs:
           cp ./placeholder.svg ./dist/ || echo "Root placeholder.svg not found"
           cp ./public/gh-pages-404.html ./dist/404.html || cp ./public/404.html ./dist/404.html || echo "No 404.html found, creating a simple one"
 
+          # Use the GitHub Pages specific index.html if it exists
+          if [ -f ./public/index-github-pages.html ]; then
+            cp ./dist/index.html ./dist/index.original.html || echo "No original index.html to backup"
+            cp ./public/index-github-pages.html ./dist/index.html
+            echo "Replaced index.html with GitHub Pages version"
+          fi
+
           # Create fallback scripts to prevent 404 errors
           echo "// Fallback script for GitHub Pages" > ./dist/main.js
           echo "console.log('Fallback main.js loaded');" >> ./dist/main.js
