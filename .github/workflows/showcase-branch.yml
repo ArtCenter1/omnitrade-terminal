@@ -1,0 +1,160 @@
+name: Deploy Showcase to GitHub Pages
+
+on:
+  push:
+    branches: ["showcase"]
+  # Allow manual triggering
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Showcase
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: 'npm'
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build showcase version
+        run: npm run build:showcase
+
+      # Create a .nojekyll file to prevent GitHub Pages from ignoring files that begin with an underscore
+      - name: Add .nojekyll file
+        run: touch ./dist/.nojekyll
+
+      # Copy essential files to the root of the dist directory
+      - name: Copy essential files to root
+        run: |
+          cp ./public/placeholder.svg ./dist/
+          cp ./public/gh-pages-404.html ./dist/404.html || cp ./public/404.html ./dist/404.html || echo "No 404.html found, creating a simple one"
+
+          # Create a simple 404.html if none exists
+          if [ ! -f ./dist/404.html ]; then
+            cat > ./dist/404.html << 'EOL'
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>OmniTrade - Page Not Found</title>
+                <style>
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+                        background-color: #131722;
+                        color: white;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        height: 100vh;
+                        margin: 0;
+                        padding: 20px;
+                        text-align: center;
+                    }
+                    h1 {
+                        font-size: 2rem;
+                        margin-bottom: 1rem;
+                    }
+                    p {
+                        font-size: 1.1rem;
+                        margin-bottom: 2rem;
+                        color: #aaa;
+                    }
+                    .button {
+                        background-color: #6366F1;
+                        color: white;
+                        border: none;
+                        padding: 12px 24px;
+                        border-radius: 6px;
+                        font-size: 1rem;
+                        cursor: pointer;
+                        transition: background-color 0.2s;
+                        text-decoration: none;
+                    }
+                    .button:hover {
+                        background-color: #4F46E5;
+                    }
+                </style>
+            </head>
+            <body>
+                <h1>Page Not Found</h1>
+                <p>The page you are looking for does not exist.</p>
+                <a href="/omnitrade-terminal/" class="button">Go to Home Page</a>
+                <script>
+                    // Redirect to home page after 3 seconds
+                    setTimeout(function() {
+                        window.location.href = '/omnitrade-terminal/';
+                    }, 3000);
+                </script>
+            </body>
+            </html>
+            EOL
+          fi
+
+      # Fix asset paths in index.html
+      - name: Fix asset paths in index.html
+        run: |
+          if [ -f ./dist/index.html ]; then
+            sed -i 's|src="/assets/|src="./assets/|g' ./dist/index.html
+            sed -i 's|href="/assets/|href="./assets/|g' ./dist/index.html
+            sed -i 's|src="/omnitrade-terminal/assets/|src="./assets/|g' ./dist/index.html
+            sed -i 's|href="/omnitrade-terminal/assets/|href="./assets/|g' ./dist/index.html
+          fi
+
+      # Create a simple README for the GitHub Pages site
+      - name: Create README for GitHub Pages
+        run: |
+          cat > ./dist/README.md << 'EOL'
+          # OmniTrade Terminal - Showcase
+
+          This is a showcase version of the OmniTrade Terminal UI, demonstrating the interface and functionality without requiring a backend server.
+
+          ## Features
+
+          - Interactive trading terminal UI
+          - Mock market data visualization
+          - Draggable and resizable panels
+          - Theme switching
+
+          ## Note
+
+          This is a demonstration version with mock data. For the full version with real-time data and trading capabilities, please visit the main repository.
+          EOL
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

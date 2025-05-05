@@ -43,6 +43,7 @@ import { setupMockApis } from './mocks/mockSetup';
 import { setupMockAdminApi } from './mocks/mockAdminApi';
 import { setupMockFetch } from './mocks/mockFetch';
 import { setupApiMiddleware } from './mocks/apiMiddleware';
+import { MockDataProvider } from './components/showcase/MockDataProvider';
 
 // Import development helpers
 import './utils/devHelpers';
@@ -56,8 +57,11 @@ migrateSandboxToDemoAccount();
 // Initialize the terminal components and workspace
 initializeTerminal();
 
-// Set up mock API for development
-if (import.meta.env.DEV) {
+// Set up mock API for development or showcase
+const isShowcase = import.meta.env.VITE_USE_MOCK_API === 'true' ||
+                  window.location.hostname.includes('github.io');
+
+if (import.meta.env.DEV || isShowcase) {
   // Define originalFetch on window to avoid reference errors
   window.originalFetch = window.fetch;
 
@@ -71,11 +75,16 @@ if (import.meta.env.DEV) {
   // Initialize the MSW worker with all handlers
   setupMockApis();
 
-  console.log('Mock APIs enabled for development');
-
-  // Setup mock APIs but don't enable mock user by default
-  // This allows real authentication to work properly
-  console.log('Mock APIs ready but not automatically enabled');
+  if (isShowcase) {
+    console.log('Mock APIs enabled for showcase');
+    // For showcase, we always want to use mock data
+    localStorage.setItem('useMockUser', 'true');
+  } else {
+    console.log('Mock APIs enabled for development');
+    // Setup mock APIs but don't enable mock user by default in dev
+    // This allows real authentication to work properly
+    console.log('Mock APIs ready but not automatically enabled');
+  }
 
   // Check if we have any leftover mock user data and clean it up
   if (localStorage.getItem('useMockUser') === 'true') {
@@ -93,18 +102,20 @@ createRoot(document.getElementById('root')!).render(
   <QueryClientProvider client={queryClient}>
     <BrowserRouter>
       <FeatureFlagsProvider>
-        <ConditionalAuthProvider>
-          <AuthProvider>
-            <UnifiedThemeProvider
-              attribute="class"
-              defaultTheme="dark"
-              storageKey="omnitrade-theme"
-              enableSystem={false}
-            >
-              <App />
-            </UnifiedThemeProvider>
-          </AuthProvider>
-        </ConditionalAuthProvider>
+        <MockDataProvider>
+          <ConditionalAuthProvider>
+            <AuthProvider>
+              <UnifiedThemeProvider
+                attribute="class"
+                defaultTheme="dark"
+                storageKey="omnitrade-theme"
+                enableSystem={false}
+              >
+                <App />
+              </UnifiedThemeProvider>
+            </AuthProvider>
+          </ConditionalAuthProvider>
+        </MockDataProvider>
       </FeatureFlagsProvider>
     </BrowserRouter>
   </QueryClientProvider>,
