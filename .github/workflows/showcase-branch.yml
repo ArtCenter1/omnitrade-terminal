@@ -51,9 +51,25 @@ jobs:
           cp ./placeholder.svg ./dist/ || echo "Root placeholder.svg not found"
           cp ./public/gh-pages-404.html ./dist/404.html || cp ./public/404.html ./dist/404.html || echo "No 404.html found, creating a simple one"
 
-          # Create a fallback main.js file to prevent 404 errors
+          # Create fallback scripts to prevent 404 errors
           echo "// Fallback script for GitHub Pages" > ./dist/main.js
-          echo "console.log('Fallback script loaded');" >> ./dist/main.js
+          echo "console.log('Fallback main.js loaded');" >> ./dist/main.js
+
+          echo "// Fallback script for GitHub Pages" > ./dist/main.tsx
+          echo "console.log('Fallback main.tsx loaded');" >> ./dist/main.tsx
+
+          # Create assets directory if it doesn't exist
+          mkdir -p ./dist/assets
+
+          # Create a fallback index.js if it doesn't exist
+          if [ ! -f ./dist/assets/index.js ] && [ ! -f ./dist/assets/index-*.js ]; then
+            echo "// Fallback index.js for GitHub Pages" > ./dist/assets/index.js
+            echo "console.log('Fallback index.js loaded');" >> ./dist/assets/index.js
+            echo "// Redirect to the homepage if this script is loaded directly" >> ./dist/assets/index.js
+            echo "if (window.location.pathname.includes('/assets/')) {" >> ./dist/assets/index.js
+            echo "  window.location.href = '/omnitrade-terminal/';" >> ./dist/assets/index.js
+            echo "}" >> ./dist/assets/index.js
+          fi
 
           # Create a simple 404.html if none exists
           if [ ! -f ./dist/404.html ]; then

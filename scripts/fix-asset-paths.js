@@ -30,16 +30,22 @@ try {
 try {
   const indexPath = path.join(distDir, 'index.html');
   let indexContent = fs.readFileSync(indexPath, 'utf8');
-  
+
   // Fix asset paths
-  const fixedContent = indexContent
+  let fixedContent = indexContent
     .replace(/src="\/assets\//g, 'src="./assets/')
     .replace(/href="\/assets\//g, 'href="./assets/')
     .replace(/src="\/omnitrade-terminal\/assets\//g, 'src="./assets/')
     .replace(/href="\/omnitrade-terminal\/assets\//g, 'href="./assets/')
     .replace(/src="\/src\//g, 'src="./src/')
     .replace(/href="\/src\//g, 'href="./src/');
-  
+
+  // Replace any remaining references to main.tsx with the built JS file
+  fixedContent = fixedContent
+    .replace(/src="\.\/src\/main\.tsx"/g, 'src="./assets/index.js"')
+    .replace(/src="\/src\/main\.tsx"/g, 'src="./assets/index.js"')
+    .replace(/src="\.\/main\.tsx"/g, 'src="./assets/index.js"');
+
   if (fixedContent !== indexContent) {
     fs.writeFileSync(indexPath, fixedContent);
     console.log('✅ Fixed asset paths in index.html');
@@ -48,15 +54,47 @@ try {
   console.error('❌ Error fixing asset paths in index.html:', error);
 }
 
-// Create a simple main.js file in the dist directory to prevent 404 errors
+// Create fallback scripts to prevent 404 errors
 try {
+  // Create main.js
   fs.writeFileSync(
     path.join(distDir, 'main.js'),
-    '// Fallback script for GitHub Pages\nconsole.log("Fallback script loaded");'
+    '// Fallback script for GitHub Pages\nconsole.log("Fallback main.js loaded");'
   );
   console.log('✅ Created fallback main.js');
+
+  // Create main.tsx (as a JavaScript file)
+  fs.writeFileSync(
+    path.join(distDir, 'main.tsx'),
+    '// Fallback script for GitHub Pages\nconsole.log("Fallback main.tsx loaded");'
+  );
+  console.log('✅ Created fallback main.tsx');
+
+  // Create a fallback index.js in case it's needed
+  const assetsDir = path.join(distDir, 'assets');
+  if (!fs.existsSync(assetsDir)) {
+    fs.mkdirSync(assetsDir, { recursive: true });
+  }
+
+  // Check if the real index.js exists
+  const realIndexJsPath = fs.readdirSync(assetsDir)
+    .find(file => file.startsWith('index-') && file.endsWith('.js'));
+
+  if (!realIndexJsPath) {
+    // Create a simple index.js that redirects to the homepage
+    fs.writeFileSync(
+      path.join(assetsDir, 'index.js'),
+      `// Fallback index.js for GitHub Pages
+console.log("Fallback index.js loaded");
+// Redirect to the homepage if this script is loaded directly
+if (window.location.pathname.includes('/assets/')) {
+  window.location.href = '/omnitrade-terminal/';
+}`
+    );
+    console.log('✅ Created fallback assets/index.js');
+  }
 } catch (error) {
-  console.error('❌ Error creating fallback main.js:', error);
+  console.error('❌ Error creating fallback scripts:', error);
 }
 
 console.log('Asset path fixes complete!');
