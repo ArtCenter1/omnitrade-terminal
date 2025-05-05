@@ -33,26 +33,26 @@ DATABASE_URL="file:./dev.db"  # For SQLite
 
 ## Migration Commands
 
-We've added several npm scripts to manage the database:
+We've added several scripts to manage the database:
 
 ```bash
 # Run pending migrations
-npm run db:migrate
+bun run db:migrate
 
 # Create a new migration
-npm run db:create <migration-name>
+bun run db:create <migration-name>
 
 # Reset the database (drop all tables and recreate)
-npm run db:reset
+bun run db:reset
 
 # Seed the database with initial data
-npm run db:seed
+bun run db:seed
 
 # Open Prisma Studio to view and edit data
-npm run db:studio
+bun run db:studio
 
 # Check migration status
-npm run db:status
+bun run db:status
 ```
 
 ## Creating a New Migration
@@ -60,7 +60,7 @@ npm run db:status
 When you make changes to the `schema.prisma` file, you need to create a new migration:
 
 ```bash
-npm run db:create add-new-feature
+bun run db:create add-new-feature
 ```
 
 This will:
@@ -75,7 +75,7 @@ This will:
 To populate the database with initial data:
 
 ```bash
-npm run db:seed
+bun run db:seed
 ```
 
 This will run the `seed.js` script, which creates:
@@ -88,7 +88,7 @@ This will run the `seed.js` script, which creates:
 To visually explore and edit your database:
 
 ```bash
-npm run db:studio
+bun run db:studio
 ```
 
 This will open Prisma Studio in your browser, where you can view and edit your data.

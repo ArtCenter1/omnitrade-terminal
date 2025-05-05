@@ -27,7 +27,7 @@ try {
 
 // Run the build command
 try {
-  execSync('npm run build', { stdio: 'inherit' });
+  execSync('bun run build', { stdio: 'inherit' });
   console.log('✅ Build completed successfully');
 } catch (error) {
   console.error('❌ Build failed:', error);
@@ -42,14 +42,14 @@ console.log('✅ Created .nojekyll file');
 try {
   const indexPath = path.join(distDir, 'index.html');
   let indexContent = fs.readFileSync(indexPath, 'utf8');
-  
+
   // Fix asset paths
   const fixedContent = indexContent
     .replace(/src="\/assets\//g, 'src="./assets/')
     .replace(/href="\/assets\//g, 'href="./assets/')
     .replace(/src="\/omnitrade-terminal\/assets\//g, 'src="./assets/')
     .replace(/href="\/omnitrade-terminal\/assets\//g, 'href="./assets/');
-  
+
   if (fixedContent !== indexContent) {
     fs.writeFileSync(indexPath, fixedContent);
     console.log('✅ Fixed asset paths in index.html');

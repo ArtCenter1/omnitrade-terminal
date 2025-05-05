@@ -27,7 +27,7 @@ try {
 // Build the showcase version
 try {
   console.log('Building showcase version...');
-  execSync('npm run build:showcase', { stdio: 'inherit' });
+  execSync('bun run build:showcase', { stdio: 'inherit' });
   console.log('✅ Build completed successfully');
 } catch (error) {
   console.error('❌ Build failed:', error);
@@ -37,7 +37,7 @@ try {
 // Commit changes
 try {
   console.log('Committing changes...');
-  
+
   // Check if there are changes to commit
   const status = execSync('git status --porcelain', { encoding: 'utf8' });
   if (status.length === 0) {

@@ -4,11 +4,24 @@
   ],
   "headers": [
     {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        }
+      ]
+    },
+    {
       "source": "/(.*).js",
       "headers": [
         {
           "key": "Content-Type",
-          "value": "text/javascript"
+          "value": "application/javascript"
         }
       ]
     },
@@ -17,7 +30,25 @@
       "headers": [
         {
           "key": "Content-Type",
-          "value": "text/javascript"
+          "value": "application/javascript"
+        }
+      ]
+    },
+    {
+      "source": "/(.*).tsx",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/javascript"
+        }
+      ]
+    },
+    {
+      "source": "/main.tsx",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/javascript"
         }
       ]
     },

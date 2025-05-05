@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:all": "concurrently \"npm run start:dev --prefix backend\" \"npm run dev\"",
+    "dev:all": "concurrently \"cd backend && bun run start:dev\" \"bun run dev\"",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "build:gh-pages": "vite build && node scripts/fix-gh-pages.js",
@@ -18,7 +18,7 @@
     "lint:backend:fix": "cd backend && eslint . --ext ts --fix",
     "format": "prettier --write .",
     "format:backend": "prettier --write ./backend",
-    "format:all": "npm run format && npm run format:backend",
+    "format:all": "bun run format && bun run format:backend",
     "check-format": "prettier --check .",
     "test": "vitest",
     "test:ui": "vitest --ui",

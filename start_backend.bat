@@ -1,2 +1,2 @@
 cd backend
-npm run start:dev
+bun run start:dev
