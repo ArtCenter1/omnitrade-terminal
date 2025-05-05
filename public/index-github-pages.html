@@ -135,9 +135,14 @@
 
   <script>
     // Load the fix-mock-mode.js script to prevent backend connection errors
-    const script = document.createElement('script');
-    script.src = '/omnitrade-terminal/fix-mock-mode.js';
-    document.head.appendChild(script);
+    const mockScript = document.createElement('script');
+    mockScript.src = '/omnitrade-terminal/fix-mock-mode.js';
+    document.head.appendChild(mockScript);
+
+    // Load the fix-portfolio-errors.js script to handle portfolio API requests
+    const portfolioScript = document.createElement('script');
+    portfolioScript.src = '/omnitrade-terminal/fix-portfolio-errors.js';
+    document.head.appendChild(portfolioScript);
 
     // Redirect to the actual app after a short delay
     setTimeout(function() {

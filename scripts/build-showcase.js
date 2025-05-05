@@ -49,6 +49,17 @@ try {
   console.error('❌ Error copying fix-mock-mode.js:', error);
 }
 
+// Copy fix-portfolio-errors.js to the dist directory
+try {
+  fs.copyFileSync(
+    path.join(rootDir, 'public', 'fix-portfolio-errors.js'),
+    path.join(distDir, 'fix-portfolio-errors.js')
+  );
+  console.log('✅ Copied fix-portfolio-errors.js to dist directory');
+} catch (error) {
+  console.error('❌ Error copying fix-portfolio-errors.js:', error);
+}
+
 // Fix asset paths in index.html
 try {
   const indexPath = path.join(distDir, 'index.html');

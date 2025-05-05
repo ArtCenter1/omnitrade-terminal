@@ -123,9 +123,15 @@
 
       // Load the fix-mock-mode.js script if needed
       if (isGitHubPages || isMockModeEnabled) {
-        const script = document.createElement('script');
-        script.src = './fix-mock-mode.js';
-        document.head.appendChild(script);
+        // Load the fix-mock-mode.js script
+        const mockScript = document.createElement('script');
+        mockScript.src = './fix-mock-mode.js';
+        document.head.appendChild(mockScript);
+
+        // Load the fix-portfolio-errors.js script to handle portfolio API requests
+        const portfolioScript = document.createElement('script');
+        portfolioScript.src = './fix-portfolio-errors.js';
+        document.head.appendChild(portfolioScript);
       }
     </script>
   </body>
