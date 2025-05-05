@@ -37,8 +37,42 @@
     <div id="root"></div>
     <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
     <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
-    <!-- For development, use the source file. For production, this will be replaced with the built file -->
-    <script type="module" src="./assets/index.js"></script>
+    <!-- Script loading with fallback -->
+    <script>
+      // Function to load the main script
+      function loadMainScript() {
+        // Create a script element
+        const script = document.createElement('script');
+        script.type = 'module';
+
+        // Try to load the built JS file
+        script.src = './assets/main.js';
+
+        // Add error handling
+        script.onerror = function() {
+          console.warn('Failed to load main.js, trying index.js...');
+          const fallbackScript = document.createElement('script');
+          fallbackScript.type = 'module';
+          fallbackScript.src = './assets/index.js';
+
+          fallbackScript.onerror = function() {
+            console.error('Failed to load any script. Showing error message.');
+            const rootEl = document.getElementById('root');
+            if (rootEl) {
+              rootEl.innerHTML = '<div style="padding: 20px; text-align: center;"><h1>Failed to load application</h1><p>Please check the browser console for errors.</p><p><a href="https://github.com/ArtCenter1/omnitrade-terminal">View on GitHub</a></p></div>';
+            }
+          };
+
+          document.body.appendChild(fallbackScript);
+        };
+
+        // Add the script to the document
+        document.body.appendChild(script);
+      }
+
+      // Load the script when the page is ready
+      window.addEventListener('DOMContentLoaded', loadMainScript);
+    </script>
 
     <!-- GitHub Pages redirect script for SPA routing -->
     <script>

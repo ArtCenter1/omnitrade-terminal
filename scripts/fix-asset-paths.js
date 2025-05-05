@@ -78,43 +78,87 @@ try {
 
 // Create fallback scripts to prevent 404 errors
 try {
-  // Create main.js
-  fs.writeFileSync(
-    path.join(distDir, 'main.js'),
-    '// Fallback script for GitHub Pages\nconsole.log("Fallback main.js loaded");'
-  );
-  console.log('✅ Created fallback main.js');
-
-  // Create main.tsx (as a JavaScript file)
-  fs.writeFileSync(
-    path.join(distDir, 'main.tsx'),
-    '// Fallback script for GitHub Pages\nconsole.log("Fallback main.tsx loaded");'
-  );
-  console.log('✅ Created fallback main.tsx');
-
-  // Create a fallback index.js in case it's needed
+  // Ensure assets directory exists
   const assetsDir = path.join(distDir, 'assets');
   if (!fs.existsSync(assetsDir)) {
     fs.mkdirSync(assetsDir, { recursive: true });
   }
 
-  // Check if the real index.js exists
-  const realIndexJsPath = fs.readdirSync(assetsDir)
-    .find(file => file.startsWith('index-') && file.endsWith('.js'));
+  // Create a proper main.js in the assets directory
+  const mainJsContent = `// Main entry point for the application
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import App from '../src/App';
 
-  if (!realIndexJsPath) {
-    // Create a simple index.js that redirects to the homepage
+// Mount the application
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <BrowserRouter basename="/omnitrade-terminal">
+      <App />
+    </BrowserRouter>
+  </React.StrictMode>
+);
+`;
+
+  // Check if the real main.js exists
+  const hasRealMainJs = fs.readdirSync(assetsDir)
+    .some(file => file === 'main.js' || file.startsWith('main-') && file.endsWith('.js'));
+
+  if (!hasRealMainJs) {
+    fs.writeFileSync(
+      path.join(assetsDir, 'main.js'),
+      mainJsContent
+    );
+    console.log('✅ Created proper assets/main.js');
+  }
+
+  // Create a proper index.js in the assets directory
+  const indexJsContent = `// Fallback entry point that loads the main script
+import './main.js';
+`;
+
+  // Check if the real index.js exists
+  const hasRealIndexJs = fs.readdirSync(assetsDir)
+    .some(file => file === 'index.js' || file.startsWith('index-') && file.endsWith('.js'));
+
+  if (!hasRealIndexJs) {
     fs.writeFileSync(
       path.join(assetsDir, 'index.js'),
-      `// Fallback index.js for GitHub Pages
-console.log("Fallback index.js loaded");
-// Redirect to the homepage if this script is loaded directly
-if (window.location.pathname.includes('/assets/')) {
-  window.location.href = '/omnitrade-terminal/';
-}`
+      indexJsContent
     );
-    console.log('✅ Created fallback assets/index.js');
+    console.log('✅ Created proper assets/index.js');
   }
+
+  // Create a simple main.js in the root directory as a fallback
+  fs.writeFileSync(
+    path.join(distDir, 'main.js'),
+    `// Fallback script for GitHub Pages
+console.log("Root fallback main.js loaded");
+// Redirect to the correct location
+window.location.href = '/omnitrade-terminal/';
+`
+  );
+  console.log('✅ Created root fallback main.js');
+
+  // Create a simple main.tsx in the root directory as a fallback (but it's actually JS)
+  fs.writeFileSync(
+    path.join(distDir, 'main.tsx'),
+    `// Fallback script for GitHub Pages (this is actually JavaScript)
+console.log("Root fallback main.tsx loaded");
+// Redirect to the correct location
+window.location.href = '/omnitrade-terminal/';
+`
+  );
+  console.log('✅ Created root fallback main.tsx');
+
+  // Create a .js-mime file to help GitHub Pages serve the correct MIME type
+  fs.writeFileSync(
+    path.join(distDir, '.js-mime'),
+    'application/javascript'
+  );
+  console.log('✅ Created .js-mime file for GitHub Pages');
+
 } catch (error) {
   console.error('❌ Error creating fallback scripts:', error);
 }

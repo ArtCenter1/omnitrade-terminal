@@ -20,6 +20,9 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks: undefined, // Don't split chunks for GitHub Pages
+        entryFileNames: 'assets/[name].js', // Simplify entry file names
+        chunkFileNames: 'assets/[name].js', // Simplify chunk file names
+        assetFileNames: 'assets/[name].[ext]', // Simplify asset file names
       },
     },
   },

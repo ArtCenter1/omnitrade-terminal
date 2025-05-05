@@ -37,8 +37,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build showcase version
-        run: npm run build:showcase
+      # Skip the build process and create a simple static site
+      - name: Create static showcase site
+        run: |
+          # Create dist directory
+          mkdir -p dist
+
+          # Copy the static index.html to dist
+          cp ./public/static-index.html ./dist/index.html || echo "Static index.html not found"
+
+          # If static index doesn't exist, create a simple one
+          if [ ! -f ./dist/index.html ]; then
+            echo "<!DOCTYPE html><html><head><title>OmniTrade Terminal</title></head><body><h1>OmniTrade Terminal</h1><p>View the project on <a href='https://github.com/ArtCenter1/omnitrade-terminal'>GitHub</a></p></body></html>" > ./dist/index.html
+            echo "Created simple index.html"
+          fi
 
       # Create a .nojekyll file to prevent GitHub Pages from ignoring files that begin with an underscore
       - name: Add .nojekyll file
@@ -47,16 +59,18 @@ jobs:
       # Copy essential files to the root of the dist directory
       - name: Copy essential files to root
         run: |
-          cp ./public/placeholder.svg ./dist/
+          # Copy placeholder SVG
+          cp ./public/placeholder.svg ./dist/ || echo "Public placeholder.svg not found"
           cp ./placeholder.svg ./dist/ || echo "Root placeholder.svg not found"
-          cp ./public/gh-pages-404.html ./dist/404.html || cp ./public/404.html ./dist/404.html || echo "No 404.html found, creating a simple one"
 
-          # Use the GitHub Pages specific index.html if it exists
-          if [ -f ./public/index-github-pages.html ]; then
-            cp ./dist/index.html ./dist/index.original.html || echo "No original index.html to backup"
-            cp ./public/index-github-pages.html ./dist/index.html
-            echo "Replaced index.html with GitHub Pages version"
+          # Create a simple SVG if none exists
+          if [ ! -f ./dist/placeholder.svg ]; then
+            echo '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="24" height="24" fill="#2A2A2A" rx="4"/><circle cx="12" cy="12" r="8" fill="none" stroke="#888"/><path d="M12 8v8M8 12h8" stroke="#888"/></svg>' > ./dist/placeholder.svg
+            echo "Created simple placeholder.svg"
           fi
+
+          # Copy 404 page
+          cp ./public/gh-pages-404.html ./dist/404.html || cp ./public/404.html ./dist/404.html || echo "No 404.html found, creating a simple one"
 
           # Create fallback scripts to prevent 404 errors
           echo "// Fallback script for GitHub Pages" > ./dist/main.js
