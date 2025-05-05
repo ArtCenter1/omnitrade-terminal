@@ -10,6 +10,7 @@ import {
   WorkspaceTemplate
 } from './types';
 
+import { simplifiedTemplate } from './simplified-template';
 import { tabTraderTemplate } from './tabtrader-template';
 import { flexibleTabTemplate } from './flexible-tab-layout';
 import { demoTabLayout } from './demo-tab-layout';
@@ -237,12 +238,6 @@ export const tradingViewChartTemplate: WorkspaceTemplate = {
  */
 export function getDefaultTemplates(): WorkspaceTemplate[] {
   return [
-    demoWorkspace,
-    demoTabLayout,
-    flexibleTabTemplate,
-    tabTraderTemplate,
-    defaultTradingTemplate,
-    defaultAnalysisTemplate,
-    tradingViewChartTemplate
+    simplifiedTemplate
   ];
 }
