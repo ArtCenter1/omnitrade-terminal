@@ -29,86 +29,93 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: '::',
     port: 8080,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8888', // Your backend server (updated port)
-        changeOrigin: true,
-        // Add error handling for proxy
-        configure: (proxy, _options) => {
-          proxy.on('error', (err, req, res) => {
-            // Check if mock data is enabled
-            const useMockData = process.env.VITE_USE_MOCK_API === 'true';
+    proxy: (process.env.VITE_USE_MOCK_API === 'true' ||
+           process.env.VITE_DISABLE_BACKEND_FEATURES === 'true' ||
+           process.env.MODE === 'showcase')
+      ? {} // No proxy when mock data is enabled or backend features are disabled or in showcase mode
+      : {
+          '/api': {
+            target: 'http://localhost:8888', // Your backend server (updated port)
+            changeOrigin: true,
+            // Add error handling for proxy
+            configure: (proxy, _options) => {
+              proxy.on('error', (err, req, res) => {
+                // Check if mock data is enabled
+                // In showcase mode, always consider mock data as enabled
+                const useMockData = process.env.VITE_USE_MOCK_API === 'true' ||
+                                   process.env.VITE_DISABLE_BACKEND_FEATURES === 'true' ||
+                                   process.env.MODE === 'showcase';
 
-            // Log error with more context
-            console.warn(
-              `Proxy error for ${req.url}: ${err.message}. Mock data is ${useMockData ? 'enabled' : 'disabled'}.`
-            );
-
-            // Only log full error details in development
-            if (process.env.NODE_ENV !== 'production') {
-              console.error('Full proxy error:', err);
-            }
-
-            // Only handle API requests that haven't sent headers yet
-            if (!res.headersSent) {
-              // Check if this is a CoinGecko proxy request
-              if (req.url?.includes('/proxy/coingecko')) {
+                // Log error with more context
                 console.warn(
-                  'Returning fallback response for CoinGecko request',
+                  `Proxy error for ${req.url}: ${err.message}. Mock data is ${useMockData ? 'enabled' : 'disabled'}.`
                 );
-                res.writeHead(503, { 'Content-Type': 'application/json' });
-                res.end(
-                  JSON.stringify({
-                    error: true,
-                    status: 503,
-                    message: useMockData
-                      ? 'Using mock data. Backend connection not required.'
-                      : 'Backend service unavailable. Please ensure the backend server is running or enable mock data in the admin UI.',
-                    code: err.code || 'ECONNREFUSED',
-                    fallback: true,
-                    useMockData: useMockData,
-                  }),
-                );
-              } else if (req.url?.includes('/proxy/binance-testnet')) {
-                console.warn(
-                  'Returning fallback response for Binance Testnet request',
-                );
-                res.writeHead(503, { 'Content-Type': 'application/json' });
-                res.end(
-                  JSON.stringify({
-                    error: true,
-                    status: 503,
-                    message: useMockData
-                      ? 'Using mock data. Backend connection not required.'
-                      : 'Backend service unavailable. Please ensure the backend server is running or enable mock data in the admin UI.',
-                    code: err.code || 'ECONNREFUSED',
-                    fallback: true,
-                    useMockData: useMockData,
-                  }),
-                );
-              } else {
-                // Generic error for other API requests
-                res.writeHead(503, { 'Content-Type': 'application/json' });
-                res.end(
-                  JSON.stringify({
-                    error: true,
-                    message: useMockData
-                      ? 'Using mock data. Backend connection not required.'
-                      : 'Backend service unavailable. Please ensure the backend server is running or enable mock data in the admin UI.',
-                    useMockData: useMockData,
-                    suggestion: 'Visit /admin/dev-settings to enable mock data mode',
-                  }),
-                );
-              }
-            }
-          });
 
-          proxy.on('proxyReq', (proxyReq, req, _res) => {
-            console.log('Proxying:', req.method, req.url);
-          });
+                // Only log full error details in development
+                if (process.env.NODE_ENV !== 'production') {
+                  console.error('Full proxy error:', err);
+                }
+
+                // Only handle API requests that haven't sent headers yet
+                if (!res.headersSent) {
+                  // Check if this is a CoinGecko proxy request
+                  if (req.url?.includes('/proxy/coingecko')) {
+                    console.warn(
+                      'Returning fallback response for CoinGecko request',
+                    );
+                    res.writeHead(503, { 'Content-Type': 'application/json' });
+                    res.end(
+                      JSON.stringify({
+                        error: true,
+                        status: 503,
+                        message: useMockData
+                          ? 'Using mock data. Backend connection not required.'
+                          : 'Backend service unavailable. Please ensure the backend server is running or enable mock data in the admin UI.',
+                        code: err.code || 'ECONNREFUSED',
+                        fallback: true,
+                        useMockData: useMockData,
+                      }),
+                    );
+                  } else if (req.url?.includes('/proxy/binance-testnet')) {
+                    console.warn(
+                      'Returning fallback response for Binance Testnet request',
+                    );
+                    res.writeHead(503, { 'Content-Type': 'application/json' });
+                    res.end(
+                      JSON.stringify({
+                        error: true,
+                        status: 503,
+                        message: useMockData
+                          ? 'Using mock data. Backend connection not required.'
+                          : 'Backend service unavailable. Please ensure the backend server is running or enable mock data in the admin UI.',
+                        code: err.code || 'ECONNREFUSED',
+                        fallback: true,
+                        useMockData: useMockData,
+                      }),
+                    );
+                  } else {
+                    // Generic error for other API requests
+                    res.writeHead(503, { 'Content-Type': 'application/json' });
+                    res.end(
+                      JSON.stringify({
+                        error: true,
+                        message: useMockData
+                          ? 'Using mock data. Backend connection not required.'
+                          : 'Backend service unavailable. Please ensure the backend server is running or enable mock data in the admin UI.',
+                        useMockData: useMockData,
+                        suggestion: 'Visit /admin/dev-settings to enable mock data mode',
+                      }),
+                    );
+                  }
+                }
+              });
+
+              proxy.on('proxyReq', (proxyReq, req, _res) => {
+                console.log('Proxying:', req.method, req.url);
+              });
+            },
+          },
         },
-      },
-    },
   },
   plugins: [react()].filter(Boolean),
   resolve: {
