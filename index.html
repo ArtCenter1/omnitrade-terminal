@@ -14,231 +14,36 @@
     <link rel="icon" href="./placeholder.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./placeholder.svg" />
 
-    <!-- Inline mock data script to avoid external file dependencies -->
+    <!-- API request interceptor -->
     <script>
       /**
-       * Comprehensive Mock Data Script for GitHub Pages
-       *
-       * This script combines the functionality of multiple mock data scripts:
-       * - ensure-mock-data.js
-       * - exchange-adapter-mock.js
-       * - binance-testnet-mock.js
-       * - fix-mock-mode.js
-       * - fix-connection-errors.js
-       * - fix-portfolio-errors.js
+       * Simple API request interceptor
+       * Prevents 404 errors by intercepting API requests
        */
+      console.log('Setting up API request interceptor...');
 
-      console.log('Initializing comprehensive mock data for GitHub Pages...');
+      // Override fetch to handle API requests with mock data
+      const originalFetch = window.fetch;
+      window.fetch = async function(input, init) {
+        const url = typeof input === 'string' ? input :
+                   input instanceof URL ? input.toString() : input.url;
 
-      // Check if we're on GitHub Pages
-      const isGitHubPages = window.location.hostname.includes('github.io') ||
-                           window.location.pathname.includes('/omnitrade-terminal/');
+        // Handle API requests with mock data
+        if (url.includes('/api/')) {
+          console.log(`Intercepting API request: ${url}`);
+          return new Response(JSON.stringify({
+            success: true,
+            message: 'Mock data response',
+            data: {}
+          }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
 
-      if (isGitHubPages) {
-        console.log('GitHub Pages detected - enabling mock mode');
-
-        // 1. Set environment variables in localStorage
-        localStorage.setItem('VITE_USE_MOCK_API', 'true');
-        localStorage.setItem('VITE_DISABLE_BACKEND_FEATURES', 'true');
-
-        // 2. Enable mock user
-        localStorage.setItem('useMockUser', 'true');
-
-        // 3. Set feature flags
-        const FEATURE_FLAGS_STORAGE_KEY = 'omnitrade_feature_flags';
-        const featureFlags = {
-          useMockData: true,
-          useRealMarketData: false,
-          connectionMode: 'mock',
-          enableDemoAccount: true,
-          enableDebugTools: true,
-          showPerformanceMetrics: false,
-          disableCoinGeckoApi: true
-        };
-        localStorage.setItem(FEATURE_FLAGS_STORAGE_KEY, JSON.stringify(featureFlags));
-
-        // 4. Create mock portfolio data
-        const mockPortfolioData = {
-          totalUsdValue: 50000,
-          assets: [
-            {
-              asset: 'BTC',
-              free: '0.5',
-              locked: '0',
-              total: '0.5',
-              usdValue: 30000,
-              exchangeId: 'sandbox'
-            },
-            {
-              asset: 'ETH',
-              free: '5',
-              locked: '0',
-              total: '5',
-              usdValue: 15000,
-              exchangeId: 'sandbox'
-            },
-            {
-              asset: 'SOL',
-              free: '50',
-              locked: '0',
-              total: '50',
-              usdValue: 5000,
-              exchangeId: 'sandbox'
-            },
-            {
-              asset: 'USDT',
-              free: '10000',
-              locked: '0',
-              total: '10000',
-              usdValue: 10000,
-              exchangeId: 'sandbox'
-            }
-          ],
-          lastUpdated: new Date().toISOString()
-        };
-
-        // 5. Store mock portfolio data in localStorage
-        localStorage.setItem('mockPortfolioData', JSON.stringify(mockPortfolioData));
-
-        // 6. Store a reference to the original fetch function
-        const originalFetch = window.fetch;
-
-        // 7. Override the fetch function to intercept API requests
-        window.fetch = async function(input, init) {
-          const url = typeof input === 'string'
-            ? input
-            : input instanceof URL
-              ? input.toString()
-              : input.url;
-
-          console.log(`[Mock] Intercepted fetch request: ${url}`);
-
-          // Check if this is an API request
-          if (url.includes('/api/')) {
-            // Specific portfolio request with exchange_id=sandbox
-            if (url.includes('/api/portfolio?exchange_id=sandbox')) {
-              console.log('[Mock] Intercepting specific sandbox portfolio request');
-
-              // Create sandbox-specific portfolio data
-              const sandboxPortfolio = {
-                totalUsdValue: 50000,
-                assets: [
-                  {
-                    asset: 'BTC',
-                    free: '0.5',
-                    locked: '0',
-                    total: '0.5',
-                    usdValue: 30000,
-                    exchangeId: 'sandbox'
-                  },
-                  {
-                    asset: 'ETH',
-                    free: '5',
-                    locked: '0',
-                    total: '5',
-                    usdValue: 15000,
-                    exchangeId: 'sandbox'
-                  },
-                  {
-                    asset: 'USDT',
-                    free: '10000',
-                    locked: '0',
-                    total: '10000',
-                    usdValue: 10000,
-                    exchangeId: 'sandbox'
-                  }
-                ],
-                lastUpdated: new Date().toISOString()
-              };
-
-              return new Response(JSON.stringify(sandboxPortfolio), {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' }
-              });
-            }
-
-            // Other portfolio requests
-            else if (url.includes('/portfolio')) {
-              console.log('[Mock] Returning mock portfolio data');
-
-              // Check if there's an exchange_id parameter
-              const exchangeId = url.includes('exchange_id=')
-                ? new URL(url, window.location.origin).searchParams.get('exchange_id')
-                : null;
-
-              console.log(`[Mock] Portfolio request for exchange: ${exchangeId || 'all'}`);
-
-              // If there's a specific exchange_id, filter the assets
-              if (exchangeId && exchangeId !== 'all') {
-                // Create a copy of the mock data with only assets for this exchange
-                const filteredData = {
-                  ...mockPortfolioData,
-                  assets: mockPortfolioData.assets.map(asset => ({
-                    ...asset,
-                    exchangeId: exchangeId // Set the exchangeId to match the request
-                  }))
-                };
-
-                return new Response(JSON.stringify(filteredData), {
-                  status: 200,
-                  headers: { 'Content-Type': 'application/json' }
-                });
-              }
-
-              // Return the full mock portfolio data for 'all' exchanges
-              return new Response(JSON.stringify(mockPortfolioData), {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' }
-              });
-            }
-
-            // Binance Testnet requests
-            if (url.includes('/proxy/binance-testnet') || url.includes('testnet.binance.vision')) {
-              console.log('[Mock] Returning mock Binance Testnet data');
-              return new Response(JSON.stringify({
-                success: true,
-                message: 'Mock Binance Testnet response',
-                data: {}
-              }), {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' }
-              });
-            }
-
-            // For any other API request, return a generic success response
-            console.log('[Mock] Returning generic success response for API request');
-            return new Response(JSON.stringify({
-              success: true,
-              message: 'Mock data response for showcase mode',
-              data: {}
-            }), {
-              status: 200,
-              headers: { 'Content-Type': 'application/json' }
-            });
-          }
-
-          // For non-API requests, use the original fetch
-          try {
-            return await originalFetch(input, init);
-          } catch (error) {
-            console.error(`[Mock] Error in original fetch: ${error.message}`);
-
-            // If the request fails and it's a resource, return a mock response
-            return new Response(JSON.stringify({
-              success: false,
-              message: 'Resource not available in showcase mode',
-              error: error.message
-            }), {
-              status: 200,
-              headers: { 'Content-Type': 'application/json' }
-            });
-          }
-        };
-
-        console.log('Mock data configuration complete for GitHub Pages');
-      } else {
-        console.log('Not on GitHub Pages - skipping mock data setup');
-      }
+        // For non-API requests, use the original fetch
+        return originalFetch(input, init);
+      };
     </script>
 
     <meta property="og:title" content="OmniTrade - Crypto Trading Platform" />
@@ -264,7 +69,7 @@
     <div id="root"></div>
     <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
     <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
-    <!-- Script loading with fallback -->
+    <!-- Simple script loading -->
     <script>
       // Function to load the main script
       function loadMainScript() {
@@ -272,50 +77,27 @@
         const script = document.createElement('script');
         script.type = 'module';
 
-        // Check if we're on GitHub Pages
-        const isGitHubPagesEnv = window.location.hostname.includes('github.io');
-
-        // In development mode, Vite serves the entry point at /src/main.tsx
-        // In production, it's at /assets/main.js
+        // Determine if we're in development or production
         const isDev = window.location.hostname === 'localhost' ||
-                      window.location.hostname === '127.0.0.1';
+                     window.location.hostname === '127.0.0.1';
 
-        // Determine the base path for assets
-        const basePath = isGitHubPagesEnv ? '/omnitrade-terminal' : '';
-
+        // Set the script source based on environment
         if (isDev) {
-          // Development mode - let Vite handle the imports
           script.src = '/src/main.tsx';
         } else {
-          // Production mode - use built assets with the correct base path
-          // For GitHub Pages, we need to use the repository name as the base path
-          script.src = isGitHubPagesEnv ? `${basePath}/assets/main.js` : './assets/main.js';
+          // For GitHub Pages or production
+          const basePath = window.location.hostname.includes('github.io') ?
+                          '/omnitrade-terminal' : '';
+          script.src = `${basePath}/assets/main.js`;
         }
 
         // Add error handling
         script.onerror = function() {
-          console.warn('Failed to load main script, trying fallback...');
-
-          // Try alternative paths
-          const fallbackScript = document.createElement('script');
-          fallbackScript.type = 'module';
-
-          if (isDev) {
-            fallbackScript.src = '/main.tsx';
-          } else {
-            // For GitHub Pages, we need to use the repository name as the base path
-            fallbackScript.src = isGitHubPagesEnv ? `${basePath}/assets/index.js` : './assets/index.js';
+          console.error('Failed to load application script');
+          const rootEl = document.getElementById('root');
+          if (rootEl) {
+            rootEl.innerHTML = '<div style="padding: 20px; text-align: center;"><h1>Failed to load application</h1><p>Please check the browser console for errors.</p><p><a href="https://github.com/ArtCenter1/omnitrade-terminal">View on GitHub</a></p></div>';
           }
-
-          fallbackScript.onerror = function() {
-            console.error('Failed to load any script. Showing error message.');
-            const rootEl = document.getElementById('root');
-            if (rootEl) {
-              rootEl.innerHTML = '<div style="padding: 20px; text-align: center;"><h1>Failed to load application</h1><p>Please check the browser console for errors.</p><p><a href="https://github.com/ArtCenter1/omnitrade-terminal">View on GitHub</a></p></div>';
-            }
-          };
-
-          document.body.appendChild(fallbackScript);
         };
 
         // Add the script to the document
@@ -350,54 +132,9 @@
       }(window.location))
     </script>
 
-    <!-- Fix mock mode to prevent backend connection errors -->
-    <script>
-      // Check if we're on GitHub Pages or if mock mode is enabled
-      // Reuse the isGitHubPagesEnv variable from the previous script
-      const isGitHubPagesEnv = window.location.hostname.includes('github.io');
-      const isMockModeEnabled = localStorage.getItem('VITE_USE_MOCK_API') === 'true';
-
-      // Load the fix-mock-mode.js script if needed
-      if (isGitHubPagesEnv || isMockModeEnabled) {
-        // Determine the base path for scripts
-        // For GitHub Pages, we need to use the repository name as the base path
-        const scriptBasePath = isGitHubPagesEnv ? '/omnitrade-terminal' : '';
-
-        // Load the ensure-mock-data.js script
-        const ensureMockScript = document.createElement('script');
-        ensureMockScript.src = isGitHubPagesEnv ? `${scriptBasePath}/ensure-mock-data.js` : './ensure-mock-data.js';
-        document.head.appendChild(ensureMockScript);
-
-        // Load the exchange-adapter-mock.js script
-        const exchangeAdapterMockScript = document.createElement('script');
-        exchangeAdapterMockScript.src = isGitHubPagesEnv ? `${scriptBasePath}/exchange-adapter-mock.js` : './exchange-adapter-mock.js';
-        document.head.appendChild(exchangeAdapterMockScript);
-
-        // Load the binance-testnet-mock.js script
-        const binanceTestnetMockScript = document.createElement('script');
-        binanceTestnetMockScript.src = isGitHubPagesEnv ? `${scriptBasePath}/binance-testnet-mock.js` : './binance-testnet-mock.js';
-        document.head.appendChild(binanceTestnetMockScript);
-
-        // Load the fix-mock-mode.js script
-        const mockScript = document.createElement('script');
-        mockScript.src = isGitHubPagesEnv ? `${scriptBasePath}/fix-mock-mode.js` : './fix-mock-mode.js';
-        document.head.appendChild(mockScript);
-
-        // Load the fix-portfolio-errors.js script to handle portfolio API requests
-        const portfolioScript = document.createElement('script');
-        portfolioScript.src = isGitHubPagesEnv ? `${scriptBasePath}/fix-portfolio-errors.js` : './fix-portfolio-errors.js';
-        document.head.appendChild(portfolioScript);
-
-        // Load the fix-connection-errors.js script to handle API connection errors
-        const connectionScript = document.createElement('script');
-        connectionScript.src = isGitHubPagesEnv ? `${scriptBasePath}/fix-connection-errors.js` : './fix-connection-errors.js';
-        document.head.appendChild(connectionScript);
-
-        // Load the fix-exchange-adapters.js script to handle exchange-specific API requests
-        const exchangeAdaptersScript = document.createElement('script');
-        exchangeAdaptersScript.src = isGitHubPagesEnv ? `${scriptBasePath}/fix-exchange-adapters.js` : './fix-exchange-adapters.js';
-        document.head.appendChild(exchangeAdaptersScript);
-      }
-    </script>
+    <!-- Load the simple mock data script -->
+    <script src="./mock-data.js"></script>
+    <!-- Handle missing files -->
+    <script src="./handle-missing-files.js"></script>
   </body>
 </html>
