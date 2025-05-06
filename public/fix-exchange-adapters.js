@@ -80,6 +80,30 @@ if (isShowcase) {
       is_valid: true
     },
     {
+      api_key_id: 'mock-key-4',
+      exchange_id: 'binance_testnet',
+      key_nickname: 'Binance Testnet',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      is_valid: true
+    },
+    {
+      api_key_id: 'mock-key-5',
+      exchange_id: 'kucoin',
+      key_nickname: 'KuCoin Demo',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      is_valid: true
+    },
+    {
+      api_key_id: 'mock-key-6',
+      exchange_id: 'bybit',
+      key_nickname: 'Bybit Demo',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      is_valid: true
+    },
+    {
       api_key_id: 'sandbox-key',
       exchange_id: 'sandbox',
       key_nickname: 'Demo Exchange',
@@ -127,133 +151,101 @@ if (isShowcase) {
         console.log(`[fix-exchange-adapters] Portfolio request for exchange: ${exchangeId}`);
 
         // Generate mock portfolio data based on the exchange
+        // Define a function to generate mock portfolio data for any exchange
+        function generateMockPortfolioData(exchangeId) {
+          // Use the exchange ID to create slightly different data for each exchange
+          // This makes it more realistic when switching between exchanges
+          const seed = exchangeId ? exchangeId.charCodeAt(0) + exchangeId.length : 42;
+          let seedValue = seed;
+          const random = () => {
+            // Simple deterministic random function using the seed
+            seedValue = (seedValue * 9301 + 49297) % 233280;
+            return seedValue / 233280;
+          };
+
+          // Adjust values based on the exchange
+          const btcAmount = (0.3 + random() * 0.4).toFixed(4);
+          const ethAmount = (3 + random() * 4).toFixed(4);
+          const usdtAmount = (8000 + random() * 4000).toFixed(2);
+
+          // Calculate USD values
+          const btcPrice = 60000;
+          const ethPrice = 3000;
+          const btcValue = parseFloat(btcAmount) * btcPrice;
+          const ethValue = parseFloat(ethAmount) * ethPrice;
+          const usdtValue = parseFloat(usdtAmount);
+          const totalValue = btcValue + ethValue + usdtValue;
+
+          return {
+            totalUsdValue: totalValue,
+            assets: [
+              {
+                asset: 'BTC',
+                free: btcAmount,
+                locked: '0',
+                total: btcAmount,
+                usdValue: btcValue,
+                exchangeId: exchangeId
+              },
+              {
+                asset: 'ETH',
+                free: ethAmount,
+                locked: '0',
+                total: ethAmount,
+                usdValue: ethValue,
+                exchangeId: exchangeId
+              },
+              {
+                asset: 'USDT',
+                free: usdtAmount,
+                locked: '0',
+                total: usdtAmount,
+                usdValue: usdtValue,
+                exchangeId: exchangeId
+              }
+            ],
+            lastUpdated: new Date().toISOString()
+          };
+        }
+
         let portfolioData;
 
-        if (exchangeId === 'kraken') {
-          portfolioData = {
-            totalUsdValue: 45000,
-            assets: [
-              {
-                asset: 'BTC',
-                free: 0.4,
-                locked: 0,
-                total: 0.4,
-                usdValue: 25000,
-                exchangeId: 'kraken'
-              },
-              {
-                asset: 'ETH',
-                free: 4,
-                locked: 0,
-                total: 4,
-                usdValue: 10000,
-                exchangeId: 'kraken'
-              },
-              {
-                asset: 'USDT',
-                free: 10000,
-                locked: 0,
-                total: 10000,
-                usdValue: 10000,
-                exchangeId: 'kraken'
-              }
-            ],
-            lastUpdated: new Date().toISOString()
-          };
-        } else if (exchangeId === 'binance') {
-          portfolioData = {
-            totalUsdValue: 55000,
-            assets: [
-              {
-                asset: 'BTC',
-                free: 0.5,
-                locked: 0,
-                total: 0.5,
-                usdValue: 30000,
-                exchangeId: 'binance'
-              },
-              {
-                asset: 'ETH',
-                free: 5,
-                locked: 0,
-                total: 5,
-                usdValue: 15000,
-                exchangeId: 'binance'
-              },
-              {
-                asset: 'USDT',
-                free: 10000,
-                locked: 0,
-                total: 10000,
-                usdValue: 10000,
-                exchangeId: 'binance'
-              }
-            ],
-            lastUpdated: new Date().toISOString()
-          };
-        } else if (exchangeId === 'coinbase') {
-          portfolioData = {
-            totalUsdValue: 40000,
-            assets: [
-              {
-                asset: 'BTC',
-                free: 0.3,
-                locked: 0,
-                total: 0.3,
-                usdValue: 20000,
-                exchangeId: 'coinbase'
-              },
-              {
-                asset: 'ETH',
-                free: 3,
-                locked: 0,
-                total: 3,
-                usdValue: 10000,
-                exchangeId: 'coinbase'
-              },
-              {
-                asset: 'USDT',
-                free: 10000,
-                locked: 0,
-                total: 10000,
-                usdValue: 10000,
-                exchangeId: 'coinbase'
-              }
-            ],
-            lastUpdated: new Date().toISOString()
-          };
-        } else {
-          // Default or 'all' portfolio
+        // Handle specific exchanges with predefined data
+        if (exchangeId === 'all') {
+          // For 'all' (Portfolio Total), combine data from all exchanges
           portfolioData = {
             totalUsdValue: 140000,
             assets: [
               {
                 asset: 'BTC',
-                free: 1.2,
-                locked: 0,
-                total: 1.2,
+                free: '1.2',
+                locked: '0',
+                total: '1.2',
                 usdValue: 75000,
                 exchangeId: 'all'
               },
               {
                 asset: 'ETH',
-                free: 12,
-                locked: 0,
-                total: 12,
+                free: '12',
+                locked: '0',
+                total: '12',
                 usdValue: 35000,
                 exchangeId: 'all'
               },
               {
                 asset: 'USDT',
-                free: 30000,
-                locked: 0,
-                total: 30000,
+                free: '30000',
+                locked: '0',
+                total: '30000',
                 usdValue: 30000,
                 exchangeId: 'all'
               }
             ],
             lastUpdated: new Date().toISOString()
           };
+        } else {
+          // For any specific exchange, generate data based on the exchange ID
+          portfolioData = generateMockPortfolioData(exchangeId);
         }
 
         return new Response(JSON.stringify(portfolioData), {

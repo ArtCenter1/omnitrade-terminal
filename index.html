@@ -272,17 +272,24 @@
         const script = document.createElement('script');
         script.type = 'module';
 
+        // Check if we're on GitHub Pages
+        const isGitHubPagesEnv = window.location.hostname.includes('github.io');
+
         // In development mode, Vite serves the entry point at /src/main.tsx
         // In production, it's at /assets/main.js
         const isDev = window.location.hostname === 'localhost' ||
                       window.location.hostname === '127.0.0.1';
 
+        // Determine the base path for assets
+        const basePath = isGitHubPagesEnv ? '/omnitrade-terminal' : '';
+
         if (isDev) {
           // Development mode - let Vite handle the imports
           script.src = '/src/main.tsx';
         } else {
-          // Production mode - use built assets
-          script.src = './assets/main.js';
+          // Production mode - use built assets with the correct base path
+          // For GitHub Pages, we need to use the repository name as the base path
+          script.src = isGitHubPagesEnv ? `${basePath}/assets/main.js` : './assets/main.js';
         }
 
         // Add error handling
@@ -296,7 +303,8 @@
           if (isDev) {
             fallbackScript.src = '/main.tsx';
           } else {
-            fallbackScript.src = './assets/index.js';
+            // For GitHub Pages, we need to use the repository name as the base path
+            fallbackScript.src = isGitHubPagesEnv ? `${basePath}/assets/index.js` : './assets/index.js';
           }
 
           fallbackScript.onerror = function() {
@@ -345,47 +353,49 @@
     <!-- Fix mock mode to prevent backend connection errors -->
     <script>
       // Check if we're on GitHub Pages or if mock mode is enabled
-      const isGitHubPages = window.location.hostname.includes('github.io');
+      // Reuse the isGitHubPagesEnv variable from the previous script
+      const isGitHubPagesEnv = window.location.hostname.includes('github.io');
       const isMockModeEnabled = localStorage.getItem('VITE_USE_MOCK_API') === 'true';
 
       // Load the fix-mock-mode.js script if needed
-      if (isGitHubPages || isMockModeEnabled) {
+      if (isGitHubPagesEnv || isMockModeEnabled) {
         // Determine the base path for scripts
-        const basePath = isGitHubPages ? '/omnitrade-terminal' : '';
+        // For GitHub Pages, we need to use the repository name as the base path
+        const scriptBasePath = isGitHubPagesEnv ? '/omnitrade-terminal' : '';
 
         // Load the ensure-mock-data.js script
         const ensureMockScript = document.createElement('script');
-        ensureMockScript.src = `${basePath}/ensure-mock-data.js`;
+        ensureMockScript.src = isGitHubPagesEnv ? `${scriptBasePath}/ensure-mock-data.js` : './ensure-mock-data.js';
         document.head.appendChild(ensureMockScript);
 
         // Load the exchange-adapter-mock.js script
         const exchangeAdapterMockScript = document.createElement('script');
-        exchangeAdapterMockScript.src = `${basePath}/exchange-adapter-mock.js`;
+        exchangeAdapterMockScript.src = isGitHubPagesEnv ? `${scriptBasePath}/exchange-adapter-mock.js` : './exchange-adapter-mock.js';
         document.head.appendChild(exchangeAdapterMockScript);
 
         // Load the binance-testnet-mock.js script
         const binanceTestnetMockScript = document.createElement('script');
-        binanceTestnetMockScript.src = `${basePath}/binance-testnet-mock.js`;
+        binanceTestnetMockScript.src = isGitHubPagesEnv ? `${scriptBasePath}/binance-testnet-mock.js` : './binance-testnet-mock.js';
         document.head.appendChild(binanceTestnetMockScript);
 
         // Load the fix-mock-mode.js script
         const mockScript = document.createElement('script');
-        mockScript.src = `${basePath}/fix-mock-mode.js`;
+        mockScript.src = isGitHubPagesEnv ? `${scriptBasePath}/fix-mock-mode.js` : './fix-mock-mode.js';
         document.head.appendChild(mockScript);
 
         // Load the fix-portfolio-errors.js script to handle portfolio API requests
         const portfolioScript = document.createElement('script');
-        portfolioScript.src = `${basePath}/fix-portfolio-errors.js`;
+        portfolioScript.src = isGitHubPagesEnv ? `${scriptBasePath}/fix-portfolio-errors.js` : './fix-portfolio-errors.js';
         document.head.appendChild(portfolioScript);
 
         // Load the fix-connection-errors.js script to handle API connection errors
         const connectionScript = document.createElement('script');
-        connectionScript.src = `${basePath}/fix-connection-errors.js`;
+        connectionScript.src = isGitHubPagesEnv ? `${scriptBasePath}/fix-connection-errors.js` : './fix-connection-errors.js';
         document.head.appendChild(connectionScript);
 
         // Load the fix-exchange-adapters.js script to handle exchange-specific API requests
         const exchangeAdaptersScript = document.createElement('script');
-        exchangeAdaptersScript.src = `${basePath}/fix-exchange-adapters.js`;
+        exchangeAdaptersScript.src = isGitHubPagesEnv ? `${scriptBasePath}/fix-exchange-adapters.js` : './fix-exchange-adapters.js';
         document.head.appendChild(exchangeAdaptersScript);
       }
     </script>
