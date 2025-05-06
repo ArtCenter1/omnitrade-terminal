@@ -29,11 +29,11 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: '::',
     port: 8080,
-    proxy: (process.env.VITE_USE_MOCK_API === 'true' ||
+    proxy: {
+      // Conditionally apply proxy configuration
+      ...(!(process.env.VITE_USE_MOCK_API === 'true' ||
            process.env.VITE_DISABLE_BACKEND_FEATURES === 'true' ||
-           process.env.MODE === 'showcase')
-      ? {} // No proxy when mock data is enabled or backend features are disabled or in showcase mode
-      : {
+           process.env.MODE === 'showcase') && {
           '/api': {
             target: 'http://localhost:8888', // Your backend server (updated port)
             changeOrigin: true,
@@ -115,7 +115,8 @@ export default defineConfig(({ mode }) => ({
               });
             },
           },
-        },
+        }),
+    },
   },
   plugins: [react()].filter(Boolean),
   resolve: {

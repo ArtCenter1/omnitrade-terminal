@@ -54,12 +54,12 @@ if (isShowcase) {
 // Define a global variable to indicate showcase mode
 window.SHOWCASE_MODE = isShowcase;
 
-// Create a special handler for portfolio requests
+// Create a special handler for API requests in showcase mode
 if (isShowcase) {
   // Store a reference to the original fetch function
   const originalFetch = window.fetch || fetch;
 
-  // Override the fetch function to intercept portfolio requests
+  // Override the fetch function to intercept API requests
   window.fetch = async function(input, init) {
     const url = typeof input === 'string'
       ? input
@@ -67,60 +67,84 @@ if (isShowcase) {
         ? input.toString()
         : input.url;
 
-    // Check if this is a portfolio API request
-    if (url.includes('/api/portfolio')) {
-      console.log(`[ensure-mock-data] Intercepted portfolio API request: ${url}`);
+    // Check if this is an API request
+    if (url.includes('/api/')) {
+      console.log(`[ensure-mock-data] Intercepted API request: ${url}`);
 
-      // Check if there's an exchange_id parameter
-      const exchangeId = url.includes('exchange_id=')
-        ? new URL(url, window.location.origin).searchParams.get('exchange_id')
-        : null;
+      // Handle portfolio API requests
+      if (url.includes('/api/portfolio')) {
+        // Check if there's an exchange_id parameter
+        const exchangeId = url.includes('exchange_id=')
+          ? new URL(url, window.location.origin).searchParams.get('exchange_id')
+          : null;
 
-      console.log(`[ensure-mock-data] Portfolio request for exchange: ${exchangeId || 'all'}`);
+        console.log(`[ensure-mock-data] Portfolio request for exchange: ${exchangeId || 'all'}`);
 
-      // Create portfolio data in the correct format
-      const portfolioData = {
-        totalUsdValue: 50000,
-        assets: [
-          {
-            asset: 'BTC',
-            free: '0.5',
-            locked: '0',
-            total: '0.5',
-            usdValue: 30000,
-            exchangeId: exchangeId || 'all'
-          },
-          {
-            asset: 'ETH',
-            free: '5',
-            locked: '0',
-            total: '5',
-            usdValue: 15000,
-            exchangeId: exchangeId || 'all'
-          },
-          {
-            asset: 'USDT',
-            free: '10000',
-            locked: '0',
-            total: '10000',
-            usdValue: 10000,
-            exchangeId: exchangeId || 'all'
-          }
-        ],
-        lastUpdated: new Date().toISOString()
-      };
+        // Create portfolio data in the correct format
+        const portfolioData = {
+          totalUsdValue: 50000,
+          assets: [
+            {
+              asset: 'BTC',
+              free: '0.5',
+              locked: '0',
+              total: '0.5',
+              usdValue: 30000,
+              exchangeId: exchangeId || 'all'
+            },
+            {
+              asset: 'ETH',
+              free: '5',
+              locked: '0',
+              total: '5',
+              usdValue: 15000,
+              exchangeId: exchangeId || 'all'
+            },
+            {
+              asset: 'USDT',
+              free: '10000',
+              locked: '0',
+              total: '10000',
+              usdValue: 10000,
+              exchangeId: exchangeId || 'all'
+            }
+          ],
+          lastUpdated: new Date().toISOString()
+        };
 
-      return new Response(JSON.stringify(portfolioData), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      });
+        return new Response(JSON.stringify(portfolioData), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Handle any other exchange-related API requests
+      // This will catch requests like /api/exchange, /api/market-data, etc.
+      if (url.includes('/api/exchange') ||
+          url.includes('/api/market-data') ||
+          url.includes('/api/trading') ||
+          url.includes('/api/user-api-keys')) {
+
+        console.log(`[ensure-mock-data] Intercepted exchange-related API request: ${url}`);
+
+        // Return a generic success response
+        // In a real implementation, you would return appropriate mock data based on the endpoint
+        return new Response(JSON.stringify({
+          success: true,
+          message: 'Mock data response',
+          data: {}
+        }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
     }
 
     // For all other requests, use the original fetch
     return originalFetch(input, init);
   };
 
-  console.log('[ensure-mock-data] Portfolio API interception enabled');
+  console.log('[ensure-mock-data] API interception enabled for showcase mode');
 }
 
 console.log('Mock data configuration complete');

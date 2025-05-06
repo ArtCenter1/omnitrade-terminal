@@ -15,6 +15,49 @@ export function usePortfolioData(exchangeId?: string, apiKeyId?: string) {
     queryKey: ['portfolio', exchangeId, apiKeyId],
     queryFn: async () => {
       try {
+        // Check if we're on GitHub Pages or in showcase mode
+        const isShowcase = window.location.hostname.includes('github.io') ||
+                          window.location.pathname.includes('/omnitrade-terminal/') ||
+                          localStorage.getItem('VITE_USE_MOCK_API') === 'true';
+
+        // Always use mock data in showcase mode
+        if (isShowcase) {
+          console.log(`[usePortfolioData] Using mock data in showcase mode for ${exchangeId || 'all'}`);
+
+          // For individual exchanges, only show assets from that specific exchange
+          if (exchangeId && exchangeId !== 'all') {
+            console.log(`[usePortfolioData] Getting mock data for specific exchange: ${exchangeId}`);
+
+            // Map the exchange ID to the correct mock key
+            let mockKeyId = apiKeyId || 'mock-key-1';
+            if (exchangeId === 'kraken') {
+              mockKeyId = 'mock-key-1';
+            } else if (exchangeId === 'binance') {
+              mockKeyId = 'mock-key-2';
+            } else if (exchangeId === 'coinbase') {
+              mockKeyId = 'mock-key-3';
+            } else if (exchangeId === 'sandbox') {
+              mockKeyId = 'sandbox-key';
+            }
+
+            // Get the portfolio data for this specific exchange
+            const portfolioData = getMockPortfolioData(mockKeyId).data;
+
+            // Ensure all assets have the correct exchangeId
+            if (portfolioData) {
+              portfolioData.assets.forEach((asset) => {
+                asset.exchangeId = exchangeId;
+              });
+
+              return portfolioData;
+            }
+          }
+
+          // For Portfolio Total or fallback
+          return getMockPortfolioData(apiKeyId || 'portfolio-overview').data;
+        }
+
+        // For non-showcase mode, proceed with normal API request flow
         // Get auth token
         const token = await getAuthToken();
         if (!token) {
