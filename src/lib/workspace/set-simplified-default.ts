@@ -5,6 +5,7 @@
  */
 
 import { workspaceManager } from './index';
+import { simplifiedTemplate } from './simplified-template';
 
 /**
  * Set the simplified template as the default workspace
@@ -20,23 +21,34 @@ export function setSimplifiedAsDefault(): void {
     workspace.name.includes('Default Workspace') || workspace.id.includes('simplified'));
 
   if (simplifiedWorkspace) {
-    // Set it as the current workspace
-    workspaceManager.setCurrentWorkspace(simplifiedWorkspace.id);
-    console.log(`Set current workspace to simplified default: ${simplifiedWorkspace.name}`);
-    return;
+    // Check if the workspace has content
+    if (simplifiedWorkspace.root.children && simplifiedWorkspace.root.children.length > 0) {
+      // Set it as the current workspace
+      workspaceManager.setCurrentWorkspace(simplifiedWorkspace.id);
+      console.log(`Set current workspace to simplified default: ${simplifiedWorkspace.name}`);
+      return;
+    } else {
+      // Workspace exists but is empty, delete it so we can recreate it
+      console.log(`Found empty simplified workspace, recreating it: ${simplifiedWorkspace.id}`);
+      workspaceManager.deleteWorkspace(simplifiedWorkspace.id);
+    }
   }
 
-  // If simplified workspace doesn't exist, create it from the template
-  const simplifiedTemplate = workspaceManager.getTemplates().find(template =>
+  // Ensure the simplified template is registered
+  let simplifiedTemplateExists = workspaceManager.getTemplates().some(template =>
     template.id === 'simplified-default');
 
-  if (simplifiedTemplate) {
-    const newWorkspace = workspaceManager.createFromTemplate('simplified-default', 'Default Workspace');
-    if (newWorkspace) {
-      workspaceManager.setCurrentWorkspace(newWorkspace.id);
-      console.log(`Created and set simplified workspace as default: ${newWorkspace.name}`);
-    }
+  if (!simplifiedTemplateExists) {
+    console.log('Simplified template not found, registering it now');
+    workspaceManager.addTemplate(simplifiedTemplate);
+  }
+
+  // Create a new workspace from the template
+  const newWorkspace = workspaceManager.createFromTemplate('simplified-default', 'Default Workspace');
+  if (newWorkspace) {
+    workspaceManager.setCurrentWorkspace(newWorkspace.id);
+    console.log(`Created and set simplified workspace as default: ${newWorkspace.name}`);
   } else {
-    console.warn('Simplified template not found');
+    console.error('Failed to create simplified workspace from template');
   }
 }

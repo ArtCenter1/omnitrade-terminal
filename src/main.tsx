@@ -49,9 +49,13 @@ import './utils/devHelpers';
 import { migrateSandboxToDemoAccount } from './utils/demoAccountMigration';
 import { initializeTerminal } from './lib/terminal-init';
 import { addResetWorkspaceButton } from './utils/resetWorkspace';
+import { forceResetWorkspaceOnLoad } from './utils/forceResetWorkspace';
 
 // Migrate Sandbox Account to Demo Account in localStorage
 migrateSandboxToDemoAccount();
+
+// Force reset workspace if needed
+forceResetWorkspaceOnLoad();
 
 // Initialize the terminal components and workspace
 initializeTerminal();

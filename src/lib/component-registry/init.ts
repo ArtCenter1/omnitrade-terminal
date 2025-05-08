@@ -23,6 +23,7 @@ import { TradingViewChartComponent } from '@/components/terminal/core/wrappers/T
 import { MarketWatchlistComponent } from '@/components/terminal/core/wrappers/MarketWatchlistWrapper';
 import { AlertsPanelComponent } from '@/components/terminal/core/wrappers/AlertsPanelWrapper';
 import { RecentTradesComponent } from '@/components/terminal/core/wrappers/RecentTradesWrapper';
+import { SharedTradingViewComponent } from '@/components/terminal/core/wrappers/SharedTradingViewWrapper';
 
 /**
  * Initialize the component registry with default components
@@ -53,6 +54,7 @@ export function initializeComponentRegistry(): void {
   componentRegistry.register(AlertsPanelComponent);
   componentRegistry.register(RecentTradesComponent);
   componentRegistry.register(TradingViewChartComponent);
+  componentRegistry.register(SharedTradingViewComponent);
 
   // Log the registered components
   const components = componentRegistry.getComponents();

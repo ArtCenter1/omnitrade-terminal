@@ -37,13 +37,14 @@ export const simplifiedTemplate: WorkspaceTemplate = {
         },
         title: 'Watchlist'
       },
-      // Center panel - Chart
+      // Center panel - Chart (using shared TradingView component)
       {
         id: 'chart',
         type: LayoutItemType.COMPONENT,
-        componentId: 'chart-section',
+        componentId: 'shared-tradingview',
         componentState: {
-          symbol: 'BTC/USDT'
+          symbol: 'BTC/USDT',
+          interval: 'D'
         },
         title: 'BTC/USDT Chart'
       },

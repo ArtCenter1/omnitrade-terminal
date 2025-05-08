@@ -15,17 +15,31 @@ import { setSimplifiedAsDefault } from '@/lib/workspace/set-simplified-default';
 export function resetWorkspace(): void {
   console.log('Resetting workspace state to default...');
 
-  // Clear workspace state from local storage
-  workspaceManager.clearStorage();
+  try {
+    // First, directly remove from localStorage to ensure a clean slate
+    localStorage.removeItem('omnitrade-terminal-workspaces');
 
-  // Reinitialize the workspace manager to create all workspaces
-  const { initializeWorkspaceManager } = require('@/lib/workspace/init');
-  initializeWorkspaceManager();
+    // Clear workspace state using the manager's method
+    workspaceManager.clearStorage();
 
-  // Set simplified template as default
-  setSimplifiedAsDefault();
+    // Reinitialize the workspace manager to create all workspaces
+    const { initializeWorkspaceManager } = require('@/lib/workspace/init');
+    initializeWorkspaceManager();
 
-  console.log('Workspace state reset complete');
+    // Set simplified template as default
+    setSimplifiedAsDefault();
+
+    console.log('Workspace state reset complete');
+  } catch (error) {
+    console.error('Error resetting workspace:', error);
+
+    // Fallback: direct localStorage manipulation and reload
+    localStorage.removeItem('omnitrade-terminal-workspaces');
+    console.log('Workspace state cleared using fallback method');
+
+    // Force reload to reinitialize everything
+    window.location.reload();
+  }
 }
 
 /**
@@ -58,9 +72,17 @@ export function addResetWorkspaceButton(): void {
 
     // Add click event listener for reset button
     resetButton.addEventListener('click', () => {
-      resetWorkspace();
-      // Reload the page to apply changes
-      window.location.reload();
+      try {
+        resetWorkspace();
+        // Reload the page to apply changes
+        window.location.reload();
+      } catch (error) {
+        console.error('Error in reset button click handler:', error);
+        // Set flag for next load and force reload
+        localStorage.setItem('workspace-needs-reset', 'true');
+        localStorage.removeItem('omnitrade-terminal-workspaces');
+        window.location.reload();
+      }
     });
 
     // Add the button to the container
