@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:all": "concurrently \"npm run start:dev --prefix backend\" \"npm run dev\"",
+    "dev:all": "concurrently \"cd backend && bun run start:dev\" \"bun run dev\"",
+    "bun:dev:all": "concurrently \"cd backend && bun run start:dev\" \"bun run dev\"",
+    "bun:backend": "cd backend && bun run start:dev",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "build:gh-pages": "vite build && node scripts/fix-gh-pages.js",
