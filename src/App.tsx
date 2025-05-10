@@ -51,6 +51,13 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 import { ConnectionStatusProvider } from './contexts/connectionStatusContext';
 
+// VS Code-like layout imports
+import { LayoutProvider } from './contexts/LayoutContext';
+import { ViewProvider } from './contexts/ViewContext';
+import { EditorProvider } from './contexts/EditorContext';
+import { PanelProvider } from './contexts/PanelContext';
+import Workbench from './components/layout/Workbench';
+
 function App() {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
@@ -119,7 +126,10 @@ function App() {
           <Route path="/trading-bots" element={<TradingBotsLanding />} />
           <Route path="/blog" element={<Blog />} />
           {/* Redirect /workspace to /terminal-workspace for backward compatibility */}
-          <Route path="/workspace" element={<Navigate to="/terminal-workspace" replace />} />
+          <Route
+            path="/workspace"
+            element={<Navigate to="/terminal-workspace" replace />}
+          />
           <Route path="*" element={<NotFound />} />
 
           {/* Protected routes (reverted to individual wrappers) */}
@@ -144,6 +154,23 @@ function App() {
             element={
               <ProtectedRouteWrapper>
                 <TerminalWorkspace />
+              </ProtectedRouteWrapper>
+            }
+          />
+          {/* VS Code-like Terminal */}
+          <Route
+            path="/vscode-terminal"
+            element={
+              <ProtectedRouteWrapper>
+                <LayoutProvider>
+                  <ViewProvider>
+                    <EditorProvider>
+                      <PanelProvider>
+                        <Workbench />
+                      </PanelProvider>
+                    </EditorProvider>
+                  </ViewProvider>
+                </LayoutProvider>
               </ProtectedRouteWrapper>
             }
           />
@@ -316,7 +343,7 @@ function App() {
           />
         </Routes>
       </TooltipProvider>
-      </ConnectionStatusProvider>
+    </ConnectionStatusProvider>
   );
 }
 

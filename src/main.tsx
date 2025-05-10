@@ -7,6 +7,7 @@ import './styles/theme-utilities.css';
 import './styles/theme-transitions.css';
 import './styles/crypto-colors.css';
 import './styles/protected-theme-override.css';
+import './styles/vscode-layout.css';
 import { AuthProvider } from './contexts/AuthContext';
 import { ConditionalAuthProvider } from './contexts/GitHubPagesAuthContext';
 import { FeatureFlagsProvider } from './config/featureFlags.tsx';

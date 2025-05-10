@@ -25,6 +25,14 @@ import { AlertsPanelComponent } from '@/components/terminal/core/wrappers/Alerts
 import { RecentTradesComponent } from '@/components/terminal/core/wrappers/RecentTradesWrapper';
 import { SharedTradingViewComponent } from '@/components/terminal/core/wrappers/SharedTradingViewWrapper';
 
+// Import VS Code components
+import {
+  VSCodeSidebarComponent,
+  VSCodeSecondaryBarComponent,
+  VSCodePanelComponent,
+  VSCodeEditorComponent,
+} from '@/components/workspace/vscode/components';
+
 /**
  * Initialize the component registry with default components
  */
@@ -56,10 +64,16 @@ export function initializeComponentRegistry(): void {
   componentRegistry.register(TradingViewChartComponent);
   componentRegistry.register(SharedTradingViewComponent);
 
+  // Register VS Code components
+  componentRegistry.register(VSCodeSidebarComponent);
+  componentRegistry.register(VSCodeSecondaryBarComponent);
+  componentRegistry.register(VSCodePanelComponent);
+  componentRegistry.register(VSCodeEditorComponent);
+
   // Log the registered components
   const components = componentRegistry.getComponents();
   console.log(`Registered ${components.length} components:`);
-  components.forEach(component => {
+  components.forEach((component) => {
     console.log(`- ${component.name} (${component.id})`);
   });
 }

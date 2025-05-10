@@ -6,7 +6,7 @@
  */
 
 import { workspaceManager } from '@/lib/workspace';
-import { setSimplifiedAsDefault } from '@/lib/workspace/set-simplified-default';
+import { setVSCodeAsDefault } from '@/lib/workspace/set-vscode-default';
 
 /**
  * Reset the workspace state to default
@@ -26,8 +26,8 @@ export function resetWorkspace(): void {
     const { initializeWorkspaceManager } = require('@/lib/workspace/init');
     initializeWorkspaceManager();
 
-    // Set simplified template as default
-    setSimplifiedAsDefault();
+    // Set VS Code template as default
+    setVSCodeAsDefault();
 
     console.log('Workspace state reset complete');
   } catch (error) {
@@ -45,8 +45,15 @@ export function resetWorkspace(): void {
 /**
  * Add reset workspace button to the page for development purposes
  * This is useful for quickly resetting the workspace state during development
+ *
+ * Note: Buttons are currently disabled as requested by the user
  */
 export function addResetWorkspaceButton(): void {
+  // Buttons are disabled
+  console.log('Workspace buttons are disabled');
+
+  // The buttons code is kept but commented out for future reference if needed
+  /*
   if (import.meta.env.DEV) {
     // Create a container for the button
     const container = document.createElement('div');
@@ -85,12 +92,119 @@ export function addResetWorkspaceButton(): void {
       }
     });
 
-    // Add the button to the container
+    // Create the VS Code layout button
+    const vsCodeButton = document.createElement('button');
+    vsCodeButton.textContent = 'Apply VS Code Layout';
+    vsCodeButton.style.padding = '8px 12px';
+    vsCodeButton.style.backgroundColor = '#007acc'; // VS Code blue
+    vsCodeButton.style.color = 'white';
+    vsCodeButton.style.border = 'none';
+    vsCodeButton.style.borderRadius = '4px';
+    vsCodeButton.style.cursor = 'pointer';
+    vsCodeButton.style.fontFamily = 'sans-serif';
+    vsCodeButton.style.fontSize = '12px';
+
+    // Add click event listener for VS Code layout button
+    vsCodeButton.addEventListener('click', () => {
+      try {
+        // Define the VS Code layout directly
+        const vsCodeLayout = {
+          id: 'vscode-layout-' + Date.now(),
+          name: 'VS Code Layout',
+          root: {
+            id: 'root',
+            type: 'container',
+            direction: 'row',
+            children: [
+              // Left sidebar - Watchlist
+              {
+                id: 'left-sidebar',
+                type: 'component',
+                componentId: 'market-watchlist',
+                componentState: {
+                  favorites: true
+                },
+                title: 'Watchlist'
+              },
+
+              // Center area - Split into upper and lower sections
+              {
+                id: 'center-area',
+                type: 'container',
+                direction: 'column',
+                children: [
+                  // Upper section - Chart (70%)
+                  {
+                    id: 'chart',
+                    type: 'component',
+                    componentId: 'shared-tradingview',
+                    componentState: {
+                      symbol: 'BTC/USDT',
+                      interval: 'D'
+                    },
+                    title: 'BTC/USDT Chart'
+                  },
+
+                  // Lower section - Terminal/Output (30%)
+                  {
+                    id: 'terminal',
+                    type: 'component',
+                    componentId: 'recent-trades',
+                    componentState: {
+                      symbol: 'BTC/USDT'
+                    },
+                    title: 'Recent Trades'
+                  }
+                ],
+                // Distribute space: 70% chart, 30% terminal
+                sizes: [70, 30]
+              },
+
+              // Right sidebar - Order Book
+              {
+                id: 'right-sidebar',
+                type: 'component',
+                componentId: 'order-book',
+                componentState: {
+                  symbol: 'BTC/USDT'
+                },
+                title: 'Order Book'
+              }
+            ],
+            // Distribute space: 25% left sidebar, 50% center area, 25% right sidebar (1:2:1 ratio)
+            sizes: [25, 50, 25]
+          }
+        };
+
+        // Clear workspace state from local storage
+        localStorage.removeItem('omnitrade-terminal-workspaces');
+
+        // Store the VS Code layout directly
+        const workspaces = {
+          currentId: vsCodeLayout.id,
+          workspaces: [vsCodeLayout]
+        };
+
+        localStorage.setItem('omnitrade-terminal-workspaces', JSON.stringify(workspaces));
+        console.log('VS Code layout directly applied to localStorage');
+
+        // Reload the page to apply changes
+        window.location.reload();
+      } catch (error) {
+        console.error('Error in VS Code layout button click handler:', error);
+        // Force reload
+        window.location.reload();
+      }
+    });
+
+    // Add the buttons to the container
     container.appendChild(resetButton);
+    container.appendChild(vsCodeButton);
 
     // Add the container to the page
     document.body.appendChild(container);
 
-    console.log('Reset workspace button added to the page');
+    console.log('Workspace buttons added to the page');
   }
+  */
 }

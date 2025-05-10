@@ -20,10 +20,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ModuleSelector } from '@/components/workspace/ModuleSelector';
+import { CreateWorkspaceDialog } from '@/components/workspace/CreateWorkspaceDialog';
 
 /**
  * Workspace Controls Component
@@ -31,41 +38,79 @@ import { ModuleSelector } from '@/components/workspace/ModuleSelector';
 const WorkspaceControls: React.FC<{
   onOpenModuleSelector: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }> = ({ onOpenModuleSelector }) => {
-  const { state, currentWorkspace, createWorkspace, setCurrentWorkspace, deleteWorkspace } = useWorkspace();
-  const [newWorkspaceName, setNewWorkspaceName] = useState('');
-  const [newWorkspaceDescription, setNewWorkspaceDescription] = useState('');
+  const { state, currentWorkspace, setCurrentWorkspace, deleteWorkspace } =
+    useWorkspace();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
-  // Set simplified workspace as default when component mounts
+  // Clean up duplicate workspaces and set default workspace when component mounts
   useEffect(() => {
-    // Find the simplified workspace if it exists
-    const simplifiedWorkspace = state.workspaces.find(workspace =>
-      workspace.name.includes('Default Workspace') || workspace.id.includes('simplified'));
+    // Find all default workspaces (there might be duplicates)
+    const defaultWorkspaces = state.workspaces.filter(
+      (workspace) =>
+        workspace.name === 'Default Workspace' ||
+        workspace.id.includes('simplified'),
+    );
 
-    if (simplifiedWorkspace && (!currentWorkspace || currentWorkspace.name === 'Default Workspace')) {
-      // Set it as the current workspace
-      setCurrentWorkspace(simplifiedWorkspace.id);
-      console.log(`Set current workspace to simplified default: ${simplifiedWorkspace.name}`);
+    // If we have more than one default workspace, keep only the first one
+    if (defaultWorkspaces.length > 1) {
+      console.log(
+        `Found ${defaultWorkspaces.length} default workspaces, cleaning up duplicates...`,
+      );
+
+      // Keep the first one
+      const workspaceToKeep = defaultWorkspaces[0];
+
+      // Delete all others
+      for (let i = 1; i < defaultWorkspaces.length; i++) {
+        console.log(
+          `Deleting duplicate default workspace: ${defaultWorkspaces[i].id}`,
+        );
+        deleteWorkspace(defaultWorkspaces[i].id);
+      }
+
+      // Set the remaining workspace as current if needed
+      if (!currentWorkspace || currentWorkspace.name === 'Default Workspace') {
+        setCurrentWorkspace(workspaceToKeep.id);
+        console.log(
+          `Set current workspace to default: ${workspaceToKeep.name}`,
+        );
+      }
+    } else if (defaultWorkspaces.length === 1) {
+      // We have exactly one default workspace
+      const simplifiedWorkspace = defaultWorkspaces[0];
+
+      if (!currentWorkspace || currentWorkspace.name === 'Default Workspace') {
+        // Set it as the current workspace
+        setCurrentWorkspace(simplifiedWorkspace.id);
+        console.log(
+          `Set current workspace to default: ${simplifiedWorkspace.name}`,
+        );
+      }
     }
-  }, [state.workspaces, currentWorkspace, setCurrentWorkspace]);
+  }, [
+    state.workspaces,
+    currentWorkspace,
+    setCurrentWorkspace,
+    deleteWorkspace,
+  ]);
 
-  const handleCreateWorkspace = () => {
-    if (!newWorkspaceName) return;
+  // No longer need handleCreateWorkspace as it's handled in the CreateWorkspaceDialog component
 
-    const workspace = createWorkspace(newWorkspaceName, newWorkspaceDescription);
-    setCurrentWorkspace(workspace.id);
-    setNewWorkspaceName('');
-    setNewWorkspaceDescription('');
-    setIsCreateDialogOpen(false);
-  };
+  // Find all default workspaces (there might be duplicates)
+  const defaultWorkspaces = state.workspaces.filter(
+    (workspace) =>
+      workspace.name === 'Default Workspace' ||
+      workspace.id.includes('simplified'),
+  );
 
-  // Find the default workspace
-  const defaultWorkspace = state.workspaces.find(workspace =>
-    workspace.name === 'Default Workspace' || workspace.id.includes('simplified'));
+  // Use only the first default workspace
+  const defaultWorkspace =
+    defaultWorkspaces.length > 0 ? defaultWorkspaces[0] : null;
 
-  // Get user-created workspaces (all workspaces except the default one)
-  const userWorkspaces = state.workspaces.filter(workspace =>
-    workspace.id !== defaultWorkspace?.id);
+  // Get user-created workspaces (all workspaces except the default ones)
+  const userWorkspaces = state.workspaces.filter(
+    (workspace) => !defaultWorkspaces.some((dw) => dw.id === workspace.id),
+  );
 
   return (
     <div className="flex items-center space-x-2 p-2 bg-theme-tertiary border-b border-theme-border theme-transition">
@@ -77,13 +122,16 @@ const WorkspaceControls: React.FC<{
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
-
           {/* Default Workspace */}
           {defaultWorkspace && (
             <DropdownMenuItem
               key={defaultWorkspace.id}
               onClick={() => setCurrentWorkspace(defaultWorkspace.id)}
-              className={currentWorkspace?.id === defaultWorkspace.id ? 'bg-gray-100 dark:bg-gray-800' : ''}
+              className={
+                currentWorkspace?.id === defaultWorkspace.id
+                  ? 'bg-gray-100 dark:bg-gray-800'
+                  : ''
+              }
             >
               <div className="flex items-center justify-between w-full">
                 <span>{defaultWorkspace.name}</span>
@@ -95,10 +143,14 @@ const WorkspaceControls: React.FC<{
           {/* User-created workspaces */}
           {userWorkspaces.length > 0 && (
             <>
-              {userWorkspaces.map(workspace => (
+              {userWorkspaces.map((workspace) => (
                 <DropdownMenuItem
                   key={workspace.id}
-                  className={currentWorkspace?.id === workspace.id ? 'bg-gray-100 dark:bg-gray-800' : ''}
+                  className={
+                    currentWorkspace?.id === workspace.id
+                      ? 'bg-gray-100 dark:bg-gray-800'
+                      : ''
+                  }
                 >
                   <div className="flex items-center justify-between w-full">
                     <span
@@ -112,12 +164,19 @@ const WorkspaceControls: React.FC<{
                       title="Delete workspace"
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (confirm(`Are you sure you want to delete "${workspace.name}"?`)) {
+                        if (
+                          confirm(
+                            `Are you sure you want to delete "${workspace.name}"?`,
+                          )
+                        ) {
                           // Delete the workspace
                           deleteWorkspace(workspace.id);
 
                           // If the deleted workspace was the current one, switch to the default
-                          if (currentWorkspace?.id === workspace.id && defaultWorkspace) {
+                          if (
+                            currentWorkspace?.id === workspace.id &&
+                            defaultWorkspace
+                          ) {
                             setCurrentWorkspace(defaultWorkspace.id);
                           }
                         }
@@ -164,36 +223,10 @@ const WorkspaceControls: React.FC<{
       </Button>
 
       {/* Create Workspace Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create New Workspace</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                value={newWorkspaceName}
-                onChange={e => setNewWorkspaceName(e.target.value)}
-                placeholder="My Workspace"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">Description (optional)</Label>
-              <Input
-                id="description"
-                value={newWorkspaceDescription}
-                onChange={e => setNewWorkspaceDescription(e.target.value)}
-                placeholder="Description of this workspace"
-              />
-            </div>
-            <Button onClick={handleCreateWorkspace} disabled={!newWorkspaceName}>
-              Create
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <CreateWorkspaceDialog
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+      />
     </div>
   );
 };
@@ -203,7 +236,9 @@ const WorkspaceControls: React.FC<{
  */
 export default function TerminalWorkspace() {
   const [isModuleSelectorOpen, setIsModuleSelectorOpen] = useState(false);
-  const [moduleSelectorPosition, setModuleSelectorPosition] = useState<{ top: number; left: number } | undefined>();
+  const [moduleSelectorPosition, setModuleSelectorPosition] = useState<
+    { top: number; left: number } | undefined
+  >();
 
   // Function to open the module selector with position
   const handleOpenModuleSelector = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -213,7 +248,7 @@ export default function TerminalWorkspace() {
     // Set the position for the module selector
     setModuleSelectorPosition({
       top: buttonRect.bottom + window.scrollY + 5, // 5px below the button
-      left: buttonRect.left + window.scrollX
+      left: buttonRect.left + window.scrollX,
     });
 
     // Open the module selector
@@ -241,7 +276,9 @@ export default function TerminalWorkspace() {
       >
         <WorkspaceProvider>
           <div className="flex flex-col h-screen overflow-hidden">
-            <WorkspaceControls onOpenModuleSelector={handleOpenModuleSelector} />
+            <WorkspaceControls
+              onOpenModuleSelector={handleOpenModuleSelector}
+            />
             <div className="flex-1 relative">
               <TerminalContainer className="h-full" />
             </div>

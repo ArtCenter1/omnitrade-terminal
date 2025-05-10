@@ -1,8 +1,7 @@
-// Script to reset the workspace to apply the VS Code H-shaped layout
-console.log('Resetting workspace to apply VS Code H-shaped layout...');
+// Script to apply the VS Code H-shaped layout
+console.log('Applying VS Code H-shaped layout...');
 
-// Set the reset flag to ensure proper reset on next load
-localStorage.setItem('workspace-needs-reset', 'true');
+// Set the flag to use VS Code layout
 localStorage.setItem('use-vscode-layout', 'true');
 
 // Clear workspace state from local storage

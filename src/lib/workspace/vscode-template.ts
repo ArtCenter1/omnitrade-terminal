@@ -1,10 +1,8 @@
 /**
- * VS Code-like Workspace Template
+ * VS Code-like workspace template
  *
- * This template provides an H-shaped layout that mimics VS Code:
- * - Left sidebar for watchlist/explorer
- * - Center area divided into upper (editor) and lower (terminal) sections
- * - Right sidebar for order book/details
+ * This template creates a layout that mimics Visual Studio Code's interface
+ * with a primary sidebar, editor area, and panel.
  */
 
 import {
@@ -45,21 +43,44 @@ function createTabStack(
 }
 
 /**
- * Default workspace template with VS Code-like H-shaped layout
+ * Helper function to create a VS Code-like editor tab stack
  */
-export const simplifiedTemplate: WorkspaceTemplate = {
-  id: 'simplified-default',
-  name: 'Default Workspace',
+const createEditorTabStack = (
+  id: string,
+  title: string,
+  files: Array<{ id: string; title: string; type: string }>,
+) => {
+  return createTabStack(
+    id,
+    title,
+    files.map((file) => ({
+      id: file.id,
+      componentId: 'vscode-editor',
+      title: file.title,
+      componentState: {
+        fileType: file.type,
+        fileName: file.title,
+      },
+    })),
+  );
+};
+
+/**
+ * VS Code-like workspace template with H-shaped layout
+ */
+export const vsCodeTemplate: WorkspaceTemplate = {
+  id: 'vscode-layout',
+  name: 'VS Code Layout',
   description:
-    'VS Code-like H-shaped layout with sidebars and split center area',
-  category: 'trading',
-  tags: ['trading', 'default', 'vscode'],
+    'An H-shaped layout that mimics Visual Studio Code with sidebars and split center area',
+  category: 'hidden',
+  tags: ['development', 'vscode', 'coding'],
   root: {
     id: 'root',
     type: LayoutItemType.CONTAINER,
     direction: SplitDirection.HORIZONTAL,
     children: [
-      // Left sidebar - Watchlist/Explorer (25%)
+      // Left sidebar - Watchlist
       createTabStack('left-sidebar-tabs', 'Explorer', [
         {
           id: 'watchlist',
@@ -77,7 +98,7 @@ export const simplifiedTemplate: WorkspaceTemplate = {
         },
       ]),
 
-      // Center area - Split into upper and lower sections (50%)
+      // Center area - Split into upper and lower sections
       {
         id: 'center-area',
         type: LayoutItemType.CONTAINER,
@@ -127,7 +148,7 @@ export const simplifiedTemplate: WorkspaceTemplate = {
         sizes: [70, 30],
       },
 
-      // Right sidebar - Order Book/Details (25%)
+      // Right sidebar - Order Book and other panels
       createTabStack('right-sidebar-tabs', 'Market Data', [
         {
           id: 'order-book',
