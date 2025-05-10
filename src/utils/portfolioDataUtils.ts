@@ -7,7 +7,10 @@ import {
 import { ExchangeAccount } from '@/mocks/mockExchangeAccounts';
 import { ExchangeSource } from '@/types/exchange';
 // Import the optimized CoinGecko service
-import { getCoinBySymbol, getTopCoins } from '@/services/optimizedCoinGeckoService';
+import {
+  getCoinBySymbol,
+  getTopCoins,
+} from '@/services/optimizedCoinGeckoService';
 
 // Define the asset type for the portfolio table
 export type PortfolioTableAsset = {
@@ -68,8 +71,8 @@ export function generatePerformanceData(
         limit = 96; // 96 15-minute intervals in a day
         break;
       case 'Week':
-        interval = '1d'; // 1 day intervals for week view
-        limit = 7; // 7 days in a week
+        interval = '1h'; // 1 hour intervals for week view (similar to day view)
+        limit = 24 * 7; // 168 hours in a week (24 hours * 7 days)
         break;
       case 'Month':
         interval = '1d'; // 1 day intervals for month view
@@ -144,20 +147,30 @@ export function generatePerformanceData(
       switch (timeRange) {
         case 'Day':
           // Format as hour:minute in 24-hour format (e.g., "15:30")
-          const hour = date.getHours();
-          const minute = date.getMinutes();
+          const hourDay = date.getHours();
+          const minuteDay = date.getMinutes();
 
           // For cleaner display, only show minutes if not zero
-          if (minute === 0) {
-            formattedDate = `${hour.toString().padStart(2, '0')}:00`;
+          if (minuteDay === 0) {
+            formattedDate = `${hourDay.toString().padStart(2, '0')}:00`;
           } else {
-            formattedDate = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+            formattedDate = `${hourDay.toString().padStart(2, '0')}:${minuteDay.toString().padStart(2, '0')}`;
           }
           break;
         case 'Week':
-          // Format as day of week (e.g., "Mon")
+          // Format as day of week with hour (e.g., "Mon 12:00")
           const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-          formattedDate = days[date.getDay()];
+          const dayName = days[date.getDay()];
+          const hourValue = date.getHours();
+
+          // For cleaner display, only show the day name at midnight (00:00)
+          // This ensures we get proper day labels on the x-axis
+          if (hourValue === 0) {
+            formattedDate = dayName;
+          } else {
+            // For other hours, include the hour but make it less prominent
+            formattedDate = `${dayName} ${hourValue.toString().padStart(2, '0')}:00`;
+          }
           break;
         case 'Month':
           // Format as day of month with month (e.g., "15 Jan")
@@ -201,15 +214,23 @@ export function generatePerformanceData(
           break;
         default:
           // Default format as MM-DD
-          const month = String(date.getMonth() + 1).padStart(2, '0');
-          const day = String(date.getDate()).padStart(2, '0');
-          formattedDate = `${month}-${day}`;
+          const monthStr = String(date.getMonth() + 1).padStart(2, '0');
+          const dayStr = String(date.getDate()).padStart(2, '0');
+          formattedDate = `${monthStr}-${dayStr}`;
       }
 
       // Scale the close price to match the portfolio value
       // We use the close price from klines and scale it to the portfolio's base value
       const scaleFactor = baseValue / klines[0].close;
       const scaledValue = Math.round(kline.close * scaleFactor);
+
+      // Log scaling info for the first few points
+      if (klines.indexOf(kline) < 5 || klines.indexOf(kline) % 24 === 0) {
+        console.log(`Scaling data point ${klines.indexOf(kline)}:
+          Original close: ${kline.close},
+          Scale factor: ${scaleFactor},
+          Scaled value: ${scaledValue}`);
+      }
 
       return {
         date: formattedDate,
@@ -226,6 +247,16 @@ export function generatePerformanceData(
       console.log(
         `Last data point: ${JSON.stringify(performanceData[performanceData.length - 1])}`,
       );
+
+      // Log a sample of data points (one per day) to verify the pattern
+      console.log('Sample of performance data points (one per day):');
+      const samplePoints = [];
+      for (let i = 0; i < performanceData.length; i += 24) {
+        if (i < performanceData.length) {
+          samplePoints.push(performanceData[i]);
+        }
+      }
+      console.log(JSON.stringify(samplePoints, null, 2));
     }
 
     return performanceData;
@@ -242,10 +273,10 @@ export function generatePerformanceData(
       case 'Day':
         // Generate hourly data for a day
         fallbackData = Array.from({ length: 24 }, (_, i) => {
-          const hour = i;
+          const hourValue = i;
           // Use 24-hour format
           return {
-            date: `${hour.toString().padStart(2, '0')}:00`,
+            date: `${hourValue.toString().padStart(2, '0')}:00`,
             value: Math.round(
               baseValue * (0.97 + (i / 24) * 0.06 + Math.sin(i) * 0.015),
             ),
@@ -253,45 +284,62 @@ export function generatePerformanceData(
         });
         break;
       case 'Week':
-        // Generate more detailed data for a week (hourly intervals - 7 times more than day view)
+        // Generate hourly data for a week (similar to day view but for 7 days)
         const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         fallbackData = [];
 
-        // Generate 288 data points per day (every 5 minutes) for 7 days = 2016 data points
-        days.forEach((day, dayIndex) => {
-          // Generate a data point every 5 minutes (12 per hour × 24 hours = 288 per day)
-          for (let minute = 0; minute < 24 * 60; minute += 5) {
-            // Calculate hour and minute from the total minutes
-            const hour = Math.floor(minute / 60);
-            const min = minute % 60;
+        // Generate 24 hours for each of the 7 days = 168 data points
+        for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
+          const dayName = days[dayIndex];
+          const dayProgress = dayIndex / 6; // 0 to 1 across the week
 
-            // Calculate a value that progresses through the week with extreme randomness
-            const progress = (dayIndex * 1440 + minute) / (7 * 1440); // 1440 = minutes in a day
-            const randomFactor = Math.sin(dayIndex * 3 + minute / 120) * 0.08;
-            const volatility = Math.random() * 0.05 - 0.025; // Highly increased random fluctuations
-            // Add frequent larger jumps for extreme jaggedness
-            const jumpFactor =
-              Math.random() < 0.15 ? Math.random() * 0.06 - 0.03 : 0;
+          for (let hourIndex = 0; hourIndex < 24; hourIndex++) {
+            // Calculate overall progress through the week (0 to 1)
+            const hourProgress = (dayIndex * 24 + hourIndex) / (7 * 24 - 1);
+
+            // Create a more dynamic trend with natural-looking fluctuations
+            // Use a non-linear function to create more interesting patterns
+            const trendValue = 0.95 + Math.pow(hourProgress, 0.6) * 0.15; // Even more pronounced upward trend
+
+            // Add time-of-day pattern (higher during market hours, lower at night)
+            const timeOfDayFactor =
+              Math.sin(((hourIndex - 9) * Math.PI) / 12) * 0.03; // Tripled impact
+
+            // Add some randomness that's consistent within each day
+            // Use a combination of sine waves for more natural patterns
+            const dailyRandomness =
+              Math.sin(dayIndex * 5 + hourIndex / 4) * 0.04 +
+              Math.sin(dayIndex * 3 + hourIndex / 2) * 0.025 +
+              Math.cos(dayIndex * 7 + hourIndex / 3) * 0.015;
+
+            // Add smaller random fluctuations with more variation
+            const hourlyRandomness =
+              Math.sin(dayIndex * 10 + hourIndex * 0.8) * 0.015 +
+              Math.sin(dayIndex * 7 + hourIndex * 1.3) * 0.012 +
+              Math.cos(dayIndex * 4 + hourIndex * 2.1) * 0.008 +
+              // Add some truly random noise for more realism
+              (Math.random() - 0.5) * 0.01;
+
             const value = Math.round(
               baseValue *
-                (0.95 +
-                  progress * 0.07 +
-                  randomFactor +
-                  volatility +
-                  jumpFactor),
+                (trendValue +
+                  timeOfDayFactor +
+                  dailyRandomness +
+                  hourlyRandomness),
             );
 
-            // For consistent labeling, mark the first point of each day (00:00) with just the day name
-            // This ensures the X-axis labels will show the day names at consistent positions
+            // Format date string - only show day name at midnight, otherwise include hour
+            const dateStr =
+              hourIndex === 0
+                ? dayName
+                : `${dayName} ${hourIndex.toString().padStart(2, '0')}:00`;
+
             fallbackData.push({
-              date:
-                minute === 0
-                  ? day
-                  : `${day} ${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`,
+              date: dateStr,
               value: value,
             });
           }
-        });
+        }
         break;
       case 'Month':
         // Generate data for a month

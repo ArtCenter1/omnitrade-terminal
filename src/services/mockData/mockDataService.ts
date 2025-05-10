@@ -335,6 +335,127 @@ export class MockDataService {
     // Set default times if not provided
     const end = endTime || Date.now();
     const start = startTime || end - intervalMs * limit;
+
+    // For portfolio performance data with week view, generate hourly data points
+    // This creates a more detailed and natural-looking chart
+    if (symbol.startsWith('PORTFOLIO/') && interval === '1h' && limit === 168) {
+      console.log(
+        'Generating optimized hourly portfolio performance data for week view',
+      );
+
+      // Adjust start time to be exactly 7 days ago at midnight
+      const adjustedEnd = new Date(end);
+      adjustedEnd.setHours(0, 0, 0, 0);
+      adjustedEnd.setDate(adjustedEnd.getDate() + 1); // Move to next midnight
+
+      const adjustedStart = new Date(adjustedEnd);
+      adjustedStart.setDate(adjustedStart.getDate() - 7);
+
+      // Use these adjusted times
+      const newEnd = adjustedEnd.getTime();
+      const newStart = adjustedStart.getTime();
+
+      console.log(
+        `Adjusted klines time range from ${new Date(newStart).toISOString()} to ${new Date(newEnd).toISOString()}`,
+      );
+
+      // Generate hourly data points for the week (168 hours)
+      let lastClose = currentPrice * randomInRange(0.95, 1.05); // Start with a price around current
+
+      for (let i = 0; i < 168; i++) {
+        const time = newStart + i * 60 * 60 * 1000; // Add one hour for each step
+        const date = new Date(time);
+        const dayIndex = date.getDay(); // 0-6 for Sun-Sat
+        const hour = date.getHours(); // 0-23
+
+        // Calculate overall progress through the week (0 to 1)
+        const hourProgress = i / 167;
+
+        // Create a more dynamic trend with natural-looking fluctuations
+        // Use a non-linear function to create more interesting patterns
+        const trendValue = 0.95 + Math.pow(hourProgress, 0.6) * 0.15; // Even more pronounced upward trend
+
+        // Add time-of-day pattern (higher during market hours, lower at night)
+        // Market hours roughly 9am-5pm, peak around 1-2pm
+        const timeOfDayFactor = Math.sin(((hour - 9) * Math.PI) / 12) * 0.03; // Tripled impact
+
+        // Add some randomness that's consistent within each day
+        // Use a combination of sine waves for more natural patterns
+        const dailyRandomness =
+          Math.sin(dayIndex * 5 + hour / 4) * 0.04 +
+          Math.sin(dayIndex * 3 + hour / 2) * 0.025 +
+          Math.cos(dayIndex * 7 + hour / 3) * 0.015;
+
+        // Add smaller random fluctuations with more variation
+        const hourlyRandomness =
+          Math.sin(i * 0.8) * 0.015 +
+          Math.sin(i * 1.3) * 0.012 +
+          Math.cos(i * 2.1) * 0.008 +
+          // Add some truly random noise for more realism
+          (Math.random() - 0.5) * 0.01;
+
+        // Calculate the change percentage for this hour
+        const changePercent =
+          (trendValue + timeOfDayFactor + dailyRandomness + hourlyRandomness) *
+          100;
+
+        // Log the components for debugging (only for a few points to avoid flooding the console)
+        if (i % 24 === 0) {
+          console.log(`Day ${Math.floor(i / 24)}, Hour ${hour} components:`, {
+            trendValue: trendValue.toFixed(4),
+            timeOfDayFactor: timeOfDayFactor.toFixed(4),
+            dailyRandomness: dailyRandomness.toFixed(4),
+            hourlyRandomness: hourlyRandomness.toFixed(4),
+            totalChangePercent: changePercent.toFixed(4),
+          });
+        }
+
+        // Apply the change to the last close price for more realistic price movement
+        const close = roundToDecimals(lastClose * (1 + changePercent / 100), 2);
+
+        // Generate high and low around close
+        const highExtra = randomInRange(0, 0.5) / 100; // 0% to 0.5% above close
+        const lowExtra = randomInRange(0, 0.5) / 100; // 0% to 0.5% below close
+
+        const high = roundToDecimals(close * (1 + highExtra), 2);
+        const low = roundToDecimals(close * (1 - lowExtra), 2);
+
+        // Open is the last candle's close
+        const open = lastClose;
+
+        // Generate random volume with higher volume during market hours
+        const volumeBase = randomInRange(10, 100);
+        const volumeFactor = hour >= 9 && hour <= 16 ? 1.5 : 1.0; // Higher volume during market hours
+        const volume = roundToDecimals(volumeBase * volumeFactor, 2);
+
+        klines.push({
+          timestamp: time,
+          open,
+          high,
+          close,
+          low,
+          volume,
+        });
+
+        lastClose = close; // Update last close for the next iteration
+      }
+
+      console.log(
+        `Generated ${klines.length} optimized hourly klines for weekly portfolio view`,
+      );
+
+      // Log a sample of the generated data points (every 24 hours)
+      console.log('Sample of generated data points:');
+      for (let i = 0; i < klines.length; i += 24) {
+        const date = new Date(klines[i].timestamp);
+        console.log(
+          `Day ${Math.floor(i / 24)}: ${date.toISOString()} - Open: ${klines[i].open}, Close: ${klines[i].close}`,
+        );
+      }
+
+      return klines;
+    }
+
     console.log(
       `Generating klines from ${new Date(start).toISOString()} to ${new Date(end).toISOString()}`,
     );

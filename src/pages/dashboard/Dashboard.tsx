@@ -94,7 +94,25 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('Balances');
-  const [activeRange, setActiveRange] = useState('Week');
+
+  // One-time initialization to set the default to 'Day'
+  useEffect(() => {
+    // Check if we've already set our preference flag
+    const hasSetDayDefault = localStorage.getItem('omnitrade_day_default_set');
+    if (!hasSetDayDefault) {
+      // Set the performance timeframe to 'Day' by default
+      localStorage.setItem('omnitrade_performance_timeframe', 'Day');
+      // Mark that we've set this default
+      localStorage.setItem('omnitrade_day_default_set', 'true');
+      console.log('Set default performance chart timeframe to Day');
+    }
+  }, []);
+
+  // Get the saved timeframe from localStorage or default to 'Day'
+  const [activeRange, setActiveRange] = useState(() => {
+    const savedRange = localStorage.getItem('omnitrade_performance_timeframe');
+    return savedRange && TIME_RANGES.includes(savedRange) ? savedRange : 'Day';
+  });
   const [hasError, setHasError] = useState(false);
   const { selectedAccount } = useSelectedAccount();
   const [localAccounts, setLocalAccounts] = useState<ExchangeAccount[]>(
@@ -462,23 +480,43 @@ const Dashboard: React.FC = () => {
                           const hour = Math.floor(minute / 60);
                           const min = minute % 60;
 
-                          // Calculate a value that progresses through the week with extreme randomness
+                          // Calculate a value that progresses through the week with more natural fluctuations
                           const progress =
                             (dayIndex * 1440 + minute) / (7 * 1440); // 1440 = minutes in a day
-                          const randomFactor =
-                            Math.sin(dayIndex * 3 + minute / 120) * 0.08;
-                          const volatility = Math.random() * 0.05 - 0.025; // Highly increased random fluctuations
-                          // Add frequent larger jumps for extreme jaggedness
+
+                          // Create a more dynamic trend with natural-looking fluctuations
+                          // Use a non-linear function to create more interesting patterns
+                          const trendValue =
+                            0.95 + Math.pow(progress, 0.7) * 0.1;
+
+                          // Add time-of-day pattern (higher during market hours, lower at night)
+                          const timeOfDayFactor =
+                            Math.sin(((hour - 9) * Math.PI) / 12) * 0.02;
+
+                          // Add some randomness that's consistent within each day
+                          const dailyRandomness =
+                            Math.sin(dayIndex * 5 + minute / 240) * 0.025 +
+                            Math.sin(dayIndex * 3 + minute / 120) * 0.015;
+
+                          // Add smaller random fluctuations with more variation
+                          const minuteIndex = dayIndex * 1440 + minute;
+                          const hourlyRandomness =
+                            Math.sin(minuteIndex * 0.01) * 0.01 +
+                            Math.sin(minuteIndex * 0.02) * 0.008 +
+                            Math.cos(minuteIndex * 0.03) * 0.005;
+
+                          // Add occasional small jumps for realism
                           const jumpFactor =
-                            Math.random() < 0.15
-                              ? Math.random() * 0.06 - 0.03
+                            Math.random() < 0.05
+                              ? Math.random() * 0.03 - 0.015
                               : 0;
+
                           const value = Math.round(
                             baseValue *
-                              (0.95 +
-                                progress * 0.07 +
-                                randomFactor +
-                                volatility +
+                              (trendValue +
+                                timeOfDayFactor +
+                                dailyRandomness +
+                                hourlyRandomness +
                                 jumpFactor),
                           );
 
@@ -927,7 +965,14 @@ const Dashboard: React.FC = () => {
                     key={range}
                     variant={activeRange === range ? 'default' : 'outline'}
                     className={`text-xs px-3 py-1 rounded-sm ${activeRange === range ? 'bg-purple-600 text-gray-300' : 'bg-transparent text-gray-400 border-gray-700'}`}
-                    onClick={() => setActiveRange(range)}
+                    onClick={() => {
+                      setActiveRange(range);
+                      // Save to localStorage
+                      localStorage.setItem(
+                        'omnitrade_performance_timeframe',
+                        range,
+                      );
+                    }}
                   >
                     {range}
                   </Button>
