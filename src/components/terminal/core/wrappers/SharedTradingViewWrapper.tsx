@@ -110,6 +110,11 @@ export class SharedTradingViewComponent
           'Displays TradingView chart using the shared component from Terminal page',
         version: '1.0.0',
         category: 'charts',
+        // Add the load function for dynamic import
+        load: () =>
+          import('./SharedTradingViewWrapper').then(
+            (m) => m.SharedTradingViewComponent,
+          ),
         tags: ['trading', 'price', 'analysis', 'chart'],
         settings: [
           {

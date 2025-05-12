@@ -115,6 +115,11 @@ export class MarketWatchlistComponent
         description: 'Displays a list of trading pairs and their price changes',
         version: '1.0.0',
         category: 'market',
+        // Add the load function for dynamic import
+        load: () =>
+          import('./MarketWatchlistWrapper').then(
+            (m) => m.MarketWatchlistComponent,
+          ),
         tags: ['market', 'watchlist', 'pairs'],
         settings: [
           {

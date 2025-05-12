@@ -1,6 +1,6 @@
 /**
  * Component Registry System Types
- * 
+ *
  * This file defines the core interfaces and types for the component registry system.
  * The component registry allows for dynamic registration, discovery, and instantiation
  * of components throughout the terminal application.
@@ -14,7 +14,7 @@ export enum ComponentLifecycleState {
   INITIALIZING = 'initializing',
   READY = 'ready',
   ERROR = 'error',
-  DISPOSED = 'disposed'
+  DISPOSED = 'disposed',
 }
 
 /**
@@ -31,6 +31,9 @@ export interface ComponentMetadata {
   tags?: string[];
   icon?: string;
   dependencies?: string[];
+  load?: () => Promise<
+    { default: ComponentConstructor } | ComponentConstructor
+  >; // Function for lazy loading
   settings?: ComponentSettingsDefinition[];
 }
 
@@ -54,13 +57,13 @@ export interface ComponentSettingsDefinition {
 export interface IComponent {
   metadata: ComponentMetadata;
   state: ComponentLifecycleState;
-  
+
   // Lifecycle methods
   initialize(): Promise<void>;
   render(container: HTMLElement): void;
   update(props: any): void;
   dispose(): void;
-  
+
   // Optional methods
   onResize?(width: number, height: number): void;
   onSettingsChanged?(settings: Record<string, any>): void;

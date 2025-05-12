@@ -192,6 +192,9 @@ export class RecentTradesComponent
         description: 'Displays recent trades for a trading pair',
         version: '1.0.0',
         category: 'market',
+        // Add the load function for dynamic import
+        load: () =>
+          import('./RecentTradesWrapper').then((m) => m.RecentTradesComponent),
         tags: ['trades', 'market', 'history'],
         settings: [
           {

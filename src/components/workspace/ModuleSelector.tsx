@@ -66,6 +66,8 @@ export function ModuleSelector({
     };
 
     console.log('Setting drag data:', dragData);
+    e.dataTransfer.setData('application/x-module', JSON.stringify(dragData));
+    e.dataTransfer.setData('text/plain', module.id); // Fallback for compatibility
 
     // Set the drag type as a custom format that can be detected during dragover
     e.dataTransfer.setData('application/omnitrade-module', module.id);
