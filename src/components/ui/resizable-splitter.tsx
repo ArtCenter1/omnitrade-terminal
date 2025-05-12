@@ -6,6 +6,7 @@ interface ResizableSplitterProps {
   minSizes?: number[];
   className?: string;
   children: React.ReactNode[];
+  onSizesChange?: (newSizes: number[]) => void;
 }
 
 export function ResizableSplitter({
@@ -14,6 +15,7 @@ export function ResizableSplitter({
   minSizes = [20, 10],
   className = '',
   children,
+  onSizesChange,
 }: ResizableSplitterProps) {
   const [sizes, setSizes] = useState(initialSizes);
   const [isDragging, setIsDragging] = useState(false);
@@ -78,6 +80,10 @@ export function ResizableSplitter({
     // Remove event listeners
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', handleMouseUp);
+
+    if (onSizesChange) {
+      onSizesChange(sizes); // Call the callback with the final sizes
+    }
   };
 
   // Clean up event listeners on unmount

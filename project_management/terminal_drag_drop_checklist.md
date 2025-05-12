@@ -20,87 +20,87 @@ This checklist tracks the progress of implementing the TabTrader-like drag and d
 
 ## Phase 2: Enhanced Container Drop Handling
 
-- [ ] Update `src/components/terminal/core/TerminalContainer.tsx`
-  - [ ] Enhance `handleContainerDragOver` function
-  - [ ] Improve drop position detection (left, right, top, bottom, center)
-  - [ ] Update `handleContainerDrop` function to handle module drops
-  - [ ] Create function to add items to containers based on drop position
-  - [ ] Test drop handling with different container configurations
+- [x] Update `src/components/terminal/core/TerminalContainer.tsx`
+  - [x] Enhance `handleContainerDragOver` function
+  - [x] Improve drop position detection (left, right, top, bottom, center)
+  - [x] Update `handleContainerDrop` function to handle module drops
+  - [x] Create function to add items to containers based on drop position
+  - [x] Test drop handling with different container configurations
 
 ## Phase 3: Visual Drop Indicators
 
-- [ ] ~~Create `src/components/workspace/DropIndicator.tsx`~~ (Implemented directly in TerminalContainer.tsx)
+- [x] ~~Create `src/components/workspace/DropIndicator.tsx`~~ (Implemented directly in TerminalContainer.tsx)
 
-  - [ ] Implement indicator component for different positions
-  - [ ] Add styling for indicators
-  - [ ] Add animations for smooth transitions
+  - [x] Implement indicator component for different positions
+  - [x] Add styling for indicators
+  - [x] Add animations for smooth transitions
 
-- [ ] Update `src/components/terminal/core/TerminalContainer.tsx`
-  - [ ] Add drop indicator rendering logic
-  - [ ] Integrate indicators with drag over events
-  - [ ] Test visual feedback during drag operations
+- [x] Update `src/components/terminal/core/TerminalContainer.tsx`
+  - [x] Add drop indicator rendering logic
+  - [x] Integrate indicators with drag over events
+  - [x] Test visual feedback during drag operations
 
 ## Phase 4: Enhanced Tab Drag and Drop
 
-- [ ] Update `src/components/terminal/core/TerminalContainer.tsx`
-  - [ ] Enhance tab `handleDragOver` function
-  - [ ] Improve tab drop position detection (left, right)
-  - [ ] Update tab `handleDrop` function for better placement
-  - [ ] Implement tab reordering within stacks
-  - [ ] Add support for moving tabs between stacks
-  - [ ] Test tab drag and drop with different configurations
+- [x] Update `src/components/terminal/core/TerminalContainer.tsx`
+  - [x] Enhance tab `handleDragOver` function
+  - [x] Improve tab drop position detection (left, right)
+  - [x] Update tab `handleDrop` function for better placement
+  - [x] Implement tab reordering within stacks
+  - [x] Add support for moving tabs between stacks
+  - [x] Test tab drag and drop with different configurations
 
 ## Phase 5: Container Splitting Logic
 
-- [ ] Update `src/components/terminal/core/TerminalContainer.tsx`
+- [x] Update `src/components/terminal/core/TerminalContainer.tsx`
 
-  - [ ] Implement `addItemToContainer` function
-  - [ ] Add logic for determining split direction
-  - [ ] Handle nested container creation
-  - [ ] Implement proper sizing of containers after splitting
-  - [ ] Test container splitting with different drop positions
+  - [x] Implement `addItemToContainer` function
+  - [x] Add logic for determining split direction
+  - [x] Handle nested container creation
+  - [x] Implement proper sizing of containers after splitting
+  - [x] Test container splitting with different drop positions
 
-- [ ] Update `src/lib/workspace/workspace-manager.ts` (if needed)
-  - [ ] Add helper functions for container manipulation (implemented directly in TerminalContainer.tsx)
-  - [ ] Ensure workspace state is properly updated after changes
+- [x] Update `src/lib/workspace/workspace-manager.ts` (if needed)
+  - [x] Add helper functions for container manipulation (implemented directly in TerminalContainer.tsx)
+  - [x] Ensure workspace state is properly updated after changes
 
 ## Phase 6: Default Layout Template
 
-- [ ] Update `src/lib/workspace/tabtrader-template.ts`
+- [x] Update `src/lib/workspace/tabtrader-template.ts`
 
-  - [ ] Create TabTrader-inspired layout template
-  - [ ] Add watchlist component with default symbols
-  - [ ] Add chart component with default settings
-  - [ ] Add order book component
-  - [ ] Add last trades component
-  - [ ] Configure components to use mock data when appropriate
+  - [x] Create TabTrader-inspired layout template
+  - [x] Add watchlist component with default symbols
+  - [x] Add chart component with default settings
+  - [x] Add order book component
+  - [x] Add last trades component
+  - [x] Configure components to use mock data when appropriate
 
-- [ ] Update `src/lib/workspace/init.ts`
-  - [ ] Set TabTrader template as default for new users
-  - [ ] Ensure template is applied correctly on first load
+- [x] Update `src/lib/workspace/init.ts`
+  - [x] Set TabTrader template as default for new users
+  - [x] Ensure template is applied correctly on first load
 
 ## Phase 7: Empty Workspace State
 
-- [ ] Create `src/components/workspace/EmptyWorkspaceState.tsx`
+- [x] Create `src/components/workspace/EmptyWorkspaceState.tsx`
 
-  - [ ] Implement component with guidance text
-  - [ ] Add arrow/line indicator
-  - [ ] Add button to open module selector
-  - [ ] Style to match TabTrader's design
+  - [x] Implement component with guidance text
+  - [x] Add arrow/line indicator
+  - [x] Add button to open module selector
+  - [x] Style to match TabTrader's design
 
-- [ ] Update `src/components/terminal/core/TerminalContainer.tsx`
-  - [ ] Add condition to show empty state when workspace is empty
-  - [ ] Integrate empty state component
-  - [ ] Test empty state functionality
+- [x] Update `src/components/terminal/core/TerminalContainer.tsx`
+  - [x] Add condition to show empty state when workspace is empty
+  - [x] Integrate empty state component
+  - [x] Test empty state functionality
 
 ## Phase 8: Mock Data Service
 
-- [ ] Create `src/services/mock-data-service.ts`
-  - [ ] Implement mock order book data generation
-  - [ ] Implement mock recent trades data generation
-  - [ ] Implement mock watchlist data generation
-  - [ ] Add periodic updates to simulate real-time data
-  - [ ] Test mock data with components
+- [x] Create `src/services/mock-data-service.ts` (Found at `src/services/mockData/mockDataService.ts`)
+  - [x] Implement mock order book data generation
+  - [x] Implement mock recent trades data generation
+  - [x] Implement mock watchlist data generation
+  - [x] Add periodic updates to simulate real-time data
+  - [x] Test mock data with components
 
 ## Integration and Testing
 

@@ -6,11 +6,17 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Search } from 'lucide-react';
+import { X, Search, Info } from 'lucide-react';
 import { componentRegistry } from '@/lib/component-registry';
 import { ComponentMetadata } from '@/lib/component-registry/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface ModuleSelectorProps {
   onClose: () => void;

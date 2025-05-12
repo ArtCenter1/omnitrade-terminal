@@ -37,10 +37,10 @@ export function initializeWorkspaceManager(): void {
       // Create a workspace from the appropriate template
       const templateId = useVSCodeLayout
         ? 'vscode-layout'
-        : 'simplified-default';
+        : 'tabtrader-template'; // Default to TabTrader template ID
       const workspaceName = useVSCodeLayout
         ? 'VS Code Layout'
-        : 'Default Workspace';
+        : 'TabTrader Layout'; // Default to TabTrader template name
 
       // Check if a workspace with this name already exists
       const existingWorkspace = state.workspaces.find(
