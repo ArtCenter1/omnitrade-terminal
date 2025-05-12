@@ -2,7 +2,7 @@ import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { api } from '@/lib/api';
 import { useFeatureFlags } from '@/config/featureFlags';
-import * as enhancedCoinGeckoService from './enhancedCoinGeckoService';
+import * as optimizedCoinGeckoService from './optimizedCoinGeckoService';
 import { mockExchangeService } from './mockExchangeService';
 import logger from '@/utils/logger';
 import { ExchangeFactory } from './exchange/exchangeFactory';
@@ -419,7 +419,7 @@ export const validateOrder = async (
       const [baseAsset, quoteAsset] = symbol.split('/');
 
       // Get the current price
-      const currentPrice = await enhancedCoinGeckoService.getCurrentPrice(
+      const currentPrice = await optimizedCoinGeckoService.getCurrentPrice(
         baseAsset,
         quoteAsset,
       );
@@ -446,7 +446,7 @@ export const validateOrder = async (
       }
 
       // Get the orderbook to validate quantity
-      const orderbook = await enhancedCoinGeckoService.getOrderbook(
+      const orderbook = await optimizedCoinGeckoService.getOrderbook(
         symbol,
         createOrderDto.exchangeId,
       );

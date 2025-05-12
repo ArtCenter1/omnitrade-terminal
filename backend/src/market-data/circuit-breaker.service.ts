@@ -131,7 +131,7 @@ export class CircuitBreakerService {
 
     const circuit = this.circuits.get(name)!;
     const now = Date.now();
-    
+
     circuit.failures++;
     circuit.lastFailure = now;
 
@@ -170,15 +170,29 @@ export class CircuitBreakerService {
    */
   getAllCircuits(): Record<string, { state: CircuitBreakerState; failures: number }> {
     const result: Record<string, { state: CircuitBreakerState; failures: number }> = {};
-    
+
     this.circuits.forEach((circuit, name) => {
       result[name] = {
         state: circuit.state,
         failures: circuit.failures,
       };
     });
-    
+
     return result;
+  }
+
+  /**
+   * Get the timestamp of the last failure for a circuit
+   * @param name The name of the circuit
+   * @returns The timestamp of the last failure, or null if no failures
+   */
+  getLastFailureTime(name: string): number | null {
+    if (!this.circuits.has(name)) {
+      return null;
+    }
+
+    const circuit = this.circuits.get(name)!;
+    return circuit.lastFailure > 0 ? circuit.lastFailure : null;
   }
 
   /**
@@ -194,7 +208,7 @@ export class CircuitBreakerService {
     circuit.state = CircuitBreakerState.CLOSED;
     circuit.failures = 0;
     circuit.lastReset = Date.now();
-    
+
     this.logger.log(`Circuit ${name} manually reset to CLOSED state`);
   }
 }

@@ -1,3 +1,16 @@
+/*
+ * Protected Theme Overrides
+ *
+ * This file contains overrides for protected pages (non-landing pages)
+ * It uses the body:not(.landing-page) selector to target only protected pages
+ */
+
+/* Apply global theme classes to all protected pages */
+body:not(.landing-page) {
+  @apply bg-background text-foreground;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
 /* Global text color override for protected pages */
 body:not(.landing-page) .text-white {
   color: #d1d5db !important; /* text-gray-300 equivalent */
@@ -40,4 +53,119 @@ body:not(.landing-page) p.text-white,
 body:not(.landing-page) span.text-white,
 body:not(.landing-page) div.text-white {
   color: #d1d5db !important; /* text-gray-300 equivalent */
+}
+
+/* Apply theme background colors to common elements in protected pages */
+body:not(.landing-page) .bg-black,
+body:not(.landing-page) .bg-gray-950,
+body:not(.landing-page) .bg-gray-900 {
+  @apply bg-background !important;
+}
+
+/* Apply theme text colors to common elements in protected pages */
+body:not(.landing-page) .text-gray-300,
+body:not(.landing-page) .text-gray-400 {
+  @apply text-muted-foreground !important;
+}
+
+/* Apply theme border colors to common elements in protected pages */
+body:not(.landing-page) .border-gray-700,
+body:not(.landing-page) .border-gray-800 {
+  @apply border-border !important;
+}
+
+/* Apply theme card styles to common card elements in protected pages */
+body:not(.landing-page) .bg-gray-800,
+body:not(.landing-page) .bg-gray-800\/50,
+body:not(.landing-page) .bg-gray-800\/60 {
+  @apply bg-card !important;
+}
+
+/* Dashboard component overrides for light theme */
+.light body:not(.landing-page) .bg-black,
+.light body:not(.landing-page) .bg-gray-950,
+.light body:not(.landing-page) .bg-gray-900,
+.light body:not(.landing-page) [class*="bg-gray-8"],
+.light body:not(.landing-page) [class*="bg-gray-9"] {
+  @apply bg-background !important;
+}
+
+/* Specific overrides for dashboard cards and panels */
+.light body:not(.landing-page) [id*="chart"],
+.light body:not(.landing-page) [id*="performance"],
+.light body:not(.landing-page) [id*="allocations"],
+.light body:not(.landing-page) [id*="portfolio"],
+.light body:not(.landing-page) [class*="card"],
+.light body:not(.landing-page) [class*="panel"],
+.light body:not(.landing-page) [class*="dashboard"] {
+  @apply bg-background text-foreground !important;
+}
+
+/* Force all dashboard components to respect theme */
+.light body:not(.landing-page) [class*="dashboard"] * {
+  @apply border-border !important;
+}
+
+/* Ensure text is visible in light theme */
+.light body:not(.landing-page) .text-white {
+  @apply text-foreground !important;
+}
+
+/* Apply theme button styles to common button elements in protected pages */
+body:not(.landing-page) .bg-blue-600,
+body:not(.landing-page) .bg-blue-700 {
+  @apply bg-primary !important;
+}
+
+/* Apply theme hover styles to common hover elements in protected pages */
+body:not(.landing-page) .hover\:bg-blue-700:hover,
+body:not(.landing-page) .hover\:bg-gray-800:hover {
+  @apply hover:bg-accent !important;
+}
+
+/* Dashboard specific overrides */
+.light body:not(.landing-page) .performance-chart,
+.light body:not(.landing-page) .allocations-chart,
+.light body:not(.landing-page) .portfolio-overview {
+  @apply bg-card border border-border rounded-lg !important;
+}
+
+/* Chart background overrides */
+.light body:not(.landing-page) canvas {
+  background-color: var(--bg-card) !important;
+}
+
+/* Table overrides for light theme */
+.light body:not(.landing-page) table,
+.light body:not(.landing-page) thead,
+.light body:not(.landing-page) tbody,
+.light body:not(.landing-page) tr,
+.light body:not(.landing-page) th,
+.light body:not(.landing-page) td {
+  @apply bg-background text-foreground border-border !important;
+}
+
+/* Tab overrides for light theme */
+.light body:not(.landing-page) [role="tab"],
+.light body:not(.landing-page) [role="tablist"] {
+  @apply bg-background text-foreground !important;
+}
+
+.light body:not(.landing-page) [role="tab"][data-state="active"] {
+  @apply bg-muted text-foreground !important;
+}
+
+/* Ensure SVG elements respect theme colors */
+.light body:not(.landing-page) svg {
+  color: var(--foreground) !important;
+}
+
+/* Fix for specific dashboard components */
+.light body:not(.landing-page) #performance-chart,
+.light body:not(.landing-page) #allocations-chart,
+.light body:not(.landing-page) #portfolio-overview {
+  background-color: var(--bg-card) !important;
+  color: var(--foreground) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 0.5rem !important;
 }

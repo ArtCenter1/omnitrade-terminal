@@ -6,7 +6,7 @@
 
 import { workspaceManager } from './index';
 import { getDefaultTemplates } from './templates';
-import { createCustomWorkspace, createMultiChartWorkspace } from './examples';
+import { checkVSCodeFlag } from './check-vscode-flag';
 
 /**
  * Initialize the workspace manager
@@ -16,60 +16,57 @@ export function initializeWorkspaceManager(): void {
 
   // Add default templates
   const templates = getDefaultTemplates();
-  templates.forEach(template => {
+  templates.forEach((template) => {
     workspaceManager.addTemplate(template);
   });
 
   console.log(`Added ${templates.length} default workspace templates`);
 
-  // Create default workspaces from templates if none exist
-  const state = workspaceManager.getState();
-  if (state.workspaces.length <= 1) { // Only the default empty workspace exists
-    // Create a workspace from the Demo Workspace template
-    const demoWorkspace = workspaceManager.createFromTemplate('demo-workspace', 'Demo Workspace');
-    if (demoWorkspace) {
-      console.log(`Created Demo workspace: ${demoWorkspace.name}`);
+  // Check for VS Code layout flag - if applied, we don't need to create another workspace
+  const vsCodeApplied = checkVSCodeFlag();
 
-      // Set as current workspace
-      workspaceManager.setCurrentWorkspace(demoWorkspace.id);
-    }
+  // Create default workspace from template if none exist and VS Code layout wasn't applied
+  if (!vsCodeApplied) {
+    const state = workspaceManager.getState();
+    if (state.workspaces.length <= 1) {
+      // Only the default empty workspace exists
+      // Check if we should use VS Code template
+      const useVSCodeLayout =
+        localStorage.getItem('use-vscode-layout') === 'true';
 
-    // Create a workspace from the Demo Tab Layout template
-    const demoTabWorkspace = workspaceManager.createFromTemplate('demo-tab-layout', 'Demo Tab Workspace');
-    if (demoTabWorkspace) {
-      console.log(`Created Demo Tab workspace: ${demoTabWorkspace.name}`);
-    }
+      // Create a workspace from the appropriate template
+      const templateId = useVSCodeLayout
+        ? 'vscode-layout'
+        : 'tabtrader-template'; // Default to TabTrader template ID
+      const workspaceName = useVSCodeLayout
+        ? 'VS Code Layout'
+        : 'TabTrader Layout'; // Default to TabTrader template name
 
-    // Create a workspace from the Flexible Tab Layout template
-    const flexibleTabWorkspace = workspaceManager.createFromTemplate('flexible-tab-layout', 'Flexible Tab Workspace');
-    if (flexibleTabWorkspace) {
-      console.log(`Created Flexible Tab workspace: ${flexibleTabWorkspace.name}`);
-    }
+      // Check if a workspace with this name already exists
+      const existingWorkspace = state.workspaces.find(
+        (w) => w.name === workspaceName,
+      );
 
-    // Create a workspace from the TabTrader template
-    const tabTraderWorkspace = workspaceManager.createFromTemplate('tabtrader-inspired', 'TabTrader-Style Workspace');
-    if (tabTraderWorkspace) {
-      console.log(`Created TabTrader-style workspace: ${tabTraderWorkspace.name}`);
-    }
+      if (!existingWorkspace) {
+        const defaultWorkspace = workspaceManager.createFromTemplate(
+          templateId,
+          workspaceName,
+        );
+        if (defaultWorkspace) {
+          console.log(`Created default workspace: ${defaultWorkspace.name}`);
 
-    // Create a workspace from the default trading template
-    const tradingWorkspace = workspaceManager.createFromTemplate('default-trading', 'Trading Workspace');
-    if (tradingWorkspace) {
-      console.log(`Created default trading workspace: ${tradingWorkspace.name}`);
-    }
+          // Set as current workspace
+          workspaceManager.setCurrentWorkspace(defaultWorkspace.id);
 
-    // Create a custom workspace
-    const customWorkspace = createCustomWorkspace('Custom Layout', 'A custom workspace layout example');
-    if (customWorkspace) {
-      console.log(`Created custom workspace: ${customWorkspace.name}`);
-      workspaceManager.updateWorkspace(customWorkspace);
-    }
-
-    // Create a multi-chart workspace
-    const multiChartWorkspace = createMultiChartWorkspace('Multi-Chart Layout', 'A workspace with multiple charts');
-    if (multiChartWorkspace) {
-      console.log(`Created multi-chart workspace: ${multiChartWorkspace.name}`);
-      workspaceManager.updateWorkspace(multiChartWorkspace);
+          // Clear the flag if it was used
+          if (useVSCodeLayout) {
+            localStorage.removeItem('use-vscode-layout');
+          }
+        }
+      } else {
+        console.log(`Using existing workspace: ${existingWorkspace.name}`);
+        workspaceManager.setCurrentWorkspace(existingWorkspace.id);
+      }
     }
   }
 }

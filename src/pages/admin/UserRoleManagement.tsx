@@ -3,8 +3,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import UserManagement from "@/components/admin/UserManagement";
 import RoleManagement from "@/components/admin/RoleManagement";
 import { ProtectedLayout } from "@/components/layout/ProtectedLayout";
-import { ArrowLeft } from "lucide-react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { BackButton } from "@/components/ui/back-button";
 
 const UserRoleManagement: React.FC = () => {
   const location = useLocation();
@@ -25,13 +25,7 @@ const UserRoleManagement: React.FC = () => {
       <div className="container mx-auto p-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">User & Role Management</h1>
-          <Link
-            to="/admin"
-            className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm flex items-center"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Admin Dashboard
-          </Link>
+          <BackButton to="/admin" label="Back to Admin Dashboard" />
         </div>
 
         <Tabs

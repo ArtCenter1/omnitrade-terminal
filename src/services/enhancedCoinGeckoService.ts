@@ -19,12 +19,15 @@ console.log(`- Pro API URL: ${PRO_API_URL}`);
 console.log(`- API Key available: ${API_KEY ? 'Yes' : 'No'}`);
 
 // Rate limiting configuration
-const PUBLIC_RATE_LIMIT = 5; // requests per minute (reduced from 8 for extreme safety)
-const PRO_RATE_LIMIT = 15; // requests per minute (reduced from 25 for extreme safety)
+const PUBLIC_RATE_LIMIT = 3; // requests per minute (reduced from 5 for extreme safety)
+const PRO_RATE_LIMIT = 10; // requests per minute (reduced from 15 for extreme safety)
 
 // Throttling configuration
-const THROTTLE_DELAY = 2000; // ms between requests (increased from 1000ms)
+const THROTTLE_DELAY = 3000; // ms between requests (increased from 2000ms)
 let lastRequestTime = 0;
+
+// In-flight request tracking to prevent duplicate requests
+const inFlightRequests: Record<string, Promise<any>> = {};
 
 // Circuit breaker configuration
 const CIRCUIT_BREAKER = {
@@ -315,6 +318,26 @@ function recordFailure(): void {
 }
 
 /**
+ * Get the appropriate stale duration for an endpoint
+ */
+function getStaleDuration(endpoint: string): number {
+  if (endpoint.includes('coins/markets')) {
+    return CACHE_DURATIONS.STALE_MARKETS;
+  } else if (endpoint.includes('tickers')) {
+    return CACHE_DURATIONS.STALE_TICKERS;
+  } else if (endpoint.includes('orderbook')) {
+    return CACHE_DURATIONS.STALE_ORDERBOOK;
+  } else if (endpoint.includes('price')) {
+    return CACHE_DURATIONS.STALE_PRICE;
+  } else if (endpoint.includes('coins')) {
+    return CACHE_DURATIONS.STALE_COINS;
+  }
+
+  // Default stale duration
+  return CACHE_DURATIONS.STALE_MARKETS;
+}
+
+/**
  * Make an API request with rate limiting, caching, and circuit breaker
  */
 async function makeApiRequest<T>(
@@ -326,6 +349,15 @@ async function makeApiRequest<T>(
   preferPro: boolean = false,
   isEssential: boolean = false, // Flag for critical requests that should bypass circuit breaker
 ): Promise<T> {
+  // Create a unique request key to deduplicate in-flight requests
+  const requestKey = `${endpoint}:${JSON.stringify(params)}`;
+
+  // Check if this exact request is already in flight
+  if (inFlightRequests[requestKey]) {
+    console.log(`Request already in flight for ${endpoint}, reusing promise`);
+    return inFlightRequests[requestKey] as Promise<T>;
+  }
+
   // Check cache first (including stale cache)
   const cachedData = cacheMap.get(cacheKey);
   const now = Date.now();
@@ -376,60 +408,25 @@ async function makeApiRequest<T>(
     // config.headers = { 'x-cg-pro-api-key': API_KEY };
   }
 
-/**
- * Get the appropriate stale duration for an endpoint
- */
-function getStaleDuration(endpoint: string): number {
-  if (endpoint.includes('coins/markets')) {
-    return CACHE_DURATIONS.STALE_MARKETS;
-  } else if (endpoint.includes('tickers')) {
-    return CACHE_DURATIONS.STALE_TICKERS;
-  } else if (endpoint.includes('orderbook')) {
-    return CACHE_DURATIONS.STALE_ORDERBOOK;
-  } else if (endpoint.includes('price')) {
-    return CACHE_DURATIONS.STALE_PRICE;
-  } else if (endpoint.includes('coins')) {
-    return CACHE_DURATIONS.STALE_COINS;
-  }
-
-  // Default stale duration
-  return CACHE_DURATIONS.STALE_MARKETS;
-}
-
   try {
-    // Apply throttling to avoid rapid requests
-    const now = Date.now();
-    const timeSinceLastRequest = now - lastRequestTime;
+    // Create a promise that will be used for the in-flight request tracking
+    const requestPromise = axios.get<T>(`${baseUrl}${endpoint}`, config);
 
-    if (timeSinceLastRequest < THROTTLE_DELAY) {
-      // Wait for the remaining time before making the request
-      await new Promise((resolve) =>
-        setTimeout(resolve, THROTTLE_DELAY - timeSinceLastRequest),
-      );
-    }
+    // Track this request
+    inFlightRequests[requestKey] = requestPromise;
 
-    // Update last request time
-    lastRequestTime = Date.now();
+    // Wait for the response
+    const response = await requestPromise;
 
-    // Make the request
+    // Record success for circuit breaker
+    recordSuccess();
+
+    // Update rate limit counters
     if (useProApi) {
       rateLimitState.proRequestCount++;
     } else {
       rateLimitState.publicRequestCount++;
     }
-
-    // Add a timeout to the request
-    console.log(`Making request to: ${baseUrl}${endpoint}`);
-
-    const response = await axios.get<T>(`${baseUrl}${endpoint}`, {
-      ...config,
-      timeout: 15000, // 15 second timeout (increased from 10s)
-    });
-
-    console.log(`Request successful: ${baseUrl}${endpoint}`);
-
-    // Record success for circuit breaker
-    recordSuccess();
 
     // Cache the response
     cacheMap.set(cacheKey, {
@@ -437,8 +434,14 @@ function getStaleDuration(endpoint: string): number {
       timestamp: Date.now(),
     });
 
+    // Remove from in-flight requests
+    delete inFlightRequests[requestKey];
+
     return response.data;
   } catch (error) {
+    // Remove from in-flight requests
+    delete inFlightRequests[requestKey];
+
     // Record failure for circuit breaker (unless it's a 404, which is a valid response)
     if (axios.isAxiosError(error) && error.response?.status !== 404) {
       recordFailure();

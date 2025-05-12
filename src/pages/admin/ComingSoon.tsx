@@ -1,7 +1,8 @@
 import React from "react";
 import { ProtectedLayout } from "@/components/layout/ProtectedLayout";
-import { ArrowLeft, Construction } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { Construction } from "lucide-react";
+import { useParams } from "react-router-dom";
+import { BackButton } from "@/components/ui/back-button";
 
 export default function ComingSoon() {
   const { feature } = useParams();
@@ -22,13 +23,7 @@ export default function ComingSoon() {
       <div className="container mx-auto p-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">{getFeatureName()}</h1>
-          <Link
-            to="/admin"
-            className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm flex items-center"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Admin Dashboard
-          </Link>
+          <BackButton to="/admin" label="Back to Admin Dashboard" />
         </div>
 
         <div className="bg-gray-900 rounded-lg p-8 text-center">

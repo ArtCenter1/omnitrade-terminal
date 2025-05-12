@@ -6,7 +6,7 @@
 
 import { initializeComponentRegistry } from './component-registry/init';
 import { initializeWorkspaceManager } from './workspace/init';
-import { setTabTraderAsDefault } from './workspace/set-tabtrader-default';
+import { setSimplifiedAsDefault } from './workspace/set-simplified-default';
 
 /**
  * Initialize the terminal
@@ -20,8 +20,8 @@ export function initializeTerminal(): void {
   // Initialize the workspace manager
   initializeWorkspaceManager();
 
-  // Set TabTrader template as the default workspace
-  setTabTraderAsDefault();
+  // Set simplified template as the default workspace
+  setSimplifiedAsDefault();
 
   console.log('Terminal initialization complete');
 }

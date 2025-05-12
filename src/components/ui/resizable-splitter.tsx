@@ -6,6 +6,7 @@ interface ResizableSplitterProps {
   minSizes?: number[];
   className?: string;
   children: React.ReactNode[];
+  onSizesChange?: (newSizes: number[]) => void;
 }
 
 export function ResizableSplitter({
@@ -14,6 +15,7 @@ export function ResizableSplitter({
   minSizes = [20, 10],
   className = '',
   children,
+  onSizesChange,
 }: ResizableSplitterProps) {
   const [sizes, setSizes] = useState(initialSizes);
   const [isDragging, setIsDragging] = useState(false);
@@ -78,6 +80,10 @@ export function ResizableSplitter({
     // Remove event listeners
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', handleMouseUp);
+
+    if (onSizesChange) {
+      onSizesChange(sizes); // Call the callback with the final sizes
+    }
   };
 
   // Clean up event listeners on unmount
@@ -105,15 +111,15 @@ export function ResizableSplitter({
 
       <div
         className={`${direction === 'horizontal' ? 'h-1 cursor-row-resize' : 'w-1 cursor-col-resize'}
-          ${isDragging ? 'bg-purple-600' : 'bg-gray-800 hover:bg-purple-600'}
-          transition-colors relative group flex items-center justify-center`}
+          resizable-splitter-handle ${isDragging ? 'active' : ''}
+          relative group flex items-center justify-center theme-transition`}
         onMouseDown={handleMouseDown}
       >
         {/* Drag handle indicator */}
         <div
           className={`absolute ${direction === 'horizontal' ? 'w-10 h-1' : 'w-1 h-10'}
-          ${isDragging ? 'bg-purple-500 opacity-100' : 'bg-gray-600 opacity-0 group-hover:opacity-100'}
-          rounded-full transition-colors`}
+          resizable-splitter-indicator ${isDragging ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}
+          rounded-full`}
         ></div>
 
         {/* Drag handle dots */}
@@ -121,9 +127,9 @@ export function ResizableSplitter({
           className={`flex ${direction === 'horizontal' ? 'flex-row space-x-1' : 'flex-col space-y-1'}
           ${isDragging ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}
         >
-          <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-          <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-          <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+          <div className="w-1 h-1 bg-[var(--text-secondary)] rounded-full"></div>
+          <div className="w-1 h-1 bg-[var(--text-secondary)] rounded-full"></div>
+          <div className="w-1 h-1 bg-[var(--text-secondary)] rounded-full"></div>
         </div>
 
         {/* Invisible larger hit area for easier grabbing */}

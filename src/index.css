@@ -28,6 +28,28 @@
     --ring: 240 4.9% 83.9%;
     --radius: 0.5rem;
   }
+
+  .light {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 267 100% 81%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;
+  }
 }
 
 @layer base {
@@ -46,16 +68,29 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #1a1a1a;
+  background: var(--bg-secondary);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #444;
+  background: var(--border-secondary);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: var(--border-tertiary);
+}
+
+/* Light theme scrollbar adjustments */
+.light ::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+}
+
+.light ::-webkit-scrollbar-thumb {
+  background: var(--border-secondary);
+}
+
+.light ::-webkit-scrollbar-thumb:hover {
+  background: var(--button-primary-hover);
 }
 
 /* Custom scrollbar for trade popover */
@@ -64,17 +99,30 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #1a1a1a;
+  background: var(--bg-secondary);
   border-radius: 2px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #444;
+  background: var(--border-secondary);
   border-radius: 2px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #673ab7;
+  background: var(--button-primary);
+}
+
+/* Light theme custom scrollbar adjustments */
+.light .custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+}
+
+.light .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--border-secondary);
+}
+
+.light .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--button-primary);
 }
 
 /* Chart container styles moved to asset-chart.css */
@@ -94,37 +142,40 @@ input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 30px #1a1a1c inset !important;
-  -webkit-text-fill-color: white !important;
+  -webkit-box-shadow: 0 0 0 30px var(--bg-secondary) inset !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
 }
 
 /* Style Chrome's password save dialog */
-:root {
+.dark {
   color-scheme: dark;
+}
+
+:root:not(.dark) {
+  color-scheme: light;
 }
 
 /* Style password inputs */
 input[type='password'] {
-  background-color: #1a1a1c !important;
-  color: white !important;
+  background-color: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-primary) !important;
 }
 
 /* Style Chrome password manager dialog */
-@media (prefers-color-scheme: dark) {
-  form.chrome-form {
-    background-color: #1a1a1c !important;
-    color: white !important;
-  }
+form.chrome-form {
+  background-color: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+}
 
-  form.chrome-form input {
-    background-color: #1a1a1c !important;
-    color: white !important;
-    border-color: #333 !important;
-  }
+form.chrome-form input {
+  background-color: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-primary) !important;
+}
 
-  form.chrome-form button {
-    background-color: #333 !important;
-    color: white !important;
-    border-color: #444 !important;
-  }
+form.chrome-form button {
+  background-color: var(--button-secondary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-secondary) !important;
 }

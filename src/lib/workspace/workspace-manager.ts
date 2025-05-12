@@ -1,17 +1,17 @@
 /**
  * Workspace Manager
- * 
+ *
  * Manages workspaces, layouts, and their persistence.
  */
 
-import { 
-  WorkspaceLayout, 
-  WorkspaceState, 
+import {
+  WorkspaceLayout,
+  WorkspaceState,
   WorkspaceTemplate,
   LayoutItem,
   LayoutItemType,
   ContainerLayoutItem,
-  SplitDirection
+  SplitDirection,
 } from './types';
 
 // Local storage key for workspace data
@@ -33,8 +33,8 @@ const createDefaultWorkspace = (): WorkspaceLayout => {
       id: 'root',
       type: LayoutItemType.CONTAINER,
       direction: SplitDirection.HORIZONTAL,
-      children: []
-    }
+      children: [],
+    },
   };
 };
 
@@ -51,12 +51,12 @@ export class WorkspaceManager {
     this.state = {
       currentWorkspaceId: null,
       workspaces: [],
-      templates: []
+      templates: [],
     };
-    
+
     // Load from local storage
     this.loadFromStorage();
-    
+
     // If no workspaces, create default
     if (this.state.workspaces.length === 0) {
       const defaultWorkspace = createDefaultWorkspace();
@@ -84,7 +84,10 @@ export class WorkspaceManager {
       const storedData = localStorage.getItem(WORKSPACE_STORAGE_KEY);
       if (storedData) {
         this.state = JSON.parse(storedData);
-        console.log('Workspaces loaded from storage:', this.state.workspaces.length);
+        console.log(
+          'Workspaces loaded from storage:',
+          this.state.workspaces.length,
+        );
       }
     } catch (error) {
       console.error('Failed to load workspaces from storage:', error);
@@ -107,7 +110,7 @@ export class WorkspaceManager {
    * Notify all listeners of state changes
    */
   private notifyListeners(): void {
-    this.listeners.forEach(listener => listener(this.state));
+    this.listeners.forEach((listener) => listener(this.state));
   }
 
   /**
@@ -124,8 +127,12 @@ export class WorkspaceManager {
     if (!this.state.currentWorkspaceId) {
       return null;
     }
-    
-    return this.state.workspaces.find(w => w.id === this.state.currentWorkspaceId) || null;
+
+    return (
+      this.state.workspaces.find(
+        (w) => w.id === this.state.currentWorkspaceId,
+      ) || null
+    );
   }
 
   /**
@@ -139,7 +146,16 @@ export class WorkspaceManager {
    * Get a workspace by ID
    */
   public getWorkspaceById(id: string): WorkspaceLayout | null {
-    return this.state.workspaces.find(w => w.id === id) || null;
+    return this.state.workspaces.find((w) => w.id === id) || null;
+  }
+
+  /**
+   * Generate a unique workspace ID
+   * @private
+   */
+  private generateUniqueId(): string {
+    // Combine timestamp with a random string to ensure uniqueness
+    return `workspace-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
   }
 
   /**
@@ -147,8 +163,8 @@ export class WorkspaceManager {
    */
   public createWorkspace(name: string, description?: string): WorkspaceLayout {
     const now = new Date().toISOString();
-    const id = `workspace-${Date.now()}`;
-    
+    const id = this.generateUniqueId();
+
     const newWorkspace: WorkspaceLayout = {
       id,
       name,
@@ -159,14 +175,14 @@ export class WorkspaceManager {
         id: 'root',
         type: LayoutItemType.CONTAINER,
         direction: SplitDirection.HORIZONTAL,
-        children: []
-      }
+        children: [],
+      },
     };
-    
+
     this.state.workspaces.push(newWorkspace);
     this.saveToStorage();
     this.notifyListeners();
-    
+
     return newWorkspace;
   }
 
@@ -174,21 +190,21 @@ export class WorkspaceManager {
    * Update an existing workspace
    */
   public updateWorkspace(workspace: WorkspaceLayout): boolean {
-    const index = this.state.workspaces.findIndex(w => w.id === workspace.id);
+    const index = this.state.workspaces.findIndex((w) => w.id === workspace.id);
     if (index === -1) {
       return false;
     }
-    
+
     // Update the workspace
     const updatedWorkspace = {
       ...workspace,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
-    
+
     this.state.workspaces[index] = updatedWorkspace;
     this.saveToStorage();
     this.notifyListeners();
-    
+
     return true;
   }
 
@@ -196,29 +212,31 @@ export class WorkspaceManager {
    * Delete a workspace
    */
   public deleteWorkspace(id: string): boolean {
-    const index = this.state.workspaces.findIndex(w => w.id === id);
+    const index = this.state.workspaces.findIndex((w) => w.id === id);
     if (index === -1) {
       return false;
     }
-    
+
     // Cannot delete the default workspace
     if (this.state.workspaces[index].isDefault) {
       console.warn('Cannot delete the default workspace');
       return false;
     }
-    
+
     // Remove the workspace
     this.state.workspaces.splice(index, 1);
-    
+
     // If the deleted workspace was the current one, switch to the default
     if (this.state.currentWorkspaceId === id) {
-      const defaultWorkspace = this.state.workspaces.find(w => w.isDefault);
-      this.state.currentWorkspaceId = defaultWorkspace ? defaultWorkspace.id : null;
+      const defaultWorkspace = this.state.workspaces.find((w) => w.isDefault);
+      this.state.currentWorkspaceId = defaultWorkspace
+        ? defaultWorkspace.id
+        : null;
     }
-    
+
     this.saveToStorage();
     this.notifyListeners();
-    
+
     return true;
   }
 
@@ -226,15 +244,15 @@ export class WorkspaceManager {
    * Set the current active workspace
    */
   public setCurrentWorkspace(id: string): boolean {
-    const workspace = this.state.workspaces.find(w => w.id === id);
+    const workspace = this.state.workspaces.find((w) => w.id === id);
     if (!workspace) {
       return false;
     }
-    
+
     this.state.currentWorkspaceId = id;
     this.saveToStorage();
     this.notifyListeners();
-    
+
     return true;
   }
 
@@ -243,7 +261,7 @@ export class WorkspaceManager {
    */
   public addListener(listener: (state: WorkspaceState) => void): () => void {
     this.listeners.push(listener);
-    
+
     // Return a function to remove the listener
     return () => {
       const index = this.listeners.indexOf(listener);
@@ -261,7 +279,7 @@ export class WorkspaceManager {
     if (!workspace) {
       throw new Error(`Workspace with ID ${id} not found`);
     }
-    
+
     return JSON.stringify(workspace);
   }
 
@@ -271,28 +289,28 @@ export class WorkspaceManager {
   public importWorkspace(json: string): WorkspaceLayout {
     try {
       const workspace = JSON.parse(json) as WorkspaceLayout;
-      
+
       // Validate the workspace structure
       if (!workspace.id || !workspace.name || !workspace.root) {
         throw new Error('Invalid workspace format');
       }
-      
+
       // Check if a workspace with this ID already exists
       if (this.getWorkspaceById(workspace.id)) {
         // Generate a new ID
-        workspace.id = `workspace-${Date.now()}`;
+        workspace.id = this.generateUniqueId();
       }
-      
+
       // Update timestamps
       const now = new Date().toISOString();
       workspace.createdAt = now;
       workspace.updatedAt = now;
-      
+
       // Add to workspaces
       this.state.workspaces.push(workspace);
       this.saveToStorage();
       this.notifyListeners();
-      
+
       return workspace;
     } catch (error) {
       console.error('Failed to import workspace:', error);
@@ -303,28 +321,44 @@ export class WorkspaceManager {
   /**
    * Create a workspace from a template
    */
-  public createFromTemplate(templateId: string, name?: string): WorkspaceLayout | null {
-    const template = this.state.templates.find(t => t.id === templateId);
+  public createFromTemplate(
+    templateId: string,
+    name?: string,
+  ): WorkspaceLayout | null {
+    const template = this.state.templates.find((t) => t.id === templateId);
     if (!template) {
       return null;
     }
-    
+
+    const workspaceName = name || `${template.name} Copy`;
+
+    // Check if a workspace with this name already exists
+    const existingWorkspace = this.state.workspaces.find(
+      (w) => w.name === workspaceName,
+    );
+    if (existingWorkspace) {
+      console.log(
+        `Workspace with name "${workspaceName}" already exists, returning existing workspace`,
+      );
+      return existingWorkspace;
+    }
+
     const now = new Date().toISOString();
-    const id = `workspace-${Date.now()}`;
-    
+    const id = this.generateUniqueId();
+
     const newWorkspace: WorkspaceLayout = {
       id,
-      name: name || `${template.name} Copy`,
+      name: workspaceName,
       description: template.description,
       createdAt: now,
       updatedAt: now,
-      root: { ...template.root }
+      root: { ...template.root },
     };
-    
+
     this.state.workspaces.push(newWorkspace);
     this.saveToStorage();
     this.notifyListeners();
-    
+
     return newWorkspace;
   }
 
@@ -333,6 +367,29 @@ export class WorkspaceManager {
    */
   public getTemplates(): WorkspaceTemplate[] {
     return [...this.state.templates];
+  }
+
+  /**
+   * Clear workspace state from local storage
+   * This is useful for resetting the workspace state if it gets out of sync
+   */
+  public clearStorage(): void {
+    localStorage.removeItem(WORKSPACE_STORAGE_KEY);
+    console.log('Cleared workspace state from local storage');
+
+    // Reset to default state
+    this.state = {
+      currentWorkspaceId: null,
+      workspaces: [],
+      templates: this.state.templates, // Keep the templates
+    };
+
+    // Create default workspace
+    const defaultWorkspace = createDefaultWorkspace();
+    this.state.workspaces.push(defaultWorkspace);
+    this.state.currentWorkspaceId = defaultWorkspace.id;
+
+    this.notifyListeners();
   }
 
   /**

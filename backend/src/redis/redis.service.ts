@@ -114,30 +114,50 @@ export class RedisService implements OnModuleInit {
       let isStale = false;
 
       if (this.isConnected && this.client) {
-        // Get both the value and its TTL
-        const [valueResult, ttlResult] = await Promise.all([
-          this.client.get(key),
-          this.client.ttl(key)
-        ]);
+        try {
+          // Get both the value and its TTL
+          const [valueResult, ttlResult] = await Promise.all([
+            this.client.get(key),
+            this.client.ttl(key)
+          ]);
 
-        value = valueResult;
+          value = valueResult;
 
-        // If TTL is -1 (no expiry) or positive, it's fresh
-        // If TTL is -2, the key doesn't exist
-        // If TTL is between -1 and -staleTtlSeconds, it's stale but usable
-        if (ttlResult === -2) {
-          // Key doesn't exist
-          value = null;
-        } else if (ttlResult < 0 && ttlResult !== -1) {
-          // Key exists but has expired
-          isStale = true;
-
-          // Check if it's within our stale window
-          // Convert TTL to positive seconds since expiration
-          const secondsSinceExpiration = Math.abs(ttlResult + 1);
-          if (secondsSinceExpiration > staleTtlSeconds) {
-            // Too old, don't use
+          // If TTL is -1 (no expiry) or positive, it's fresh
+          // If TTL is -2, the key doesn't exist
+          // If TTL is between -1 and -staleTtlSeconds, it's stale but usable
+          if (ttlResult === -2) {
+            // Key doesn't exist
             value = null;
+          } else if (ttlResult < 0 && ttlResult !== -1) {
+            // Key exists but has expired
+            isStale = true;
+
+            // Check if it's within our stale window
+            // Convert TTL to positive seconds since expiration
+            const secondsSinceExpiration = Math.abs(ttlResult + 1);
+            if (secondsSinceExpiration > staleTtlSeconds) {
+              // Too old, don't use
+              value = null;
+            }
+          }
+        } catch (redisError) {
+          this.logger.error(`Redis error in getWithRevalidate for ${key}: ${redisError.message}`);
+          // Fall back to in-memory cache
+          const now = Date.now();
+          const item = this.inMemoryFallback[key];
+
+          if (item) {
+            if (item.expiry > now) {
+              // Fresh data
+              value = item.value;
+              this.logger.log(`Using in-memory fallback for ${key} due to Redis error`);
+            } else if (item.expiry > now - staleTtlSeconds * 1000) {
+              // Stale but usable data
+              value = item.value;
+              isStale = true;
+              this.logger.log(`Using stale in-memory fallback for ${key} due to Redis error`);
+            }
           }
         }
       } else {
@@ -149,10 +169,12 @@ export class RedisService implements OnModuleInit {
           if (item.expiry > now) {
             // Fresh data
             value = item.value;
+            this.logger.log(`Using in-memory fallback for ${key} (Redis not connected)`);
           } else if (item.expiry > now - staleTtlSeconds * 1000) {
             // Stale but usable data
             value = item.value;
             isStale = true;
+            this.logger.log(`Using stale in-memory fallback for ${key} (Redis not connected)`);
           }
         }
       }
@@ -173,6 +195,18 @@ export class RedisService implements OnModuleInit {
           await this.set(key, value, ttlSeconds);
         } catch (fetchError) {
           this.logger.error(`Failed to fetch data for ${key}: ${fetchError.message}`);
+
+          // Last resort: try to get any expired data from Redis or memory
+          try {
+            const expiredData = await this.getWithoutExpiry(key);
+            if (expiredData) {
+              this.logger.warn(`Using expired data for ${key} as last resort after fetch failure`);
+              return expiredData;
+            }
+          } catch (lastResortError) {
+            this.logger.error(`Failed to get expired data for ${key}: ${lastResortError.message}`);
+          }
+
           return null;
         }
       }
@@ -180,6 +214,14 @@ export class RedisService implements OnModuleInit {
       return value;
     } catch (error) {
       this.logger.error(`Error in getWithRevalidate for ${key}: ${error.message}`);
+
+      // Last resort: try to get any data from memory
+      const item = this.inMemoryFallback[key];
+      if (item) {
+        this.logger.warn(`Using potentially expired in-memory data for ${key} after error`);
+        return item.value;
+      }
+
       return null;
     }
   }
@@ -330,20 +372,32 @@ export class RedisService implements OnModuleInit {
     try {
       // First try to get from Redis if connected
       if (this.isConnected && this.client) {
-        const value = await this.client.get(key);
-        if (value) return value;
+        try {
+          const value = await this.client.get(key);
+          if (value) {
+            this.logger.log(`Retrieved data for ${key} from Redis`);
+            return value;
+          }
+        } catch (redisError) {
+          this.logger.error(
+            `Redis error in getWithoutExpiry for ${key}: ${redisError.message}`,
+          );
+          // Continue to in-memory fallback
+        }
       }
 
       // If not in Redis or Redis is not connected, check in-memory fallback
       // regardless of expiry
       const item = this.inMemoryFallback[key];
       if (item) {
+        const isExpired = item.expiry < Date.now();
         this.logger.warn(
-          `Using potentially stale data for key ${key} from in-memory cache`,
+          `Using ${isExpired ? 'expired' : 'unexpired'} data for key ${key} from in-memory cache`,
         );
         return item.value;
       }
 
+      this.logger.warn(`No data found for ${key} in Redis or in-memory cache`);
       return null;
     } catch (error) {
       this.logger.error(
@@ -352,7 +406,11 @@ export class RedisService implements OnModuleInit {
 
       // Last resort: check in-memory fallback
       const item = this.inMemoryFallback[key];
-      return item ? item.value : null;
+      if (item) {
+        this.logger.warn(`Last resort: using in-memory data for ${key} after error`);
+        return item.value;
+      }
+      return null;
     }
   }
 }

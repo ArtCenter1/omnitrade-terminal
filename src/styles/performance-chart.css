@@ -5,7 +5,7 @@
   /* Ensure the chart extends to the edges */
   margin-left: -10px;
   margin-right: -10px;
-  background-color: #131722;
+  background-color: var(--bg-chart);
 }
 
 .performance-chart-container {

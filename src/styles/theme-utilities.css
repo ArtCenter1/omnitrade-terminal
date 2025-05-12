@@ -1,0 +1,287 @@
+/*
+ * OmniTrade Terminal Theme Utility Classes
+ *
+ * This file provides utility classes that make it easy to apply theme variables
+ * consistently throughout the application. These classes should be used when
+ * Tailwind's built-in classes are not sufficient.
+ *
+ * All variables referenced here are defined in theme-variables.css
+ */
+
+/* Background Colors */
+.bg-theme-primary {
+  background-color: var(--bg-primary);
+}
+
+.bg-theme-secondary {
+  background-color: var(--bg-secondary);
+}
+
+.bg-theme-tertiary {
+  background-color: var(--bg-tertiary);
+}
+
+.bg-theme-card {
+  background-color: var(--bg-card);
+}
+
+.bg-theme-chart {
+  background-color: var(--bg-chart);
+}
+
+.bg-theme-popup {
+  background-color: var(--bg-popup);
+}
+
+.bg-theme-sidebar {
+  background-color: var(--bg-sidebar);
+}
+
+.bg-theme-navbar {
+  background-color: var(--bg-navbar);
+}
+
+.bg-theme-dropdown {
+  background-color: var(--bg-dropdown);
+}
+
+.bg-theme-hover {
+  background-color: var(--bg-hover);
+}
+
+.bg-theme-active {
+  background-color: var(--bg-active);
+}
+
+.bg-theme-selected {
+  background-color: var(--bg-selected);
+}
+
+/* Text Colors */
+.text-theme-primary {
+  color: var(--text-primary);
+}
+
+.text-theme-secondary {
+  color: var(--text-secondary);
+}
+
+.text-theme-tertiary {
+  color: var(--text-tertiary);
+}
+
+.text-theme-disabled {
+  color: var(--text-disabled);
+}
+
+.text-theme-link {
+  color: var(--text-link);
+}
+
+.text-theme-link-hover {
+  color: var(--text-link-hover);
+}
+
+/* Border Colors */
+.border-theme-primary {
+  border-color: var(--border-primary);
+}
+
+.border-theme-secondary {
+  border-color: var(--border-secondary);
+}
+
+.border-theme-tertiary {
+  border-color: var(--border-tertiary);
+}
+
+.border-theme-focus {
+  border-color: var(--border-focus);
+}
+
+/* Button Colors */
+.bg-theme-button-primary {
+  background-color: var(--button-primary);
+}
+
+.bg-theme-button-primary-hover {
+  background-color: var(--button-primary-hover);
+}
+
+.bg-theme-button-secondary {
+  background-color: var(--button-secondary);
+}
+
+.bg-theme-button-secondary-hover {
+  background-color: var(--button-secondary-hover);
+}
+
+.bg-theme-button-danger {
+  background-color: var(--button-danger);
+}
+
+.bg-theme-button-danger-hover {
+  background-color: var(--button-danger-hover);
+}
+
+.bg-theme-button-success {
+  background-color: var(--button-success);
+}
+
+.bg-theme-button-success-hover {
+  background-color: var(--button-success-hover);
+}
+
+/* Status Colors */
+.text-theme-success {
+  color: var(--button-success);
+}
+
+.text-theme-error {
+  color: var(--button-danger);
+}
+
+.text-theme-warning {
+  color: var(--crypto-yellow, #f3ba2f);
+}
+
+.text-theme-info {
+  color: var(--text-link);
+}
+
+/* Shadow Utilities */
+.shadow-theme-sm {
+  box-shadow: var(--shadow-sm);
+}
+
+.shadow-theme-md {
+  box-shadow: var(--shadow-md);
+}
+
+.shadow-theme-lg {
+  box-shadow: var(--shadow-lg);
+}
+
+/* Form Elements */
+.input-theme {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  color: var(--text-primary);
+  transition: all 0.2s;
+}
+
+.input-theme:focus {
+  border-color: var(--border-focus);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(103, 58, 183, 0.3);
+}
+
+.input-theme::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* Button Utilities */
+.button-theme-primary {
+  background-color: var(--button-primary);
+  color: var(--text-primary);
+}
+
+/* Percentage Button Utilities */
+.percentage-button {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+  transition: all 0.2s;
+}
+
+.percentage-button:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* TradingView Widget Theme Overrides */
+.tradingview-widget-container iframe {
+  background-color: var(--bg-secondary) !important;
+  transition: background-color 0.3s ease;
+}
+
+/* Price Header Styles */
+.price-header {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--border-primary);
+  transition: all 0.3s ease;
+}
+
+/* Resizable Splitter Styles */
+.resizable-splitter-handle {
+  background-color: var(--bg-tertiary);
+  transition: background-color 0.3s ease;
+}
+
+.resizable-splitter-handle:hover,
+.resizable-splitter-handle.active {
+  background-color: var(--crypto-purple);
+}
+
+.resizable-splitter-indicator {
+  background-color: var(--crypto-purple);
+  transition: background-color 0.3s ease, opacity 0.3s ease;
+}
+
+.button-theme-primary:hover {
+  background-color: var(--button-primary-hover);
+}
+
+.button-theme-secondary {
+  background-color: var(--button-secondary);
+  color: var(--text-primary);
+}
+
+.button-theme-secondary:hover {
+  background-color: var(--button-secondary-hover);
+}
+
+/* Transition Utilities */
+.theme-transition {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: var(--easing-standard);
+  transition-duration: var(--transition-normal);
+}
+
+.theme-transition-fast {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: var(--easing-standard);
+  transition-duration: var(--transition-fast);
+}
+
+.theme-transition-slow {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: var(--easing-standard);
+  transition-duration: var(--transition-slow);
+}
+
+/* Crypto-specific utilities */
+.text-crypto-up {
+  color: var(--crypto-green);
+}
+
+.text-crypto-down {
+  color: var(--crypto-red);
+}
+
+.text-crypto-neutral {
+  color: var(--crypto-purple);
+}
+
+.bg-crypto-up {
+  background-color: var(--crypto-green);
+}
+
+.bg-crypto-down {
+  background-color: var(--crypto-red);
+}
+
+.bg-crypto-neutral {
+  background-color: var(--crypto-purple);
+}

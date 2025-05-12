@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { TradingPair } from '@/types/trading'; // Corrected import path
 import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import {
-  CoinGeckoTicker,
-  getCoinTickers,
-} from '@/services/enhancedCoinGeckoService';
+  CoinGeckoData,
+  getCurrentPrice,
+} from '@/services/optimizedCoinGeckoService';
 import { formatCurrency, formatNumber } from '../../utils/formatUtils'; // Assuming you have formatting utils
 import { useFeatureFlags } from '@/config/featureFlags';
 import { ExchangeFactory } from '@/services/exchange/exchangeFactory';
@@ -469,7 +469,7 @@ export function PriceOverview({
   // Show loading indicator more persistently while loading state is true
   if (isLoading && !marketData) {
     return (
-      <div className="p-4 text-center text-gray-400 animate-pulse">
+      <div className="p-4 text-center text-[var(--text-secondary)] animate-pulse">
         Loading market data...
       </div>
     );
@@ -503,7 +503,7 @@ export function PriceOverview({
     );
   } else if (showPriceOnly) {
     // Handle case where showPriceOnly is true but no marketData yet
-    return <div className="ml-2 text-xl font-bold text-gray-500">--.--</div>;
+    return <div className="ml-2 text-xl font-bold text-[var(--text-secondary)]">--.--</div>;
   }
 
   // Otherwise render the stats grid (only if marketData is available)
@@ -512,7 +512,7 @@ export function PriceOverview({
       {/* Data source indicator removed to save space */}
       <div className="grid grid-cols-4 gap-8 text-xs">
         <div>
-          <div className="text-gray-400">24h Change</div>
+          <div className="text-[var(--text-secondary)]">24h Change</div>
           <div
             className={
               isPositiveChange ? 'text-crypto-green' : 'text-crypto-red'
@@ -523,24 +523,24 @@ export function PriceOverview({
           </div>
         </div>
         <div>
-          <div className="text-gray-400">High</div>
-          <div className="text-white">
+          <div className="text-[var(--text-secondary)]">High</div>
+          <div className="text-[var(--text-primary)]">
             {/* Use actual high price from ticker stats if available */}
             {formatNumber(marketData?.highPrice || currentPrice * 1.02)}
           </div>
         </div>
         <div>
-          <div className="text-gray-400">Low</div>
-          <div className="text-white">
+          <div className="text-[var(--text-secondary)]">Low</div>
+          <div className="text-[var(--text-primary)]">
             {/* Use actual low price from ticker stats if available */}
             {formatNumber(marketData?.lowPrice || currentPrice * 0.98)}
           </div>
         </div>
         <div>
           {/* Display fetched volume */}
-          <div className="text-gray-400">24h Volume ({quoteAssetDisplay})</div>
+          <div className="text-[var(--text-secondary)]">24h Volume ({quoteAssetDisplay})</div>
           {/* Ensure volume24h is displayed correctly */}
-          <div className="text-white">
+          <div className="text-[var(--text-primary)]">
             {volume24h !== 'N/A' ? volume24h : '--'}
           </div>
         </div>

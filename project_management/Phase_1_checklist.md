@@ -41,8 +41,8 @@ This checklist tracks the progress of Phase 1 development tasks for the OmniTrad
 ### Responsive Terminal Container
 - [x] Create base terminal container component
 - [x] Implement responsive layout system
-- [ ] Add theme support (light/dark)
-- [ ] Create global styling system
+- [x] Add theme support (light/dark)
+- [x] Create global styling system
 - [ ] Implement terminal header and footer
 - [ ] Add terminal status indicators
 

@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Route, Routes, useLocation, Navigate } from 'react-router-dom';
-import { ThemeProvider as ShadcnThemeProvider } from '@/components/ThemeProvider';
-import '@/styles/themes.css';
 import '@/styles/components.css';
 import { Toaster } from '@/components/ui/sonner';
 import GitHubPagesBanner from '@/components/ui/github-pages-banner';
+import { TooltipProvider } from '@/components/ui/tooltip';
 // Debug panel imports removed
 // Debug panel removed
 import UserRoleManagement from './pages/admin/UserRoleManagement';
@@ -13,6 +12,7 @@ import DevSettings from './pages/admin/DevSettings';
 import BinanceTestnetBenchmarkPage from './pages/admin/BinanceTestnetBenchmarkPage';
 import AnalyticsDashboard from './pages/admin/AnalyticsDashboard';
 import { ScrollToTop } from './components/ScrollToTop';
+import { ThemeClassApplier } from './components/theme/ThemeClassApplier';
 import Index from './pages/Index';
 import AuthPage from './pages/auth/AuthPage';
 import LoginPage from './pages/auth/LoginPage';
@@ -38,6 +38,7 @@ import Security from './pages/profile/Security';
 import ChangePassword from './pages/profile/ChangePassword';
 import Preferences from './pages/profile/Preferences';
 import PlanSubscription from './pages/profile/PlanSubscription';
+import StyleGuidePage from './pages/StyleGuidePage';
 // Exchange Demo page removed
 import { useAuth } from './hooks/useAuth';
 
@@ -49,6 +50,13 @@ import Navbar from './components/Navbar';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 import { ConnectionStatusProvider } from './contexts/connectionStatusContext';
+
+// VS Code-like layout imports
+import { LayoutProvider } from './contexts/LayoutContext';
+import { ViewProvider } from './contexts/ViewContext';
+import { EditorProvider } from './contexts/EditorContext';
+import { PanelProvider } from './contexts/PanelContext';
+import Workbench from './components/layout/Workbench';
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -99,16 +107,12 @@ function App() {
   // Debug panel functions and variables removed
 
   return (
-    <ShadcnThemeProvider
-      attribute="class"
-      defaultTheme="dark"
-      storageKey="omnitrade-theme"
-      enableSystem={false}
-    >
-      <ConnectionStatusProvider>
+    <ConnectionStatusProvider>
+      <TooltipProvider>
         <Toaster />
         <GitHubPagesBanner />
         <ScrollToTop />
+        <ThemeClassApplier />
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<Index />} />
@@ -121,6 +125,11 @@ function App() {
           <Route path="/omni-token" element={<OmniToken />} />
           <Route path="/trading-bots" element={<TradingBotsLanding />} />
           <Route path="/blog" element={<Blog />} />
+          {/* Redirect /workspace to /terminal-workspace for backward compatibility */}
+          <Route
+            path="/workspace"
+            element={<Navigate to="/terminal-workspace" replace />}
+          />
           <Route path="*" element={<NotFound />} />
 
           {/* Protected routes (reverted to individual wrappers) */}
@@ -145,6 +154,23 @@ function App() {
             element={
               <ProtectedRouteWrapper>
                 <TerminalWorkspace />
+              </ProtectedRouteWrapper>
+            }
+          />
+          {/* VS Code-like Terminal */}
+          <Route
+            path="/vscode-terminal"
+            element={
+              <ProtectedRouteWrapper>
+                <LayoutProvider>
+                  <ViewProvider>
+                    <EditorProvider>
+                      <PanelProvider>
+                        <Workbench />
+                      </PanelProvider>
+                    </EditorProvider>
+                  </ViewProvider>
+                </LayoutProvider>
               </ProtectedRouteWrapper>
             }
           />
@@ -181,6 +207,9 @@ function App() {
             }
           />
           <Route path="/ai-driven" element={<AIDrivenPage />} />
+
+          {/* Style Guide route - accessible to everyone for development */}
+          <Route path="/style-guide" element={<StyleGuidePage />} />
 
           {/* Demo routes removed */}
 
@@ -313,8 +342,8 @@ function App() {
             }
           />
         </Routes>
-      </ConnectionStatusProvider>
-    </ShadcnThemeProvider>
+      </TooltipProvider>
+    </ConnectionStatusProvider>
   );
 }
 

@@ -21,6 +21,7 @@ export interface FeatureFlags {
   enableDebugTools: boolean;
   useBinanceTestnet: boolean;
   enableBinanceTestnetBenchmark: boolean;
+  disableCoinGeckoApi: boolean; // Kill switch for CoinGecko API calls
 
   // UI flags
   showPerformanceMetrics: boolean;
@@ -43,6 +44,7 @@ const defaultFeatureFlags: Omit<
   enableDebugTools: import.meta.env.DEV, // Only enable debug tools in development
   useBinanceTestnet: import.meta.env.DEV, // Use Binance Testnet in development by default
   enableBinanceTestnetBenchmark: false, // Disable benchmark by default
+  disableCoinGeckoApi: false, // CoinGecko API is enabled by default
   showPerformanceMetrics: false, // Don't show performance metrics by default
 };
 

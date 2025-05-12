@@ -1,0 +1,129 @@
+/* Theme transition styles */
+* {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Apply dark theme classes when .dark class is present */
+.dark {
+  color-scheme: dark;
+}
+
+/* Apply light theme classes when .dark class is not present */
+:root:not(.dark) {
+  color-scheme: light;
+}
+
+/* Apply theme-specific CSS variables */
+.dark {
+  --bg-primary: #0f0f11;
+  --bg-secondary: #1a1a1c;
+  --bg-tertiary: #2a2a2c;
+  --bg-card: #1a1a1c;
+  --bg-chart: #1a1a1c;
+  --bg-popup: #252527;
+  --bg-sidebar: #0f0f11;
+  --bg-navbar: #131722;
+  --bg-dropdown: #252527;
+  --bg-hover: rgba(255, 255, 255, 0.05);
+  --bg-active: rgba(255, 255, 255, 0.1);
+  --bg-selected: rgba(103, 58, 183, 0.3);
+  --bg-tab-active: #673ab7;
+
+  /* Text colors */
+  --text-primary: #ffffff;
+  --text-secondary: #a0a0a6;
+  --text-tertiary: #6c6c74;
+  --text-disabled: #4a4a4a;
+  --text-link: #9575cd;
+  --text-link-hover: #b39ddb;
+
+  /* Border colors */
+  --border-primary: #2a2a2c;
+  --border-secondary: #3a3a3c;
+  --border-tertiary: #4a4a4c;
+  --border-focus: #673ab7;
+
+  /* Button colors */
+  --button-primary: #673ab7;
+  --button-primary-hover: #7e57c2;
+  --button-secondary: #2a2a2c;
+  --button-secondary-hover: #3a3a3c;
+  --button-danger: #ff5252;
+  --button-danger-hover: #ff7675;
+  --button-success: #00c853;
+  --button-success-hover: #00e676;
+
+  /* Status colors */
+  --success-color: #00c853;
+  --error-color: #ff5252;
+  --warning-color: #ffc107;
+  --info-color: #2196f3;
+
+  /* Chart colors */
+  --chart-line: #ff5252;
+  --chart-grid: #2a2a2c;
+  --chart-text: #a0a0a6;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+}
+
+:root:not(.dark) {
+  --bg-primary: #f5f5fa;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #e8e8f0;
+  --bg-card: #ffffff;
+  --bg-chart: #ffffff;
+  --bg-popup: #ffffff;
+  --bg-sidebar: #f5f5fa;
+  --bg-navbar: #f5f5fa;
+  --bg-dropdown: #ffffff;
+  --bg-hover: rgba(0, 0, 0, 0.05);
+  --bg-active: rgba(0, 0, 0, 0.1);
+  --bg-selected: rgba(103, 58, 183, 0.1);
+  --bg-tab-active: #673ab7;
+
+  /* Text colors */
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --text-tertiary: #888888;
+  --text-disabled: #bbbbbb;
+  --text-link: #673ab7;
+  --text-link-hover: #9575cd;
+
+  /* Border colors */
+  --border-primary: #e8e8f0;
+  --border-secondary: #d8d8e0;
+  --border-tertiary: #c8c8d0;
+  --border-focus: #673ab7;
+
+  /* Button colors */
+  --button-primary: #673ab7; /* Keep the same purple in both themes */
+  --button-primary-hover: #7e57c2;
+  --button-secondary: #e8e8f0;
+  --button-secondary-hover: #d8d8e0;
+  --button-danger: #ff5252;
+  --button-danger-hover: #ff7675;
+  --button-success: #00c853;
+  --button-success-hover: #00e676;
+
+  /* Status colors */
+  --success-color: #00c853;
+  --error-color: #ff5252;
+  --warning-color: #ffc107;
+  --info-color: #2196f3;
+
+  /* Chart colors */
+  --chart-line: #ff5252;
+  --chart-grid: #e8e8f0;
+  --chart-text: #888888;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}

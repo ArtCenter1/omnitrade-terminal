@@ -1,12 +1,19 @@
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+// Import our consolidated theme styles
+import './styles/theme-variables.css';
+import './styles/theme-utilities.css';
+import './styles/theme-transitions.css';
 import './styles/crypto-colors.css';
 import './styles/protected-theme-override.css';
+import './styles/vscode-layout.css';
 import { AuthProvider } from './contexts/AuthContext';
 import { ConditionalAuthProvider } from './contexts/GitHubPagesAuthContext';
 import { FeatureFlagsProvider } from './config/featureFlags.tsx';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+// Import our new unified theme provider
+import { UnifiedThemeProvider } from '@/components/theme/UnifiedThemeProvider';
 
 // Debug panel toggle function removed
 
@@ -42,9 +49,14 @@ import { setupApiMiddleware } from './mocks/apiMiddleware';
 import './utils/devHelpers';
 import { migrateSandboxToDemoAccount } from './utils/demoAccountMigration';
 import { initializeTerminal } from './lib/terminal-init';
+import { addResetWorkspaceButton } from './utils/resetWorkspace';
+import { forceResetWorkspaceOnLoad } from './utils/forceResetWorkspace';
 
 // Migrate Sandbox Account to Demo Account in localStorage
 migrateSandboxToDemoAccount();
+
+// Force reset workspace if needed
+forceResetWorkspaceOnLoad();
 
 // Initialize the terminal components and workspace
 initializeTerminal();
@@ -74,6 +86,12 @@ if (import.meta.env.DEV) {
   if (localStorage.getItem('useMockUser') === 'true') {
     console.log('Found existing mock user setting, keeping it enabled');
   }
+
+  // Add reset workspace button for development
+  // This helps with troubleshooting workspace issues across different ports
+  setTimeout(() => {
+    addResetWorkspaceButton();
+  }, 1000); // Delay to ensure DOM is ready
 }
 
 createRoot(document.getElementById('root')!).render(
@@ -82,7 +100,14 @@ createRoot(document.getElementById('root')!).render(
       <FeatureFlagsProvider>
         <ConditionalAuthProvider>
           <AuthProvider>
-            <App />
+            <UnifiedThemeProvider
+              attribute="class"
+              defaultTheme="dark"
+              storageKey="omnitrade-theme"
+              enableSystem={false}
+            >
+              <App />
+            </UnifiedThemeProvider>
           </AuthProvider>
         </ConditionalAuthProvider>
       </FeatureFlagsProvider>

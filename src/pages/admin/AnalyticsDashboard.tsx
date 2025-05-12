@@ -2,7 +2,8 @@
 import React from 'react';
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Activity, BarChart3, TrendingUp, LineChart } from 'lucide-react';
+import { Activity, BarChart3, TrendingUp, LineChart } from 'lucide-react';
+import { BackButton } from '@/components/ui/back-button';
 
 export default function AnalyticsDashboard() {
   return (
@@ -15,13 +16,7 @@ export default function AnalyticsDashboard() {
               Monitor system performance and analyze metrics
             </p>
           </div>
-          <Link
-            to="/admin"
-            className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm flex items-center"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Admin Dashboard
-          </Link>
+          <BackButton to="/admin" label="Back to Admin Dashboard" />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -30,13 +25,13 @@ export default function AnalyticsDashboard() {
             <p className="text-2xl font-bold mt-1">12,458</p>
             <p className="text-xs text-green-400 mt-1">↑ 8% from last week</p>
           </div>
-          
+
           <div className="bg-gray-800 p-4 rounded-lg border-l-4 border-blue-500">
             <h3 className="text-sm text-gray-400">Average Response Time</h3>
             <p className="text-2xl font-bold mt-1">245ms</p>
             <p className="text-xs text-red-400 mt-1">↑ 12ms from last week</p>
           </div>
-          
+
           <div className="bg-gray-800 p-4 rounded-lg border-l-4 border-green-500">
             <h3 className="text-sm text-gray-400">Success Rate</h3>
             <p className="text-2xl font-bold mt-1">99.8%</p>
@@ -45,7 +40,7 @@ export default function AnalyticsDashboard() {
         </div>
 
         <h2 className="text-xl font-medium mb-4">Analytics Tools</h2>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Link
             to="/admin/analytics/binance-benchmark"
@@ -59,7 +54,7 @@ export default function AnalyticsDashboard() {
               Measure performance and latency of Binance Testnet API
             </p>
           </Link>
-          
+
           {/* Placeholder for future analytics tools */}
           <div className="bg-gray-800 p-4 rounded-lg opacity-50">
             <div className="flex items-center mb-2">
@@ -73,7 +68,7 @@ export default function AnalyticsDashboard() {
               Coming Soon
             </div>
           </div>
-          
+
           <div className="bg-gray-800 p-4 rounded-lg opacity-50">
             <div className="flex items-center mb-2">
               <LineChart className="h-5 w-5 mr-2 text-green-500" />

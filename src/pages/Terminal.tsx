@@ -207,18 +207,18 @@ export default function Terminal() {
   };
 
   return (
-    <div className="bg-black min-h-screen">
+    <div className="bg-theme-primary min-h-screen theme-transition">
       <ErrorBoundary
         fallback={
-          <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-white">
-            <AlertTriangle className="w-16 h-16 text-yellow-500 mb-4" />
+          <div className="flex flex-col items-center justify-center h-screen bg-theme-secondary text-theme-primary theme-transition">
+            <AlertTriangle className="w-16 h-16 text-warning-color mb-4" />
             <h2 className="text-2xl font-bold mb-2">Something went wrong</h2>
-            <p className="text-gray-400 mb-4">
+            <p className="text-theme-secondary mb-4">
               There was an error loading the terminal
             </p>
             <button
               onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="px-4 py-2 bg-button-primary text-white rounded hover:bg-button-primary-hover"
             >
               Reload page
             </button>
@@ -239,7 +239,7 @@ export default function Terminal() {
                 {/* Top Section - Trading Sidebar and Chart */}
                 <div className="flex h-full">
                   <ErrorBoundary>
-                    <div className="w-[280px] border-r border-gray-800 h-full">
+                    <div className="w-[280px] border-r border-theme-border h-full theme-transition">
                       <TradingSidebar
                         selectedPair={selectedPair}
                         onOrderPlaced={handleOrderPlaced}
@@ -285,7 +285,7 @@ export default function Terminal() {
 
             {/* Right Order Book - Fixed Width */}
             <ErrorBoundary>
-              <div className="w-[242px] border-l border-gray-800">
+              <div className="w-[242px] border-l border-theme-border theme-transition">
                 <OrderBook selectedPair={selectedPair} />
               </div>
             </ErrorBoundary>

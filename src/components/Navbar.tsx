@@ -44,7 +44,6 @@ export default function Navbar() {
   const { isAdmin, userRole } = useRoleBasedAccess();
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   // Get current location to determine active page
   const location = window.location.pathname;
@@ -69,18 +68,18 @@ export default function Navbar() {
   };
 
   return (
-    <div className="bg-[#131722] sticky top-0 z-50 theme-transition">
+    <div className="bg-[var(--bg-navbar)] sticky top-0 z-50 theme-transition">
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center">
           <Link to="/" className="flex items-center cursor-pointer">
-            <div className="bg-[#1A1A1A] p-2 flex items-center justify-center rounded">
+            <div className="bg-[var(--bg-tertiary)] p-2 flex items-center justify-center rounded">
               <img
                 src="/placeholder.svg"
                 alt="OmniTrade Logo"
                 className="h-6 w-6"
               />
             </div>
-            <span className="font-bold text-xl ml-2 text-white">OMNITRADE</span>
+            <span className="font-bold text-xl ml-2 text-[var(--text-primary)]">OMNITRADE</span>
           </Link>
         </div>
 
@@ -91,7 +90,7 @@ export default function Navbar() {
                 <NavigationMenuLink asChild>
                   <Link
                     to="/dashboard"
-                    className={`${navigationMenuTriggerStyle()} text-white hover:text-white ${location.startsWith('/dashboard') ? 'bg-[#1e2230] font-bold border-b-2 border-blue-500' : ''}`}
+                    className={`${navigationMenuTriggerStyle()} text-[var(--text-primary)] hover:text-[var(--text-primary)] ${location.startsWith('/dashboard') ? 'bg-[var(--bg-active)] font-bold border-b-2 border-blue-500' : ''}`}
                   >
                     Dashboard
                   </Link>
@@ -101,7 +100,7 @@ export default function Navbar() {
                 <NavigationMenuLink asChild>
                   <Link
                     to="/terminal"
-                    className={`${navigationMenuTriggerStyle()} text-white hover:text-white ${location.startsWith('/terminal') && !location.includes('workspace') ? 'bg-[#1e2230] font-bold border-b-2 border-blue-500' : ''}`}
+                    className={`${navigationMenuTriggerStyle()} text-[var(--text-primary)] hover:text-[var(--text-primary)] ${location.startsWith('/terminal') && !location.includes('workspace') ? 'bg-[var(--bg-active)] font-bold border-b-2 border-blue-500' : ''}`}
                   >
                     Terminal
                   </Link>
@@ -111,7 +110,7 @@ export default function Navbar() {
                 <NavigationMenuLink asChild>
                   <Link
                     to="/terminal-workspace"
-                    className={`${navigationMenuTriggerStyle()} text-white hover:text-white ${location.includes('terminal-workspace') ? 'bg-[#1e2230] font-bold border-b-2 border-blue-500' : ''}`}
+                    className={`${navigationMenuTriggerStyle()} text-[var(--text-primary)] hover:text-[var(--text-primary)] ${location.includes('workspace') ? 'bg-[var(--bg-active)] font-bold border-b-2 border-blue-500' : ''}`}
                   >
                     Workspace
                   </Link>
@@ -121,7 +120,7 @@ export default function Navbar() {
                 <NavigationMenuLink asChild>
                   <Link
                     to="/bots"
-                    className={`${navigationMenuTriggerStyle()} text-white hover:text-white ${location.startsWith('/bots') ? 'bg-[#1e2230] font-bold border-b-2 border-blue-500' : ''}`}
+                    className={`${navigationMenuTriggerStyle()} text-[var(--text-primary)] hover:text-[var(--text-primary)] ${location.startsWith('/bots') ? 'bg-[var(--bg-active)] font-bold border-b-2 border-blue-500' : ''}`}
                   >
                     Bots
                   </Link>
@@ -131,7 +130,7 @@ export default function Navbar() {
                 <NavigationMenuLink asChild>
                   <Link
                     to="/markets"
-                    className={`${navigationMenuTriggerStyle()} text-white hover:text-white ${location.startsWith('/markets') ? 'bg-[#1e2230] font-bold border-b-2 border-blue-500' : ''}`}
+                    className={`${navigationMenuTriggerStyle()} text-[var(--text-primary)] hover:text-[var(--text-primary)] ${location.startsWith('/markets') ? 'bg-[var(--bg-active)] font-bold border-b-2 border-blue-500' : ''}`}
                   >
                     Markets
                   </Link>
@@ -141,7 +140,7 @@ export default function Navbar() {
                 <NavigationMenuLink asChild>
                   <Link
                     to="/earn"
-                    className={`${navigationMenuTriggerStyle()} text-white hover:text-white ${location.startsWith('/earn') ? 'bg-[#1e2230] font-bold border-b-2 border-blue-500' : ''}`}
+                    className={`${navigationMenuTriggerStyle()} text-[var(--text-primary)] hover:text-[var(--text-primary)] ${location.startsWith('/earn') ? 'bg-[var(--bg-active)] font-bold border-b-2 border-blue-500' : ''}`}
                   >
                     Earn
                   </Link>
@@ -151,7 +150,7 @@ export default function Navbar() {
                 <NavigationMenuLink asChild>
                   <Link
                     to="/community"
-                    className={`${navigationMenuTriggerStyle()} text-white hover:text-white ${location.startsWith('/community') ? 'bg-[#1e2230] font-bold border-b-2 border-blue-500' : ''}`}
+                    className={`${navigationMenuTriggerStyle()} text-[var(--text-primary)] hover:text-[var(--text-primary)] ${location.startsWith('/community') ? 'bg-[var(--bg-active)] font-bold border-b-2 border-blue-500' : ''}`}
                   >
                     Community
                   </Link>
@@ -166,7 +165,7 @@ export default function Navbar() {
                   <NavigationMenuLink asChild>
                     <Link
                       to="/admin"
-                      className={`${navigationMenuTriggerStyle()} ${location.startsWith('/admin') ? 'bg-[#1e2230] font-bold border-b-2 border-red-500' : ''}`}
+                      className={`${navigationMenuTriggerStyle()} ${location.startsWith('/admin') ? 'bg-[var(--bg-active)] font-bold border-b-2 border-red-500' : ''}`}
                     >
                       <span className="flex items-center text-red-400">
                         <LayoutDashboard className="h-4 w-4 mr-1" />
@@ -184,84 +183,20 @@ export default function Navbar() {
           {/* Warning Indicator */}
           <TopNavWarningIndicator className="mr-1" />
 
-          {/* Settings Gear */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="text-theme-secondary hover:text-theme-primary theme-transition">
-                <Settings size={20} />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="w-56 shadow-theme-md theme-transition bg-[#1a1a1c]"
-            >
-              <div className="p-2">
-                <h3 className="font-medium text-sm mb-2 text-theme-secondary">
-                  Settings
-                </h3>
-                <div className="space-y-3">
-                  {/* Theme Toggle */}
-                  <div className="settings-menu-item">
-                    <div className="flex items-center space-x-2">
-                      {theme === 'dark' ? (
-                        <Moon size={16} className="text-theme-link" />
-                      ) : (
-                        <Sun size={16} className="text-warning-color" />
-                      )}
-                      <span className="settings-menu-item-label">
-                        Dark Mode
-                      </span>
-                    </div>
-                    <label className="toggle-switch">
-                      <input
-                        type="checkbox"
-                        checked={theme === 'dark'}
-                        onChange={() => {
-                          setTheme(theme === 'dark' ? 'light' : 'dark');
-                        }}
-                      />
-                      <span className="toggle-slider"></span>
-                    </label>
-                  </div>
-
-                  {/* Notifications Toggle */}
-                  <div className="settings-menu-item">
-                    <div className="flex items-center space-x-2">
-                      {notificationsEnabled ? (
-                        <Bell size={16} className="text-success-color" />
-                      ) : (
-                        <BellOff size={16} className="text-theme-tertiary" />
-                      )}
-                      <span className="settings-menu-item-label">
-                        Order Notifications
-                      </span>
-                    </div>
-                    <label className="toggle-switch">
-                      <input
-                        type="checkbox"
-                        checked={notificationsEnabled}
-                        onChange={() =>
-                          setNotificationsEnabled(!notificationsEnabled)
-                        }
-                      />
-                      <span className="toggle-slider"></span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Theme Toggle */}
+          <button
+            className="text-theme-secondary hover:text-theme-primary theme-transition"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          >
+            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
 
           {/* Notification Bell */}
           <button
             className="text-theme-secondary hover:text-theme-primary theme-transition"
-            title={
-              notificationsEnabled
-                ? 'Notifications enabled'
-                : 'Notifications disabled'
-            }
+            title="Notifications"
           >
-            {notificationsEnabled ? <Bell size={20} /> : <BellOff size={20} />}
+            <Bell size={20} />
           </button>
 
           {user ? (

@@ -19,9 +19,19 @@ import { TerminalTabsComponent } from '@/components/terminal/core/wrappers/Termi
 import { TradesComponent } from '@/components/terminal/core/wrappers/TradesWrapper';
 import { PositionsComponent } from '@/components/terminal/core/wrappers/PositionsWrapper';
 import { TradingTabsComponent } from '@/components/terminal/core/wrappers/TradingTabsWrapper';
+import { TradingViewChartComponent } from '@/components/terminal/core/wrappers/TradingViewChartWrapper';
 import { MarketWatchlistComponent } from '@/components/terminal/core/wrappers/MarketWatchlistWrapper';
 import { AlertsPanelComponent } from '@/components/terminal/core/wrappers/AlertsPanelWrapper';
 import { RecentTradesComponent } from '@/components/terminal/core/wrappers/RecentTradesWrapper';
+import { SharedTradingViewComponent } from '@/components/terminal/core/wrappers/SharedTradingViewWrapper';
+
+// Import VS Code components
+import {
+  VSCodeSidebarComponent,
+  VSCodeSecondaryBarComponent,
+  VSCodePanelComponent,
+  VSCodeEditorComponent,
+} from '@/components/workspace/vscode/components';
 
 /**
  * Initialize the component registry with default components
@@ -51,11 +61,19 @@ export function initializeComponentRegistry(): void {
   componentRegistry.register(MarketWatchlistComponent);
   componentRegistry.register(AlertsPanelComponent);
   componentRegistry.register(RecentTradesComponent);
+  componentRegistry.register(TradingViewChartComponent);
+  componentRegistry.register(SharedTradingViewComponent);
+
+  // Register VS Code components
+  componentRegistry.register(VSCodeSidebarComponent);
+  componentRegistry.register(VSCodeSecondaryBarComponent);
+  componentRegistry.register(VSCodePanelComponent);
+  componentRegistry.register(VSCodeEditorComponent);
 
   // Log the registered components
   const components = componentRegistry.getComponents();
   console.log(`Registered ${components.length} components:`);
-  components.forEach(component => {
+  components.forEach((component) => {
     console.log(`- ${component.name} (${component.id})`);
   });
 }

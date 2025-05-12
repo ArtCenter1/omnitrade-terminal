@@ -310,7 +310,7 @@ export function TradingForm({
     }
   };
   return (
-    <div className="border-t border-gray-800 pt-6">
+    <div className="border-t border-[var(--border-primary)] pt-6">
       <div className="mb-4">
         <OrderTypeSelector
           activeOrderType={orderType}
@@ -320,13 +320,13 @@ export function TradingForm({
 
       <div className="flex space-x-2 mb-4">
         <Button
-          className={`flex-1 ${side === 'buy' ? 'bg-crypto-green' : 'bg-gray-800'} hover:bg-crypto-green/90 text-white`}
+          className={`flex-1 ${side === 'buy' ? 'bg-crypto-green' : 'bg-[var(--bg-tertiary)]'} hover:bg-crypto-green/90 text-[var(--text-primary)]`}
           onClick={() => setSide('buy')}
         >
           BUY {baseAsset}
         </Button>
         <Button
-          className={`flex-1 ${side === 'sell' ? 'bg-crypto-red' : 'bg-gray-800'} hover:bg-crypto-red/90 text-white`}
+          className={`flex-1 ${side === 'sell' ? 'bg-crypto-red' : 'bg-[var(--bg-tertiary)]'} hover:bg-crypto-red/90 text-[var(--text-primary)]`}
           onClick={() => setSide('sell')}
         >
           SELL {baseAsset}
@@ -334,12 +334,12 @@ export function TradingForm({
       </div>
 
       <div className="mb-4">
-        <div className="text-gray-400 mb-2 text-xs">Amount</div>
+        <div className="text-[var(--text-secondary)] mb-2 text-xs">Amount</div>
         <div className="flex justify-between items-center mb-2">
-          <div className="text-gray-400 text-xs">{baseAsset}</div>
+          <div className="text-[var(--text-secondary)] text-xs">{baseAsset}</div>
           <div className="flex items-center">
             <Input
-              className="h-8 bg-gray-900 border-gray-800 text-right text-white w-full"
+              className="h-8 bg-[var(--bg-secondary)] border-[var(--border-primary)] text-right text-[var(--text-primary)] w-full"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
             />
@@ -348,12 +348,12 @@ export function TradingForm({
       </div>
 
       <div className="mb-4">
-        <div className="text-gray-400 mb-2 text-xs">Total</div>
+        <div className="text-[var(--text-secondary)] mb-2 text-xs">Total</div>
         <div className="flex justify-between items-center mb-2">
-          <div className="text-gray-400 text-xs">{quoteAsset}</div>
+          <div className="text-[var(--text-secondary)] text-xs">{quoteAsset}</div>
           <div className="flex items-center">
             <Input
-              className="h-8 bg-gray-900 border-gray-800 text-right text-white w-full"
+              className="h-8 bg-[var(--bg-secondary)] border-[var(--border-primary)] text-right text-[var(--text-primary)] w-full"
               value={total}
               onChange={(e) => setTotal(e.target.value)}
             />
@@ -364,28 +364,28 @@ export function TradingForm({
       <div className="grid grid-cols-4 gap-1 mb-4">
         <Button
           variant="outline"
-          className="text-xs py-0 h-6 min-w-0 px-1"
+          className="percentage-button text-xs py-0 h-6 min-w-0 px-1"
           onClick={() => handlePercentageClick(25)}
         >
           25%
         </Button>
         <Button
           variant="outline"
-          className="text-xs py-0 h-6 min-w-0 px-1"
+          className="percentage-button text-xs py-0 h-6 min-w-0 px-1"
           onClick={() => handlePercentageClick(50)}
         >
           50%
         </Button>
         <Button
           variant="outline"
-          className="text-xs py-0 h-6 min-w-0 px-1"
+          className="percentage-button text-xs py-0 h-6 min-w-0 px-1"
           onClick={() => handlePercentageClick(75)}
         >
           75%
         </Button>
         <Button
           variant="outline"
-          className="text-xs py-0 h-6 min-w-0 px-1"
+          className="percentage-button text-xs py-0 h-6 min-w-0 px-1"
           onClick={() => handlePercentageClick(100)}
         >
           100%
@@ -394,19 +394,19 @@ export function TradingForm({
 
       <div className="mb-4">
         <div className="flex justify-between mb-1">
-          <div className="text-xs text-gray-400">Binance Fee</div>
-          <div className="text-xs text-white">= 0.00 {quoteAsset}</div>
+          <div className="text-xs text-[var(--text-secondary)]">Binance Fee</div>
+          <div className="text-xs text-[var(--text-primary)]">= 0.00 {quoteAsset}</div>
         </div>
         <div className="flex justify-between">
-          <div className="text-xs text-gray-400">Total</div>
-          <div className="text-xs text-white">
+          <div className="text-xs text-[var(--text-secondary)]">Total</div>
+          <div className="text-xs text-[var(--text-primary)]">
             = {total} {quoteAsset}
           </div>
         </div>
       </div>
 
       <Button
-        className={`w-full ${side === 'buy' ? 'bg-crypto-green hover:bg-crypto-green/90' : 'bg-crypto-red hover:bg-crypto-red/90'} text-white`}
+        className={`w-full ${side === 'buy' ? 'bg-crypto-green hover:bg-crypto-green/90' : 'bg-crypto-red hover:bg-crypto-red/90'} text-[var(--text-primary)]`}
         onClick={handlePlaceOrder}
         disabled={isSubmitting}
       >

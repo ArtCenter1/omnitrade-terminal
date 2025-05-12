@@ -2,6 +2,20 @@
 :root {
   --crypto-green: #00c853;
   --crypto-red: #ff3d71;
+  --crypto-purple: #673ab7; /* Add purple as a crypto color */
+  --crypto-green-hover: rgba(0, 200, 83, 0.9);
+  --crypto-red-hover: rgba(255, 61, 113, 0.9);
+  --crypto-purple-hover: rgba(103, 58, 183, 0.9);
+}
+
+/* Light theme adjustments for better contrast */
+:root:not(.dark) {
+  --crypto-green: #00a844;
+  --crypto-red: #e82d61;
+  --crypto-purple: #673ab7; /* Keep the same purple in both themes */
+  --crypto-green-hover: rgba(0, 168, 68, 0.9);
+  --crypto-red-hover: rgba(232, 45, 97, 0.9);
+  --crypto-purple-hover: rgba(103, 58, 183, 0.9);
 }
 
 .text-crypto-green {
@@ -12,10 +26,31 @@
   color: var(--crypto-red);
 }
 
+.text-crypto-purple {
+  color: var(--crypto-purple);
+}
+
 .bg-crypto-green {
   background-color: var(--crypto-green);
 }
 
 .bg-crypto-red {
   background-color: var(--crypto-red);
+}
+
+.bg-crypto-purple {
+  background-color: var(--crypto-purple);
+}
+
+/* Hover variants */
+.hover\:bg-crypto-green\/90:hover {
+  background-color: var(--crypto-green-hover);
+}
+
+.hover\:bg-crypto-red\/90:hover {
+  background-color: var(--crypto-red-hover);
+}
+
+.hover\:bg-crypto-purple\/90:hover {
+  background-color: var(--crypto-purple-hover);
 }

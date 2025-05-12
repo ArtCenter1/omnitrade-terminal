@@ -4,7 +4,7 @@ import { useSelectedAccount } from '@/hooks/useSelectedAccount';
 import { PortfolioAsset } from '@/types/exchange';
 import { TradingPair } from './TradingPairSelector';
 import { useBalances } from '@/hooks/useBalances';
-import * as enhancedCoinGeckoService from '@/services/enhancedCoinGeckoService';
+import * as optimizedCoinGeckoService from '@/services/optimizedCoinGeckoService';
 import { mockDataService } from '@/services/mockData';
 
 interface BalanceItemProps {
@@ -186,7 +186,7 @@ export function AvailableBalances({
             if (balance.asset === 'BTC') {
               try {
                 // Try to get price from CoinGecko
-                const price = await enhancedCoinGeckoService.getCurrentPrice(
+                const price = await optimizedCoinGeckoService.getCurrentPrice(
                   balance.asset,
                   'usd',
                 );
@@ -219,7 +219,7 @@ export function AvailableBalances({
             // For other assets, try CoinGecko first
             try {
               // Try to get price from CoinGecko
-              const price = await enhancedCoinGeckoService.getCurrentPrice(
+              const price = await optimizedCoinGeckoService.getCurrentPrice(
                 balance.asset,
                 'usd',
               );

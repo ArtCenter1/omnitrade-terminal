@@ -1,18 +1,23 @@
 /**
  * Market Watchlist Wrapper
- * 
+ *
  * A wrapper for the Market Watchlist component that implements the IComponent interface.
  */
 
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { 
-  ComponentLifecycleState, 
-  ComponentMetadata, 
-  IComponent 
+import {
+  ComponentLifecycleState,
+  ComponentMetadata,
+  IComponent,
 } from '@/lib/component-registry';
-import { BaseTerminalComponent, BaseTerminalComponentProps } from '../BaseTerminalComponent';
+import {
+  BaseTerminalComponent,
+  BaseTerminalComponentProps,
+} from '../BaseTerminalComponent';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { TabModule } from '@/components/terminal/TabModule';
+import { TabData } from '@/components/terminal/VSCodeTabs';
 
 /**
  * Market Watchlist Component Props
@@ -34,34 +39,41 @@ interface MarketWatchlistComponentState {
  * Simple Market Watchlist Component
  * This is a placeholder implementation until a real market watchlist is implemented
  */
-const SimpleMarketWatchlist: React.FC<{favorites?: boolean}> = ({ favorites = false }) => {
+const SimpleMarketWatchlist: React.FC<{ favorites?: boolean }> = ({
+  favorites = false,
+}) => {
   return (
     <div className="h-full p-4 overflow-y-auto">
-      <h3 className="text-lg font-medium mb-4">{favorites ? 'Favorite Markets' : 'All Markets'}</h3>
+      <h3 className="text-lg font-medium mb-4">
+        {favorites ? 'Favorite Markets' : 'All Markets'}
+      </h3>
       <div className="space-y-2">
-        {['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'XRP/USDT'].map((pair) => (
-          <div 
-            key={pair} 
-            className="flex items-center justify-between p-2 hover:bg-gray-800 rounded cursor-pointer"
-          >
-            <div className="flex items-center">
-              <div className="w-6 h-6 rounded-full bg-gray-700 mr-2"></div>
-              <span>{pair}</span>
+        {['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'XRP/USDT'].map(
+          (pair) => (
+            <div
+              key={pair}
+              className="flex items-center justify-between p-2 hover:bg-gray-800 rounded cursor-pointer"
+            >
+              <div className="flex items-center">
+                <div className="w-6 h-6 rounded-full bg-gray-700 mr-2"></div>
+                <span>{pair}</span>
+              </div>
+              <div className="text-green-500">+2.45%</div>
             </div>
-            <div className="text-green-500">+2.45%</div>
-          </div>
-        ))}
+          ),
+        )}
       </div>
     </div>
   );
 };
 
 /**
- * Market Watchlist Component React Implementation
+ * Market Watchlist Component Content
+ * This is the actual content that will be displayed inside the tab
  */
-const MarketWatchlistComponentReact: React.FC<MarketWatchlistComponentProps> = ({ 
-  id, 
-  favorites = false
+const MarketWatchlistContent: React.FC<MarketWatchlistComponentProps> = ({
+  id,
+  favorites = false,
 }) => {
   return (
     <div className="h-full flex flex-col">
@@ -73,12 +85,29 @@ const MarketWatchlistComponentReact: React.FC<MarketWatchlistComponentProps> = (
 };
 
 /**
+ * Market Watchlist Component React Implementation
+ */
+const MarketWatchlistComponentReact: React.FC<MarketWatchlistComponentProps> = (
+  props,
+) => {
+  return <MarketWatchlistContent {...props} />;
+};
+
+/**
  * Market Watchlist Component Class
  */
-export class MarketWatchlistComponent extends BaseTerminalComponent<MarketWatchlistComponentProps, MarketWatchlistComponentState> implements IComponent {
+export class MarketWatchlistComponent
+  extends BaseTerminalComponent<
+    MarketWatchlistComponentProps,
+    MarketWatchlistComponentState
+  >
+  implements IComponent
+{
   private root: any = null;
-  
-  constructor(props: MarketWatchlistComponentProps = { id: 'market-watchlist' }) {
+
+  constructor(
+    props: MarketWatchlistComponentProps = { id: 'market-watchlist' },
+  ) {
     super(
       {
         id: 'market-watchlist',
@@ -86,6 +115,11 @@ export class MarketWatchlistComponent extends BaseTerminalComponent<MarketWatchl
         description: 'Displays a list of trading pairs and their price changes',
         version: '1.0.0',
         category: 'market',
+        // Add the load function for dynamic import
+        load: () =>
+          import('./MarketWatchlistWrapper').then(
+            (m) => m.MarketWatchlistComponent,
+          ),
         tags: ['market', 'watchlist', 'pairs'],
         settings: [
           {
@@ -93,62 +127,100 @@ export class MarketWatchlistComponent extends BaseTerminalComponent<MarketWatchl
             type: 'boolean',
             label: 'Show Favorites',
             description: 'Show only favorite trading pairs',
-            defaultValue: false
-          }
-        ]
+            defaultValue: false,
+          },
+        ],
       },
-      props
+      props,
     );
-    
+
     this.componentState = {
       isLoading: true,
       error: null,
-      favorites: props.favorites || false
+      favorites: props.favorites || false,
     };
   }
-  
+
   /**
    * Initialize the component
    */
   protected async onInitialize(): Promise<void> {
     // Simulate loading
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise((resolve) => setTimeout(resolve, 300));
     this.componentState.isLoading = false;
   }
-  
+
+  /**
+   * Render the content of the component (to be used inside the tab)
+   */
+  protected renderContent(): React.ReactNode {
+    return (
+      <MarketWatchlistContent
+        id={this.props.id}
+        favorites={this.componentState.favorites}
+      />
+    );
+  }
+
   /**
    * Render the component
    */
   protected onRender(): void {
     if (!this.container) return;
-    
+
     // Create a root for React rendering
     this.root = createRoot(this.container);
-    
-    // Render the React component
+
+    // Create a tab with the component's content
+    const tabs = [
+      {
+        id: `${this.props.id}-tab`,
+        title: this.metadata.name || 'Watchlist',
+        content: this.renderContent(),
+        closable: false,
+      },
+    ];
+
+    // Render the TabModule with the component's content
     this.root.render(
-      <MarketWatchlistComponentReact
-        id={this.props.id}
-        favorites={this.componentState.favorites}
-      />
+      <ErrorBoundary>
+        <TabModule
+          moduleId={`${this.props.id}-module`}
+          initialTabs={tabs}
+          className="h-full"
+        />
+      </ErrorBoundary>,
     );
   }
-  
+
   /**
    * Update the component
    */
   protected onUpdate(): void {
     if (!this.root || !this.container) return;
-    
-    // Update the React component
+
+    // Create a tab with the updated component's content
+    const tabs = [
+      {
+        id: `${this.props.id}-tab`,
+        title: this.metadata.name || 'Watchlist',
+        content: this.renderContent(),
+        closable: false,
+      },
+    ];
+
+    // Update the TabModule with the component's content
     this.root.render(
-      <MarketWatchlistComponentReact
-        id={this.props.id}
-        favorites={this.componentState.favorites}
-      />
+      <ErrorBoundary>
+        <TabModule
+          moduleId={`${this.props.id}-module`}
+          initialTabs={tabs}
+          className="h-full"
+        />
+      </ErrorBoundary>,
     );
   }
-  
+
   /**
    * Dispose the component
    */
@@ -158,7 +230,7 @@ export class MarketWatchlistComponent extends BaseTerminalComponent<MarketWatchl
       this.root = null;
     }
   }
-  
+
   /**
    * Handle settings changes
    */
@@ -168,7 +240,7 @@ export class MarketWatchlistComponent extends BaseTerminalComponent<MarketWatchl
       this.onUpdate();
     }
   }
-  
+
   /**
    * Get the React component
    */

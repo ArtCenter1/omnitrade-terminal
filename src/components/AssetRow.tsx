@@ -193,9 +193,9 @@ export function AssetRow({ asset }: AssetRowProps) {
               return ((asset as Asset).value || 0).toFixed(2);
             } else {
               // For legacy asset type
-              if (typeof asset._rawValue === 'number') {
+              if (typeof (asset as any)._rawValue === 'number') {
                 // Use _rawValue if available (from TerminalTabs)
-                return asset._rawValue.toFixed(2);
+                return (asset as any)._rawValue.toFixed(2);
               } else if (typeof asset.value === 'string') {
                 // Handle string value that might start with $
                 return asset.value.startsWith('$')
@@ -219,9 +219,9 @@ export function AssetRow({ asset }: AssetRowProps) {
             return `$${(asset as Asset).value.toFixed(2)}`;
           } else {
             // For legacy asset type
-            if (typeof asset._rawValue === 'number') {
+            if (typeof (asset as any)._rawValue === 'number') {
               // Use _rawValue if available (from TerminalTabs)
-              return `$${asset._rawValue.toFixed(2)}`;
+              return `$${(asset as any)._rawValue.toFixed(2)}`;
             } else if (typeof asset.value === 'string') {
               // Handle string value that might already have $ prefix
               return asset.value.startsWith('$')
@@ -244,9 +244,9 @@ export function AssetRow({ asset }: AssetRowProps) {
             return `$${(asset as Asset).price.toFixed(2)}`;
           } else {
             // For legacy asset type
-            if (typeof asset._rawPrice === 'number') {
+            if (typeof (asset as any)._rawPrice === 'number') {
               // Use _rawPrice if available (from TerminalTabs)
-              return `$${asset._rawPrice.toFixed(2)}`;
+              return `$${(asset as any)._rawPrice.toFixed(2)}`;
             } else if (typeof asset.price === 'string') {
               // Handle string value that might already have $ prefix
               return asset.price.startsWith('$')

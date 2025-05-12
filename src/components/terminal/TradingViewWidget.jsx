@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, memo } from 'react';
+import { useTheme } from 'next-themes';
 
 function TradingViewWidget({ selectedPair }) {
   const container = useRef();
+  const { theme } = useTheme();
 
   // Get the default interval (daily)
   const getInterval = () => {
@@ -50,6 +52,12 @@ function TradingViewWidget({ selectedPair }) {
     const symbol = getSymbol();
     const interval = getInterval();
 
+    // Get the current theme (light or dark)
+    const currentTheme = theme === 'light' ? 'light' : 'dark';
+
+    // Set the toolbar background color based on theme
+    const toolbarBg = theme === 'light' ? 'rgba(245, 245, 250, 1)' : 'rgba(19, 23, 34, 1)';
+
     // Configure the widget
     script.innerHTML = `
       {
@@ -57,10 +65,10 @@ function TradingViewWidget({ selectedPair }) {
         "symbol": "${symbol}",
         "interval": "${interval}",
         "timezone": "Etc/UTC",
-        "theme": "dark",
+        "theme": "${currentTheme}",
         "style": "1",
         "locale": "en",
-        "toolbar_bg": "#131722",
+        "toolbar_bg": "${toolbarBg}",
         "enable_publishing": false,
         "hide_top_toolbar": false,
         "hide_side_toolbar": false,
@@ -81,7 +89,12 @@ function TradingViewWidget({ selectedPair }) {
           "header_compare",
           "header_undo_redo",
           "header_screenshot",
-          "use_localstorage_for_settings"
+          "use_localstorage_for_settings",
+          "header_settings",
+          "header_chart_type",
+          "header_indicators",
+          "header_saveload",
+          "header_fullscreen_button"
         ]
       }`;
 
@@ -97,16 +110,16 @@ function TradingViewWidget({ selectedPair }) {
         }
       }
     };
-  }, [selectedPair]); // Re-run when selectedPair changes
+  }, [selectedPair, theme]); // Re-run when selectedPair or theme changes
 
   return (
     <div
-      className="tradingview-widget-container"
+      className="tradingview-widget-container theme-transition"
       ref={container}
       style={{ height: '100%', width: '100%' }}
     >
       <div
-        className="tradingview-widget-container__widget"
+        className="tradingview-widget-container__widget theme-transition"
         style={{ height: '100%', width: '100%' }}
       ></div>
     </div>
