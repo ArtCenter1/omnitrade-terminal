@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 
 type BotCardProps = {
   bot: {
@@ -21,7 +21,7 @@ export function BotCard({ bot }: BotCardProps) {
             className={`w-12 h-12 ${bot.iconBg} rounded-full flex items-center justify-center mr-4`}
           >
             <img
-              src={bot.icon || "/placeholder.svg"}
+              src={bot.icon || '/placeholder.svg'}
               alt={bot.title}
               className="w-6 h-6"
             />
@@ -50,7 +50,7 @@ export function BotCard({ bot }: BotCardProps) {
                 {[...Array(5)].map((_, i) => (
                   <div
                     key={i}
-                    className={`w-1.5 h-4 rounded-sm ${i < bot.popularity! ? "bg-purple-500" : "bg-gray-700"}`}
+                    className={`w-1.5 h-4 rounded-sm ${i < bot.popularity! ? 'bg-purple-500' : 'bg-gray-700'}`}
                   />
                 ))}
               </div>
@@ -64,7 +64,7 @@ export function BotCard({ bot }: BotCardProps) {
                 {[...Array(5)].map((_, i) => (
                   <div
                     key={i}
-                    className={`w-1.5 h-4 rounded-sm ${i < bot.returns! ? "bg-purple-500" : "bg-gray-700"}`}
+                    className={`w-1.5 h-4 rounded-sm ${i < bot.returns! ? 'bg-purple-500' : 'bg-gray-700'}`}
                   />
                 ))}
               </div>

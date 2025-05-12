@@ -1,19 +1,22 @@
 /**
  * Trading Tabs Wrapper
- * 
+ *
  * A wrapper for the TradingTabs component that implements the IComponent interface.
  */
 
 import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { 
-  ComponentLifecycleState, 
-  ComponentMetadata, 
-  IComponent 
+import {
+  ComponentLifecycleState,
+  ComponentMetadata,
+  IComponent,
 } from '@/lib/component-registry';
-import { BaseTerminalComponent, BaseTerminalComponentProps } from '../BaseTerminalComponent';
+import {
+  BaseTerminalComponent,
+  BaseTerminalComponentProps,
+} from '../BaseTerminalComponent';
 import { TradingTabs } from '@/components/terminal/TradingTabs';
-import { TradingPair } from '@/components/terminal/TradingPairSelector';
+import { TradingPair } from '@/types/trading';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 /**
@@ -37,15 +40,15 @@ interface TradingTabsComponentState {
 /**
  * Trading Tabs Component React Implementation
  */
-const TradingTabsComponentReact: React.FC<TradingTabsComponentProps> = ({ 
-  id, 
+const TradingTabsComponentReact: React.FC<TradingTabsComponentProps> = ({
+  id,
   selectedPair,
-  onOrderPlaced
+  onOrderPlaced,
 }) => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const handleOrderPlaced = () => {
-    setRefreshTrigger(prev => prev + 1);
+    setRefreshTrigger((prev) => prev + 1);
     if (onOrderPlaced) {
       onOrderPlaced();
     }
@@ -54,7 +57,7 @@ const TradingTabsComponentReact: React.FC<TradingTabsComponentProps> = ({
   return (
     <div className="h-full flex flex-col">
       <ErrorBoundary>
-        <TradingTabs 
+        <TradingTabs
           selectedPair={selectedPair}
           onOrderPlaced={handleOrderPlaced}
           refreshTrigger={refreshTrigger}
@@ -67,9 +70,15 @@ const TradingTabsComponentReact: React.FC<TradingTabsComponentProps> = ({
 /**
  * Trading Tabs Component Class
  */
-export class TradingTabsComponent extends BaseTerminalComponent<TradingTabsComponentProps, TradingTabsComponentState> implements IComponent {
+export class TradingTabsComponent
+  extends BaseTerminalComponent<
+    TradingTabsComponentProps,
+    TradingTabsComponentState
+  >
+  implements IComponent
+{
   private root: any = null;
-  
+
   constructor(props: TradingTabsComponentProps = { id: 'terminal-tabs' }) {
     super(
       {
@@ -85,65 +94,65 @@ export class TradingTabsComponent extends BaseTerminalComponent<TradingTabsCompo
             type: 'string',
             label: 'Symbol',
             description: 'Trading pair symbol (e.g., BTC/USDT)',
-            defaultValue: 'BTC/USDT'
-          }
-        ]
+            defaultValue: 'BTC/USDT',
+          },
+        ],
       },
-      props
+      props,
     );
-    
+
     this.componentState = {
       isLoading: true,
       error: null,
       selectedPair: props.selectedPair,
-      refreshTrigger: 0
+      refreshTrigger: 0,
     };
   }
-  
+
   /**
    * Initialize the component
    */
   protected async onInitialize(): Promise<void> {
     // Simulate loading
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise((resolve) => setTimeout(resolve, 300));
     this.componentState.isLoading = false;
   }
-  
+
   /**
    * Render the component
    */
   protected onRender(): void {
     if (!this.container) return;
-    
+
     // Create a root for React rendering
     this.root = createRoot(this.container);
-    
+
     // Render the React component
     this.root.render(
       <TradingTabsComponentReact
         id={this.props.id}
         selectedPair={this.componentState.selectedPair}
         onOrderPlaced={this.handleOrderPlaced}
-      />
+      />,
     );
   }
-  
+
   /**
    * Update the component
    */
   protected onUpdate(): void {
     if (!this.root || !this.container) return;
-    
+
     // Update the React component
     this.root.render(
       <TradingTabsComponentReact
         id={this.props.id}
         selectedPair={this.componentState.selectedPair}
         onOrderPlaced={this.handleOrderPlaced}
-      />
+      />,
     );
   }
-  
+
   /**
    * Dispose the component
    */
@@ -153,20 +162,20 @@ export class TradingTabsComponent extends BaseTerminalComponent<TradingTabsCompo
       this.root = null;
     }
   }
-  
+
   /**
    * Handle order placed event
    */
   private handleOrderPlaced = (): void => {
     // Increment the refresh trigger to cause a refresh
     this.componentState.refreshTrigger += 1;
-    
+
     // Call the onOrderPlaced prop if provided
     if (this.props.onOrderPlaced) {
       this.props.onOrderPlaced();
     }
   };
-  
+
   /**
    * Handle settings changes
    */
@@ -179,13 +188,13 @@ export class TradingTabsComponent extends BaseTerminalComponent<TradingTabsCompo
           ...this.componentState.selectedPair,
           symbol: settings.symbol,
           baseAsset,
-          quoteAsset
+          quoteAsset,
         };
         this.onUpdate();
       }
     }
   }
-  
+
   /**
    * Get the React component
    */

@@ -1,0 +1,101 @@
+/**
+ * Component Tabs Styling
+ *
+ * This CSS file provides styling for component tabs to ensure they are properly displayed
+ * and consistent with the VS Code tab styling.
+ */
+
+/* Ensure tab headers are always visible */
+.tab-module .vscode-tabs-list {
+  display: flex;
+  background-color: var(--background-secondary, #1e1e1e);
+  border-bottom: 1px solid var(--border-color, #333);
+  min-height: 32px;
+}
+
+/* Style for tab headers */
+.tab-module .vscode-tab {
+  padding: 0 12px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  border-right: 1px solid var(--border-color, #333);
+  cursor: pointer;
+  user-select: none;
+  color: var(--text-secondary, #ccc);
+  font-size: 12px;
+  position: relative;
+  background-color: var(--background-tertiary, #252526);
+}
+
+/* Active tab styling */
+.tab-module .vscode-tab.active {
+  background-color: var(--background-primary, #1e1e1e);
+  color: var(--text-primary, #fff);
+  border-bottom: 1px solid var(--accent-color, #007acc);
+}
+
+/* Hover effect for tabs */
+.tab-module .vscode-tab:hover:not(.active) {
+  background-color: var(--background-hover, #2a2a2a);
+}
+
+/* Ensure tab content takes full height */
+.tab-module .vscode-tab-content {
+  height: calc(100% - 32px); /* Subtract tab header height */
+  overflow: hidden;
+}
+
+/* Style for tab panels */
+.tab-module .tab-panel {
+  height: 100%;
+  display: none;
+  overflow: auto;
+}
+
+/* Active tab panel */
+.tab-module .tab-panel.active {
+  display: block;
+}
+
+/* Ensure the tab module itself takes full height */
+.tab-module {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Drop indicators for tab dragging */
+.tab-module .drop-indicator {
+  position: absolute;
+  background-color: var(--accent-color, #007acc);
+  z-index: 10;
+}
+
+.tab-module .drop-indicator.left {
+  left: 0;
+  top: 0;
+  width: 2px;
+  height: 100%;
+}
+
+.tab-module .drop-indicator.right {
+  right: 0;
+  top: 0;
+  width: 2px;
+  height: 100%;
+}
+
+.tab-module .drop-indicator.top {
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 2px;
+}
+
+.tab-module .drop-indicator.bottom {
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 2px;
+}
