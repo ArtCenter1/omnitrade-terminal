@@ -47,6 +47,7 @@ function findStackById(
  */
 interface TerminalContainerProps {
   className?: string;
+  onOpenModuleSelector: (e: React.MouseEvent<HTMLButtonElement>) => void; // Added
 }
 
 /**
@@ -54,14 +55,37 @@ interface TerminalContainerProps {
  */
 export const TerminalContainer: React.FC<TerminalContainerProps> = ({
   className,
+  onOpenModuleSelector, // Added
 }) => {
   const { currentWorkspace } = useWorkspace();
   const containerRef = useRef<HTMLDivElement>(null);
 
   if (!currentWorkspace) {
+    // If there's no workspace, and the EmptyWorkspaceState is intended to be shown
+    // by the parent (TerminalWorkspace), we might need to render EmptyWorkspaceState here directly
+    // or ensure TerminalWorkspace handles this. For now, assuming TerminalWorkspace
+    // might show its own empty state or controls if no currentWorkspace.
+    // However, if currentWorkspace.root is empty, LayoutRenderer will handle EmptyWorkspaceState.
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-gray-400">No workspace selected</p>
+        {/* Pass onOpenModuleSelector to a potential EmptyWorkspaceState if rendered here */}
+        {/* <EmptyWorkspaceState onOpenModuleSelector={onOpenModuleSelector} /> */}
+        <p className="text-gray-400">
+          No workspace selected (or workspace root is missing)
+        </p>
+      </div>
+    );
+  }
+
+  // If currentWorkspace.root is null/undefined, it means an empty workspace.
+  // The ContainerRenderer (when its children are empty) will render EmptyWorkspaceState.
+  // We need to pass onOpenModuleSelector down to it.
+  if (!currentWorkspace.root) {
+    // This case should ideally be handled by ensuring currentWorkspace always has a root,
+    // even if it's an empty container. If root can be null, render EmptyWorkspaceState directly.
+    return (
+      <div ref={containerRef} className={`h-full w-full ${className || ''}`}>
+        <EmptyWorkspaceState onOpenModuleSelector={onOpenModuleSelector} />
       </div>
     );
   }
@@ -69,7 +93,10 @@ export const TerminalContainer: React.FC<TerminalContainerProps> = ({
   return (
     <div ref={containerRef} className={`h-full w-full ${className || ''}`}>
       <ErrorBoundary>
-        <LayoutRenderer layout={currentWorkspace.root} />
+        <LayoutRenderer
+          layout={currentWorkspace.root}
+          onOpenModuleSelector={onOpenModuleSelector}
+        />
       </ErrorBoundary>
     </div>
   );
@@ -80,16 +107,26 @@ export const TerminalContainer: React.FC<TerminalContainerProps> = ({
  */
 interface LayoutRendererProps {
   layout: LayoutItem;
+  onOpenModuleSelector: (e: React.MouseEvent<HTMLButtonElement>) => void; // Added
 }
 
 /**
  * Layout Renderer Component
  * Recursively renders the layout tree
  */
-const LayoutRenderer: React.FC<LayoutRendererProps> = ({ layout }) => {
+const LayoutRenderer: React.FC<LayoutRendererProps> = ({
+  layout,
+  onOpenModuleSelector,
+}) => {
+  // Added prop
   switch (layout.type) {
     case LayoutItemType.CONTAINER:
-      return <ContainerRenderer container={layout as ContainerLayoutItem} />;
+      return (
+        <ContainerRenderer
+          container={layout as ContainerLayoutItem}
+          onOpenModuleSelector={onOpenModuleSelector}
+        />
+      );
     case LayoutItemType.COMPONENT:
       return <ComponentRenderer component={layout as ComponentLayoutItem} />;
     case LayoutItemType.STACK:
@@ -104,12 +141,17 @@ const LayoutRenderer: React.FC<LayoutRendererProps> = ({ layout }) => {
  */
 interface ContainerRendererProps {
   container: ContainerLayoutItem;
+  onOpenModuleSelector: (e: React.MouseEvent<HTMLButtonElement>) => void; // Added
 }
 
 /**
  * Container Renderer Component
  */
-const ContainerRenderer: React.FC<ContainerRendererProps> = ({ container }) => {
+const ContainerRenderer: React.FC<ContainerRendererProps> = ({
+  container,
+  onOpenModuleSelector,
+}) => {
+  // Added prop
   const { children, direction, sizes } = container;
   const { currentWorkspace, updateWorkspace } = useWorkspace();
   const [dropTarget, setDropTarget] = useState<string | null>(null);
@@ -177,7 +219,7 @@ const ContainerRenderer: React.FC<ContainerRendererProps> = ({ container }) => {
           setDropPosition(null);
         }}
       >
-        <EmptyWorkspaceState />
+        <EmptyWorkspaceState onOpenModuleSelector={onOpenModuleSelector} />
         {renderDropIndicators(container.id)}
       </div>
     );
@@ -195,7 +237,10 @@ const ContainerRenderer: React.FC<ContainerRendererProps> = ({ container }) => {
         }}
       >
         <ErrorBoundary>
-          <LayoutRenderer layout={children[0]} />
+          <LayoutRenderer
+            layout={children[0]}
+            onOpenModuleSelector={onOpenModuleSelector}
+          />
         </ErrorBoundary>
         {renderDropIndicators(container.id)}
       </div>
@@ -205,11 +250,12 @@ const ContainerRenderer: React.FC<ContainerRendererProps> = ({ container }) => {
   const initialSizes = sizes || children.map(() => 100 / children.length);
 
   function handleContainerDragOver(e: React.DragEvent<HTMLDivElement>) {
+    console.log('onDragOver triggered in TerminalContainer'); // Added logging
     e.preventDefault();
     e.stopPropagation();
     let dragType = 'unknown';
     const isModuleDrag = e.dataTransfer.types.includes(
-      'application/omnitrade-module',
+      'application/x-module', // Point 1: Fix mismatched drag data type identifier
     );
     if (isModuleDrag) dragType = 'module';
     else if (e.dataTransfer.effectAllowed === 'move') dragType = 'tab';
@@ -234,60 +280,69 @@ const ContainerRenderer: React.FC<ContainerRendererProps> = ({ container }) => {
   }
 
   function handleContainerDrop(e: React.DragEvent<HTMLDivElement>) {
+    console.log('onDrop triggered in TerminalContainer'); // Added logging
     e.preventDefault();
     e.stopPropagation();
+    console.log('[TerminalContainer] handleContainerDrop triggered');
+    setDropTarget(null); // Clear visual indicators immediately
+    setDropPosition(null);
+
     try {
-      const isModuleDrop = e.dataTransfer.types.includes(
-        'application/omnitrade-module',
-      );
-      if (isModuleDrop && currentWorkspace) {
-        const moduleId = e.dataTransfer.getData('application/omnitrade-module');
-        if (moduleId) {
-          let moduleName = 'New Module';
-          try {
-            const dataText = e.dataTransfer.getData('text/plain');
-            if (dataText)
-              moduleName = JSON.parse(dataText).moduleName || moduleName;
-          } catch (err) {
-            console.warn('Could not parse module name');
-          }
-          const newComponent: ComponentLayoutItem = {
-            id: `component-${Date.now()}`,
-            type: LayoutItemType.COMPONENT,
-            componentId: moduleId,
-            title: moduleName,
-            componentState: {},
-          };
-          const newStack: StackLayoutItem = {
-            id: `stack-${Date.now()}`,
-            type: LayoutItemType.STACK,
-            children: [newComponent],
-            activeItemIndex: 0,
-          };
-          addItemToContainer(container, newStack, dropPosition);
-          return;
-        }
+      // Prioritize 'application/x-module', fallback to 'text/plain'
+      let dataText = e.dataTransfer.getData('application/x-module');
+      let dataType = 'application/x-module';
+      if (!dataText) {
+        dataText = e.dataTransfer.getData('text/plain');
+        dataType = 'text/plain';
+        console.log(
+          '[TerminalContainer] No application/x-module data, falling back to text/plain',
+        );
       }
-      const dataText = e.dataTransfer.getData('text/plain');
-      if (!dataText) return console.error('No drag data found');
-      const data = JSON.parse(dataText);
+
+      if (!dataText) {
+        console.error(
+          '[TerminalContainer] No drag data found in application/x-module or text/plain.',
+        );
+        return;
+      }
+
+      console.log(`[TerminalContainer] Received data (${dataType}):`, dataText);
+      let data;
+      try {
+        data = JSON.parse(dataText); // Point 4: Robust error handling for JSON.parse
+      } catch (parseError) {
+        console.error(
+          '[TerminalContainer] Failed to parse drag data JSON. Raw data:',
+          dataText,
+          'Error:',
+          parseError,
+        );
+        return; // Prevent further processing if JSON is invalid
+      }
+      console.log('[TerminalContainer] Parsed data:', data);
 
       if (data.type === 'module' && currentWorkspace) {
-        // Fallback
+        console.log('[TerminalContainer] Handling module drop...');
         if (data.moduleId) {
+          const newComponentId = `component-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+          const newStackId = `stack-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
           const newComponent: ComponentLayoutItem = {
-            id: `component-${Date.now()}`,
+            id: newComponentId,
             type: LayoutItemType.COMPONENT,
             componentId: data.moduleId,
             title: data.moduleName || 'New Module',
             componentState: {},
           };
           const newStack: StackLayoutItem = {
-            id: `stack-${Date.now()}`,
+            id: newStackId,
             type: LayoutItemType.STACK,
             children: [newComponent],
             activeItemIndex: 0,
           };
+          console.log(
+            '[TerminalContainer] Created new stack for module:',
+            newStack,
+          );
           addItemToContainer(container, newStack, dropPosition);
           return;
         }
@@ -379,8 +434,7 @@ const ContainerRenderer: React.FC<ContainerRendererProps> = ({ container }) => {
     } catch (error) {
       console.error('Error handling container drop:', error);
     }
-    setDropTarget(null);
-    setDropPosition(null);
+    // Indicators cleared at the start now
   }
 
   function addItemToContainer(
@@ -388,13 +442,23 @@ const ContainerRenderer: React.FC<ContainerRendererProps> = ({ container }) => {
     item: LayoutItem,
     position: 'left' | 'right' | 'top' | 'bottom' | 'center' | null,
   ) {
+    console.log('[TerminalContainer] addItemToContainer called:');
+    console.log('  > Target Container ID:', targetContainer.id);
+    console.log('  > Item to Add:', item);
+    console.log('  > Position:', position);
+
     if (!currentWorkspace) return;
+
     if (
       !position ||
       (position === 'center' && targetContainer.children.length === 0)
     ) {
+      console.log(
+        '[TerminalContainer] Adding item directly to container children (empty or no position)',
+      );
       const updatedContainer: ContainerLayoutItem = {
         ...targetContainer,
+        // Ensure sizes are recalculated if needed, or handle appropriately
         children: [...targetContainer.children, item],
       };
       updateWorkspace(
@@ -410,6 +474,7 @@ const ContainerRenderer: React.FC<ContainerRendererProps> = ({ container }) => {
       position === 'left' || position === 'right'
         ? SplitDirection.HORIZONTAL
         : SplitDirection.VERTICAL;
+
     if (position === 'center' && targetContainer.children.length > 0) {
       let activeChild = targetContainer.children[0];
       if (activeChild.type === LayoutItemType.STACK) {
@@ -418,6 +483,9 @@ const ContainerRenderer: React.FC<ContainerRendererProps> = ({ container }) => {
           item.type === LayoutItemType.STACK &&
           (item as StackLayoutItem).children.length > 0
         ) {
+          console.log(
+            '[TerminalContainer] Adding component to existing stack (center drop)',
+          );
           const updatedStack: StackLayoutItem = {
             ...stack,
             children: [
@@ -433,11 +501,12 @@ const ContainerRenderer: React.FC<ContainerRendererProps> = ({ container }) => {
           console.error(
             'Dropped item is not a valid stack or has no children to add to existing stack.',
           );
+          return; // Avoid further processing if item is invalid
         }
         return;
       }
       const newContainer: ContainerLayoutItem = {
-        id: `container-${Date.now()}`,
+        id: `container-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`, // More unique ID
         type: LayoutItemType.CONTAINER,
         direction: SplitDirection.HORIZONTAL, // Default to horizontal for center drop into non-stack
         children: [activeChild, item],
@@ -460,6 +529,9 @@ const ContainerRenderer: React.FC<ContainerRendererProps> = ({ container }) => {
       return;
     }
     if (targetContainer.direction === splitDirection) {
+      console.log(
+        '[TerminalContainer] Adding item to container with matching split direction',
+      );
       const newChildren = [...targetContainer.children];
       const insertIndex =
         position === 'left' || position === 'top' ? 0 : newChildren.length;
@@ -490,8 +562,13 @@ const ContainerRenderer: React.FC<ContainerRendererProps> = ({ container }) => {
         ),
       );
     } else {
-      const newContainer: ContainerLayoutItem = {
-        id: `container-${Date.now()}`,
+      // Split direction differs, wrap the existing container
+      console.log(
+        '[TerminalContainer] Wrapping container due to different split direction',
+      );
+      const newOuterContainer: ContainerLayoutItem = {
+        // Renamed for clarity from previous thinking step, matching original intent if 'newContainer' was used
+        id: `container-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`, // More unique ID
         type: LayoutItemType.CONTAINER,
         direction: splitDirection,
         children:
@@ -506,7 +583,7 @@ const ContainerRenderer: React.FC<ContainerRendererProps> = ({ container }) => {
       );
       if (parentContainer) {
         const updatedParentChildren = parentContainer.children.map((child) =>
-          child.id === targetContainer.id ? newContainer : child,
+          child.id === targetContainer.id ? container : child,
         );
         const updatedParent: ContainerLayoutItem = {
           ...parentContainer,
@@ -521,7 +598,7 @@ const ContainerRenderer: React.FC<ContainerRendererProps> = ({ container }) => {
         );
       } else {
         // This means targetContainer is the root
-        updateWorkspace({ ...currentWorkspace, root: newContainer });
+        updateWorkspace({ ...currentWorkspace, root: container });
       }
     }
   }
@@ -679,7 +756,10 @@ const ContainerRenderer: React.FC<ContainerRendererProps> = ({ container }) => {
             className="h-full w-full overflow-hidden relative"
           >
             <ErrorBoundary>
-              <LayoutRenderer layout={child} />
+              <LayoutRenderer
+                layout={child}
+                onOpenModuleSelector={onOpenModuleSelector}
+              />
             </ErrorBoundary>
             {/* Drop indicators for individual children might be complex here, handled by container level */}
           </div>
