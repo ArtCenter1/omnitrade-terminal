@@ -85,7 +85,9 @@ export const TerminalContainer: React.FC<TerminalContainerProps> = ({
     // even if it's an empty container. If root can be null, render EmptyWorkspaceState directly.
     return (
       <div ref={containerRef} className={`h-full w-full ${className || ''}`}>
-        <EmptyWorkspaceState onOpenModuleSelector={onOpenModuleSelector} />
+        <EmptyWorkspaceState
+          onOpenModuleSelector={() => onOpenModuleSelector(undefined as any)}
+        />
       </div>
     );
   }
@@ -219,7 +221,9 @@ const ContainerRenderer: React.FC<ContainerRendererProps> = ({
           setDropPosition(null);
         }}
       >
-        <EmptyWorkspaceState onOpenModuleSelector={onOpenModuleSelector} />
+        <EmptyWorkspaceState
+          onOpenModuleSelector={() => onOpenModuleSelector(undefined as any)}
+        />
         {renderDropIndicators(container.id)}
       </div>
     );

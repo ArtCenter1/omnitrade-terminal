@@ -197,7 +197,7 @@ const EmptyWorkspaceState: React.FC<EmptyWorkspaceStateProps> = ({
       <Button
         variant="default" // Assuming 'default' or 'primary' variant exists
         size="lg"
-        onClick={onOpenModuleSelector} // Changed: no event argument
+        onClick={() => onOpenModuleSelector()} // Changed: ensure no event argument is passed
       >
         Add Module
       </Button>
