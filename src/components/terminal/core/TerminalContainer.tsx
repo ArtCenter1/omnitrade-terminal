@@ -22,6 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs'; // Adj
 import { ErrorBoundary } from '../../ui/error-boundary'; // Adjusted
 import { useTheme } from 'next-themes';
 import EmptyWorkspaceState from '../../workspace/EmptyWorkspaceState'; // Corrected import
+import '../../../../src/styles/vscode-tabs.css'; // Import the new CSS file
 
 // Helper function to find a stack by ID - moved to a shared scope
 function findStackById(
@@ -888,22 +889,67 @@ const StackRenderer: React.FC<StackRendererProps> = ({ stack }) => {
     position: 'before' | 'after' | 'in'; // 'in' means add to this stack
     targetTabId?: string; // if position is 'before' or 'after' a specific tab
   } | null>(null);
+  interface DropIndicatorInfo {
+    targetTabId: string; // ID of the tab before/after which to show indicator
+    position: 'before' | 'after';
+  }
+  const [dropIndicator, setDropIndicator] = useState<DropIndicatorInfo | null>(null);
+
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
+
+    const dataText = e.dataTransfer.getData('text/plain');
+    let isSameStackDrag = false;
+    if (dataText) {
+      try {
+        const data = JSON.parse(dataText);
+        if (data.type === 'tab' && data.stackId === stackId) {
+          isSameStackDrag = true;
+        }
+      } catch (err) {
+        // Ignore parsing error, not a valid tab drag for this purpose
+      }
+    }
+
     if (e.dataTransfer.types.includes('application/omnitrade-tab')) {
       e.dataTransfer.dropEffect = 'move';
-      setDropTargetInfo({ targetStackId: stackId, position: 'in' }); // Default to adding 'in' the stack
+      if (isSameStackDrag) {
+        const currentTargetTabElement = (e.target as HTMLElement).closest('[role="tab"]');
+        if (currentTargetTabElement) {
+          const rect = currentTargetTabElement.getBoundingClientRect();
+          const isBefore = e.clientX < rect.left + rect.width / 2;
+          const targetTabId = currentTargetTabElement.getAttribute('data-value');
+          if (targetTabId && targetTabId !== draggedTab?.id) { // Don't show indicator on the dragged tab itself
+            setDropIndicator({ targetTabId, position: isBefore ? 'before' : 'after' });
+          } else {
+            setDropIndicator(null);
+          }
+        } else {
+          // Potentially indicate dropping at the end of the list if over TabsList but not a specific tab
+          // For now, clear if not directly over a tab. If TabsList has padding, this might clear too often.
+          // A more robust solution for end-of-list drop might involve checking bounds of TabsList itself.
+          setDropIndicator(null);
+        }
+      } else {
+        setDropIndicator(null); // Tab from another stack
+      }
+      // For general dropTargetInfo (e.g. highlighting whole stack for inter-stack drop)
+      // This logic might need refinement if we want BOTH a line indicator AND a stack highlight
+      setDropTargetInfo({ targetStackId: stackId, position: 'in' });
     } else {
       e.dataTransfer.dropEffect = 'none';
+      setDropIndicator(null);
+      setDropTargetInfo(null);
     }
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    setDropTargetInfo(null);
+    setDropIndicator(null); // Clear line indicator
+    setDropTargetInfo(null); // Clear general stack highlight/info
     setDraggedTab(null);
 
     if (!currentWorkspace) return;
@@ -916,13 +962,73 @@ const StackRenderer: React.FC<StackRendererProps> = ({ stack }) => {
       if (data.type === 'tab' && data.tabId && data.stackId) {
         if (data.stackId === stackId) {
           // Reordering within the same stack
-          const tabIndex = children.findIndex((c) => c.id === data.tabId);
-          // For simplicity, re-adding to the end. Proper reordering needs more logic.
-          // This part needs to be implemented if reordering within a stack is desired.
-          console.log(
-            'Reordering tab within the same stack - not fully implemented',
-          );
-          return; // Or implement reorder
+          const sourceTabIndex = children.findIndex(c => c.id === data.tabId);
+          if (sourceTabIndex === -1) {
+            console.error("Dragged tab not found in source stack's children for reordering.");
+            return; 
+          }
+
+          const draggedTabComponent = children[sourceTabIndex];
+
+          // Determine target index
+          let targetTabIndex = children.length -1; // Default to end of the list (if not dropping on a specific tab)
+
+          // Attempt to find the actual target tab trigger element
+          // e.target might be a child of the button, so use closest to find the tab trigger
+          const directTargetElement = e.target as HTMLElement;
+          const targetTabTrigger = directTargetElement.closest('[role="tab"]') as HTMLElement | null;
+
+          if (targetTabTrigger) {
+            const targetTabIdAttr = targetTabTrigger.getAttribute('data-value'); // Radix UI uses data-value for TabsTrigger value
+            if (targetTabIdAttr) {
+              const preliminaryTargetIndex = children.findIndex(c => c.id === targetTabIdAttr);
+              if (preliminaryTargetIndex !== -1) {
+                const rect = targetTabTrigger.getBoundingClientRect();
+                const isBefore = e.clientX < rect.left + rect.width / 2;
+                
+                if (preliminaryTargetIndex === sourceTabIndex) {
+                    // Dropping on itself
+                    targetTabIndex = isBefore ? preliminaryTargetIndex : preliminaryTargetIndex + 1;
+                } else {
+                    targetTabIndex = isBefore ? preliminaryTargetIndex : preliminaryTargetIndex + 1;
+                }
+              }
+            }
+          } else {
+            // Fallback: If not dropping directly on a tab (e.g., empty space in TabsList beyond current tabs),
+            // determine if the drop is to the far left or far right of the tab list.
+            // This part could be refined by checking e.clientX against the TabsList bounding rect.
+            // For now, if not on a specific tab, it defaults to adding at the end or near the source if it's a no-op.
+            // The default targetTabIndex (children.length - 1) handles adding to the end.
+            // If sourceTabIndex is already at the end, and we are not dropping on a specific tab,
+            // it might be a no-op or place it just before the end.
+            // For now, the existing default of children.length - 1 is a reasonable fallback.
+          }
+          
+          const newChildren = [...children];
+          newChildren.splice(sourceTabIndex, 1); // Remove from old position
+          
+          // Adjust targetTabIndex because the array is now shorter
+          // if the tab was moved from before the target's original position.
+          if (sourceTabIndex < targetTabIndex && targetTabIndex > 0) { // check targetTabIndex > 0 for safety
+            targetTabIndex--; 
+          }
+          
+          // Ensure targetTabIndex is within bounds
+          if (targetTabIndex < 0) targetTabIndex = 0;
+          if (targetTabIndex > newChildren.length) targetTabIndex = newChildren.length;
+
+          newChildren.splice(targetTabIndex, 0, draggedTabComponent); // Add to new position
+
+          const updatedStack: StackLayoutItem = {
+            ...stack,
+            children: newChildren,
+            activeItemIndex: targetTabIndex, // Make the moved tab active
+          };
+
+          const newWorkspace = updateStackInWorkspace(currentWorkspace, stackId, updatedStack);
+          updateWorkspace(newWorkspace);
+          return; 
         }
 
         // Find source stack and the tab being moved
@@ -986,7 +1092,14 @@ const StackRenderer: React.FC<StackRendererProps> = ({ stack }) => {
 
   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
     // Clear drop indicator if not dragging over a valid target within this stack
-    setDropTargetInfo(null);
+    // Check if the relatedTarget (where the mouse entered) is outside the TabsList
+    const currentTarget = e.currentTarget as HTMLElement; // This is the TabsList
+    const relatedTarget = e.relatedTarget as HTMLElement | null;
+
+    if (!relatedTarget || !currentTarget.contains(relatedTarget)) {
+      setDropIndicator(null);
+      setDropTargetInfo(null); // Also clear general stack highlight
+    }
   };
 
   if (!children || children.length === 0) {
@@ -1015,13 +1128,15 @@ const StackRenderer: React.FC<StackRendererProps> = ({ stack }) => {
     tab: ComponentLayoutItem,
   ) => {
     e.dataTransfer.effectAllowed = 'move';
+    // Ensure componentState is included, even if empty, for consistency.
+    const componentState = tab.componentState || {};
     const dragData = {
       type: 'tab',
       tabId: tab.id,
       stackId: stackId,
       componentId: tab.componentId,
       title: tab.title,
-      componentState: tab.componentState,
+      componentState: componentState,
     };
     e.dataTransfer.setData('text/plain', JSON.stringify(dragData));
     e.dataTransfer.setData('application/omnitrade-tab', tab.id); // Custom type for tab identification
@@ -1030,6 +1145,7 @@ const StackRenderer: React.FC<StackRendererProps> = ({ stack }) => {
 
   const handleDragEnd = (e: React.DragEvent<HTMLButtonElement>) => {
     setDraggedTab(null);
+    setDropIndicator(null);
     setDropTargetInfo(null);
   };
 
@@ -1109,19 +1225,34 @@ const StackRenderer: React.FC<StackRendererProps> = ({ stack }) => {
           onDragLeave={handleDragLeave}
         >
           {children.map((child) => (
-            <TabsTrigger
-              key={child.id}
-              value={child.id}
-              draggable
-              onDragStart={(e) => handleDragStart(e, child)}
-              onDragEnd={handleDragEnd}
-              className={`px-3 py-1.5 text-xs rounded-sm theme-transition 
-                data-[state=active]:bg-theme-primary data-[state=active]:text-theme-primary-foreground 
-                hover:bg-theme-accent hover:text-theme-accent-foreground
-                ${draggedTab?.id === child.id ? 'opacity-50' : ''}`}
-            >
-              {child.title || 'Untitled Tab'}
-            </TabsTrigger>
+            <React.Fragment key={child.id}>
+              {dropIndicator && dropIndicator.targetTabId === child.id && dropIndicator.position === 'before' && (
+                <div className="drop-indicator-before" />
+              )}
+              <TabsTrigger
+                key={child.id} // Keep key on TabsTrigger for React's reconciliation
+                value={child.id}
+                draggable
+                onDragStart={(e) => handleDragStart(e, child)}
+                onDragEnd={handleDragEnd}
+                // Add onDragOver to individual tabs if needed for more precise indicator control,
+                // but TabsList onDragOver should be mostly sufficient.
+                // onDragOver={(e) => {
+                //   // This could allow setting indicator if directly over a tab button,
+                //   // potentially more reliable than e.target in TabsList's onDragOver.
+                //   // However, this also means more event handlers.
+                // }}
+                className={`relative px-3 py-1.5 text-xs rounded-sm theme-transition 
+                  data-[state=active]:bg-theme-primary data-[state=active]:text-theme-primary-foreground 
+                  hover:bg-theme-accent hover:text-theme-accent-foreground
+                  ${draggedTab?.id === child.id ? 'opacity-50' : ''}`}
+              >
+                {child.title || 'Untitled Tab'}
+              </TabsTrigger>
+              {dropIndicator && dropIndicator.targetTabId === child.id && dropIndicator.position === 'after' && (
+                <div className="drop-indicator-after" />
+              )}
+            </React.Fragment>
           ))}
         </TabsList>
         {children.map((child) => (
