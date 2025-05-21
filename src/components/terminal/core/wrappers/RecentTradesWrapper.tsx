@@ -4,7 +4,7 @@
  * A wrapper for the Recent Trades component that implements the IComponent interface.
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   ComponentLifecycleState,
@@ -19,11 +19,16 @@ import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { TradingPair } from '@/types/trading';
 import { SafeTabModule } from '../../../ui/error-boundary/SafeTabModule';
 import { TabData } from '@/components/terminal/VSCodeTabs';
+import {
+  BinanceTestnetMarketDataService,
+  MarketDataEvent,
+} from '@/services/exchange/binanceTestnetMarketDataService';
 
 /**
  * Recent Trades Component Props
  */
 interface RecentTradesComponentProps extends BaseTerminalComponentProps {
+  id: string; // <-- Add id as required prop
   selectedPair?: TradingPair;
 }
 
@@ -34,76 +39,18 @@ interface RecentTradesComponentState {
   isLoading: boolean;
   error: Error | null;
   selectedPair?: TradingPair;
+  recentTrades: any[];
 }
 
 /**
  * Simple Recent Trades Component
  * This is a placeholder implementation until a real recent trades component is implemented
  */
-const SimpleRecentTrades: React.FC<{ selectedPair?: TradingPair }> = ({
-  selectedPair,
-}) => {
+const SimpleRecentTrades: React.FC<{
+  selectedPair?: TradingPair;
+  recentTrades: any[];
+}> = ({ selectedPair, recentTrades }) => {
   const symbol = selectedPair?.symbol || 'BTC/USDT';
-
-  // Generate some mock trades
-  const mockTrades = [
-    {
-      id: 1,
-      price: '64,235.50',
-      amount: '0.0125',
-      side: 'buy',
-      time: '12:45:32',
-    },
-    {
-      id: 2,
-      price: '64,230.25',
-      amount: '0.0532',
-      side: 'sell',
-      time: '12:45:28',
-    },
-    {
-      id: 3,
-      price: '64,228.75',
-      amount: '0.0210',
-      side: 'sell',
-      time: '12:45:15',
-    },
-    {
-      id: 4,
-      price: '64,240.00',
-      amount: '0.0075',
-      side: 'buy',
-      time: '12:45:10',
-    },
-    {
-      id: 5,
-      price: '64,238.50',
-      amount: '0.0350',
-      side: 'buy',
-      time: '12:45:05',
-    },
-    {
-      id: 6,
-      price: '64,225.00',
-      amount: '0.0420',
-      side: 'sell',
-      time: '12:44:58',
-    },
-    {
-      id: 7,
-      price: '64,222.75',
-      amount: '0.0180',
-      side: 'sell',
-      time: '12:44:45',
-    },
-    {
-      id: 8,
-      price: '64,245.25',
-      amount: '0.0095',
-      side: 'buy',
-      time: '12:44:32',
-    },
-  ];
 
   return (
     <div className="h-full p-2 overflow-y-auto">
@@ -119,26 +66,23 @@ const SimpleRecentTrades: React.FC<{ selectedPair?: TradingPair }> = ({
           <div>Time</div>
         </div>
 
-        {mockTrades.map((trade) => (
+        {recentTrades.map((trade, index) => (
           <div
-            key={trade.id}
+            key={index}
             className="grid grid-cols-4 gap-2 py-1 border-b border-gray-800"
           >
             <div
-              className={
-                trade.side === 'buy' ? 'text-green-500' : 'text-red-500'
-              }
+              className={trade.isBuyerMaker ? 'text-red-500' : 'text-green-500'}
             >
               {trade.price}
             </div>
-            <div>{trade.amount}</div>
+            <div>{trade.qty}</div>
             <div>
-              {(
-                parseFloat(trade.price.replace(',', '')) *
-                parseFloat(trade.amount)
-              ).toFixed(2)}
+              {(parseFloat(trade.price) * parseFloat(trade.qty)).toFixed(2)}
             </div>
-            <div className="text-gray-400">{trade.time}</div>
+            <div className="text-gray-400">
+              {new Date(trade.time).toLocaleTimeString()}
+            </div>
           </div>
         ))}
       </div>
@@ -150,14 +94,16 @@ const SimpleRecentTrades: React.FC<{ selectedPair?: TradingPair }> = ({
  * Recent Trades Component Content
  * This is the actual content that will be displayed inside the tab
  */
-const RecentTradesContent: React.FC<RecentTradesComponentProps> = ({
-  id,
-  selectedPair,
-}) => {
+const RecentTradesContent: React.FC<
+  RecentTradesComponentProps & { recentTrades: any[] }
+> = ({ id, selectedPair, recentTrades }) => {
   return (
     <div className="h-full flex flex-col">
       <ErrorBoundary>
-        <SimpleRecentTrades selectedPair={selectedPair} />
+        <SimpleRecentTrades
+          selectedPair={selectedPair}
+          recentTrades={recentTrades}
+        />
       </ErrorBoundary>
     </div>
   );
@@ -166,15 +112,68 @@ const RecentTradesContent: React.FC<RecentTradesComponentProps> = ({
 /**
  * Recent Trades Component React Implementation
  */
-const RecentTradesComponentReact: React.FC<RecentTradesComponentProps> = (
-  props,
-) => {
-  return <RecentTradesContent {...props} />;
+const RecentTradesComponentReact: React.FC<RecentTradesComponentProps> = ({
+  id,
+  selectedPair,
+}) => {
+  const [recentTrades, setRecentTrades] = useState([]);
+  const marketDataService = BinanceTestnetMarketDataService.getInstance();
+
+  useEffect(() => {
+    let eventListenerUnsubscribeFn: (() => void) | undefined;
+
+    const setupTradesSubscription = async () => {
+      await marketDataService.initialize(); // Ensure service is initialized
+      if (selectedPair) {
+        // 1. Inform the service we are interested in trades for this symbol.
+        // This call ensures the WebSocket stream for trades is active for selectedPair.symbol
+        // and that data is cached and events are emitted by the service.
+        marketDataService.subscribeTrades(selectedPair.symbol);
+
+        // 2. Subscribe to the marketDataService's general event emitter to receive trade data.
+        eventListenerUnsubscribeFn = marketDataService.subscribe(
+          (event: MarketDataEvent) => {
+            if (
+              event.type === 'trades' &&
+              event.symbol === selectedPair.symbol &&
+              Array.isArray(event.data)
+            ) {
+              setRecentTrades(event.data);
+            }
+          },
+        );
+
+        // 3. Populate initial trades from cache if available
+        const initialTrades = marketDataService.getCachedTrades(
+          selectedPair.symbol,
+        );
+        if (initialTrades) {
+          setRecentTrades(initialTrades);
+        }
+      }
+    };
+
+    setupTradesSubscription();
+
+    return () => {
+      if (eventListenerUnsubscribeFn) {
+        eventListenerUnsubscribeFn(); // Detach this component's callback from the event emitter.
+      }
+      // Note: The lifecycle of the underlying WebSocket stream for selectedPair.symbol
+      // is managed by BinanceTestnetMarketDataService and BinanceTestnetWebSocketService.
+      // They should handle stopping the stream when no listeners are interested (e.g., via reference counting).
+    };
+  }, [selectedPair, marketDataService]); // Added marketDataService to dependency array
+
+  return (
+    <RecentTradesContent
+      id={id}
+      selectedPair={selectedPair}
+      recentTrades={recentTrades}
+    />
+  );
 };
 
-/**
- * Recent Trades Component Class
- */
 export class RecentTradesComponent
   extends BaseTerminalComponent<
     RecentTradesComponentProps,
@@ -213,6 +212,7 @@ export class RecentTradesComponent
       isLoading: true,
       error: null,
       selectedPair: props.selectedPair,
+      recentTrades: [],
     };
   }
 
@@ -233,6 +233,7 @@ export class RecentTradesComponent
       <RecentTradesContent
         id={this.props.id}
         selectedPair={this.componentState.selectedPair}
+        recentTrades={this.componentState.recentTrades}
       />
     );
   }

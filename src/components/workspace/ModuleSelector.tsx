@@ -21,17 +21,14 @@ import {
 interface ModuleSelectorProps {
   onClose: () => void;
   usageCounts?: Record<string, number>;
-  anchorPosition?: {
-    top: number;
-    left: number;
-  };
+  // anchorPosition prop is removed
 }
 
 export function ModuleSelector({
   onClose,
   usageCounts = {},
-  anchorPosition,
-}: ModuleSelectorProps) {
+}: // anchorPosition prop is removed
+ModuleSelectorProps) {
   const [modules, setModules] = useState<ComponentMetadata[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -65,14 +62,14 @@ export function ModuleSelector({
       moduleName: module.name,
     };
 
-    console.log('Setting drag data:', dragData);
+    console.log(
+      'Setting drag data (application/x-module, text/plain):',
+      dragData,
+    );
     e.dataTransfer.setData('application/x-module', JSON.stringify(dragData));
-    e.dataTransfer.setData('text/plain', module.id); // Fallback for compatibility
 
-    // Set the drag type as a custom format that can be detected during dragover
-    e.dataTransfer.setData('application/omnitrade-module', module.id);
-
-    // Also set as text/plain for compatibility
+    // Set text/plain as well for broader compatibility, using the same JSON data.
+    // This overwrites any default text representation.
     e.dataTransfer.setData('text/plain', JSON.stringify(dragData));
 
     // Set drag effect
@@ -125,8 +122,8 @@ export function ModuleSelector({
     <div
       className="fixed z-[9999] pointer-events-auto"
       style={{
-        top: anchorPosition?.top || '60px',
-        left: anchorPosition?.left || '20px',
+        top: '60px', // Always use default top
+        left: '20px', // Always use default left
         width: '400px',
         maxWidth: 'calc(100vw - 40px)',
       }}

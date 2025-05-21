@@ -36,7 +36,7 @@ import { CreateWorkspaceDialog } from '@/components/workspace/CreateWorkspaceDia
  * Workspace Controls Component
  */
 const WorkspaceControls: React.FC<{
-  onOpenModuleSelector: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  onOpenModuleSelector: () => void; // Changed: no event argument
 }> = ({ onOpenModuleSelector }) => {
   const { state, currentWorkspace, setCurrentWorkspace, deleteWorkspace } =
     useWorkspace();
@@ -204,7 +204,7 @@ const WorkspaceControls: React.FC<{
         variant="outline"
         size="sm"
         className="h-8"
-        onClick={(e) => onOpenModuleSelector(e)}
+        onClick={onOpenModuleSelector} // Changed: no event argument
       >
         <Plus className="h-4 w-4 mr-2" />
         Add Module
@@ -236,23 +236,21 @@ const WorkspaceControls: React.FC<{
  */
 export default function TerminalWorkspace() {
   const [isModuleSelectorOpen, setIsModuleSelectorOpen] = useState(false);
-  const [moduleSelectorPosition, setModuleSelectorPosition] = useState<
-    { top: number; left: number } | undefined
-  >();
+  // Removed moduleSelectorPosition state
 
-  // Function to open the module selector with position
-  const handleOpenModuleSelector = (e: React.MouseEvent<HTMLButtonElement>) => {
-    // Get the button's position
-    const buttonRect = e.currentTarget.getBoundingClientRect();
-
-    // Set the position for the module selector
-    setModuleSelectorPosition({
-      top: buttonRect.bottom + window.scrollY + 5, // 5px below the button
-      left: buttonRect.left + window.scrollX,
-    });
-
-    // Open the module selector
+  // Function to open the module selector (now uses default top position)
+  const handleOpenModuleSelector = () => {
+    // Changed: no event argument
+    console.log(
+      '[TerminalWorkspace] Opening Module Selector (default top position)',
+    );
+    // No longer setting moduleSelectorPosition
     setIsModuleSelectorOpen(true);
+  };
+
+  const handleCloseModuleSelector = () => {
+    console.log('[TerminalWorkspace] Closing Module Selector');
+    setIsModuleSelectorOpen(false);
   };
 
   return (
@@ -280,7 +278,10 @@ export default function TerminalWorkspace() {
               onOpenModuleSelector={handleOpenModuleSelector}
             />
             <div className="flex-1 relative">
-              <TerminalContainer className="h-full" />
+              <TerminalContainer
+                className="h-full"
+                onOpenModuleSelector={handleOpenModuleSelector}
+              />
             </div>
 
             {/* Module Selector - positioned as a floating window */}
@@ -289,12 +290,12 @@ export default function TerminalWorkspace() {
                 {/* Semi-transparent backdrop */}
                 <div
                   className="fixed inset-0 bg-black/20 z-[9998] pointer-events-auto"
-                  onClick={() => setIsModuleSelectorOpen(false)}
+                  onClick={handleCloseModuleSelector}
                 />
 
                 <ModuleSelector
-                  onClose={() => setIsModuleSelectorOpen(false)}
-                  anchorPosition={moduleSelectorPosition}
+                  onClose={handleCloseModuleSelector}
+                  // Removed anchorPosition prop, ModuleSelector will use its defaults
                 />
               </>
             )}
