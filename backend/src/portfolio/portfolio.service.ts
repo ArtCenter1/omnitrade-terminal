@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Portfolio, PortfolioAsset } from '../types/exchange.types';
-import * as crypto from 'crypto';
 import { UserApiKey } from '../types/prisma.types';
+import { decrypt } from '../utils/encryption.util';
 
 // Mock data service for development
 class MockDataService {
@@ -78,20 +78,6 @@ class MockDataService {
       lastUpdated: new Date(),
     };
   }
-}
-
-// WARNING: For demo only. Use a secure key management system in production!
-const ENCRYPTION_KEY = crypto
-  .createHash('sha256')
-  .update('super_secret_key')
-  .digest(); // 32 bytes
-const IV = Buffer.alloc(16, 0); // 16 bytes IV (all zeros for demo)
-
-function decrypt(encryptedText: string): string {
-  const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY, IV);
-  let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
-  decrypted += decipher.final('utf8');
-  return decrypted;
 }
 
 @Injectable()

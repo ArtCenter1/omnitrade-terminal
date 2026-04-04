@@ -1,37 +1,14 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { CreateExchangeApiKeyDto } from './dto/create-exchange-api-key.dto';
-import * as crypto from 'crypto';
 import * as ccxt from 'ccxt';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserApiKey } from '../types/prisma.types';
+import { encrypt, decrypt } from '../utils/encryption.util';
 
 // Note: Using type assertions to fix TypeScript errors with Prisma
 // In a production environment, consider using a properly typed Prisma client
 // The remaining TypeScript errors are related to the 'any' type of the Prisma service
 // and can be safely ignored as we're using type assertions to ensure type safety
-
-// WARNING: For demo only. Use a secure key management system in production!
-const ENCRYPTION_KEY = crypto
-  .createHash('sha256')
-  .update('super_secret_key')
-  .digest(); // 32 bytes
-const IV = Buffer.alloc(16, 0); // 16 bytes IV (all zeros for demo)
-
-// const prisma = new PrismaClient(); // Removed in favor of PrismaService
-
-function encrypt(text: string): string {
-  const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, IV);
-  let encrypted = cipher.update(text, 'utf8', 'hex');
-  encrypted += cipher.final('hex');
-  return encrypted;
-}
-
-function decrypt(encrypted: string): string {
-  const decipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY, IV);
-  let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-  decrypted += decipher.final('utf8');
-  return decrypted;
-}
 
 @Injectable()
 export class ExchangeApiKeyService {
