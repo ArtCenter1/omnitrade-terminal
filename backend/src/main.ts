@@ -5,8 +5,29 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable CORS for all origins (development only; restrict in production)
-  app.enableCors({ origin: true });
+  // Enable CORS with whitelist from environment variables
+  const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+    : ['http://localhost:5173', 'http://localhost:3000']; // Default dev ports
+
+  app.enableCors({
+    origin: allowedOrigins,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+  });
+
+  // Manual security headers and protections
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.disable('x-powered-by'); // Disable X-Powered-By header
+
+  // Set standard security headers
+  app.use((req: any, res: any, next: any) => {
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    next();
+  });
 
   // Apply ValidationPipe globally
   app.useGlobalPipes(
