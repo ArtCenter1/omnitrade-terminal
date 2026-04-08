@@ -32,13 +32,29 @@ try {
 // Initialize Firebase Admin SDK only once
 if (!admin.apps.length) {
   try {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
+    if (
+      process.env.NODE_ENV === 'development' &&
+      (!serviceAccount.privateKey ||
+        serviceAccount.privateKey.includes('YOUR_PRIVATE_KEY'))
+    ) {
+      logger.warn(
+        'Firebase private key is missing or invalid. Using mock initialization for development.',
+      );
+      admin.initializeApp({
+        projectId: serviceAccount.projectId || 'mock-project-id',
+      });
+    } else {
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+    }
     logger.log('Firebase Admin SDK initialized successfully');
   } catch (error) {
     logger.error('Error initializing Firebase Admin SDK:', error);
-    throw error;
+    // In development, we might want to continue even if Firebase fails
+    if (process.env.NODE_ENV !== 'development') {
+      throw error;
+    }
   }
 }
 
