@@ -1,12 +1,36 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { globalRateLimiter } from './middleware/rate-limiter.middleware';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  // Enable CORS for all origins (development only; restrict in production)
-  app.enableCors({ origin: true });
+  // Disable X-Powered-By header for security
+  app.getHttpAdapter().getInstance().disable('x-powered-by');
+
+  // Restrict CORS to allowed origins
+  const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+    : ['http://localhost:3000', 'http://localhost:5173'];
+
+  app.enableCors({
+    origin: allowedOrigins,
+    credentials: true,
+  });
+
+  // Apply global rate limiter
+  app.use(globalRateLimiter);
+
+  // Apply manual security headers (Defense in Depth)
+  app.use((req: any, res: any, next: any) => {
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    next();
+  });
 
   // Apply ValidationPipe globally
   app.useGlobalPipes(
