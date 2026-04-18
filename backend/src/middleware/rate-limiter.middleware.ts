@@ -9,6 +9,10 @@ export const passwordResetLimiter = rateLimit({
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
 
+/**
+ * Global rate limiter for all API endpoints.
+ * Limits each IP to 300 requests per 15-minute window.
+ */
 export const globalRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 300, // Limit each IP to 300 requests per windowMs
