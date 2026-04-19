@@ -130,9 +130,8 @@ export class ExchangeApiKeyService {
       // Note: Assumes the stored exchange_id is compatible or mapped correctly.
       const exchangeId = (key as UserApiKey).exchange_id.toLowerCase(); // Example: 'binance', 'kraken'
 
-      // Check if the exchange is supported by ccxt by checking key existence
-      if (!(exchangeId in ccxt.exchanges)) {
-        // Added newline for formatting
+      // Check if the exchange is supported by ccxt
+      if (!(ccxt.exchanges as unknown as string[]).includes(exchangeId)) {
         throw new Error(
           `Exchange '${(key as UserApiKey).exchange_id}' is not supported by the validation library.`,
         );
