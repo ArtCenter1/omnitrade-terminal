@@ -2,9 +2,11 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { Request, Response, NextFunction } from 'express';
 import {
   globalRateLimiter,
   passwordResetLimiter,
+  apiKeyTestLimiter,
 } from './middleware/rate-limiter.middleware';
 
 async function bootstrap() {
@@ -33,11 +35,20 @@ async function bootstrap() {
   app.getHttpAdapter().getInstance().disable('x-powered-by');
 
   // Security: Manually enforce standard security headers
-  app.use((req: any, res: any, next: any) => {
+  app.use((req: Request, res: Response, next: NextFunction) => {
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('X-XSS-Protection', '0'); // Modern browsers ignore this, but 0 is recommended over '1; mode=block'
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader(
+      'Content-Security-Policy',
+      "default-src 'self'; script-src 'self'; object-src 'none'; frame-ancestors 'none'; upgrade-insecure-requests",
+    );
+    res.setHeader(
+      'Strict-Transport-Security',
+      'max-age=31536000; includeSubDomains',
+    );
+    res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
     next();
   });
 
@@ -46,6 +57,7 @@ async function bootstrap() {
 
   // Security: Specific rate limiting for sensitive endpoints
   app.use('/api/auth/password-reset-request', passwordResetLimiter);
+  app.use('/api/exchange-api-keys/:id/test', apiKeyTestLimiter);
 
   // Apply ValidationPipe globally
   app.useGlobalPipes(
