@@ -19,7 +19,10 @@ async function bootstrap() {
     : ['http://localhost:3000', 'http://localhost:5173'];
 
   app.enableCors({
-    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
       if (!origin || allowedOrigins.indexOf(origin) !== -1) {
         callback(null, true);
       } else {
@@ -33,13 +36,28 @@ async function bootstrap() {
   app.getHttpAdapter().getInstance().disable('x-powered-by');
 
   // Security: Manually enforce standard security headers
-  app.use((req: any, res: any, next: any) => {
-    res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-XSS-Protection', '1; mode=block');
-    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-    next();
-  });
+  app.use(
+    (
+      req: { [key: string]: any },
+      res: { setHeader: (name: string, value: string) => void },
+      next: () => void,
+    ) => {
+      res.setHeader('X-Frame-Options', 'DENY');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('X-XSS-Protection', '0'); // Disable buggy browser XSS filter in favor of CSP
+      res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+      res.setHeader(
+        'Strict-Transport-Security',
+        'max-age=31536000; includeSubDomains; preload',
+      );
+      res.setHeader(
+        'Content-Security-Policy',
+        "default-src 'self'; script-src 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self';",
+      );
+      res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+      next();
+    },
+  );
 
   // Security: Global rate limiting
   app.use(globalRateLimiter);
