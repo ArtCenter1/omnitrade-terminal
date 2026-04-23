@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 
@@ -45,7 +45,7 @@ describe('/auth/password-reset-request rate limiting (e2e)', () => {
         .post(endpoint)
         .set('X-Forwarded-For', '1.2.3.4')
         .send({ email: testEmail })
-        .expect((res) => {
+        .expect((res: any) => {
           // Accept 200, 201, or 204 (depending on implementation)
           if (![200, 201, 204].includes(res.status)) {
             throw new Error(`Unexpected status: ${res.status}`);
