@@ -187,7 +187,7 @@ export class ExchangeApiKeyService {
         } else if (error instanceof ccxt.NetworkError) {
           errorMessage = `API key connection failed: Network error (${error.message}).`;
         } else {
-          errorMessage = `API key connection failed: ${error.message}`;
+          errorMessage = 'API key connection failed: An internal validation error occurred.';
         }
       } else if (typeof error === 'string') {
         errorMessage = `API key connection failed: ${error}`;
