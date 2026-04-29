@@ -1,4 +1,9 @@
-import { Injectable, NestMiddleware, HttpException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NestMiddleware,
+  HttpException,
+  Logger,
+} from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { RedisService } from '../redis/redis.service';
 

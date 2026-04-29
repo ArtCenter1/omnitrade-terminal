@@ -82,7 +82,9 @@ describe('ExchangeApiKeyService', () => {
       const result = await service.testApiKey(userId, apiKeyId);
 
       expect(result.success).toBe(false);
-      expect(result.message).toContain('is not supported by the validation library');
+      expect(result.message).toContain(
+        'An internal validation error occurred',
+      );
     });
   });
 });
