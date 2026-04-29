@@ -16,7 +16,10 @@ export class ExchangeApiKeyService {
   /**
    * Add a new exchange API key for a user.
    */
-  async addApiKey(userId: string, dto: CreateExchangeApiKeyDto): Promise<Partial<UserApiKey>> {
+  async addApiKey(
+    userId: string,
+    dto: CreateExchangeApiKeyDto,
+  ): Promise<Partial<UserApiKey>> {
     // Validate exchange exists
     const exchange = await this.prisma.exchange.findUnique({
       where: { exchange_id: dto.exchange_id },
@@ -88,7 +91,10 @@ export class ExchangeApiKeyService {
   /**
    * Delete a specific exchange API key.
    */
-  async deleteApiKey(userId: string, apiKeyId: string): Promise<{ message: string }> {
+  async deleteApiKey(
+    userId: string,
+    apiKeyId: string,
+  ): Promise<{ message: string }> {
     // Ensure the key belongs to the user
     const key = await this.prisma.userApiKey.findUnique({
       where: { api_key_id: apiKeyId },
@@ -106,7 +112,10 @@ export class ExchangeApiKeyService {
    * Test the connection/credentials for a given exchange API key.
    * (This is a mock implementation. Replace with real exchange API call.)
    */
-  async testApiKey(userId: string, apiKeyId: string): Promise<{ success: boolean; message: string }> {
+  async testApiKey(
+    userId: string,
+    apiKeyId: string,
+  ): Promise<{ success: boolean; message: string }> {
     const key = await this.prisma.userApiKey.findUnique({
       where: { api_key_id: apiKeyId },
       select: {
@@ -185,12 +194,15 @@ export class ExchangeApiKeyService {
           // Let's assume 'key' is accessible as per original code structure.
           errorMessage = `API key connection failed: Exchange '${(key as UserApiKey)?.exchange_id || 'selected exchange'}' is currently unavailable.`;
         } else if (error instanceof ccxt.NetworkError) {
-          errorMessage = `API key connection failed: Network error (${error.message}).`;
+          errorMessage =
+            'API key connection failed: Network error. Please try again later.';
         } else {
-          errorMessage = `API key connection failed: ${error.message}`;
+          errorMessage =
+            'API key connection failed: An internal validation error occurred.';
         }
-      } else if (typeof error === 'string') {
-        errorMessage = `API key connection failed: ${error}`;
+      } else {
+        errorMessage =
+          'API key connection failed: An unexpected error occurred.';
       }
       // Log the full error object for debugging
       console.error('CCXT Test Error:', error);

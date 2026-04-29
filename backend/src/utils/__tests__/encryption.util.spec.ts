@@ -81,6 +81,8 @@ describe('Encryption Utility', () => {
     delete process.env.API_KEY_ENCRYPTION_KEY;
     process.env.NODE_ENV = 'production';
 
-    expect(() => encrypt('test')).toThrow('CRITICAL: API_KEY_ENCRYPTION_KEY is not set');
+    expect(() => encrypt('test')).toThrow(
+      'CRITICAL: API_KEY_ENCRYPTION_KEY is not set',
+    );
   });
 });
