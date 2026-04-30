@@ -177,17 +177,11 @@ export class ExchangeApiKeyService {
         if (error instanceof ccxt.AuthenticationError) {
           errorMessage = 'API key connection failed: Invalid credentials.';
         } else if (error instanceof ccxt.ExchangeNotAvailable) {
-          // Need 'key' in scope to use key.exchange_id. Let's use a generic message for now or fetch key again if needed.
-          // For simplicity, using a generic message based on instructions.
-          // If key.exchange_id is crucial, the 'key' variable would need to be accessible here.
-          // Reverting to a more generic message as 'key' might not be in scope if the initial findUnique failed,
-          // although the current structure fetches 'key' before the try block.
-          // Let's assume 'key' is accessible as per original code structure.
-          errorMessage = `API key connection failed: Exchange '${(key as UserApiKey)?.exchange_id || 'selected exchange'}' is currently unavailable.`;
+          errorMessage = 'API key connection failed: The exchange is currently unavailable. Please try again later.';
         } else if (error instanceof ccxt.NetworkError) {
-          errorMessage = `API key connection failed: Network error (${error.message}).`;
+          errorMessage = 'API key connection failed: Network error. Please try again later.';
         } else {
-          errorMessage = `API key connection failed: ${error.message}`;
+          errorMessage = 'API key connection failed: An internal validation error occurred.';
         }
       } else if (typeof error === 'string') {
         errorMessage = `API key connection failed: ${error}`;
