@@ -12,3 +12,8 @@
 **Vulnerability:** The `testApiKey` endpoint was leaking detailed library-specific error messages (from `ccxt`) to the client and lacked specific rate limiting, making it vulnerable to brute-force or DoS attacks.
 **Learning:** Returning raw exception messages from third-party libraries can expose backend implementation details or network topology. Furthermore, sensitive operations like credential validation must always have dedicated rate limits beyond the global API limit.
 **Prevention:** Always map library-specific errors to generic, safe messages for the client. Implement granular rate limiting for all endpoints that perform expensive or security-sensitive operations. Ensure E2E tests for rate limiting correctly simulate production conditions by setting `trust proxy` and matching global route prefixes.
+
+## 2026-05-02 - Public Proxy Endpoints Exposing API Quota
+**Vulnerability:** Market data proxy endpoints (`/api/proxy/coingecko/*` and `/api/proxy/binance-testnet/*`) were accessible without authentication. This allowed any external party to use the application's server as a proxy, consuming its API rate limit and potential pro-tier credits.
+**Learning:** Proxy endpoints are often overlooked during security audits. While they seem "read-only", they expose the server's identity and its associated third-party service quotas to the public.
+**Prevention:** All proxy endpoints must be protected by authentication guards, even if they only provide access to public market data, to protect the application's infrastructure and service quotas from abuse.

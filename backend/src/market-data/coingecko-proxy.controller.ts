@@ -1,5 +1,6 @@
-import { Controller, Param, All, Req, Logger, HttpException } from '@nestjs/common';
+import { Controller, Param, All, Req, Logger, HttpException, UseGuards } from '@nestjs/common';
 import axios from 'axios';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Request } from 'express';
 import { RedisService } from '../redis/redis.service';
 import { CircuitBreakerService, CircuitBreakerState } from './circuit-breaker.service';
@@ -18,6 +19,7 @@ interface ErrorResponse {
 }
 
 @Controller('proxy/coingecko')
+@UseGuards(JwtAuthGuard)
 export class CoinGeckoProxyController {
   private readonly logger = new Logger(CoinGeckoProxyController.name);
   private readonly baseUrl =
