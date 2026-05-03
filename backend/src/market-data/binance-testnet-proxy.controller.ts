@@ -1,8 +1,10 @@
-import { Controller, All, Req, Logger } from '@nestjs/common';
+import { Controller, All, Req, Logger, UseGuards } from '@nestjs/common';
 import axios from 'axios';
 import { Request } from 'express';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('proxy/binance-testnet')
+@UseGuards(JwtAuthGuard)
 export class BinanceTestnetProxyController {
   private readonly logger = new Logger(BinanceTestnetProxyController.name);
   private readonly baseUrl = 'https://testnet.binance.vision';
