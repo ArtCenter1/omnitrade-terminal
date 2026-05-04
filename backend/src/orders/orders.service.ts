@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { v4 as uuidv4 } from 'uuid';
+import { CreateOrderDto } from './dto/create-order.dto';
 
 // Define the Order interface
 export interface Order {
@@ -18,17 +19,6 @@ export interface Order {
   avgFillPrice?: number;
   createdAt: Date;
   updatedAt: Date;
-}
-
-// Define the CreateOrderDto
-export interface CreateOrderDto {
-  exchangeId: string;
-  symbol: string;
-  side: 'buy' | 'sell';
-  type: 'market' | 'limit' | 'stop' | 'stop_limit';
-  price?: number;
-  stopPrice?: number;
-  quantity: number;
 }
 
 @Injectable()
