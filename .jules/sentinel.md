@@ -17,3 +17,8 @@
 **Vulnerability:** Market data proxy endpoints (`/api/proxy/coingecko/*` and `/api/proxy/binance-testnet/*`) were accessible without authentication. This allowed any external party to use the application's server as a proxy, consuming its API rate limit and potential pro-tier credits.
 **Learning:** Proxy endpoints are often overlooked during security audits. While they seem "read-only", they expose the server's identity and its associated third-party service quotas to the public.
 **Prevention:** All proxy endpoints must be protected by authentication guards, even if they only provide access to public market data, to protect the application's infrastructure and service quotas from abuse.
+
+## 2026-05-04 - Unprotected and Under-Validated Trading Operations
+**Vulnerability:** The order placement endpoint lacked dedicated rate limiting and relied on a TypeScript interface for input validation. This made the system vulnerable to automated order spamming and allowed potentially malformed data (e.g., negative quantities) to bypass runtime checks.
+**Learning:** High-value operations like trade execution must have granular rate limits independent of global API limits. Furthermore, relying on TypeScript interfaces for DTOs in NestJS bypasses the `ValidationPipe` at runtime, as interfaces are erased during compilation.
+**Prevention:** Always implement specific rate limiters for critical business logic. Ensure all DTOs are implemented as classes with `class-validator` decorators to ensure consistent runtime validation and protect the service layer from malformed inputs.
