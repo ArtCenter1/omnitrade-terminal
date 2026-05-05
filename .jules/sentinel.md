@@ -17,3 +17,8 @@
 **Vulnerability:** Market data proxy endpoints (`/api/proxy/coingecko/*` and `/api/proxy/binance-testnet/*`) were accessible without authentication. This allowed any external party to use the application's server as a proxy, consuming its API rate limit and potential pro-tier credits.
 **Learning:** Proxy endpoints are often overlooked during security audits. While they seem "read-only", they expose the server's identity and its associated third-party service quotas to the public.
 **Prevention:** All proxy endpoints must be protected by authentication guards, even if they only provide access to public market data, to protect the application's infrastructure and service quotas from abuse.
+
+## 2026-05-05 - Critical User ID Mismatch in Multi-Tenant Endpoints
+**Vulnerability:** The orders endpoints were using `@User('userId')` to retrieve the authenticated user's ID, while the `JwtAuthGuard` was actually attaching it as `user_id`. This mismatch resulted in `undefined` being used for user-specific queries, potentially leading to cross-user data leakage or critical functional failures in a multi-tenant environment.
+**Learning:** Inconsistent naming of user identity properties between authentication guards and controllers is a high-risk vulnerability that can bypass data isolation.
+**Prevention:** Always verify the property names used in custom decorators and authentication guards. Implement E2E "isolation tests" that specifically attempt to access data from one user using the credentials of another to ensure proper boundary enforcement.
