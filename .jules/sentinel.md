@@ -17,3 +17,8 @@
 **Vulnerability:** Market data proxy endpoints (`/api/proxy/coingecko/*` and `/api/proxy/binance-testnet/*`) were accessible without authentication. This allowed any external party to use the application's server as a proxy, consuming its API rate limit and potential pro-tier credits.
 **Learning:** Proxy endpoints are often overlooked during security audits. While they seem "read-only", they expose the server's identity and its associated third-party service quotas to the public.
 **Prevention:** All proxy endpoints must be protected by authentication guards, even if they only provide access to public market data, to protect the application's infrastructure and service quotas from abuse.
+
+## 2026-05-07 - Broken Access Control via Incorrect Decorator Key
+**Vulnerability:** The `OrdersController` used `@User('userId')` to extract the authenticated user's ID. However, the `JwtAuthGuard` attached the ID using the key `user_id`. This mismatch caused `userId` to be `undefined` for all requests, effectively putting all orders into a single shared bucket and allowing any authenticated user to view or cancel any other user's orders.
+**Learning:** Custom decorators and manual request object manipulation can easily introduce "silent" broken access control if keys are not perfectly aligned. TypeScript may not catch these runtime property mismatches on the request object.
+**Prevention:** Standardize property keys across all guards and decorators. Always include E2E tests specifically designed to verify data isolation between different authenticated users to catch these regressions.
