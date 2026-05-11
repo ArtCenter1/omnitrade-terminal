@@ -17,3 +17,8 @@
 **Vulnerability:** Market data proxy endpoints (`/api/proxy/coingecko/*` and `/api/proxy/binance-testnet/*`) were accessible without authentication. This allowed any external party to use the application's server as a proxy, consuming its API rate limit and potential pro-tier credits.
 **Learning:** Proxy endpoints are often overlooked during security audits. While they seem "read-only", they expose the server's identity and its associated third-party service quotas to the public.
 **Prevention:** All proxy endpoints must be protected by authentication guards, even if they only provide access to public market data, to protect the application's infrastructure and service quotas from abuse.
+
+## 2026-05-11 - User ID Extraction Inconsistency and Missing Rate Limiting
+**Vulnerability:** The `OrdersController` was using `@User('userId')` while the authentication guard populated `user_id`, leading to `undefined` user IDs in security-critical operations. Additionally, the order placement endpoint lacked a dedicated rate limiter, exposing it to potential abuse or DoS.
+**Learning:** Inconsistent naming of user properties between decorators and authentication guards can silently break data isolation. Furthermore, critical business operations like order placement must always have specific rate limits beyond global API limits.
+**Prevention:** Standardize user object property names across the backend and verify them in controllers. Always implement granular rate limiting for sensitive transactional endpoints.
