@@ -9,7 +9,8 @@ import {
   UseGuards,
   Logger,
 } from '@nestjs/common';
-import { OrdersService, Order, CreateOrderDto } from './orders.service';
+import { OrdersService, Order } from './orders.service';
+import { CreateOrderDto } from './dto/create-order.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { User } from '../decorators/user.decorator';
 
@@ -22,7 +23,7 @@ export class OrdersController {
 
   @Post()
   async placeOrder(
-    @User('userId') userId: string,
+    @User('user_id') userId: string,
     @Body() createOrderDto: CreateOrderDto,
   ): Promise<Order> {
     this.logger.log(`Request to place order for user ${userId}`);
@@ -31,7 +32,7 @@ export class OrdersController {
 
   @Get()
   async getOrders(
-    @User('userId') userId: string,
+    @User('user_id') userId: string,
     @Query('exchangeId') exchangeId?: string,
     @Query('symbol') symbol?: string,
     @Query('status') status?: string,
@@ -42,7 +43,7 @@ export class OrdersController {
 
   @Get(':orderId')
   async getOrder(
-    @User('userId') userId: string,
+    @User('user_id') userId: string,
     @Param('orderId') orderId: string,
   ): Promise<Order> {
     this.logger.log(`Request for order ${orderId} of user ${userId}`);
@@ -51,7 +52,7 @@ export class OrdersController {
 
   @Delete(':orderId')
   async cancelOrder(
-    @User('userId') userId: string,
+    @User('user_id') userId: string,
     @Param('orderId') orderId: string,
   ): Promise<Order> {
     this.logger.log(`Request to cancel order ${orderId} for user ${userId}`);
