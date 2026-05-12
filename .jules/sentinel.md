@@ -17,3 +17,8 @@
 **Vulnerability:** Market data proxy endpoints (`/api/proxy/coingecko/*` and `/api/proxy/binance-testnet/*`) were accessible without authentication. This allowed any external party to use the application's server as a proxy, consuming its API rate limit and potential pro-tier credits.
 **Learning:** Proxy endpoints are often overlooked during security audits. While they seem "read-only", they expose the server's identity and its associated third-party service quotas to the public.
 **Prevention:** All proxy endpoints must be protected by authentication guards, even if they only provide access to public market data, to protect the application's infrastructure and service quotas from abuse.
+
+## 2025-06-05 - User ID Mismatch and Silent Validation Failure
+**Vulnerability:** A mismatch between the `JwtAuthGuard` (which set `user_id`) and the `OrdersController` (which requested `userId` via `@User('userId')`) broke data isolation, effectively grouping all orders under an `undefined` key. Simultaneously, using an `interface` for `CreateOrderDto` caused the global `ValidationPipe` to silently skip runtime validation.
+**Learning:** Decorators like `@User()` fail silently if the key is incorrect, returning `undefined`. Furthermore, NestJS `ValidationPipe` requires classes (not interfaces) to perform runtime checks based on decorators.
+**Prevention:** Always verify that controller decorators match the keys set by authentication guards. Use classes for DTOs to ensure that security-critical validation is enforced at the network boundary.

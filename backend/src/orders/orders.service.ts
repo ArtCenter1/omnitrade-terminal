@@ -20,16 +20,7 @@ export interface Order {
   updatedAt: Date;
 }
 
-// Define the CreateOrderDto
-export interface CreateOrderDto {
-  exchangeId: string;
-  symbol: string;
-  side: 'buy' | 'sell';
-  type: 'market' | 'limit' | 'stop' | 'stop_limit';
-  price?: number;
-  stopPrice?: number;
-  quantity: number;
-}
+import { CreateOrderDto } from './dto/create-order.dto';
 
 @Injectable()
 export class OrdersService {
