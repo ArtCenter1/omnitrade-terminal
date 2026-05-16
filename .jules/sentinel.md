@@ -17,3 +17,8 @@
 **Vulnerability:** Market data proxy endpoints (`/api/proxy/coingecko/*` and `/api/proxy/binance-testnet/*`) were accessible without authentication. This allowed any external party to use the application's server as a proxy, consuming its API rate limit and potential pro-tier credits.
 **Learning:** Proxy endpoints are often overlooked during security audits. While they seem "read-only", they expose the server's identity and its associated third-party service quotas to the public.
 **Prevention:** All proxy endpoints must be protected by authentication guards, even if they only provide access to public market data, to protect the application's infrastructure and service quotas from abuse.
+
+## 2026-05-16 - Broken Data Isolation due to Parameter Decorator Key Mismatch
+**Vulnerability:** In the `OrdersController`, the `@User('userId')` decorator was used to extract the user ID. However, the `JwtAuthGuard` and `FirebaseAuthMiddleware` were attaching the user object to the request with a `user_id` property. This mismatch caused `userId` to be `undefined`, leading to broken data isolation where user-specific queries and actions did not correctly filter by the authenticated user's ID.
+**Learning:** Security-critical parameter decorators must exactly match the keys used by authentication guards. A simple typo or mismatch here can completely bypass data isolation logic, as many database queries might return all records or fail silently when a filter parameter is `undefined`.
+**Prevention:** Always verify that parameter decorators used for authentication/authorization (like `@User`) align with the request object structure established by middleware. Implement E2E tests that specifically check for data isolation between different authenticated users.
