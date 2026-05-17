@@ -17,3 +17,8 @@
 **Vulnerability:** Market data proxy endpoints (`/api/proxy/coingecko/*` and `/api/proxy/binance-testnet/*`) were accessible without authentication. This allowed any external party to use the application's server as a proxy, consuming its API rate limit and potential pro-tier credits.
 **Learning:** Proxy endpoints are often overlooked during security audits. While they seem "read-only", they expose the server's identity and its associated third-party service quotas to the public.
 **Prevention:** All proxy endpoints must be protected by authentication guards, even if they only provide access to public market data, to protect the application's infrastructure and service quotas from abuse.
+
+## 2025-05-17 - Broken Access Control in OrdersController
+**Vulnerability:** The `OrdersController` used `@User('userId')` while the authentication middleware attached the user ID as `user_id`. This mismatch resulted in `undefined` user IDs, causing all users' orders to be stored in and retrieved from a single shared 'undefined' bucket.
+**Learning:** Inconsistent naming conventions between authentication decorators and middleware can lead to critical data isolation failures (Broken Access Control).
+**Prevention:** Always verify the exact key used by authentication guards/middleware when using custom parameter decorators. Implement E2E tests specifically for data isolation to catch such mismatches.
