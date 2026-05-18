@@ -5,7 +5,9 @@ import {
   Headers,
   InternalServerErrorException,
   Logger, // Import Logger
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import {
   MarketDataService,
   MarketCoin, // Import the new MarketCoin interface
@@ -86,6 +88,7 @@ export class MarketsDto {
 }
 
 @Controller('/v1/market-data')
+@UseGuards(JwtAuthGuard)
 export class MarketDataController {
   constructor(private readonly marketDataService: MarketDataService) {}
 

@@ -6,6 +6,8 @@ import {
   globalRateLimiter,
   passwordResetLimiter,
   apiKeyTestLimiter,
+  orderPlacementLimiter,
+  marketDataLimiter,
 } from './middleware/rate-limiter.middleware';
 
 async function bootstrap() {
@@ -66,6 +68,8 @@ async function bootstrap() {
   // Security: Specific rate limiting for sensitive endpoints
   app.use('/api/auth/password-reset-request', passwordResetLimiter);
   app.use('/api/exchange-api-keys/:id/test', apiKeyTestLimiter);
+  app.use('/api/orders', orderPlacementLimiter);
+  app.use('/api/v1/market-data', marketDataLimiter);
 
   // Apply ValidationPipe globally
   app.useGlobalPipes(
