@@ -5,6 +5,7 @@ import { IsString, IsOptional, Length } from 'class-validator';
  */
 export class CreateExchangeApiKeyDto {
   @IsString()
+  @Length(1, 50)
   exchange_id: string;
 
   @IsString()
@@ -17,5 +18,6 @@ export class CreateExchangeApiKeyDto {
 
   @IsOptional()
   @IsString()
+  @Length(1, 50)
   key_nickname?: string;
 }
