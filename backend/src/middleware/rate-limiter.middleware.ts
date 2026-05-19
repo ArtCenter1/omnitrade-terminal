@@ -22,6 +22,31 @@ export const globalRateLimiter = rateLimit({
 });
 
 /**
+ * Rate limiter for placing orders.
+ * Limits each IP to 20 requests per minute.
+ */
+export const orderPlacementLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 20, // Limit each IP to 20 requests per minute
+  message: 'Too many order placement requests. Please try again after a minute.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/**
+ * Rate limiter for market data endpoints.
+ * Limits each IP to 300 requests per 15-minute window.
+ */
+export const marketDataLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300, // Limit each IP to 300 requests per windowMs
+  message:
+    'Too many market data requests from this IP, please try again after 15 minutes',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/**
  * Rate limiter for testing exchange API keys.
  * Limits each IP to 10 requests per 15-minute window.
  */
