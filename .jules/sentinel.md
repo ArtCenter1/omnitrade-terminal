@@ -17,3 +17,8 @@
 **Vulnerability:** Market data proxy endpoints (`/api/proxy/coingecko/*` and `/api/proxy/binance-testnet/*`) were accessible without authentication. This allowed any external party to use the application's server as a proxy, consuming its API rate limit and potential pro-tier credits.
 **Learning:** Proxy endpoints are often overlooked during security audits. While they seem "read-only", they expose the server's identity and its associated third-party service quotas to the public.
 **Prevention:** All proxy endpoints must be protected by authentication guards, even if they only provide access to public market data, to protect the application's infrastructure and service quotas from abuse.
+
+## 2026-05-20 - Non-Runtime Validation on Sensitive DTOs
+**Vulnerability:** Sensitive endpoints, such as order placement, were using TypeScript interfaces for their Data Transfer Objects (DTOs). Since interfaces are removed during compilation, the global `ValidationPipe` could not perform runtime validation or sanitization, potentially allowing malformed data to reach the business logic.
+**Learning:** In NestJS, `ValidationPipe` requires class-based DTOs with `class-validator` decorators to enforce runtime constraints and automatically strip non-whitelisted properties.
+**Prevention:** Always implement DTOs as classes with explicit validation decorators for all external-facing API endpoints to ensure "fail-fast" security and data integrity.
