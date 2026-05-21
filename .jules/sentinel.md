@@ -17,3 +17,8 @@
 **Vulnerability:** Market data proxy endpoints (`/api/proxy/coingecko/*` and `/api/proxy/binance-testnet/*`) were accessible without authentication. This allowed any external party to use the application's server as a proxy, consuming its API rate limit and potential pro-tier credits.
 **Learning:** Proxy endpoints are often overlooked during security audits. While they seem "read-only", they expose the server's identity and its associated third-party service quotas to the public.
 **Prevention:** All proxy endpoints must be protected by authentication guards, even if they only provide access to public market data, to protect the application's infrastructure and service quotas from abuse.
+
+## 2026-05-21 - Insecure Input Validation and Test-Induced Secret Leaks
+**Vulnerability:** Order placement was relying on a TypeScript interface and basic manual checks, which bypassed runtime validation. Additionally, during the fix, temporary RSA keys used for E2E tests were nearly committed to the repository.
+**Learning:** TypeScript interfaces do not provide runtime security. NestJS requires class-based DTOs with `class-validator` decorators and the global `ValidationPipe` to effectively sanitize inputs. Furthermore, automated testing environments that require mock secrets must have strict cleanup procedures to prevent accidental credential leakage into version control.
+**Prevention:** Always use class-based DTOs for all request payloads. Use `@ValidateIf` for complex conditional logic (e.g., mandatory fields based on order type). Never commit temporary files created during testing (`*.pem`, `*.txt`) and ensure they are added to `.gitignore` or removed immediately after use.
