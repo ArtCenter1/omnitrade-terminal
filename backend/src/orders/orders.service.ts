@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { v4 as uuidv4 } from 'uuid';
+import { CreateOrderDto } from './dto/create-order.dto';
 
 // Define the Order interface
 export interface Order {
@@ -18,17 +19,6 @@ export interface Order {
   avgFillPrice?: number;
   createdAt: Date;
   updatedAt: Date;
-}
-
-// Define the CreateOrderDto
-export interface CreateOrderDto {
-  exchangeId: string;
-  symbol: string;
-  side: 'buy' | 'sell';
-  type: 'market' | 'limit' | 'stop' | 'stop_limit';
-  price?: number;
-  stopPrice?: number;
-  quantity: number;
 }
 
 @Injectable()
@@ -50,9 +40,6 @@ export class OrdersService {
     this.logger.log(
       `Placing order for user ${userId}: ${JSON.stringify(createOrderDto)}`,
     );
-
-    // Validate the order
-    this.validateOrder(createOrderDto);
 
     // Create a new order
     const newOrder: Order = {
@@ -180,50 +167,6 @@ export class OrdersService {
     userOrders[orderIndex] = order;
 
     return order;
-  }
-
-  /**
-   * Validate an order
-   */
-  private validateOrder(createOrderDto: CreateOrderDto): void {
-    // Check required fields
-    if (!createOrderDto.exchangeId) {
-      throw new Error('Exchange ID is required');
-    }
-
-    if (!createOrderDto.symbol) {
-      throw new Error('Symbol is required');
-    }
-
-    if (!createOrderDto.side) {
-      throw new Error('Side is required');
-    }
-
-    if (!createOrderDto.type) {
-      throw new Error('Type is required');
-    }
-
-    if (!createOrderDto.quantity || createOrderDto.quantity <= 0) {
-      throw new Error('Quantity must be greater than 0');
-    }
-
-    // Check type-specific fields
-    if (createOrderDto.type === 'limit' && !createOrderDto.price) {
-      throw new Error('Price is required for limit orders');
-    }
-
-    if (createOrderDto.type === 'stop' && !createOrderDto.stopPrice) {
-      throw new Error('Stop price is required for stop orders');
-    }
-
-    if (
-      createOrderDto.type === 'stop_limit' &&
-      (!createOrderDto.price || !createOrderDto.stopPrice)
-    ) {
-      throw new Error(
-        'Price and stop price are required for stop-limit orders',
-      );
-    }
   }
 
   /**
