@@ -1,6 +1,7 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { v4 as uuidv4 } from 'uuid';
+import { CreateOrderDto, OrderType, OrderSide } from './dto/create-order.dto';
 
 // Define the Order interface
 export interface Order {
@@ -8,8 +9,8 @@ export interface Order {
   userId: string;
   exchangeId: string;
   symbol: string;
-  side: 'buy' | 'sell';
-  type: 'market' | 'limit' | 'stop' | 'stop_limit';
+  side: OrderSide;
+  type: OrderType;
   status: 'new' | 'filled' | 'partially_filled' | 'canceled' | 'rejected';
   price?: number;
   stopPrice?: number;
@@ -18,17 +19,6 @@ export interface Order {
   avgFillPrice?: number;
   createdAt: Date;
   updatedAt: Date;
-}
-
-// Define the CreateOrderDto
-export interface CreateOrderDto {
-  exchangeId: string;
-  symbol: string;
-  side: 'buy' | 'sell';
-  type: 'market' | 'limit' | 'stop' | 'stop_limit';
-  price?: number;
-  stopPrice?: number;
-  quantity: number;
 }
 
 @Injectable()
@@ -51,7 +41,7 @@ export class OrdersService {
       `Placing order for user ${userId}: ${JSON.stringify(createOrderDto)}`,
     );
 
-    // Validate the order
+    // Additional validation if needed, though most is handled by ValidationPipe
     this.validateOrder(createOrderDto);
 
     // Create a new order
@@ -183,44 +173,26 @@ export class OrdersService {
   }
 
   /**
-   * Validate an order
+   * Validate an order (redundancy for ValidationPipe and additional logic)
    */
   private validateOrder(createOrderDto: CreateOrderDto): void {
-    // Check required fields
-    if (!createOrderDto.exchangeId) {
-      throw new Error('Exchange ID is required');
+    // Basic structural checks are handled by ValidationPipe/DTO decorators.
+    // This method can be used for more complex business logic validation.
+
+    // Extra check for type-specific fields just in case ValidationPipe is bypassed
+    if (createOrderDto.type === OrderType.LIMIT && !createOrderDto.price) {
+      throw new BadRequestException('Price is required for limit orders');
     }
 
-    if (!createOrderDto.symbol) {
-      throw new Error('Symbol is required');
-    }
-
-    if (!createOrderDto.side) {
-      throw new Error('Side is required');
-    }
-
-    if (!createOrderDto.type) {
-      throw new Error('Type is required');
-    }
-
-    if (!createOrderDto.quantity || createOrderDto.quantity <= 0) {
-      throw new Error('Quantity must be greater than 0');
-    }
-
-    // Check type-specific fields
-    if (createOrderDto.type === 'limit' && !createOrderDto.price) {
-      throw new Error('Price is required for limit orders');
-    }
-
-    if (createOrderDto.type === 'stop' && !createOrderDto.stopPrice) {
-      throw new Error('Stop price is required for stop orders');
+    if (createOrderDto.type === OrderType.STOP && !createOrderDto.stopPrice) {
+      throw new BadRequestException('Stop price is required for stop orders');
     }
 
     if (
-      createOrderDto.type === 'stop_limit' &&
+      createOrderDto.type === OrderType.STOP_LIMIT &&
       (!createOrderDto.price || !createOrderDto.stopPrice)
     ) {
-      throw new Error(
+      throw new BadRequestException(
         'Price and stop price are required for stop-limit orders',
       );
     }
