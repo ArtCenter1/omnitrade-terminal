@@ -17,3 +17,8 @@
 **Vulnerability:** Market data proxy endpoints (`/api/proxy/coingecko/*` and `/api/proxy/binance-testnet/*`) were accessible without authentication. This allowed any external party to use the application's server as a proxy, consuming its API rate limit and potential pro-tier credits.
 **Learning:** Proxy endpoints are often overlooked during security audits. While they seem "read-only", they expose the server's identity and its associated third-party service quotas to the public.
 **Prevention:** All proxy endpoints must be protected by authentication guards, even if they only provide access to public market data, to protect the application's infrastructure and service quotas from abuse.
+
+## 2026-05-25 - Validation Gap due to Type Erasure in DTOs
+**Vulnerability:** The Orders module used TypeScript interfaces for its CreateOrderDto. Because interfaces are erased at runtime, the NestJS global ValidationPipe (configured with 'whitelist: true') was unable to validate or strip incoming request bodies, allowing unvalidated data to reach the service layer and causing 500 errors instead of 400s.
+**Learning:** In NestJS, global validation pipes rely on class-based DTOs and decorators to perform runtime checks. Using interfaces bypasses this security layer entirely.
+**Prevention:** Always use classes with 'class-validator' decorators for all request DTOs. Ensure 'ValidationPipe' is globally enabled with 'transform: true' and 'whitelist: true' to enforce these schemas at the edge.

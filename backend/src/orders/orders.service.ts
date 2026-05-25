@@ -1,6 +1,12 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { v4 as uuidv4 } from 'uuid';
+import { CreateOrderDto, OrderSide, OrderType } from './dto/create-order.dto';
 
 // Define the Order interface
 export interface Order {
@@ -8,8 +14,8 @@ export interface Order {
   userId: string;
   exchangeId: string;
   symbol: string;
-  side: 'buy' | 'sell';
-  type: 'market' | 'limit' | 'stop' | 'stop_limit';
+  side: OrderSide | 'buy' | 'sell';
+  type: OrderType | 'market' | 'limit' | 'stop' | 'stop_limit';
   status: 'new' | 'filled' | 'partially_filled' | 'canceled' | 'rejected';
   price?: number;
   stopPrice?: number;
@@ -18,17 +24,6 @@ export interface Order {
   avgFillPrice?: number;
   createdAt: Date;
   updatedAt: Date;
-}
-
-// Define the CreateOrderDto
-export interface CreateOrderDto {
-  exchangeId: string;
-  symbol: string;
-  side: 'buy' | 'sell';
-  type: 'market' | 'limit' | 'stop' | 'stop_limit';
-  price?: number;
-  stopPrice?: number;
-  quantity: number;
 }
 
 @Injectable()
@@ -81,7 +76,10 @@ export class OrdersService {
     // For now, we'll just simulate a successful order placement
 
     // For market orders, simulate immediate fill
-    if (newOrder.type === 'market') {
+    if (
+      newOrder.type === OrderType.MARKET ||
+      (newOrder.type as string) === 'market'
+    ) {
       setTimeout(() => {
         this.simulateFill(newOrder.id, userId);
       }, 1000);
@@ -184,45 +182,14 @@ export class OrdersService {
 
   /**
    * Validate an order
+   * Note: Basic validation is handled by CreateOrderDto decorators.
+   * This method handles any additional business logic validation.
    */
   private validateOrder(createOrderDto: CreateOrderDto): void {
-    // Check required fields
-    if (!createOrderDto.exchangeId) {
-      throw new Error('Exchange ID is required');
-    }
-
-    if (!createOrderDto.symbol) {
-      throw new Error('Symbol is required');
-    }
-
-    if (!createOrderDto.side) {
-      throw new Error('Side is required');
-    }
-
-    if (!createOrderDto.type) {
-      throw new Error('Type is required');
-    }
-
-    if (!createOrderDto.quantity || createOrderDto.quantity <= 0) {
-      throw new Error('Quantity must be greater than 0');
-    }
-
-    // Check type-specific fields
-    if (createOrderDto.type === 'limit' && !createOrderDto.price) {
-      throw new Error('Price is required for limit orders');
-    }
-
-    if (createOrderDto.type === 'stop' && !createOrderDto.stopPrice) {
-      throw new Error('Stop price is required for stop orders');
-    }
-
-    if (
-      createOrderDto.type === 'stop_limit' &&
-      (!createOrderDto.price || !createOrderDto.stopPrice)
-    ) {
-      throw new Error(
-        'Price and stop price are required for stop-limit orders',
-      );
+    // Additional validation can be added here if needed
+    // Example: Check if user has enough balance (mocked)
+    if (createOrderDto.quantity > 1000000) {
+      throw new BadRequestException('Order quantity exceeds maximum limit');
     }
   }
 
