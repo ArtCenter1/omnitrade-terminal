@@ -342,12 +342,9 @@ export class CoinGeckoProxyController {
       // Copy query parameters
       const params = { ...req.query };
 
-      // Add API key if available
-      if (this.apiKey) {
-        params['x_cg_pro_api_key'] = this.apiKey;
-      }
-
       // Create a cache key from the URL and parameters
+      // Note: We explicitly do NOT add the API key to params here to avoid leaking it in the cache key
+      // or sending it as a query parameter. It is sent via headers in makeRequestWithRetry.
       const cacheKey = `coingecko:${endpoint}:${JSON.stringify(params)}`;
 
       // Determine the appropriate cache TTL and stale TTL
