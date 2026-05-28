@@ -11,8 +11,9 @@ import {
 import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { MarketDataService } from './market-data.service';
+import { getCorsOptions } from '../utils/cors.util';
 
-@WebSocketGateway({ path: '/ws/v1/market-data', cors: { origin: '*' } }) // Set path and allow CORS
+@WebSocketGateway({ path: '/ws/v1/market-data', cors: getCorsOptions() }) // Set path and restrict CORS
 export class MarketDataGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {

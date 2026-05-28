@@ -9,6 +9,7 @@ import {
   orderPlacementLimiter,
   marketDataLimiter,
 } from './middleware/rate-limiter.middleware';
+import { getCorsOptions } from './utils/cors.util';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -17,23 +18,7 @@ async function bootstrap() {
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
 
   // Security: CORS configuration with whitelist
-  const allowedOrigins = process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(',').map((origin) => origin.trim())
-    : ['http://localhost:3000', 'http://localhost:5173'];
-
-  app.enableCors({
-    origin: (
-      origin: string | undefined,
-      callback: (err: Error | null, allow?: boolean) => void,
-    ) => {
-      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-    credentials: true,
-  });
+  app.enableCors(getCorsOptions());
 
   // Security: Disable X-Powered-By header to reduce information leakage
   app.getHttpAdapter().getInstance().disable('x-powered-by');
