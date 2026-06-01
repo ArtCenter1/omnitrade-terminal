@@ -22,3 +22,8 @@
 **Vulnerability:** The Orders module used TypeScript interfaces for its CreateOrderDto. Because interfaces are erased at runtime, the NestJS global ValidationPipe (configured with 'whitelist: true') was unable to validate or strip incoming request bodies, allowing unvalidated data to reach the service layer and causing 500 errors instead of 400s.
 **Learning:** In NestJS, global validation pipes rely on class-based DTOs and decorators to perform runtime checks. Using interfaces bypasses this security layer entirely.
 **Prevention:** Always use classes with 'class-validator' decorators for all request DTOs. Ensure 'ValidationPipe' is globally enabled with 'transform: true' and 'whitelist: true' to enforce these schemas at the edge.
+
+## 2026-06-10 - Sensitive Information Leakage in Cache Keys and Query Parameters
+**Vulnerability:** The `COINGECKO_API_KEY` was being added to the `params` object in `CoinGeckoProxyController`, which was then included in the Redis cache key and sent as a query parameter to the CoinGecko API.
+**Learning:** Including secrets in cache keys or query strings makes them vulnerable to exposure in logs, monitoring tools, or intermediate proxies. It also pollutes the cache with sensitive data.
+**Prevention:** Always transmit API keys and other sensitive credentials via secure HTTP headers. Ensure that cache keys are constructed using only non-sensitive request parameters.
