@@ -28,7 +28,8 @@ export const globalRateLimiter = rateLimit({
 export const orderPlacementLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 20, // Limit each IP to 20 requests per minute
-  message: 'Too many order placement requests. Please try again after a minute.',
+  message:
+    'Too many order placement requests. Please try again after a minute.',
   standardHeaders: true,
   legacyHeaders: false,
 });

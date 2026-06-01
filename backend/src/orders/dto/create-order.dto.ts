@@ -1,4 +1,11 @@
-import { IsString, IsNumber, IsEnum, IsPositive, ValidateIf, IsNotEmpty } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsEnum,
+  IsPositive,
+  ValidateIf,
+  IsNotEmpty,
+} from 'class-validator';
 
 export enum OrderSide {
   BUY = 'buy',
@@ -35,14 +42,20 @@ export class CreateOrderDto {
   @IsPositive()
   quantity: number;
 
-  @ValidateIf((o) => o.type === OrderType.LIMIT || o.type === OrderType.STOP_LIMIT)
+  @ValidateIf(
+    (o) => o.type === OrderType.LIMIT || o.type === OrderType.STOP_LIMIT,
+  )
   @IsNotEmpty({ message: 'Price is required for limit and stop-limit orders' })
   @IsNumber()
   @IsPositive()
   price?: number;
 
-  @ValidateIf((o) => o.type === OrderType.STOP || o.type === OrderType.STOP_LIMIT)
-  @IsNotEmpty({ message: 'Stop price is required for stop and stop-limit orders' })
+  @ValidateIf(
+    (o) => o.type === OrderType.STOP || o.type === OrderType.STOP_LIMIT,
+  )
+  @IsNotEmpty({
+    message: 'Stop price is required for stop and stop-limit orders',
+  })
   @IsNumber()
   @IsPositive()
   stopPrice?: number;

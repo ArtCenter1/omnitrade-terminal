@@ -30,7 +30,9 @@ describe('AuthController', () => {
       }
 
       expect(error).toBeInstanceOf(HttpException);
-      expect((error as HttpException).getStatus()).toBe(HttpStatus.NOT_IMPLEMENTED);
+      expect((error as HttpException).getStatus()).toBe(
+        HttpStatus.NOT_IMPLEMENTED,
+      );
     });
   });
 });

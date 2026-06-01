@@ -52,7 +52,9 @@ describe('CreateOrderDto', () => {
     const errors = await validate(dto);
     expect(errors.length).toBeGreaterThan(0);
     expect(errors[0].constraints).toHaveProperty('isNotEmpty');
-    expect(errors[0].constraints?.isNotEmpty).toContain('Stop price is required');
+    expect(errors[0].constraints?.isNotEmpty).toContain(
+      'Stop price is required',
+    );
   });
 
   it('should pass if stopPrice is provided for stop order', async () => {

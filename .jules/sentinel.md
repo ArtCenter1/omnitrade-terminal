@@ -27,3 +27,8 @@
 **Vulnerability:** The `COINGECKO_API_KEY` was being added to the `params` object in `CoinGeckoProxyController`, which was then included in the Redis cache key and sent as a query parameter to the CoinGecko API.
 **Learning:** Including secrets in cache keys or query strings makes them vulnerable to exposure in logs, monitoring tools, or intermediate proxies. It also pollutes the cache with sensitive data.
 **Prevention:** Always transmit API keys and other sensitive credentials via secure HTTP headers. Ensure that cache keys are constructed using only non-sensitive request parameters.
+
+## 2026-06-01 - Upstream API Error Leakage in Proxy Controllers
+**Vulnerability:** Proxy controllers (`BinanceTestnetProxyController` and `CoinGeckoProxyController`) were returning raw `error.response.data` from upstream APIs to the client in their `catch` blocks.
+**Learning:** Upstream error payloads often contain internal details (e.g., specific error codes, internal system paths, or reflected parameters) that can be used for reconnaissance by an attacker.
+**Prevention:** Sanitize all error responses from third-party services. Only return the necessary status code and a generic message to the client, while logging the full error payload internally for debugging purposes.

@@ -37,7 +37,7 @@ describe('Orders Isolation (e2e)', () => {
     await app.close();
   });
 
-  it('should not allow User A to access User B\'s orders', async () => {
+  it("should not allow User A to access User B's orders", async () => {
     const userA = { uid: 'user-a', email: 'user-a@example.com' };
     const userB = { uid: 'user-b', email: 'user-b@example.com' };
 

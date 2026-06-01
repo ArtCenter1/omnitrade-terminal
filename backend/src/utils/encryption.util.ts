@@ -70,7 +70,11 @@ export function decrypt(encryptedText: string): string {
   }
 
   // Legacy decryption path
-  const decipher = crypto.createDecipheriv('aes-256-cbc', LEGACY_KEY, LEGACY_IV);
+  const decipher = crypto.createDecipheriv(
+    'aes-256-cbc',
+    LEGACY_KEY,
+    LEGACY_IV,
+  );
   let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
   decrypted += decipher.final('utf8');
   return decrypted;

@@ -24,14 +24,17 @@ export interface CircuitBreakerConfig {
 @Injectable()
 export class CircuitBreakerService {
   private readonly logger = new Logger(CircuitBreakerService.name);
-  private readonly circuits: Map<string, {
-    state: CircuitBreakerState;
-    failures: number;
-    lastFailure: number;
-    lastReset: number;
-    config: CircuitBreakerConfig;
-    halfOpenRequests: number;
-  }> = new Map();
+  private readonly circuits: Map<
+    string,
+    {
+      state: CircuitBreakerState;
+      failures: number;
+      lastFailure: number;
+      lastReset: number;
+      config: CircuitBreakerConfig;
+      halfOpenRequests: number;
+    }
+  > = new Map();
 
   /**
    * Default circuit breaker configuration
@@ -114,7 +117,9 @@ export class CircuitBreakerService {
     const circuit = this.circuits.get(name)!;
 
     if (circuit.state === CircuitBreakerState.HALF_OPEN) {
-      this.logger.log(`Circuit ${name} test request succeeded, closing circuit`);
+      this.logger.log(
+        `Circuit ${name} test request succeeded, closing circuit`,
+      );
       circuit.state = CircuitBreakerState.CLOSED;
       circuit.failures = 0;
       circuit.lastReset = Date.now();
@@ -137,7 +142,9 @@ export class CircuitBreakerService {
 
     // If we're in HALF_OPEN state, any failure reopens the circuit
     if (circuit.state === CircuitBreakerState.HALF_OPEN) {
-      this.logger.warn(`Circuit ${name} test request failed, reopening circuit`);
+      this.logger.warn(
+        `Circuit ${name} test request failed, reopening circuit`,
+      );
       circuit.state = CircuitBreakerState.OPEN;
       return;
     }
@@ -168,8 +175,14 @@ export class CircuitBreakerService {
   /**
    * Get all circuit states
    */
-  getAllCircuits(): Record<string, { state: CircuitBreakerState; failures: number }> {
-    const result: Record<string, { state: CircuitBreakerState; failures: number }> = {};
+  getAllCircuits(): Record<
+    string,
+    { state: CircuitBreakerState; failures: number }
+  > {
+    const result: Record<
+      string,
+      { state: CircuitBreakerState; failures: number }
+    > = {};
 
     this.circuits.forEach((circuit, name) => {
       result[name] = {

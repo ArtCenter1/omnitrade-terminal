@@ -67,13 +67,13 @@ export class BinanceTestnetProxyController {
         // that falls out of the range of 2xx
         this.logger.error(`Response error status: ${error.response.status}`);
         this.logger.error(
-          `Response error data: ${JSON.stringify(error.response.data)}`,
+          `Response error data (internal only): ${JSON.stringify(error.response.data)}`,
         );
 
         return {
           error: true,
           status: error.response.status,
-          data: error.response.data,
+          // data: error.response.data, // Removed to avoid leaking upstream API details
           message: `Binance Testnet API error: ${error.message}`,
         };
       } else if (error.request) {
