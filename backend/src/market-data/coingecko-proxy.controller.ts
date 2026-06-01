@@ -342,11 +342,6 @@ export class CoinGeckoProxyController {
       // Copy query parameters
       const params = { ...req.query };
 
-      // Add API key if available
-      if (this.apiKey) {
-        params['x_cg_pro_api_key'] = this.apiKey;
-      }
-
       // Create a cache key from the URL and parameters
       const cacheKey = `coingecko:${endpoint}:${JSON.stringify(params)}`;
 
