@@ -9,6 +9,7 @@ import {
 import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { TradingPairsService } from './trading-pairs.service';
+import { getCorsOptions } from '../utils/cors.util';
 
 interface SubscriptionData {
   exchangeId: string;
@@ -16,9 +17,7 @@ interface SubscriptionData {
 }
 
 @WebSocketGateway({
-  cors: {
-    origin: '*', // In production, restrict this to your frontend domain
-  },
+  cors: getCorsOptions(),
   namespace: 'trading',
 })
 export class TradingPairsGateway
