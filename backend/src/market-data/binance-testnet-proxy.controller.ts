@@ -73,8 +73,9 @@ export class BinanceTestnetProxyController {
         return {
           error: true,
           status: error.response.status,
-          data: error.response.data,
-          message: `Binance Testnet API error: ${error.message}`,
+          // Removed raw error data to prevent information leakage
+          message:
+            'Upstream Binance Testnet API error. Please try again later.',
         };
       } else if (error.request) {
         // The request was made but no response was received
