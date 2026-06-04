@@ -41,7 +41,9 @@ describe('API Key Test Rate Limiting (e2e)', () => {
           // We expect 401 (Unauthorized) because we're not sending a real token,
           // but NOT 429 (Too Many Requests).
           if (res.status === 429) {
-            throw new Error(`Should not be rate limited yet at request ${i + 1}`);
+            throw new Error(
+              `Should not be rate limited yet at request ${i + 1}`,
+            );
           }
         });
     }
@@ -62,7 +64,8 @@ describe('API Key Test Rate Limiting (e2e)', () => {
 
     expect(res.status).toBe(429);
     // express-rate-limit default message is sometimes in res.text if not JSON
-    const message = typeof res.body === 'string' ? res.body : (res.body.message || res.text);
+    const message =
+      typeof res.body === 'string' ? res.body : res.body.message || res.text;
     expect(message).toContain('Too many API key test requests');
   });
 });

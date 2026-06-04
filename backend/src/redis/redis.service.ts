@@ -106,7 +106,7 @@ export class RedisService implements OnModuleInit {
     key: string,
     ttlSeconds: number,
     fetchFn: () => Promise<string>,
-    staleTtlSeconds: number = 3600
+    staleTtlSeconds: number = 3600,
   ): Promise<string | null> {
     try {
       // First try to get from Redis
@@ -118,7 +118,7 @@ export class RedisService implements OnModuleInit {
           // Get both the value and its TTL
           const [valueResult, ttlResult] = await Promise.all([
             this.client.get(key),
-            this.client.ttl(key)
+            this.client.ttl(key),
           ]);
 
           value = valueResult;
@@ -142,7 +142,9 @@ export class RedisService implements OnModuleInit {
             }
           }
         } catch (redisError) {
-          this.logger.error(`Redis error in getWithRevalidate for ${key}: ${redisError.message}`);
+          this.logger.error(
+            `Redis error in getWithRevalidate for ${key}: ${redisError.message}`,
+          );
           // Fall back to in-memory cache
           const now = Date.now();
           const item = this.inMemoryFallback[key];
@@ -151,12 +153,16 @@ export class RedisService implements OnModuleInit {
             if (item.expiry > now) {
               // Fresh data
               value = item.value;
-              this.logger.log(`Using in-memory fallback for ${key} due to Redis error`);
+              this.logger.log(
+                `Using in-memory fallback for ${key} due to Redis error`,
+              );
             } else if (item.expiry > now - staleTtlSeconds * 1000) {
               // Stale but usable data
               value = item.value;
               isStale = true;
-              this.logger.log(`Using stale in-memory fallback for ${key} due to Redis error`);
+              this.logger.log(
+                `Using stale in-memory fallback for ${key} due to Redis error`,
+              );
             }
           }
         }
@@ -169,23 +175,31 @@ export class RedisService implements OnModuleInit {
           if (item.expiry > now) {
             // Fresh data
             value = item.value;
-            this.logger.log(`Using in-memory fallback for ${key} (Redis not connected)`);
+            this.logger.log(
+              `Using in-memory fallback for ${key} (Redis not connected)`,
+            );
           } else if (item.expiry > now - staleTtlSeconds * 1000) {
             // Stale but usable data
             value = item.value;
             isStale = true;
-            this.logger.log(`Using stale in-memory fallback for ${key} (Redis not connected)`);
+            this.logger.log(
+              `Using stale in-memory fallback for ${key} (Redis not connected)`,
+            );
           }
         }
       }
 
       // If we have a value (fresh or stale) and it's stale, trigger a background refresh
       if (value !== null && isStale) {
-        this.logger.log(`Returning stale data for ${key} while refreshing in background`);
+        this.logger.log(
+          `Returning stale data for ${key} while refreshing in background`,
+        );
 
         // Don't await this - let it run in the background
-        this.refreshCache(key, ttlSeconds, fetchFn).catch(err => {
-          this.logger.error(`Background refresh failed for ${key}: ${err.message}`);
+        this.refreshCache(key, ttlSeconds, fetchFn).catch((err) => {
+          this.logger.error(
+            `Background refresh failed for ${key}: ${err.message}`,
+          );
         });
       } else if (value === null) {
         // No value found, fetch fresh data
@@ -194,17 +208,23 @@ export class RedisService implements OnModuleInit {
           value = await fetchFn();
           await this.set(key, value, ttlSeconds);
         } catch (fetchError) {
-          this.logger.error(`Failed to fetch data for ${key}: ${fetchError.message}`);
+          this.logger.error(
+            `Failed to fetch data for ${key}: ${fetchError.message}`,
+          );
 
           // Last resort: try to get any expired data from Redis or memory
           try {
             const expiredData = await this.getWithoutExpiry(key);
             if (expiredData) {
-              this.logger.warn(`Using expired data for ${key} as last resort after fetch failure`);
+              this.logger.warn(
+                `Using expired data for ${key} as last resort after fetch failure`,
+              );
               return expiredData;
             }
           } catch (lastResortError) {
-            this.logger.error(`Failed to get expired data for ${key}: ${lastResortError.message}`);
+            this.logger.error(
+              `Failed to get expired data for ${key}: ${lastResortError.message}`,
+            );
           }
 
           return null;
@@ -213,12 +233,16 @@ export class RedisService implements OnModuleInit {
 
       return value;
     } catch (error) {
-      this.logger.error(`Error in getWithRevalidate for ${key}: ${error.message}`);
+      this.logger.error(
+        `Error in getWithRevalidate for ${key}: ${error.message}`,
+      );
 
       // Last resort: try to get any data from memory
       const item = this.inMemoryFallback[key];
       if (item) {
-        this.logger.warn(`Using potentially expired in-memory data for ${key} after error`);
+        this.logger.warn(
+          `Using potentially expired in-memory data for ${key} after error`,
+        );
         return item.value;
       }
 
@@ -233,7 +257,7 @@ export class RedisService implements OnModuleInit {
   private async refreshCache(
     key: string,
     ttlSeconds: number,
-    fetchFn: () => Promise<string>
+    fetchFn: () => Promise<string>,
   ): Promise<void> {
     try {
       const freshData = await fetchFn();
@@ -407,7 +431,9 @@ export class RedisService implements OnModuleInit {
       // Last resort: check in-memory fallback
       const item = this.inMemoryFallback[key];
       if (item) {
-        this.logger.warn(`Last resort: using in-memory data for ${key} after error`);
+        this.logger.warn(
+          `Last resort: using in-memory data for ${key} after error`,
+        );
         return item.value;
       }
       return null;
