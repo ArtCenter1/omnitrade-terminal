@@ -12,6 +12,10 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Request } from 'express';
 import { RedisService } from '../redis/redis.service';
 import { CircuitBreakerService } from './circuit-breaker.service';
+import {
+  CircuitBreakerService,
+  CircuitBreakerState,
+} from './circuit-breaker.service';
 
 // Define response types
 interface CoinGeckoResponse {
@@ -496,6 +500,11 @@ export class CoinGeckoProxyController {
           status: error.response?.status || 500,
           message: error.message,
           // data: (error.response?.data as Record<string, unknown>) || null, // Removed to avoid leaking upstream API details
+          message:
+            error.response?.status === 429
+              ? 'CoinGecko rate limit exceeded. Please try again later.'
+              : 'An error occurred while fetching data from CoinGecko.',
+          // Security: Do not leak raw error data from upstream API
         };
         return errorResponse;
       }

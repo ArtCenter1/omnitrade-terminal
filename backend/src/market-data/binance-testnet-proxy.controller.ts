@@ -75,6 +75,11 @@ export class BinanceTestnetProxyController {
           status: error.response.status,
           // data: error.response.data, // Removed to avoid leaking upstream API details
           message: `Binance Testnet API error: ${error.message}`,
+          // Security: Do not leak raw error data from upstream API
+          message:
+            error.response.status === 429
+              ? 'Binance Testnet rate limit exceeded. Please try again later.'
+              : 'An error occurred while fetching data from Binance Testnet.',
         };
       } else if (error.request) {
         // The request was made but no response was received

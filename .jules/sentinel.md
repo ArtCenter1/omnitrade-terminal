@@ -32,3 +32,7 @@
 **Vulnerability:** Proxy controllers (`BinanceTestnetProxyController` and `CoinGeckoProxyController`) were returning raw `error.response.data` from upstream APIs to the client in their `catch` blocks.
 **Learning:** Upstream error payloads often contain internal details (e.g., specific error codes, internal system paths, or reflected parameters) that can be used for reconnaissance by an attacker.
 **Prevention:** Sanitize all error responses from third-party services. Only return the necessary status code and a generic message to the client, while logging the full error payload internally for debugging purposes.
+## 2026-06-03 - Information Leakage in Proxy Error Responses
+**Vulnerability:** Upstream error data from CoinGecko and Binance was being passed directly to the client via the `data` field in error responses.
+**Learning:** Third-party APIs may include sensitive metadata, internal stack traces, or quota details in their error bodies. Direct passthrough of these bodies violates the principle of "Fail Securely".
+**Prevention:** Intercept all upstream errors and map them to a standardized, safe error format that excludes the raw response body.
