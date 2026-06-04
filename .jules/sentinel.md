@@ -27,3 +27,8 @@
 **Vulnerability:** The `COINGECKO_API_KEY` was being added to the `params` object in `CoinGeckoProxyController`, which was then included in the Redis cache key and sent as a query parameter to the CoinGecko API.
 **Learning:** Including secrets in cache keys or query strings makes them vulnerable to exposure in logs, monitoring tools, or intermediate proxies. It also pollutes the cache with sensitive data.
 **Prevention:** Always transmit API keys and other sensitive credentials via secure HTTP headers. Ensure that cache keys are constructed using only non-sensitive request parameters.
+
+## 2026-06-03 - Information Leakage in Proxy Error Responses
+**Vulnerability:** Upstream error data from CoinGecko and Binance was being passed directly to the client via the `data` field in error responses.
+**Learning:** Third-party APIs may include sensitive metadata, internal stack traces, or quota details in their error bodies. Direct passthrough of these bodies violates the principle of "Fail Securely".
+**Prevention:** Intercept all upstream errors and map them to a standardized, safe error format that excludes the raw response body.

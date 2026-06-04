@@ -1,9 +1,20 @@
-import { Controller, Param, All, Req, Logger, HttpException, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Param,
+  All,
+  Req,
+  Logger,
+  HttpException,
+  UseGuards,
+} from '@nestjs/common';
 import axios from 'axios';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Request } from 'express';
 import { RedisService } from '../redis/redis.service';
-import { CircuitBreakerService, CircuitBreakerState } from './circuit-breaker.service';
+import {
+  CircuitBreakerService,
+  CircuitBreakerState,
+} from './circuit-breaker.service';
 
 // Define response types
 interface CoinGeckoResponse {
@@ -43,7 +54,7 @@ export class CoinGeckoProxyController {
     // Static data that rarely changes
     'coins/*/contract/*': 28800, // 8 hours (increased from 4)
     'coins/*/history': 604800, // 7 days for historical data (increased from 72 hours)
-    'asset_platforms': 604800, // 7 days (increased from 72 hours)
+    asset_platforms: 604800, // 7 days (increased from 72 hours)
     'exchanges/list': 604800, // 7 days (increased from 72 hours)
 
     // Price data endpoints (more frequent updates needed)
@@ -70,7 +81,7 @@ export class CoinGeckoProxyController {
     // Static data can be stale for very long
     'coins/*/contract/*': 604800, // 7 days (increased from 72 hours)
     'coins/*/history': 5184000, // 60 days (increased from 30 days)
-    'asset_platforms': 5184000, // 60 days (increased from 30 days)
+    asset_platforms: 5184000, // 60 days (increased from 30 days)
     'exchanges/list': 5184000, // 60 days (increased from 30 days)
 
     // Price data should not be stale for too long, but we can still increase a bit
@@ -104,7 +115,7 @@ export class CoinGeckoProxyController {
 
     // Lowest priority
     'exchanges/list': 1,
-    'asset_platforms': 1,
+    asset_platforms: 1,
 
     // Default priority
     default: 5,
@@ -127,7 +138,7 @@ export class CoinGeckoProxyController {
 
   constructor(
     private readonly redisService: RedisService,
-    private readonly circuitBreakerService: CircuitBreakerService
+    private readonly circuitBreakerService: CircuitBreakerService,
   ) {
     // Register the CoinGecko circuit breaker with custom config
     this.circuitBreakerService.registerCircuit(this.CIRCUIT_NAME, {
@@ -149,18 +160,25 @@ export class CoinGeckoProxyController {
 
     // Remove timestamps older than the window
     this.requestTimestamps = this.requestTimestamps.filter(
-      timestamp => now - timestamp < this.REQUEST_WINDOW_MS
+      (timestamp) => now - timestamp < this.REQUEST_WINDOW_MS,
     );
 
     // Check if we've made too many requests
-    const underRateLimit = this.requestTimestamps.length < this.MAX_REQUESTS_PER_MINUTE;
+    const underRateLimit =
+      this.requestTimestamps.length < this.MAX_REQUESTS_PER_MINUTE;
 
     // Check if we've had a recent rate limit error
-    const lastRateLimitError = this.circuitBreakerService.getLastFailureTime(this.CIRCUIT_NAME);
-    const inCooldownPeriod = lastRateLimitError && (now - lastRateLimitError < this.RATE_LIMIT_COOLDOWN_MS);
+    const lastRateLimitError = this.circuitBreakerService.getLastFailureTime(
+      this.CIRCUIT_NAME,
+    );
+    const inCooldownPeriod =
+      lastRateLimitError &&
+      now - lastRateLimitError < this.RATE_LIMIT_COOLDOWN_MS;
 
     if (inCooldownPeriod) {
-      this.logger.warn(`In rate limit cooldown period (${Math.round((now - lastRateLimitError) / 1000)}s elapsed of ${this.RATE_LIMIT_COOLDOWN_MS / 1000}s cooldown)`);
+      this.logger.warn(
+        `In rate limit cooldown period (${Math.round((now - lastRateLimitError) / 1000)}s elapsed of ${this.RATE_LIMIT_COOLDOWN_MS / 1000}s cooldown)`,
+      );
       // If we're in cooldown, only allow 1 request per minute (ultra conservative)
       return this.requestTimestamps.length === 0;
     }
@@ -176,7 +194,7 @@ export class CoinGeckoProxyController {
     url: string,
     params: Record<string, any>,
     cacheKey: string,
-    cacheTtl: number
+    cacheTtl: number,
   ): Promise<any> {
     return new Promise((resolve, reject) => {
       this.requestQueue.push({
@@ -186,7 +204,7 @@ export class CoinGeckoProxyController {
         url,
         params,
         cacheKey,
-        cacheTtl
+        cacheTtl,
       });
 
       // If not already processing, start processing the queue
@@ -222,7 +240,7 @@ export class CoinGeckoProxyController {
             request.url,
             request.params,
             request.cacheKey,
-            request.cacheTtl
+            request.cacheTtl,
           );
 
           request.resolve(result);
@@ -231,8 +249,10 @@ export class CoinGeckoProxyController {
         }
       } else {
         // Wait before checking again
-        this.logger.warn('Rate limit reached, waiting before processing more requests');
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+        this.logger.warn(
+          'Rate limit reached, waiting before processing more requests',
+        );
+        await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 seconds
       }
     }
 
@@ -353,30 +373,38 @@ export class CoinGeckoProxyController {
       const isCritical = this.isEndpointCritical(endpoint);
 
       // Check circuit breaker state
-      const circuitClosed = this.circuitBreakerService.isAllowed(this.CIRCUIT_NAME);
+      const circuitClosed = this.circuitBreakerService.isAllowed(
+        this.CIRCUIT_NAME,
+      );
 
       // If circuit is open and this is not a critical endpoint, return stale data, mock data, or error
       if (!circuitClosed && !isCritical) {
-        this.logger.warn(`Circuit breaker open, blocking non-critical request to ${endpoint}`);
+        this.logger.warn(
+          `Circuit breaker open, blocking non-critical request to ${endpoint}`,
+        );
 
         // Try to get stale data from cache
         const staleData = await this.redisService.getWithoutExpiry(cacheKey);
         if (staleData) {
-          this.logger.warn(`Using stale cache data for ${targetUrl} due to open circuit breaker`);
+          this.logger.warn(
+            `Using stale cache data for ${targetUrl} due to open circuit breaker`,
+          );
           return JSON.parse(staleData) as CoinGeckoResponse;
         }
 
         // Try to get mock data
         const mockData = await this.getMockDataForEndpoint(endpoint, params);
         if (mockData) {
-          this.logger.warn(`Using mock data for ${targetUrl} due to open circuit breaker`);
+          this.logger.warn(
+            `Using mock data for ${targetUrl} due to open circuit breaker`,
+          );
           return mockData;
         }
 
         // No stale or mock data available, return error
         throw new HttpException(
           'Service temporarily unavailable due to rate limiting. Please try again later.',
-          503
+          503,
         );
       }
 
@@ -410,7 +438,7 @@ export class CoinGeckoProxyController {
         cacheKey,
         cacheTtl,
         fetchFn,
-        staleTtl
+        staleTtl,
       );
 
       if (cachedData) {
@@ -419,13 +447,17 @@ export class CoinGeckoProxyController {
 
       // If we get here, it means getWithRevalidate couldn't get data
       // This is a fallback path that should rarely be hit
-      this.logger.warn(`Cache miss and revalidation failed for ${targetUrl}, fetching directly`);
+      this.logger.warn(
+        `Cache miss and revalidation failed for ${targetUrl}, fetching directly`,
+      );
 
       try {
         // Check if we have mock data for this endpoint
         const mockData = await this.getMockDataForEndpoint(endpoint, params);
         if (mockData) {
-          this.logger.log(`Using mock data for ${targetUrl} due to rate limiting`);
+          this.logger.log(
+            `Using mock data for ${targetUrl} due to rate limiting`,
+          );
 
           // Cache the mock data as real data with a short TTL
           // This helps prevent repeated mock data generation
@@ -465,8 +497,11 @@ export class CoinGeckoProxyController {
         const errorResponse: ErrorResponse = {
           error: true,
           status: error.response?.status || 500,
-          message: error.message,
-          data: (error.response?.data as Record<string, unknown>) || null,
+          message:
+            error.response?.status === 429
+              ? 'CoinGecko rate limit exceeded. Please try again later.'
+              : 'An error occurred while fetching data from CoinGecko.',
+          // Security: Do not leak raw error data from upstream API
         };
         return errorResponse;
       }
@@ -502,7 +537,7 @@ export class CoinGeckoProxyController {
    */
   private async getMockDataForEndpoint(
     endpoint: string,
-    params: Record<string, any>
+    params: Record<string, any>,
   ): Promise<CoinGeckoResponse | null> {
     // Check if we have cached mock data
     const mockCacheKey = `mock:${endpoint}:${JSON.stringify(params)}`;
@@ -516,7 +551,8 @@ export class CoinGeckoProxyController {
     // Try to get the most recent real data from cache, even if expired
     // This is better than generating mock data if we have real data
     const realCacheKey = `coingecko:${endpoint}:${JSON.stringify(params)}`;
-    const staleRealData = await this.redisService.getWithoutExpiry(realCacheKey);
+    const staleRealData =
+      await this.redisService.getWithoutExpiry(realCacheKey);
 
     if (staleRealData) {
       this.logger.log(`Using stale real data as mock for ${endpoint}`);
@@ -537,7 +573,10 @@ export class CoinGeckoProxyController {
     } else if (endpoint.includes('simple/price')) {
       // Mock data for simple price
       mockData = this.generateMockSimplePrice(params);
-    } else if (endpoint.includes('coins/') && endpoint.includes('/market_chart')) {
+    } else if (
+      endpoint.includes('coins/') &&
+      endpoint.includes('/market_chart')
+    ) {
       // Mock data for market chart
       mockData = this.generateMockMarketChart(params);
     } else if (endpoint.match(/coins\/[^\/]+$/)) {
@@ -561,7 +600,11 @@ export class CoinGeckoProxyController {
     // Cache the mock data if generated
     if (mockData) {
       this.logger.log(`Generated and cached mock data for ${endpoint}`);
-      await this.redisService.set(mockCacheKey, JSON.stringify(mockData), 86400 * 30); // Cache for 30 days
+      await this.redisService.set(
+        mockCacheKey,
+        JSON.stringify(mockData),
+        86400 * 30,
+      ); // Cache for 30 days
     }
 
     return mockData;
@@ -570,7 +613,9 @@ export class CoinGeckoProxyController {
   /**
    * Generate mock data for coins/markets endpoint
    */
-  private generateMockCoinsMarkets(params: Record<string, any>): CoinGeckoResponse {
+  private generateMockCoinsMarkets(
+    params: Record<string, any>,
+  ): CoinGeckoResponse {
     const perPage = parseInt(params.per_page as string, 10) || 100;
     const page = parseInt(params.page as string, 10) || 1;
 
@@ -617,15 +662,15 @@ export class CoinGeckoProxyController {
           max_supply: 2100000 * (100 - index),
           ath: price * 2,
           ath_change_percentage: -50,
-          ath_date: "2021-11-10T14:24:11.849Z",
+          ath_date: '2021-11-10T14:24:11.849Z',
           atl: price * 0.1,
           atl_change_percentage: 900,
-          atl_date: "2013-07-06T00:00:00.000Z",
+          atl_date: '2013-07-06T00:00:00.000Z',
           roi: null,
           last_updated: new Date().toISOString(),
           sparkline_in_7d: {
-            price: this.generateSparklineData(168)
-          }
+            price: this.generateSparklineData(168),
+          },
         });
       }
     }
@@ -636,15 +681,17 @@ export class CoinGeckoProxyController {
   /**
    * Generate mock data for simple/price endpoint
    */
-  private generateMockSimplePrice(params: Record<string, any>): CoinGeckoResponse {
+  private generateMockSimplePrice(
+    params: Record<string, any>,
+  ): CoinGeckoResponse {
     const ids = ((params.ids as string) || '').split(',');
     const vsCurrencies = ((params.vs_currencies as string) || 'usd').split(',');
 
     const result: Record<string, Record<string, number>> = {};
 
-    ids.forEach(id => {
+    ids.forEach((id) => {
       result[id] = {};
-      vsCurrencies.forEach(currency => {
+      vsCurrencies.forEach((currency) => {
         result[id][currency] = this.getRandomPrice(id);
       });
     });
@@ -655,14 +702,16 @@ export class CoinGeckoProxyController {
   /**
    * Generate mock data for market_chart endpoint
    */
-  private generateMockMarketChart(params: Record<string, any>): CoinGeckoResponse {
+  private generateMockMarketChart(
+    params: Record<string, any>,
+  ): CoinGeckoResponse {
     const days = parseInt(params.days as string, 10) || 7;
     const points = days * 24; // Hourly data points
 
     return {
       prices: this.generateTimeSeriesData(points),
       market_caps: this.generateTimeSeriesData(points, 1000000),
-      total_volumes: this.generateTimeSeriesData(points, 500000)
+      total_volumes: this.generateTimeSeriesData(points, 500000),
     };
   }
 
@@ -672,16 +721,16 @@ export class CoinGeckoProxyController {
   private getRandomPrice(id: string): number {
     // Base prices for common coins
     const basePrices: Record<string, number> = {
-      'bitcoin': 50000,
-      'ethereum': 3000,
-      'binancecoin': 500,
-      'ripple': 0.5,
-      'cardano': 1.2,
-      'solana': 100,
-      'polkadot': 20,
-      'dogecoin': 0.1,
+      bitcoin: 50000,
+      ethereum: 3000,
+      binancecoin: 500,
+      ripple: 0.5,
+      cardano: 1.2,
+      solana: 100,
+      polkadot: 20,
+      dogecoin: 0.1,
       'avalanche-2': 30,
-      'chainlink': 15
+      chainlink: 15,
     };
 
     // Get base price or generate a random one
@@ -710,7 +759,10 @@ export class CoinGeckoProxyController {
   /**
    * Generate time series data for charts
    */
-  private generateTimeSeriesData(points: number, multiplier: number = 1): [number, number][] {
+  private generateTimeSeriesData(
+    points: number,
+    multiplier: number = 1,
+  ): [number, number][] {
     const data: [number, number][] = [];
     let value = 100 + Math.random() * 20;
     const now = Date.now();
@@ -729,26 +781,94 @@ export class CoinGeckoProxyController {
   /**
    * Generate mock data for any coin
    */
-  private generateMockCoinData(coinId: string, params: Record<string, any>): CoinGeckoResponse {
+  private generateMockCoinData(
+    coinId: string,
+    params: Record<string, any>,
+  ): CoinGeckoResponse {
     this.logger.log(`Generating mock data for coin: ${coinId}`);
 
     // Get coin info from our base coins list
     const baseCoins = [
-      { id: 'bitcoin', symbol: 'btc', name: 'Bitcoin', algorithm: 'SHA-256', category: 'Layer 1' },
-      { id: 'ethereum', symbol: 'eth', name: 'Ethereum', algorithm: 'Ethash', category: 'Layer 1' },
-      { id: 'binancecoin', symbol: 'bnb', name: 'Binance Coin', algorithm: 'BEP-2', category: 'Exchange Token' },
-      { id: 'ripple', symbol: 'xrp', name: 'XRP', algorithm: 'RPCA', category: 'Payment' },
-      { id: 'cardano', symbol: 'ada', name: 'Cardano', algorithm: 'Ouroboros', category: 'Layer 1' },
-      { id: 'solana', symbol: 'sol', name: 'Solana', algorithm: 'Proof of History', category: 'Layer 1' },
-      { id: 'polkadot', symbol: 'dot', name: 'Polkadot', algorithm: 'NPoS', category: 'Layer 0' },
-      { id: 'dogecoin', symbol: 'doge', name: 'Dogecoin', algorithm: 'Scrypt', category: 'Meme' },
-      { id: 'avalanche-2', symbol: 'avax', name: 'Avalanche', algorithm: 'Avalanche', category: 'Layer 1' },
-      { id: 'chainlink', symbol: 'link', name: 'Chainlink', algorithm: 'n/a', category: 'Oracle' },
+      {
+        id: 'bitcoin',
+        symbol: 'btc',
+        name: 'Bitcoin',
+        algorithm: 'SHA-256',
+        category: 'Layer 1',
+      },
+      {
+        id: 'ethereum',
+        symbol: 'eth',
+        name: 'Ethereum',
+        algorithm: 'Ethash',
+        category: 'Layer 1',
+      },
+      {
+        id: 'binancecoin',
+        symbol: 'bnb',
+        name: 'Binance Coin',
+        algorithm: 'BEP-2',
+        category: 'Exchange Token',
+      },
+      {
+        id: 'ripple',
+        symbol: 'xrp',
+        name: 'XRP',
+        algorithm: 'RPCA',
+        category: 'Payment',
+      },
+      {
+        id: 'cardano',
+        symbol: 'ada',
+        name: 'Cardano',
+        algorithm: 'Ouroboros',
+        category: 'Layer 1',
+      },
+      {
+        id: 'solana',
+        symbol: 'sol',
+        name: 'Solana',
+        algorithm: 'Proof of History',
+        category: 'Layer 1',
+      },
+      {
+        id: 'polkadot',
+        symbol: 'dot',
+        name: 'Polkadot',
+        algorithm: 'NPoS',
+        category: 'Layer 0',
+      },
+      {
+        id: 'dogecoin',
+        symbol: 'doge',
+        name: 'Dogecoin',
+        algorithm: 'Scrypt',
+        category: 'Meme',
+      },
+      {
+        id: 'avalanche-2',
+        symbol: 'avax',
+        name: 'Avalanche',
+        algorithm: 'Avalanche',
+        category: 'Layer 1',
+      },
+      {
+        id: 'chainlink',
+        symbol: 'link',
+        name: 'Chainlink',
+        algorithm: 'n/a',
+        category: 'Oracle',
+      },
     ];
 
     // Find the coin or use bitcoin as default
-    const coinInfo = baseCoins.find(c => c.id === coinId) ||
-                    { id: coinId, symbol: coinId.substring(0, 4), name: coinId.charAt(0).toUpperCase() + coinId.slice(1), algorithm: 'Unknown', category: 'Other' };
+    const coinInfo = baseCoins.find((c) => c.id === coinId) || {
+      id: coinId,
+      symbol: coinId.substring(0, 4),
+      name: coinId.charAt(0).toUpperCase() + coinId.slice(1),
+      algorithm: 'Unknown',
+      category: 'Other',
+    };
 
     // Generate price based on the coin
     const price = this.getRandomPrice(coinInfo.id);
@@ -901,7 +1021,9 @@ export class CoinGeckoProxyController {
   /**
    * Generate mock data for Bitcoin (for backward compatibility)
    */
-  private generateMockBitcoinData(params: Record<string, any>): CoinGeckoResponse {
+  private generateMockBitcoinData(
+    params: Record<string, any>,
+  ): CoinGeckoResponse {
     return this.generateMockCoinData('bitcoin', params);
   }
 
@@ -914,7 +1036,11 @@ export class CoinGeckoProxyController {
 
     const exchanges = [
       { name: 'Binance', identifier: 'binance', url: 'https://binance.com' },
-      { name: 'Coinbase Exchange', identifier: 'coinbase', url: 'https://exchange.coinbase.com' },
+      {
+        name: 'Coinbase Exchange',
+        identifier: 'coinbase',
+        url: 'https://exchange.coinbase.com',
+      },
       { name: 'Kraken', identifier: 'kraken', url: 'https://kraken.com' },
       { name: 'KuCoin', identifier: 'kucoin', url: 'https://kucoin.com' },
       { name: 'Huobi', identifier: 'huobi', url: 'https://huobi.com' },
@@ -966,7 +1092,9 @@ export class CoinGeckoProxyController {
             eth: volume / this.getRandomPrice('ethereum'),
             usd: volume,
           },
-          trust_score: ['green', 'yellow', 'red'][Math.floor(Math.random() * 3)],
+          trust_score: ['green', 'yellow', 'red'][
+            Math.floor(Math.random() * 3)
+          ],
           bid_ask_spread_percentage: Math.random() * 2,
           timestamp: new Date().toISOString(),
           last_traded_at: new Date().toISOString(),
@@ -1030,15 +1158,18 @@ export class CoinGeckoProxyController {
    * Generate mock data for search endpoint
    */
   private generateMockSearch(params: Record<string, any>): CoinGeckoResponse {
-    const query = (params.query as string || '').toLowerCase();
+    const query = ((params.query as string) || '').toLowerCase();
     const coins = this.generateMockCoinsList() as any[];
 
     // Filter coins based on query
-    const filteredCoins = coins.filter(coin =>
-      coin.id.includes(query) ||
-      coin.symbol.includes(query) ||
-      coin.name.toLowerCase().includes(query)
-    ).slice(0, 10);
+    const filteredCoins = coins
+      .filter(
+        (coin) =>
+          coin.id.includes(query) ||
+          coin.symbol.includes(query) ||
+          coin.name.toLowerCase().includes(query),
+      )
+      .slice(0, 10);
 
     return {
       coins: filteredCoins,
@@ -1145,7 +1276,9 @@ export class CoinGeckoProxyController {
           // Use exponential backoff with jitter
           const baseWaitTime = initialBackoff * Math.pow(2, retryCount);
           const waitTime = this.addJitter(baseWaitTime);
-          this.logger.warn(`Retrying after ${waitTime}ms (retry ${retryCount + 1}/${maxRetries})`);
+          this.logger.warn(
+            `Retrying after ${waitTime}ms (retry ${retryCount + 1}/${maxRetries})`,
+          );
 
           // Wait for the specified time
           await new Promise((resolve) => setTimeout(resolve, waitTime));
@@ -1181,12 +1314,14 @@ export class CoinGeckoProxyController {
             | undefined;
 
           // Calculate base wait time
-          let baseWaitTime = retryAfter
+          const baseWaitTime = retryAfter
             ? parseInt(retryAfter, 10) * 1000
             : initialBackoff * Math.pow(2, retryCount);
 
           // Add jitter to avoid thundering herd problem, but only if not using retry-after header
-          let waitTime = retryAfter ? baseWaitTime : this.addJitter(baseWaitTime);
+          let waitTime = retryAfter
+            ? baseWaitTime
+            : this.addJitter(baseWaitTime);
 
           // Cap the wait time at 300 seconds (increased from 120)
           waitTime = Math.min(waitTime, 300000);
@@ -1197,7 +1332,8 @@ export class CoinGeckoProxyController {
 
           // Try to get stale data while waiting
           try {
-            const staleData = await this.redisService.getWithoutExpiry(cacheKey);
+            const staleData =
+              await this.redisService.getWithoutExpiry(cacheKey);
             if (staleData) {
               this.logger.warn(
                 `Using stale cache data for ${url} while waiting for rate limit to reset`,
