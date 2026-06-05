@@ -24,14 +24,18 @@ interface MockRequest {
 
 describe('RateLimitMiddleware', () => {
   let middleware: RateLimitMiddleware;
-  let req: MockRequest;
+  let req: MockRequest & { ip?: string };
   let res: jest.Mocked<import('express').Response>;
   let next: jest.Mock;
+  const mockRedisService = {
+    incr: mockIncr,
+    expire: mockExpire,
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
-    middleware = new RateLimitMiddleware();
-    req = { header: jest.fn() };
+    middleware = new RateLimitMiddleware(mockRedisService as any);
+    req = { header: jest.fn(), ip: '127.0.0.1' };
     res = undefined as unknown as jest.Mocked<import('express').Response>;
     next = jest.fn();
   });
@@ -77,8 +81,9 @@ describe('RateLimitMiddleware', () => {
     ).rejects.toThrow(HttpException);
   });
 
-  it('enforces lower limit for anonymous users', async () => {
+  it('enforces lower limit for anonymous users using IP', async () => {
     req.header.mockReturnValue(undefined);
+    req.ip = '192.168.1.1';
     mockIncr.mockResolvedValue(11);
 
     await expect(
@@ -88,6 +93,8 @@ describe('RateLimitMiddleware', () => {
         next,
       ),
     ).rejects.toThrow(HttpException);
+
+    expect(mockIncr).toHaveBeenCalledWith('rate_limit:192.168.1.1');
   });
 
   it('does not set TTL if not first request', async () => {
