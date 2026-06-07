@@ -1,7 +1,6 @@
 import {
   Controller,
   Get,
-  Request,
   UseGuards,
   Query,
   Logger,
@@ -9,8 +8,8 @@ import {
 } from '@nestjs/common';
 import { PortfolioService } from './portfolio.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { Request as ExpressRequest } from 'express';
 import { Portfolio } from '../types/exchange.types';
+import { User } from '../decorators/user.decorator';
 
 /**
  * Controller for portfolio-related endpoints.
@@ -26,19 +25,16 @@ export class PortfolioController {
 
   @Get()
   async getPortfolio(
-    @Request() req: ExpressRequest & { user: { user_id: string } },
+    @User('user_id') userId: string,
     @Query('exchange_id') exchangeId?: string,
   ): Promise<Portfolio> {
     try {
       return await this.portfolioService.getAggregatedPortfolio(
-        req.user.user_id,
+        userId,
         exchangeId,
       );
     } catch (error) {
-      this.logger.error(
-        `Error fetching portfolio for user ${req.user.user_id}:`,
-        error,
-      );
+      this.logger.error(`Error fetching portfolio for user ${userId}:`, error);
       throw new InternalServerErrorException('Failed to fetch portfolio data');
     }
   }

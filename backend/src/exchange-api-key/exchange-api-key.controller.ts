@@ -5,14 +5,14 @@ import {
   Delete,
   Param,
   Body,
-  Request,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ExchangeApiKeyService } from './exchange-api-key.service';
 import { CreateExchangeApiKeyDto } from './dto/create-exchange-api-key.dto';
-import { Request as ExpressRequest } from 'express';
 import { UserApiKey } from '../types/prisma.types';
+import { User } from '../decorators/user.decorator';
+
 /**
  * Controller for managing user exchange API keys.
  * Endpoints:
@@ -28,32 +28,32 @@ export class ExchangeApiKeyController {
 
   @Post()
   async addApiKey(
-    @Request() req: ExpressRequest & { user: { user_id: string } },
+    @User('user_id') userId: string,
     @Body() dto: CreateExchangeApiKeyDto,
   ): Promise<Partial<UserApiKey>> {
-    return this.apiKeyService.addApiKey(req.user.user_id, dto);
+    return this.apiKeyService.addApiKey(userId, dto);
   }
 
   @Get()
   async listApiKeys(
-    @Request() req: ExpressRequest & { user: { user_id: string } },
+    @User('user_id') userId: string,
   ): Promise<Partial<UserApiKey>[]> {
-    return this.apiKeyService.listApiKeys(req.user.user_id);
+    return this.apiKeyService.listApiKeys(userId);
   }
 
   @Delete(':id')
   async deleteApiKey(
-    @Request() req: ExpressRequest & { user: { user_id: string } },
+    @User('user_id') userId: string,
     @Param('id') id: string,
   ): Promise<{ message: string }> {
-    return this.apiKeyService.deleteApiKey(req.user.user_id, id);
+    return this.apiKeyService.deleteApiKey(userId, id);
   }
 
   @Post(':id/test')
   async testApiKey(
-    @Request() req: ExpressRequest & { user: { user_id: string } },
+    @User('user_id') userId: string,
     @Param('id') id: string,
   ): Promise<{ success: boolean; message: string }> {
-    return this.apiKeyService.testApiKey(req.user.user_id, id);
+    return this.apiKeyService.testApiKey(userId, id);
   }
 }
