@@ -27,10 +27,14 @@ describe('RateLimitMiddleware', () => {
   let req: MockRequest;
   let res: jest.Mocked<import('express').Response>;
   let next: jest.Mock;
+  const mockRedisService = {
+    incr: mockIncr,
+    expire: mockExpire,
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
-    middleware = new RateLimitMiddleware();
+    middleware = new RateLimitMiddleware(mockRedisService as any);
     req = { header: jest.fn() };
     res = undefined as unknown as jest.Mocked<import('express').Response>;
     next = jest.fn();

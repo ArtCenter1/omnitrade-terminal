@@ -6,10 +6,11 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
-import { Logger } from '@nestjs/common';
+import { Logger, UseGuards } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { TradingPairsService } from './trading-pairs.service';
 import { getCorsOptions } from '../utils/cors.util';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 interface SubscriptionData {
   exchangeId: string;
@@ -20,6 +21,7 @@ interface SubscriptionData {
   cors: getCorsOptions(),
   namespace: 'trading',
 })
+@UseGuards(JwtAuthGuard)
 export class TradingPairsGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {

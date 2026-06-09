@@ -8,12 +8,14 @@ import {
   MessageBody,
   ConnectedSocket,
 } from '@nestjs/websockets';
-import { Logger } from '@nestjs/common';
+import { Logger, UseGuards } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { MarketDataService } from './market-data.service';
 import { getCorsOptions } from '../utils/cors.util';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @WebSocketGateway({ path: '/ws/v1/market-data', cors: getCorsOptions() }) // Set path and restrict CORS
+@UseGuards(JwtAuthGuard)
 export class MarketDataGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
