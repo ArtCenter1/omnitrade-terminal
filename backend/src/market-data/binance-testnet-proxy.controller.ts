@@ -58,11 +58,11 @@ export class BinanceTestnetProxyController {
 
       this.logger.log(`Request successful for ${finalUrl}`);
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Error proxying request: ${error.message}`);
 
       // Return error details
-      if (error.response) {
+      if (axios.isAxiosError(error) && error.response) {
         // The request was made and the server responded with a status code
         // that falls out of the range of 2xx
         this.logger.error(`Response error status: ${error.response.status}`);
@@ -73,15 +73,13 @@ export class BinanceTestnetProxyController {
         return {
           error: true,
           status: error.response.status,
-          // data: error.response.data, // Removed to avoid leaking upstream API details
-          message: `Binance Testnet API error: ${error.message}`,
           // Security: Do not leak raw error data from upstream API
           message:
             error.response.status === 429
               ? 'Binance Testnet rate limit exceeded. Please try again later.'
               : 'An error occurred while fetching data from Binance Testnet.',
         };
-      } else if (error.request) {
+      } else if (axios.isAxiosError(error) && error.request) {
         // The request was made but no response was received
         this.logger.error(`No response received: ${error.request}`);
 

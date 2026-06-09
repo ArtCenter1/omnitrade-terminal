@@ -15,9 +15,10 @@ export class RateLimitMiddleware implements NestMiddleware {
 
   async use(req: Request, res: Response, next: NextFunction) {
     try {
-      const apiKey = req.header('x-api-key') || 'anonymous';
+      const apiKeyHeader = req.header('x-api-key');
+      const apiKey = apiKeyHeader || req.ip || 'anonymous';
       const key = `rate_limit:${apiKey}`;
-      const limit = apiKey === 'anonymous' ? 10 : 100; // 10 req/min anonymous, 100 req/min with key
+      const limit = apiKeyHeader ? 100 : 10; // 10 req/min anonymous/IP-based, 100 req/min with key
       const ttlSeconds = 60;
 
       const current = await this.redisService.incr(key);
