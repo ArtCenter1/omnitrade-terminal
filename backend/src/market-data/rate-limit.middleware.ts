@@ -15,9 +15,11 @@ export class RateLimitMiddleware implements NestMiddleware {
 
   async use(req: Request, res: Response, next: NextFunction) {
     try {
-      const apiKey = req.header('x-api-key') || 'anonymous';
-      const key = `rate_limit:${apiKey}`;
-      const limit = apiKey === 'anonymous' ? 10 : 100; // 10 req/min anonymous, 100 req/min with key
+      const apiKey = req.header('x-api-key');
+      // Use IP address as identifier for anonymous requests to prevent global bucket exhaustion
+      const identifier = apiKey || req.ip || 'anonymous';
+      const key = `rate_limit:${identifier}`;
+      const limit = apiKey ? 100 : 10; // 10 req/min anonymous, 100 req/min with key
       const ttlSeconds = 60;
 
       const current = await this.redisService.incr(key);
@@ -33,7 +35,9 @@ export class RateLimitMiddleware implements NestMiddleware {
     } catch (error) {
       // If there's an error with Redis, log it but allow the request to proceed
       if (!(error instanceof HttpException)) {
-        this.logger.error(`Rate limiting error: ${error.message}`);
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        this.logger.error(`Rate limiting error: ${errorMessage}`);
         // Allow the request to proceed when Redis fails
         next();
       } else {
