@@ -1,106 +1,79 @@
 import { RateLimitMiddleware } from '../rate-limit.middleware';
-import Redis from 'ioredis';
+import { RedisService } from '../../redis/redis.service';
 import { HttpException } from '@nestjs/common';
-
-jest.mock('ioredis');
-
-const mockIncr = jest.fn();
-const mockExpire = jest.fn();
-
-interface MockRequest {
-  header: jest.Mock;
-}
-
-(
-  Redis as unknown as {
-    mockImplementation: (
-      impl: () => { incr: jest.Mock; expire: jest.Mock },
-    ) => void;
-  }
-).mockImplementation(() => ({
-  incr: mockIncr,
-  expire: mockExpire,
-}));
+import { Request, Response } from 'express';
 
 describe('RateLimitMiddleware', () => {
   let middleware: RateLimitMiddleware;
-  let req: MockRequest;
-  let res: jest.Mocked<import('express').Response>;
+  let redisService: RedisService;
+  let req: Partial<Request>;
+  let res: Partial<Response>;
   let next: jest.Mock;
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    middleware = new RateLimitMiddleware();
-    req = { header: jest.fn() };
-    res = undefined as unknown as jest.Mocked<import('express').Response>;
+    redisService = {
+      incr: jest.fn(),
+      expire: jest.fn(),
+    } as unknown as RedisService;
+    middleware = new RateLimitMiddleware(redisService);
+    req = {
+      header: jest.fn(),
+      ip: '127.0.0.1',
+    };
+    res = {};
     next = jest.fn();
   });
 
-  it('sets TTL on first request', async () => {
-    req.header.mockReturnValue('my-api-key');
-    mockIncr.mockResolvedValue(1);
-    mockExpire.mockResolvedValue(1);
+  it('sets TTL on first request for API key', async () => {
+    (req.header as jest.Mock).mockReturnValue('my-api-key');
+    (redisService.incr as jest.Mock).mockResolvedValue(1);
+    (redisService.expire as jest.Mock).mockResolvedValue(1);
 
-    await middleware.use(
-      req as unknown as import('express').Request,
-      res as unknown as import('express').Response,
-      next,
+    await middleware.use(req as Request, res as Response, next);
+
+    expect(redisService.expire).toHaveBeenCalledWith(
+      'rate_limit:key:my-api-key',
+      60,
     );
-
-    expect(mockExpire).toHaveBeenCalledWith('rate_limit:my-api-key', 60);
     expect(next).toHaveBeenCalled();
   });
 
   it('allows requests under the limit', async () => {
-    req.header.mockReturnValue('my-api-key');
-    mockIncr.mockResolvedValue(50);
+    (req.header as jest.Mock).mockReturnValue('my-api-key');
+    (redisService.incr as jest.Mock).mockResolvedValue(50);
 
-    await middleware.use(
-      req as unknown as import('express').Request,
-      res as unknown as import('express').Response,
-      next,
-    );
+    await middleware.use(req as Request, res as Response, next);
 
     expect(next).toHaveBeenCalled();
   });
 
   it('throws 429 when over the limit for API key', async () => {
-    req.header.mockReturnValue('my-api-key');
-    mockIncr.mockResolvedValue(101);
+    (req.header as jest.Mock).mockReturnValue('my-api-key');
+    (redisService.incr as jest.Mock).mockResolvedValue(101);
 
     await expect(
-      middleware.use(
-        req as unknown as import('express').Request,
-        res as unknown as import('express').Response,
-        next,
-      ),
+      middleware.use(req as Request, res as Response, next),
     ).rejects.toThrow(HttpException);
   });
 
-  it('enforces lower limit for anonymous users', async () => {
-    req.header.mockReturnValue(undefined);
-    mockIncr.mockResolvedValue(11);
+  it('enforces lower limit for anonymous users (IP-based)', async () => {
+    (req.header as jest.Mock).mockReturnValue(undefined);
+    (redisService.incr as jest.Mock).mockResolvedValue(11);
 
     await expect(
-      middleware.use(
-        req as unknown as import('express').Request,
-        res as unknown as import('express').Response,
-        next,
-      ),
+      middleware.use(req as Request, res as Response, next),
     ).rejects.toThrow(HttpException);
+
+    expect(redisService.incr).toHaveBeenCalledWith('rate_limit:ip:127.0.0.1');
   });
 
   it('does not set TTL if not first request', async () => {
-    req.header.mockReturnValue('my-api-key');
-    mockIncr.mockResolvedValue(2);
+    (req.header as jest.Mock).mockReturnValue('my-api-key');
+    (redisService.incr as jest.Mock).mockResolvedValue(2);
 
-    await middleware.use(
-      req as unknown as import('express').Request,
-      res as unknown as import('express').Response,
-      next,
-    );
+    await middleware.use(req as Request, res as Response, next);
 
-    expect(mockExpire).not.toHaveBeenCalled();
+    expect(redisService.expire).not.toHaveBeenCalled();
     expect(next).toHaveBeenCalled();
   });
 });
