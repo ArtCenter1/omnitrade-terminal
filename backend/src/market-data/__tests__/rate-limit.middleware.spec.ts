@@ -24,14 +24,19 @@ interface MockRequest {
 
 describe('RateLimitMiddleware', () => {
   let middleware: RateLimitMiddleware;
-  let req: MockRequest;
+  let req: MockRequest & { ip?: string; socket?: { remoteAddress?: string } };
   let res: jest.Mocked<import('express').Response>;
   let next: jest.Mock;
 
+  const mockRedisService = {
+    incr: mockIncr,
+    expire: mockExpire,
+  } as any;
+
   beforeEach(() => {
     jest.clearAllMocks();
-    middleware = new RateLimitMiddleware();
-    req = { header: jest.fn() };
+    middleware = new RateLimitMiddleware(mockRedisService);
+    req = { header: jest.fn(), ip: '127.0.0.1' };
     res = undefined as unknown as jest.Mocked<import('express').Response>;
     next = jest.fn();
   });
@@ -47,7 +52,7 @@ describe('RateLimitMiddleware', () => {
       next,
     );
 
-    expect(mockExpire).toHaveBeenCalledWith('rate_limit:my-api-key', 60);
+    expect(mockExpire).toHaveBeenCalledWith('rate_limit:key:my-api-key', 60);
     expect(next).toHaveBeenCalled();
   });
 
@@ -101,6 +106,35 @@ describe('RateLimitMiddleware', () => {
     );
 
     expect(mockExpire).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalled();
+  });
+
+  it('uses IP for anonymous users', async () => {
+    req.header.mockReturnValue(undefined);
+    req.ip = '1.2.3.4';
+    mockIncr.mockResolvedValue(1);
+    mockExpire.mockResolvedValue(1);
+
+    await middleware.use(
+      req as unknown as import('express').Request,
+      res as unknown as import('express').Response,
+      next,
+    );
+
+    expect(mockExpire).toHaveBeenCalledWith('rate_limit:ip:1.2.3.4', 60);
+    expect(next).toHaveBeenCalled();
+  });
+
+  it('fails open when Redis errors', async () => {
+    req.header.mockReturnValue('my-api-key');
+    mockIncr.mockRejectedValue(new Error('Redis connection lost'));
+
+    await middleware.use(
+      req as unknown as import('express').Request,
+      res as unknown as import('express').Response,
+      next,
+    );
+
     expect(next).toHaveBeenCalled();
   });
 });
