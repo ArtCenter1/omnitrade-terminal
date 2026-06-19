@@ -20,7 +20,8 @@ try {
   const rawData = fs.readFileSync(serviceAccountPath, 'utf8');
   serviceAccount = JSON.parse(rawData) as admin.ServiceAccount;
   logger.log(
-    'Firebase service account loaded successfully from: ' + serviceAccountPath,
+    'Firebase service account loaded successfully from: ' +
+      path.basename(serviceAccountPath),
   );
 } catch (error) {
   logger.error('Error loading Firebase service account:', error);
