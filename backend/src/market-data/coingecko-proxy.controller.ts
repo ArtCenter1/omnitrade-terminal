@@ -11,7 +11,6 @@ import axios from 'axios';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Request } from 'express';
 import { RedisService } from '../redis/redis.service';
-import { CircuitBreakerService } from './circuit-breaker.service';
 import {
   CircuitBreakerService,
   CircuitBreakerState,
@@ -357,6 +356,20 @@ export class CoinGeckoProxyController {
         endpoint = path.startsWith('/') ? path.substring(1) : path;
       }
 
+      // Security: Validate the endpoint path to prevent SSRF and path traversal
+      if (
+        endpoint.includes('..') ||
+        endpoint.includes('://') ||
+        endpoint.includes('\0')
+      ) {
+        this.logger.warn(`Potential malicious path detected: ${endpoint}`);
+        return {
+          error: true,
+          status: 400,
+          message: 'Invalid endpoint path',
+        };
+      }
+
       // Build the target URL
       const targetUrl = `${this.baseUrl}/${endpoint}`;
 
@@ -498,8 +511,6 @@ export class CoinGeckoProxyController {
         const errorResponse: ErrorResponse = {
           error: true,
           status: error.response?.status || 500,
-          message: error.message,
-          // data: (error.response?.data as Record<string, unknown>) || null, // Removed to avoid leaking upstream API details
           message:
             error.response?.status === 429
               ? 'CoinGecko rate limit exceeded. Please try again later.'
