@@ -36,3 +36,8 @@
 **Vulnerability:** Upstream error data from CoinGecko and Binance was being passed directly to the client via the `data` field in error responses.
 **Learning:** Third-party APIs may include sensitive metadata, internal stack traces, or quota details in their error bodies. Direct passthrough of these bodies violates the principle of "Fail Securely".
 **Prevention:** Intercept all upstream errors and map them to a standardized, safe error format that excludes the raw response body.
+
+## 2026-06-12 - Sensitive Information Leakage in Redis Connection Logs
+**Vulnerability:** The `RedisService` was logging the full `REDIS_URL` during initialization, which could contain the plaintext password if it was included in the connection string (e.g., `redis://:password@host:port`).
+**Learning:** Standard library connection strings often contain embedded credentials. Logging these strings directly violates the principle of "Exposed sensitive data in logs".
+**Prevention:** Always sanitize or mask connection strings and URLs before logging them. Use a dedicated masking function or regular expression to redact sensitive components like passwords while preserving the rest of the URL for debugging purposes.
