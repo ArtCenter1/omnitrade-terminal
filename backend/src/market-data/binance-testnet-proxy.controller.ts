@@ -15,6 +15,19 @@ export class BinanceTestnetProxyController {
   @All('*')
   async proxyRequest(@Req() req: Request): Promise<any> {
     try {
+      // Security: Validate path to prevent SSRF and path traversal
+      const path = req.params?.[0] || '';
+      if (
+        path &&
+        (path.includes('..') || path.includes('://') || path.includes('\0'))
+      ) {
+        return {
+          error: true,
+          status: 400,
+          message: 'Invalid endpoint path',
+        };
+      }
+
       // Extract the path from the original URL
       const originalUrl = req.originalUrl;
       const proxyPrefix = '/api/proxy/binance-testnet';
@@ -73,13 +86,11 @@ export class BinanceTestnetProxyController {
         return {
           error: true,
           status: error.response.status,
-          // data: error.response.data, // Removed to avoid leaking upstream API details
-          message: `Binance Testnet API error: ${error.message}`,
-          // Security: Do not leak raw error data from upstream API
           message:
             error.response.status === 429
               ? 'Binance Testnet rate limit exceeded. Please try again later.'
               : 'An error occurred while fetching data from Binance Testnet.',
+          // Security: Do not leak raw error data from upstream API
         };
       } else if (error.request) {
         // The request was made but no response was received
