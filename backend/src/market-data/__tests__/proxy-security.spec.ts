@@ -52,7 +52,7 @@ describe('Proxy Controllers Security', () => {
     );
   });
 
-  describe('CoinGeckoProxyController Information Leakage', () => {
+  describe('CoinGeckoProxyController Security', () => {
     it('should not leak raw error data from upstream CoinGecko API', async () => {
       const mockErrorResponse = {
         response: {
@@ -86,13 +86,29 @@ describe('Proxy Controllers Security', () => {
       );
 
       expect(result.error).toBe(true);
-      // VULNERABILITY: This expectation should fail if the fix is implemented correctly
-      // In the vulnerable version, it currently leaks result.data
+      // Ensure raw data is not leaked
       expect(result.data).toBeUndefined();
+    });
+
+    it('should block SSRF and Path Traversal attempts in CoinGecko proxy', async () => {
+      const mockRequest = {
+        method: 'GET',
+        originalUrl: '/api/proxy/coingecko/../../etc/passwd',
+        query: {},
+      } as unknown as Request;
+
+      const result: any = await coingeckoController.proxyRequest(
+        mockRequest,
+        '../../etc/passwd',
+      );
+
+      expect(result.error).toBe(true);
+      expect(result.status).toBe(400);
+      expect(result.message).toBe('Invalid endpoint path');
     });
   });
 
-  describe('BinanceTestnetProxyController Information Leakage', () => {
+  describe('BinanceTestnetProxyController Security', () => {
     it('should not leak raw error data from upstream Binance API', async () => {
       const mockErrorResponse = {
         response: {
@@ -113,13 +129,28 @@ describe('Proxy Controllers Security', () => {
         method: 'GET',
         originalUrl: '/api/proxy/binance-testnet/ticker/price',
         url: '/api/proxy/binance-testnet/ticker/price',
+        params: { '0': '/ticker/price' },
       } as unknown as Request;
 
       const result: any = await binanceController.proxyRequest(mockRequest);
 
       expect(result.error).toBe(true);
-      // VULNERABILITY: This expectation should fail if the fix is implemented correctly
       expect(result.data).toBeUndefined();
+    });
+
+    it('should block SSRF and Path Traversal attempts in Binance proxy', async () => {
+      const mockRequest = {
+        method: 'GET',
+        originalUrl: '/api/proxy/binance-testnet/http://malicious.com',
+        url: '/api/proxy/binance-testnet/http://malicious.com',
+        params: { '0': 'http://malicious.com' },
+      } as unknown as Request;
+
+      const result: any = await binanceController.proxyRequest(mockRequest);
+
+      expect(result.error).toBe(true);
+      expect(result.status).toBe(400);
+      expect(result.message).toBe('Invalid endpoint path');
     });
   });
 });

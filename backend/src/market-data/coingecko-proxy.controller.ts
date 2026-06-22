@@ -12,10 +12,6 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Request } from 'express';
 import { RedisService } from '../redis/redis.service';
 import { CircuitBreakerService } from './circuit-breaker.service';
-import {
-  CircuitBreakerService,
-  CircuitBreakerState,
-} from './circuit-breaker.service';
 
 // Define response types
 interface CoinGeckoResponse {
@@ -346,6 +342,18 @@ export class CoinGeckoProxyController {
     @Param('path') path: string,
   ): Promise<CoinGeckoResponse | ErrorResponse> {
     try {
+      // Security: Validate path to prevent SSRF and path traversal
+      if (
+        path &&
+        (path.includes('..') || path.includes('://') || path.includes('\0'))
+      ) {
+        return {
+          error: true,
+          status: 400,
+          message: 'Invalid endpoint path',
+        };
+      }
+
       // Extract the path from the original URL
       const originalUrl = req.originalUrl;
       const proxyPrefix = '/api/proxy/coingecko/';
@@ -498,8 +506,6 @@ export class CoinGeckoProxyController {
         const errorResponse: ErrorResponse = {
           error: true,
           status: error.response?.status || 500,
-          message: error.message,
-          // data: (error.response?.data as Record<string, unknown>) || null, // Removed to avoid leaking upstream API details
           message:
             error.response?.status === 429
               ? 'CoinGecko rate limit exceeded. Please try again later.'
