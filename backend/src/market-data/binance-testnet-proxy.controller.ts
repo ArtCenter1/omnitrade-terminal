@@ -73,8 +73,6 @@ export class BinanceTestnetProxyController {
         return {
           error: true,
           status: error.response.status,
-          // data: error.response.data, // Removed to avoid leaking upstream API details
-          message: `Binance Testnet API error: ${error.message}`,
           // Security: Do not leak raw error data from upstream API
           message:
             error.response.status === 429

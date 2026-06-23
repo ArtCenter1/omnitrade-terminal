@@ -11,7 +11,6 @@ import axios from 'axios';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Request } from 'express';
 import { RedisService } from '../redis/redis.service';
-import { CircuitBreakerService } from './circuit-breaker.service';
 import {
   CircuitBreakerService,
   CircuitBreakerState,
@@ -498,8 +497,6 @@ export class CoinGeckoProxyController {
         const errorResponse: ErrorResponse = {
           error: true,
           status: error.response?.status || 500,
-          message: error.message,
-          // data: (error.response?.data as Record<string, unknown>) || null, // Removed to avoid leaking upstream API details
           message:
             error.response?.status === 429
               ? 'CoinGecko rate limit exceeded. Please try again later.'
