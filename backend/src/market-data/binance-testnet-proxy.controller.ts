@@ -24,6 +24,20 @@ export class BinanceTestnetProxyController {
         endpoint = originalUrl.substring(proxyPrefix.length);
       }
 
+      // Security: Validate the endpoint path to prevent SSRF and path traversal
+      if (
+        endpoint.includes('..') ||
+        endpoint.includes('://') ||
+        endpoint.includes('\0')
+      ) {
+        this.logger.warn(`Potential malicious path detected: ${endpoint}`);
+        return {
+          error: true,
+          status: 400,
+          message: 'Invalid endpoint path',
+        };
+      }
+
       // Ensure endpoint starts with /api if it doesn't already
       if (!endpoint.startsWith('/api')) {
         endpoint = `/api${endpoint}`;

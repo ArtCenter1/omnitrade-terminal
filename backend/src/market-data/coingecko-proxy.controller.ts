@@ -356,6 +356,20 @@ export class CoinGeckoProxyController {
         endpoint = path.startsWith('/') ? path.substring(1) : path;
       }
 
+      // Security: Validate the endpoint path to prevent SSRF and path traversal
+      if (
+        endpoint.includes('..') ||
+        endpoint.includes('://') ||
+        endpoint.includes('\0')
+      ) {
+        this.logger.warn(`Potential malicious path detected: ${endpoint}`);
+        return {
+          error: true,
+          status: 400,
+          message: 'Invalid endpoint path',
+        };
+      }
+
       // Build the target URL
       const targetUrl = `${this.baseUrl}/${endpoint}`;
 

@@ -121,5 +121,52 @@ describe('Proxy Controllers Security', () => {
       // VULNERABILITY: This expectation should fail if the fix is implemented correctly
       expect(result.data).toBeUndefined();
     });
+
+    it('should block malicious paths with 400 error (SSRF/Path Traversal)', async () => {
+      const maliciousPaths = [
+        '../../etc/passwd',
+        'http://internal-service.local/admin',
+        'simple/price\0/malicious',
+      ];
+
+      for (const path of maliciousPaths) {
+        const mockRequest = {
+          method: 'GET',
+          originalUrl: `/api/proxy/coingecko/${path}`,
+          query: {},
+        } as unknown as Request;
+
+        const result: any = await coingeckoController.proxyRequest(
+          mockRequest,
+          path,
+        );
+        expect(result.error).toBe(true);
+        expect(result.status).toBe(400);
+        expect(result.message).toBe('Invalid endpoint path');
+      }
+    });
+  });
+
+  describe('BinanceTestnetProxyController Security', () => {
+    it('should block malicious paths with 400 error (SSRF/Path Traversal)', async () => {
+      const maliciousPaths = [
+        '../../etc/passwd',
+        'http://internal-service.local/admin',
+        'ticker/price\0/malicious',
+      ];
+
+      for (const path of maliciousPaths) {
+        const mockRequest = {
+          method: 'GET',
+          originalUrl: `/api/proxy/binance-testnet/${path}`,
+          url: `/api/proxy/binance-testnet/${path}`,
+        } as unknown as Request;
+
+        const result: any = await binanceController.proxyRequest(mockRequest);
+        expect(result.error).toBe(true);
+        expect(result.status).toBe(400);
+        expect(result.message).toBe('Invalid endpoint path');
+      }
+    });
   });
 });
