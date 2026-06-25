@@ -36,3 +36,8 @@
 **Vulnerability:** Upstream error data from CoinGecko and Binance was being passed directly to the client via the `data` field in error responses.
 **Learning:** Third-party APIs may include sensitive metadata, internal stack traces, or quota details in their error bodies. Direct passthrough of these bodies violates the principle of "Fail Securely".
 **Prevention:** Intercept all upstream errors and map them to a standardized, safe error format that excludes the raw response body.
+
+## 2026-06-25 - Path Traversal and SSRF in Proxy Controllers
+**Vulnerability:** Proxy controllers using wildcard routes (@All('*')) were directly appending the user-provided path to a base URL without validation. This allowed for path traversal (using '..') or SSRF (using '://' if the base URL handling was loose).
+**Learning:** Even when a base URL is prepended, malicious path segments can escape the intended directory or protocol. Prepending does not guarantee isolation if the resulting string is still a valid URL/path that resolves outside the intended scope.
+**Prevention:** Always validate and sanitize user-provided path segments in proxy controllers. Explicitly reject characters or sequences like '..', '://', and null bytes ('\0') to ensure the request stays within the intended upstream API scope.

@@ -122,4 +122,50 @@ describe('Proxy Controllers Security', () => {
       expect(result.data).toBeUndefined();
     });
   });
+
+  describe('Path Traversal and SSRF Protection', () => {
+    const maliciousPaths = [
+      '../../etc/passwd',
+      'https://google.com',
+      'http://169.254.169.254/latest/meta-data/',
+      'simple/price\0malicious',
+    ];
+
+    it.each(maliciousPaths)(
+      'CoinGeckoProxyController should reject malicious path: %s',
+      async (maliciousPath) => {
+        const mockRequest = {
+          method: 'GET',
+          originalUrl: `/api/proxy/coingecko/${maliciousPath}`,
+          query: {},
+        } as unknown as Request;
+
+        const result: any = await coingeckoController.proxyRequest(
+          mockRequest,
+          maliciousPath,
+        );
+
+        expect(result.error).toBe(true);
+        expect(result.status).toBe(400);
+        expect(result.message).toBe('Invalid endpoint path');
+      },
+    );
+
+    it.each(maliciousPaths)(
+      'BinanceTestnetProxyController should reject malicious path: %s',
+      async (maliciousPath) => {
+        const mockRequest = {
+          method: 'GET',
+          originalUrl: `/api/proxy/binance-testnet/${maliciousPath}`,
+          url: `/api/proxy/binance-testnet/${maliciousPath}`,
+        } as unknown as Request;
+
+        const result: any = await binanceController.proxyRequest(mockRequest);
+
+        expect(result.error).toBe(true);
+        expect(result.status).toBe(400);
+        expect(result.message).toBe('Invalid endpoint path');
+      },
+    );
+  });
 });

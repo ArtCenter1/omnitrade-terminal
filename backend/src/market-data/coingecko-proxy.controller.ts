@@ -356,6 +356,20 @@ export class CoinGeckoProxyController {
         endpoint = path.startsWith('/') ? path.substring(1) : path;
       }
 
+      // Security: Validate path to prevent path traversal or SSRF
+      if (
+        endpoint.includes('..') ||
+        endpoint.includes('://') ||
+        endpoint.includes('\0')
+      ) {
+        this.logger.warn(`Potential malicious path detected: ${endpoint}`);
+        return {
+          error: true,
+          status: 400,
+          message: 'Invalid endpoint path',
+        };
+      }
+
       // Build the target URL
       const targetUrl = `${this.baseUrl}/${endpoint}`;
 
@@ -508,7 +522,7 @@ export class CoinGeckoProxyController {
 
       const genericError: ErrorResponse = {
         error: true,
-        message: err.message || 'Unknown error',
+        message: 'An unexpected error occurred while proxying to CoinGecko.',
       };
       return genericError;
     }
