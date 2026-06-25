@@ -24,6 +24,20 @@ export class BinanceTestnetProxyController {
         endpoint = originalUrl.substring(proxyPrefix.length);
       }
 
+      // Security: Validate path to prevent path traversal or SSRF
+      if (
+        endpoint.includes('..') ||
+        endpoint.includes('://') ||
+        endpoint.includes('\0')
+      ) {
+        this.logger.warn(`Potential malicious path detected: ${endpoint}`);
+        return {
+          error: true,
+          status: 400,
+          message: 'Invalid endpoint path',
+        };
+      }
+
       // Ensure endpoint starts with /api if it doesn't already
       if (!endpoint.startsWith('/api')) {
         endpoint = `/api${endpoint}`;
@@ -85,13 +99,13 @@ export class BinanceTestnetProxyController {
 
         return {
           error: true,
-          message: `No response from Binance Testnet API: ${error.message}`,
+          message: 'No response from Binance Testnet API.',
         };
       } else {
         // Something happened in setting up the request that triggered an Error
         return {
           error: true,
-          message: `Error setting up request: ${error.message}`,
+          message: 'An error occurred while setting up the request.',
         };
       }
     }
