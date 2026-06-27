@@ -37,39 +37,31 @@ describe('ExchangeApiKeyController', () => {
   });
 
   it('should add an API key', async () => {
-    const req = { user: { user_id: 'user1' } } as Request & {
-      user: { user_id: string };
-    };
+    const userId = 'user1';
     const dto: CreateExchangeApiKeyDto = {
       exchange_id: 'binance',
       api_key: 'k',
       api_secret: 's',
     };
-    const result = await controller.addApiKey(req, dto);
+    const result = await controller.addApiKey(userId, dto);
     expect(result).toHaveProperty('api_key_id');
   });
 
   it('should list API keys', async () => {
-    const req = { user: { user_id: 'user1' } } as Request & {
-      user: { user_id: string };
-    };
-    const result = await controller.listApiKeys(req);
+    const userId = 'user1';
+    const result = await controller.listApiKeys(userId);
     expect(Array.isArray(result)).toBe(true);
   });
 
   it('should delete an API key', async () => {
-    const req = { user: { user_id: 'user1' } } as Request & {
-      user: { user_id: string };
-    };
-    const result = await controller.deleteApiKey(req, 'id1');
+    const userId = 'user1';
+    const result = await controller.deleteApiKey(userId, 'id1');
     expect(result).toHaveProperty('message');
   });
 
   it('should test an API key', async () => {
-    const req = { user: { user_id: 'user1' } } as Request & {
-      user: { user_id: string };
-    };
-    const result = await controller.testApiKey(req, 'id1');
+    const userId = 'user1';
+    const result = await controller.testApiKey(userId, 'id1');
     expect(result).toHaveProperty('success');
   });
 });
