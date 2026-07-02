@@ -337,6 +337,15 @@ export class CoinGeckoProxyController {
   }
 
   /**
+   * Validate that the requested path does not contain malicious sequences
+   */
+  private isValidPath(path: string): boolean {
+    if (!path) return true;
+    // Block path traversal, protocol injection, and null bytes
+    return !path.includes('..') && !path.includes('://') && !path.includes('\0');
+  }
+
+  /**
    * Handle all requests to the CoinGecko API
    */
   @All('*path')
@@ -346,14 +355,27 @@ export class CoinGeckoProxyController {
   ): Promise<CoinGeckoResponse | ErrorResponse> {
     try {
       // Extract the path from the original URL
-      const originalUrl = req.originalUrl;
+      const originalUrl = req?.originalUrl;
       const proxyPrefix = '/api/proxy/coingecko/';
       let endpoint = '';
 
-      if (originalUrl.startsWith(proxyPrefix)) {
+      if (originalUrl && originalUrl.startsWith(proxyPrefix)) {
         endpoint = originalUrl.substring(proxyPrefix.length);
-      } else if (path) {
-        endpoint = path.startsWith('/') ? path.substring(1) : path;
+      } else {
+        // Fallback to Param if originalUrl parsing is complex or unavailable
+        endpoint = typeof path === 'string' && path.startsWith('/')
+          ? path.substring(1)
+          : (path as any)?.[0] || (typeof path === 'string' ? path : '');
+      }
+
+      // Security: Validate the endpoint path to prevent path traversal and SSRF
+      if (!this.isValidPath(endpoint) || !this.isValidPath(path)) {
+        this.logger.warn(`Invalid path detected in CoinGecko proxy request: ${endpoint}`);
+        return {
+          error: true,
+          status: 400,
+          message: 'Invalid request path.',
+        };
       }
 
       // Build the target URL
@@ -508,7 +530,7 @@ export class CoinGeckoProxyController {
 
       const genericError: ErrorResponse = {
         error: true,
-        message: err.message || 'Unknown error',
+        message: 'An unexpected error occurred while fetching data from CoinGecko.',
       };
       return genericError;
     }

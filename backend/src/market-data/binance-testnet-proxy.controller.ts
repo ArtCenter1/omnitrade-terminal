@@ -10,18 +10,37 @@ export class BinanceTestnetProxyController {
   private readonly baseUrl = 'https://testnet.binance.vision';
 
   /**
+   * Validate that the requested path does not contain malicious sequences
+   */
+  private isValidPath(path: string): boolean {
+    if (!path) return true;
+    // Block path traversal, protocol injection, and null bytes
+    return !path.includes('..') && !path.includes('://') && !path.includes('\0');
+  }
+
+  /**
    * Handle all requests to the Binance Testnet API
    */
   @All('*')
   async proxyRequest(@Req() req: Request): Promise<any> {
     try {
       // Extract the path from the original URL
-      const originalUrl = req.originalUrl;
+      const originalUrl = req?.originalUrl;
       const proxyPrefix = '/api/proxy/binance-testnet';
       let endpoint = '';
 
-      if (originalUrl.startsWith(proxyPrefix)) {
+      if (originalUrl && originalUrl.startsWith(proxyPrefix)) {
         endpoint = originalUrl.substring(proxyPrefix.length);
+      }
+
+      // Security: Validate the endpoint path to prevent path traversal and SSRF
+      if (!this.isValidPath(endpoint)) {
+        this.logger.warn(`Invalid path detected in Binance Testnet proxy request: ${endpoint}`);
+        return {
+          error: true,
+          status: 400,
+          message: 'Invalid request path.',
+        };
       }
 
       // Ensure endpoint starts with /api if it doesn't already
@@ -85,13 +104,13 @@ export class BinanceTestnetProxyController {
 
         return {
           error: true,
-          message: `No response from Binance Testnet API: ${error.message}`,
+          message: 'An error occurred while connecting to Binance Testnet.',
         };
       } else {
         // Something happened in setting up the request that triggered an Error
         return {
           error: true,
-          message: `Error setting up request: ${error.message}`,
+          message: 'An unexpected error occurred.',
         };
       }
     }

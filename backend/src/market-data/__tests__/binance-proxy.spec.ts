@@ -48,7 +48,7 @@ describe('BinanceTestnetProxyController', () => {
       error: true,
       status: 400,
       // data: mockErrorData, // No longer leaked
-      message: 'Binance Testnet API error: Request failed with status code 400',
+      message: 'An error occurred while fetching data from Binance Testnet.',
     });
     expect(result['data']).toBeUndefined();
   });
