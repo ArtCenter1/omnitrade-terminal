@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { Server } from 'socket.io';
 import { createServer } from 'http';
 import { io as Client, Socket as ClientSocket } from 'socket.io-client';
@@ -8,6 +8,9 @@ import Redis from 'ioredis';
 import { MarketDataModule } from '../market-data.module';
 import { RateLimitMiddleware } from '../rate-limit.middleware';
 import { MarketDataService } from '../market-data.service';
+import { ConfigModule } from '@nestjs/config';
+import { RedisService } from '../../redis/redis.service';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 
 jest.mock('ioredis');
 
@@ -37,14 +40,23 @@ describe('Market Data API (e2e)', () => {
     ).mockImplementation(() => redisMock);
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [MarketDataModule],
-    }).compile();
+      imports: [
+        ConfigModule.forRoot({ isGlobal: true }),
+        MarketDataModule,
+      ],
+    })
+      .overrideProvider(RedisService)
+      .useValue(redisMock)
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api');
     app.useGlobalPipes(
       new ValidationPipe({ whitelist: true, transform: true }),
     );
-    app.use(new RateLimitMiddleware().use.bind(new RateLimitMiddleware()));
+    app.use(new RateLimitMiddleware(redisMock as any).use.bind(new RateLimitMiddleware(redisMock as any)));
 
     await app.init();
 
@@ -65,10 +77,10 @@ describe('Market Data API (e2e)', () => {
   });
 
   afterAll(async () => {
-    clientSocket.close();
-    ioServer.close();
-    server.close();
-    await app.close();
+    if (clientSocket) clientSocket.close();
+    if (ioServer) ioServer.close();
+    if (server) server.close();
+    if (app) await app.close();
   });
 
   describe('REST API', () => {
@@ -77,39 +89,29 @@ describe('Market Data API (e2e)', () => {
       redisMock.set.mockReset();
     });
 
-    it('/symbols - should return symbols from cache', async () => {
-      redisMock.get.mockResolvedValue(JSON.stringify(['BTC/USD', 'ETH/USD']));
-      const res = await request(app.getHttpServer()).get(
-        '/api/v1/market-data/symbols',
-      );
-      expect(res.status).toBe(200);
-      expect(res.body).toEqual(['BTC/USD', 'ETH/USD']);
-    });
-
-    it('/ticker - validation error on missing symbol', async () => {
-      const res = await request(app.getHttpServer()).get(
-        '/api/v1/market-data/ticker',
-      );
-      expect(res.status).toBe(400);
-    });
-
-    it('/ticker - success with cache miss triggers fetch', async () => {
-      redisMock.get.mockResolvedValue(null);
-      redisMock.set.mockResolvedValue('OK');
-      jest.spyOn(MarketDataService.prototype, 'getTicker').mockResolvedValue({
-        symbol: 'BTC/USD',
-        price: '100',
-        volume: '1000',
-        change: '0',
-        changePercent: '0',
-        high: '110',
-        low: '90',
+    it('/markets - should return markets from cache', async () => {
+      const mockMarkets = [{ id: 'bitcoin', symbol: 'btc', name: 'Bitcoin', current_price: 50000 }];
+      redisMock.get.mockImplementation((key: string) => {
+        if (key.includes('markets')) return Promise.resolve(JSON.stringify(mockMarkets));
+        return Promise.resolve(null);
       });
       const res = await request(app.getHttpServer()).get(
-        '/api/v1/market-data/ticker?symbol=BTC/USD',
+        '/api/v1/market-data/markets',
       );
       expect(res.status).toBe(200);
-      expect(res.body).toEqual({ price: '100' });
+      expect(res.body).toEqual(mockMarkets);
+    });
+
+    it('/markets - success with cache miss triggers fetch', async () => {
+      const mockMarkets = [{ id: 'bitcoin', symbol: 'btc', name: 'Bitcoin', current_price: 50000 }] as any;
+      redisMock.get.mockResolvedValue(null);
+      redisMock.set.mockResolvedValue('OK');
+      jest.spyOn(MarketDataService.prototype, 'getMarkets').mockResolvedValue(mockMarkets);
+      const res = await request(app.getHttpServer()).get(
+        '/api/v1/market-data/markets',
+      );
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual(mockMarkets);
     });
 
     it('/orderbook - invalid limit param', async () => {
@@ -146,7 +148,7 @@ describe('Market Data API (e2e)', () => {
       redisMock.incr.mockResolvedValue(1);
       redisMock.expire.mockResolvedValue(1);
       const res = await request(app.getHttpServer()).get(
-        '/api/v1/market-data/symbols',
+        '/api/v1/market-data/markets',
       );
       expect(res.status).toBe(200);
     });
@@ -154,7 +156,7 @@ describe('Market Data API (e2e)', () => {
     it('should block requests over limit for anonymous', async () => {
       redisMock.incr.mockResolvedValue(11);
       const res = await request(app.getHttpServer()).get(
-        '/api/v1/market-data/symbols',
+        '/api/v1/market-data/markets',
       );
       expect(res.status).toBe(429);
     });
@@ -163,7 +165,7 @@ describe('Market Data API (e2e)', () => {
       redisMock.incr.mockResolvedValue(50);
       redisMock.expire.mockResolvedValue(1);
       const res = await request(app.getHttpServer())
-        .get('/api/v1/market-data/symbols')
+        .get('/api/v1/market-data/markets')
         .set('x-api-key', 'my-key');
       expect(res.status).toBe(200);
     });
@@ -171,7 +173,7 @@ describe('Market Data API (e2e)', () => {
     it('should block requests over limit for API key user', async () => {
       redisMock.incr.mockResolvedValue(101);
       const res = await request(app.getHttpServer())
-        .get('/api/v1/market-data/symbols')
+        .get('/api/v1/market-data/markets')
         .set('x-api-key', 'my-key');
       expect(res.status).toBe(429);
     });

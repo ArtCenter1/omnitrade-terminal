@@ -1,4 +1,11 @@
-import { Controller, All, Req, Logger, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  All,
+  Req,
+  Logger,
+  UseGuards,
+  HttpException,
+} from '@nestjs/common';
 import axios from 'axios';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -8,6 +15,17 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 export class BinanceTestnetProxyController {
   private readonly logger = new Logger(BinanceTestnetProxyController.name);
   private readonly baseUrl = 'https://testnet.binance.vision';
+
+  /**
+   * Validates the path to prevent path traversal, protocol injection, and null bytes.
+   */
+  private isValidPath(path: string): boolean {
+    if (!path) return true;
+    // Check for path traversal, protocol injection, and null bytes
+    return (
+      !path.includes('..') && !path.includes('://') && !path.includes('\0')
+    );
+  }
 
   /**
    * Handle all requests to the Binance Testnet API
@@ -22,6 +40,13 @@ export class BinanceTestnetProxyController {
 
       if (originalUrl.startsWith(proxyPrefix)) {
         endpoint = originalUrl.substring(proxyPrefix.length);
+      }
+
+      // Validate the requested endpoint and originalUrl path
+      if (!this.isValidPath(endpoint) || !this.isValidPath(originalUrl)) {
+        this.logger.warn(`Blocked potentially malicious request to: ${endpoint}`);
+        // For security reasons, we throw the error directly so it's not caught by the internal catch block
+        throw new HttpException('Invalid request path', 400);
       }
 
       // Ensure endpoint starts with /api if it doesn't already
@@ -59,6 +84,11 @@ export class BinanceTestnetProxyController {
       this.logger.log(`Request successful for ${finalUrl}`);
       return response.data;
     } catch (error) {
+      // Re-throw HttpExceptions so they are handled by NestJS
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
       this.logger.error(`Error proxying request: ${error.message}`);
 
       // Return error details
