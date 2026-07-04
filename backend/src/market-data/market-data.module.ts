@@ -1,5 +1,6 @@
 import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { RedisModule } from '../redis/redis.module';
 import { MarketDataController } from './market-data.controller';
 import { MarketDataService } from './market-data.service';
 import { MarketDataGateway } from './market-data.gateway';
@@ -9,7 +10,7 @@ import { BinanceTestnetProxyController } from './binance-testnet-proxy.controlle
 import { CircuitBreakerService } from './circuit-breaker.service';
 
 @Module({
-  imports: [ConfigModule.forRoot()], // Add ConfigModule here
+  imports: [ConfigModule.forRoot(), RedisModule], // Add ConfigModule here
   controllers: [
     MarketDataController,
     CoinGeckoProxyController,
