@@ -22,7 +22,9 @@ export class RedisService implements OnModuleInit {
     try {
       const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 
-      this.logger.log(`Attempting to connect to Redis at ${redisUrl}`);
+      // Mask password in logs to prevent sensitive information leakage
+      const maskedUrl = redisUrl.replace(/\/\/([^:]*):([^@]+)@/, '//$1:****@');
+      this.logger.log(`Attempting to connect to Redis at ${maskedUrl}`);
 
       this.client = new Redis(redisUrl, {
         maxRetriesPerRequest: 3,
