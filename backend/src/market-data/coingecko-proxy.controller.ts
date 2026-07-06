@@ -8,6 +8,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import axios from 'axios';
+import { isValidPath } from '../utils/security.util';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Request } from 'express';
 import { RedisService } from '../redis/redis.service';
@@ -345,16 +346,15 @@ export class CoinGeckoProxyController {
     @Param('path') path: string,
   ): Promise<CoinGeckoResponse | ErrorResponse> {
     try {
-      // Extract the path from the original URL
-      const originalUrl = req.originalUrl;
-      const proxyPrefix = '/api/proxy/coingecko/';
-      let endpoint = '';
-
-      if (originalUrl.startsWith(proxyPrefix)) {
-        endpoint = originalUrl.substring(proxyPrefix.length);
-      } else if (path) {
-        endpoint = path.startsWith('/') ? path.substring(1) : path;
+      // Security: Validate path to prevent traversal attacks
+      if (!isValidPath(path)) {
+        this.logger.warn(`Potential path traversal attempt blocked: ${path}`);
+        throw new HttpException('Invalid path', 400);
       }
+
+      // Use the validated path parameter directly to build the target URL
+      // This prevents bypasses where req.originalUrl is used instead
+      const endpoint = path.startsWith('/') ? path.substring(1) : path;
 
       // Build the target URL
       const targetUrl = `${this.baseUrl}/${endpoint}`;
@@ -487,6 +487,9 @@ export class CoinGeckoProxyController {
         throw error;
       }
     } catch (error: unknown) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
       const err = error as Error;
       this.logger.error(
         `Error proxying request to CoinGecko: ${err.message || 'Unknown error'}`,

@@ -1,5 +1,6 @@
 import { Controller, All, Req, Logger, UseGuards } from '@nestjs/common';
 import axios from 'axios';
+import { isValidPath } from '../utils/security.util';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -15,21 +16,29 @@ export class BinanceTestnetProxyController {
   @All('*')
   async proxyRequest(@Req() req: Request): Promise<any> {
     try {
-      // Extract the path from the original URL
-      const originalUrl = req.originalUrl;
-      const proxyPrefix = '/api/proxy/binance-testnet';
-      let endpoint = '';
+      // Security: Validate path to prevent traversal attacks
+      // req.params?.[0] contains the wildcard path segment in NestJS
+      let endpoint = req.params?.[0];
+      if (endpoint && !isValidPath(endpoint)) {
+        this.logger.warn(`Potential path traversal attempt blocked: ${endpoint}`);
+        return {
+          error: true,
+          status: 400,
+          message: 'Invalid path',
+        };
+      }
 
-      if (originalUrl.startsWith(proxyPrefix)) {
-        endpoint = originalUrl.substring(proxyPrefix.length);
+      // If no endpoint is provided, default to an empty string
+      if (!endpoint) {
+        endpoint = '';
       }
 
       // Ensure endpoint starts with /api if it doesn't already
       if (!endpoint.startsWith('/api')) {
-        endpoint = `/api${endpoint}`;
+        endpoint = endpoint.startsWith('/') ? `/api${endpoint}` : `/api/${endpoint}`;
       }
 
-      // Extract the endpoint without query parameters
+      // Build target URL using the validated endpoint
       const targetUrl = `${this.baseUrl}${endpoint.split('?')[0]}`;
 
       // Parse the query parameters from the original URL
