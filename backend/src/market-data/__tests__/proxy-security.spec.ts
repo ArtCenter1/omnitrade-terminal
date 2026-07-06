@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call */
 import { Test, TestingModule } from '@nestjs/testing';
 import { CoinGeckoProxyController } from '../coingecko-proxy.controller';
 import { BinanceTestnetProxyController } from '../binance-testnet-proxy.controller';
@@ -5,6 +6,7 @@ import { RedisService } from '../../redis/redis.service';
 import { CircuitBreakerService } from '../circuit-breaker.service';
 import axios from 'axios';
 import { Request } from 'express';
+import { HttpException } from '@nestjs/common';
 
 jest.mock('axios');
 
@@ -120,6 +122,59 @@ describe('Proxy Controllers Security', () => {
       expect(result.error).toBe(true);
       // VULNERABILITY: This expectation should fail if the fix is implemented correctly
       expect(result.data).toBeUndefined();
+    });
+  });
+
+  describe('Path Validation Security', () => {
+    it('should block path traversal attempts in CoinGeckoProxyController', async () => {
+      const mockRequest = {
+        method: 'GET',
+        originalUrl: '/api/proxy/coingecko/../../etc/passwd',
+        query: {},
+      } as unknown as Request;
+
+      try {
+        await coingeckoController.proxyRequest(mockRequest, '../../etc/passwd');
+        throw new Error('Should have thrown an error');
+      } catch (error: any) {
+        expect(error).toBeInstanceOf(HttpException);
+        expect(error.message).toBe('Invalid path');
+        expect(error.getStatus()).toBe(400);
+      }
+    });
+
+    it('should block injection characters in CoinGeckoProxyController', async () => {
+      const mockRequest = {
+        method: 'GET',
+        originalUrl: '/api/proxy/coingecko/simple/price;rm -rf /',
+        query: {},
+      } as unknown as Request;
+
+      try {
+        await coingeckoController.proxyRequest(
+          mockRequest,
+          'simple/price;rm -rf /',
+        );
+        throw new Error('Should have thrown an error');
+      } catch (error: any) {
+        expect(error).toBeInstanceOf(HttpException);
+        expect(error.message).toBe('Invalid path');
+        expect(error.getStatus()).toBe(400);
+      }
+    });
+
+    it('should block path traversal attempts in BinanceTestnetProxyController', async () => {
+      const mockRequest = {
+        method: 'GET',
+        originalUrl: '/api/proxy/binance-testnet/../../etc/passwd',
+        params: { '0': '../../etc/passwd' },
+      } as unknown as Request;
+
+      const result: any = await binanceController.proxyRequest(mockRequest);
+
+      expect(result.error).toBe(true);
+      expect(result.message).toBe('Invalid path');
+      expect(result.status).toBe(400);
     });
   });
 });
