@@ -10,6 +10,7 @@ import {
 import axios from 'axios';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Request } from 'express';
+import { isValidPath } from '../utils/security.util';
 import { RedisService } from '../redis/redis.service';
 import {
   CircuitBreakerService,
@@ -356,6 +357,16 @@ export class CoinGeckoProxyController {
         endpoint = path.startsWith('/') ? path.substring(1) : path;
       }
 
+      // Security: Validate the endpoint path to prevent traversal or SSRF
+      // Strip query parameters before validation
+      const validationPath = endpoint.split('?')[0];
+      if (!isValidPath(validationPath)) {
+        this.logger.warn(
+          `Blocked potentially malicious proxy path: ${endpoint}`,
+        );
+        throw new HttpException('Invalid proxy path', 400);
+      }
+
       // Build the target URL
       const targetUrl = `${this.baseUrl}/${endpoint}`;
 
@@ -487,6 +498,9 @@ export class CoinGeckoProxyController {
         throw error;
       }
     } catch (error: unknown) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
       const err = error as Error;
       this.logger.error(
         `Error proxying request to CoinGecko: ${err.message || 'Unknown error'}`,
@@ -503,6 +517,8 @@ export class CoinGeckoProxyController {
               : 'An error occurred while fetching data from CoinGecko.',
           // Security: Do not leak raw error data from upstream API
         };
+        // Explicitly ensure data is not included
+        delete (errorResponse as any).data;
         return errorResponse;
       }
 
