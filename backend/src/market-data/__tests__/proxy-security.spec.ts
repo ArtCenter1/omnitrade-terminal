@@ -121,5 +121,101 @@ describe('Proxy Controllers Security', () => {
       // VULNERABILITY: This expectation should fail if the fix is implemented correctly
       expect(result.data).toBeUndefined();
     });
+
+    it('should block path traversal attempts in CoinGecko proxy', async () => {
+      const mockRequest = {
+        method: 'GET',
+        originalUrl: '/api/proxy/coingecko/../../etc/passwd',
+        query: {},
+      } as unknown as Request;
+
+      await expect(
+        coingeckoController.proxyRequest(mockRequest, '../../etc/passwd'),
+      ).rejects.toThrow('Invalid proxy path');
+    });
+
+    it('should block encoded path traversal attempts in CoinGecko proxy', async () => {
+      const mockRequest = {
+        method: 'GET',
+        originalUrl: '/api/proxy/coingecko/%2e%2e%2f%2e%2e%2fetc%2fpasswd',
+        query: {},
+      } as unknown as Request;
+
+      await expect(
+        coingeckoController.proxyRequest(
+          mockRequest,
+          '%2e%2e%2f%2e%2e%2fetc%2fpasswd',
+        ),
+      ).rejects.toThrow('Invalid proxy path');
+    });
+  });
+
+  describe('BinanceTestnetProxyController Security', () => {
+    it('should not leak raw error data from upstream Binance API', async () => {
+      const mockErrorResponse = {
+        response: {
+          status: 400,
+          data: {
+            code: -1102,
+            msg: 'Mandatory parameter "symbol" was not sent, was empty/null, or wrong format.',
+            internal_stack: 'at internal/logic.js:100',
+          },
+        },
+        message: 'Bad Request',
+      };
+
+      (axios as unknown as jest.Mock).mockRejectedValueOnce(mockErrorResponse);
+      (axios.isAxiosError as unknown as jest.Mock).mockReturnValue(true);
+
+      const mockRequest = {
+        method: 'GET',
+        originalUrl: '/api/proxy/binance-testnet/ticker/price',
+        url: '/api/proxy/binance-testnet/ticker/price',
+      } as unknown as Request;
+
+      const result: any = await binanceController.proxyRequest(mockRequest);
+
+      expect(result.error).toBe(true);
+      // VULNERABILITY: This expectation should fail if the fix is implemented correctly
+      expect(result.data).toBeUndefined();
+    });
+
+    it('should block path traversal attempts in Binance proxy', async () => {
+      const mockRequest = {
+        method: 'GET',
+        originalUrl: '/api/proxy/binance-testnet/../../secret.txt',
+        url: '/api/proxy/binance-testnet/../../secret.txt',
+      } as unknown as Request;
+
+      await expect(binanceController.proxyRequest(mockRequest)).rejects.toThrow(
+        'Invalid proxy path',
+      );
+    });
+
+    it('should block protocol injection attempts in Binance proxy', async () => {
+      const mockRequest = {
+        method: 'GET',
+        originalUrl: '/api/proxy/binance-testnet/http://attacker.com',
+        url: '/api/proxy/binance-testnet/http://attacker.com',
+      } as unknown as Request;
+
+      await expect(binanceController.proxyRequest(mockRequest)).rejects.toThrow(
+        'Invalid proxy path',
+      );
+    });
+
+    it('should allow legitimate requests with query parameters in Binance proxy', async () => {
+      const mockResponse = { data: { price: '100.00' } };
+      (axios as unknown as jest.Mock).mockResolvedValueOnce(mockResponse);
+
+      const mockRequest = {
+        method: 'GET',
+        originalUrl: '/api/proxy/binance-testnet/ticker/price?symbol=BTCUSDT',
+        url: '/api/proxy/binance-testnet/ticker/price?symbol=BTCUSDT',
+      } as unknown as Request;
+
+      const result = await binanceController.proxyRequest(mockRequest);
+      expect(result).toEqual(mockResponse.data);
+    });
   });
 });

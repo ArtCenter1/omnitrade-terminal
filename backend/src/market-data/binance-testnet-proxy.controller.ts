@@ -1,7 +1,15 @@
-import { Controller, All, Req, Logger, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  All,
+  Req,
+  Logger,
+  UseGuards,
+  HttpException,
+} from '@nestjs/common';
 import axios from 'axios';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { isValidPath } from '../utils/security.util';
 
 @Controller('proxy/binance-testnet')
 @UseGuards(JwtAuthGuard)
@@ -22,6 +30,16 @@ export class BinanceTestnetProxyController {
 
       if (originalUrl.startsWith(proxyPrefix)) {
         endpoint = originalUrl.substring(proxyPrefix.length);
+      }
+
+      // Security: Validate the endpoint path to prevent traversal or SSRF
+      // Strip query parameters before validation
+      const validationPath = endpoint.split('?')[0];
+      if (!isValidPath(validationPath)) {
+        this.logger.warn(
+          `Blocked potentially malicious proxy path: ${endpoint}`,
+        );
+        throw new HttpException('Invalid proxy path', 400);
       }
 
       // Ensure endpoint starts with /api if it doesn't already
@@ -59,6 +77,9 @@ export class BinanceTestnetProxyController {
       this.logger.log(`Request successful for ${finalUrl}`);
       return response.data;
     } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
       this.logger.error(`Error proxying request: ${error.message}`);
 
       // Return error details
@@ -70,7 +91,7 @@ export class BinanceTestnetProxyController {
           `Response error data (internal only): ${JSON.stringify(error.response.data)}`,
         );
 
-        return {
+        const errorResponse: any = {
           error: true,
           status: error.response.status,
           // Security: Do not leak raw error data from upstream API
@@ -79,6 +100,9 @@ export class BinanceTestnetProxyController {
               ? 'Binance Testnet rate limit exceeded. Please try again later.'
               : 'An error occurred while fetching data from Binance Testnet.',
         };
+        // Explicitly ensure data is not included
+        delete errorResponse.data;
+        return errorResponse;
       } else if (error.request) {
         // The request was made but no response was received
         this.logger.error(`No response received: ${error.request}`);
