@@ -19,11 +19,10 @@ let serviceAccount: admin.ServiceAccount;
 try {
   const rawData = fs.readFileSync(serviceAccountPath, 'utf8');
   serviceAccount = JSON.parse(rawData) as admin.ServiceAccount;
-  logger.log(
-    'Firebase service account loaded successfully from: ' + serviceAccountPath,
-  );
+  logger.log('Firebase service account loaded successfully');
 } catch (error) {
-  logger.error('Error loading Firebase service account:', error);
+  // Security: Avoid logging the absolute path in the error message or thrown Error
+  logger.error('Error loading Firebase service account');
   throw new Error(
     'Failed to load Firebase service account. Please check the file exists and has correct permissions.',
   );

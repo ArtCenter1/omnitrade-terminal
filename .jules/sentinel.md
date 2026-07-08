@@ -41,3 +41,8 @@
 **Vulnerability:** Proxy endpoints in `CoinGeckoProxyController` and `BinanceTestnetProxyController` were directly appending user-provided path segments to their base URLs without validation, allowing for path traversal (e.g., `/../`) and protocol injection (e.g., `http://`).
 **Learning:** Even when using a `proxyPrefix`, raw path segments must be validated against a whitelist and checked for traversal patterns to prevent unauthorized access to internal files or redirection of requests to malicious external servers (SSRF).
 **Prevention:** Implement a robust path validation utility that decodes URI components, checks for `..` and `://`, and enforces a strict character whitelist. Always strip query parameters before validating the path if the controller handles them separately.
+
+## 2026-07-20 - Internal Filesystem Path Disclosure in Logs
+**Vulnerability:** `FirebaseAuthMiddleware` was logging the absolute filesystem path to the Firebase service account JSON file upon successful initialization and during error conditions.
+**Learning:** Absolute paths reveal the server's internal directory structure, which can be useful for attackers in reconnaissance or when combined with other vulnerabilities like path traversal.
+**Prevention:** Sanitize all logs to ensure they only contain necessary operational information. Avoid logging sensitive configuration details, such as absolute paths or internal server IP addresses.
