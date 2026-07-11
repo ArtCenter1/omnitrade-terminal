@@ -105,17 +105,18 @@ export class BinanceTestnetProxyController {
         return errorResponse;
       } else if (error.request) {
         // The request was made but no response was received
-        this.logger.error(`No response received: ${error.request}`);
+        this.logger.error(`No response received for Binance Testnet: ${error.message}`);
 
         return {
           error: true,
-          message: `No response from Binance Testnet API: ${error.message}`,
+          message: 'No response from Binance Testnet API. Please try again later.',
         };
       } else {
         // Something happened in setting up the request that triggered an Error
+        this.logger.error(`Error setting up Binance Testnet request: ${error.message}`);
         return {
           error: true,
-          message: `Error setting up request: ${error.message}`,
+          message: 'An error occurred while setting up the request to Binance Testnet.',
         };
       }
     }
