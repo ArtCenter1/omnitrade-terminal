@@ -524,7 +524,7 @@ export class CoinGeckoProxyController {
 
       const genericError: ErrorResponse = {
         error: true,
-        message: err.message || 'Unknown error',
+        message: 'An unexpected error occurred while processing the CoinGecko request.',
       };
       return genericError;
     }
