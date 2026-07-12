@@ -19,13 +19,13 @@ let serviceAccount: admin.ServiceAccount;
 try {
   const rawData = fs.readFileSync(serviceAccountPath, 'utf8');
   serviceAccount = JSON.parse(rawData) as admin.ServiceAccount;
-  logger.log(
-    'Firebase service account loaded successfully from: ' + serviceAccountPath,
-  );
+  logger.log('Firebase service account loaded successfully');
 } catch (error) {
-  logger.error('Error loading Firebase service account:', error);
+  // Security: Do not leak absolute filesystem path in error logs or messages
+  // But keep the error object in internal logs for debugging
+  logger.error('Error loading Firebase service account', error);
   throw new Error(
-    'Failed to load Firebase service account. Please check the file exists and has correct permissions.',
+    'Failed to load Firebase service account. Please check the configuration.',
   );
 }
 
@@ -45,7 +45,7 @@ if (!admin.apps.length) {
 @Injectable()
 export class FirebaseAuthMiddleware implements NestMiddleware {
   async use(
-    req: Request & { user?: { user_id: string } },
+    req: Request & { user?: { user_id: string; email?: string } },
     res: Response,
     next: NextFunction,
   ) {
@@ -60,7 +60,10 @@ export class FirebaseAuthMiddleware implements NestMiddleware {
     try {
       const decodedToken = await admin.auth().verifyIdToken(token);
       // Attach user info to the request object
-      req.user = { user_id: decodedToken.uid };
+      req.user = {
+        user_id: decodedToken.uid,
+        email: decodedToken.email,
+      };
       logger.debug(`Authenticated user: ${decodedToken.uid}`);
       next();
     } catch (error) {
