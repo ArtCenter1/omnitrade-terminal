@@ -58,7 +58,8 @@ export class FirebaseAuthMiddleware implements NestMiddleware {
     }
 
     try {
-      const decodedToken = await admin.auth().verifyIdToken(token);
+      // Security: Enable checkRevoked to ensure the token has not been revoked
+      const decodedToken = await admin.auth().verifyIdToken(token, true);
       // Attach user info to the request object
       req.user = { user_id: decodedToken.uid };
       logger.debug(`Authenticated user: ${decodedToken.uid}`);
