@@ -3,12 +3,15 @@ import {
   CanActivate,
   ExecutionContext,
   UnauthorizedException,
+  Logger,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import * as admin from 'firebase-admin';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
+  private readonly logger = new Logger(JwtAuthGuard.name);
+
   canActivate(
     context: ExecutionContext,
   ): boolean | Promise<boolean> | Observable<boolean> {
@@ -36,7 +39,7 @@ export class JwtAuthGuard implements CanActivate {
 
       return true;
     } catch (error) {
-      console.error('Error validating token:', error);
+      this.logger.error('Error validating token:', error);
       throw new UnauthorizedException('Invalid token');
     }
   }
