@@ -58,7 +58,8 @@ export class FirebaseAuthMiddleware implements NestMiddleware {
     }
 
     try {
-      const decodedToken = await admin.auth().verifyIdToken(token);
+      // Verify the Firebase token with checkRevoked=true for enhanced security
+      const decodedToken = await admin.auth().verifyIdToken(token, true);
       // Attach user info to the request object
       req.user = { user_id: decodedToken.uid };
       logger.debug(`Authenticated user: ${decodedToken.uid}`);
@@ -70,6 +71,8 @@ export class FirebaseAuthMiddleware implements NestMiddleware {
       const firebaseError = error as { code?: string; message?: string };
       if (firebaseError.code === 'auth/id-token-expired') {
         return res.status(401).json({ error: 'Token expired' });
+      } else if (firebaseError.code === 'auth/id-token-revoked') {
+        return res.status(401).json({ error: 'Token revoked' });
       } else if (firebaseError.code === 'auth/argument-error') {
         return res.status(401).json({ error: 'Invalid token format' });
       } else {
