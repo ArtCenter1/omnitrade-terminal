@@ -41,3 +41,8 @@
 **Vulnerability:** Proxy endpoints in `CoinGeckoProxyController` and `BinanceTestnetProxyController` were directly appending user-provided path segments to their base URLs without validation, allowing for path traversal (e.g., `/../`) and protocol injection (e.g., `http://`).
 **Learning:** Even when using a `proxyPrefix`, raw path segments must be validated against a whitelist and checked for traversal patterns to prevent unauthorized access to internal files or redirection of requests to malicious external servers (SSRF).
 **Prevention:** Implement a robust path validation utility that decodes URI components, checks for `..` and `://`, and enforces a strict character whitelist. Always strip query parameters before validating the path if the controller handles them separately.
+
+## 2026-07-17 - Omission of Firebase ID Token Revocation Checking
+**Vulnerability:** The application was verifying Firebase ID tokens using `admin.auth().verifyIdToken(token)` without checking if the token had been revoked. This allowed compromised, signed, but subsequently revoked tokens (e.g., due to user password resets or explicit revocation actions) to remain authorized.
+**Learning:** Checking signature and expiration of JWTs is a stateless process, but token revocation is a stateful check. Omitting the check creates a security gap where revoked tokens remain active until their natural expiration.
+**Prevention:** Always pass `true` as the second argument to `verifyIdToken(token, checkRevoked)` in Firebase Admin SDK to enforce token revocation validation, and explicitly handle the `'auth/id-token-revoked'` error code.
