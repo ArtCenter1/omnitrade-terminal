@@ -20,7 +20,7 @@ try {
   const rawData = fs.readFileSync(serviceAccountPath, 'utf8');
   serviceAccount = JSON.parse(rawData) as admin.ServiceAccount;
   logger.log(
-    'Firebase service account loaded successfully from: ' + serviceAccountPath,
+    'Firebase service account loaded successfully from: ' + path.basename(serviceAccountPath),
   );
 } catch (error) {
   logger.error('Error loading Firebase service account:', error);
@@ -45,7 +45,7 @@ if (!admin.apps.length) {
 @Injectable()
 export class FirebaseAuthMiddleware implements NestMiddleware {
   async use(
-    req: Request & { user?: { user_id: string } },
+    req: Request & { user?: { user_id: string; email?: string } },
     res: Response,
     next: NextFunction,
   ) {
@@ -58,9 +58,13 @@ export class FirebaseAuthMiddleware implements NestMiddleware {
     }
 
     try {
-      const decodedToken = await admin.auth().verifyIdToken(token);
-      // Attach user info to the request object
-      req.user = { user_id: decodedToken.uid };
+      // Enable ID token revocation check (second argument true)
+      const decodedToken = await admin.auth().verifyIdToken(token, true);
+      // Attach user info to the request object, including email for consistency
+      req.user = {
+        user_id: decodedToken.uid,
+        email: decodedToken.email,
+      };
       logger.debug(`Authenticated user: ${decodedToken.uid}`);
       next();
     } catch (error) {
@@ -68,7 +72,9 @@ export class FirebaseAuthMiddleware implements NestMiddleware {
 
       // For invalid tokens, return 401 Unauthorized
       const firebaseError = error as { code?: string; message?: string };
-      if (firebaseError.code === 'auth/id-token-expired') {
+      if (firebaseError.code === 'auth/id-token-revoked') {
+        return res.status(401).json({ error: 'Token revoked' });
+      } else if (firebaseError.code === 'auth/id-token-expired') {
         return res.status(401).json({ error: 'Token expired' });
       } else if (firebaseError.code === 'auth/argument-error') {
         return res.status(401).json({ error: 'Invalid token format' });
