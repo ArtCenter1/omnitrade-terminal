@@ -1,14 +1,18 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument */
 import {
   Injectable,
   CanActivate,
   ExecutionContext,
   UnauthorizedException,
+  Logger,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import * as admin from 'firebase-admin';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
+  private readonly logger = new Logger(JwtAuthGuard.name);
+
   canActivate(
     context: ExecutionContext,
   ): boolean | Promise<boolean> | Observable<boolean> {
@@ -24,8 +28,8 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     try {
-      // Verify the Firebase token
-      const decodedToken = await admin.auth().verifyIdToken(token);
+      // Security Enhancement: Pass true as the second argument to check for token revocation
+      const decodedToken = await admin.auth().verifyIdToken(token, true);
 
       // Attach the user to the request object
       request.user = {
@@ -36,7 +40,11 @@ export class JwtAuthGuard implements CanActivate {
 
       return true;
     } catch (error) {
-      console.error('Error validating token:', error);
+      this.logger.error('Error validating token:', error);
+      const firebaseError = error as { code?: string; message?: string };
+      if (firebaseError.code === 'auth/id-token-revoked') {
+        throw new UnauthorizedException('Token revoked');
+      }
       throw new UnauthorizedException('Invalid token');
     }
   }
